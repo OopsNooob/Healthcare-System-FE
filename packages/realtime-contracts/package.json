@@ -1,0 +1,12 @@
+{
+  "name": "@healthcare/realtime-contracts",
+  "version": "1.0.0",
+  "main": "index.ts",
+  "dependencies": {
+    "react": "19.0.0",
+    "react-dom": "19.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  }
+}
