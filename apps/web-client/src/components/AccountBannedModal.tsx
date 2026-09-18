@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AlertTriangle, LogOut } from "lucide-react";
 import { Button } from "@repo/ui/components/ui/button";
-import { useAuthStore } from "@repo/ui/store/useAuthStore";
+import { useSharedAuthStore as useAuthStore } from "@repo/shared-hooks";
 import {
   notificationsSocket,
   presenceSocket,

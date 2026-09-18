@@ -29,8 +29,8 @@ import { MyDoctors } from "./features/patient/my-doctor/page/my-doctors";
 import { AiChat } from "./features/patient/ai-chat/page/ai-chat";
 import { DoctorChat } from "./features/patient/doctor-chat/page/doctor-chat";
 import { ConfirmationModal } from "@repo/ui/components/complex-modal/ConfirmationModal";
-import { useAuthStore } from "@repo/ui/store/useAuthStore";
-import { useLogout } from "./features/auth/hooks/useLogout";
+import { useSharedAuthStore as useAuthStore } from "@repo/shared-hooks";
+import { useLogout } from "@repo/shared-hooks";
 import { connectPresenceSocket } from "@/lib/api";
 import { AboutUs } from "./features/shared/pages/about-us";
 import { Services } from "./features/shared/pages/services";
@@ -84,7 +84,6 @@ function SessionExpiredModal() {
 
 function ProtectedRoutes() {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
-  const userId = useAuthStore((state) => state.user?.id || null);
   const { notifications, isLoading, error, markAllAsRead, markAsRead, remove } =
     useNotifications({ enabled: isAuthenticated });
   const { logout } = useLogout();

@@ -1,0 +1,89 @@
+import { useState } from 'react';
+import { View, Text, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { useRouter } from 'expo-router';
+import { Lock, Plus, ArrowLeft } from 'lucide-react-native';
+import { tw } from '@/tw';
+
+export default function ChangePasswordScreen() {
+  const router = useRouter();
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+
+  const handleChangePassword = () => {
+    // Mock navigating back to login
+    router.replace('/(auth)/login');
+  };
+
+  return (
+    <KeyboardAvoidingView 
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={tw('flex-1 bg-slate-50')}
+    >
+      <ScrollView contentContainerStyle={tw('flex-grow items-center justify-center px-6 py-10')}>
+        {/* Back Button */}
+        <TouchableOpacity 
+          style={tw('absolute top-12 left-6 p-2 bg-white rounded-full shadow-sm')}
+          onPress={() => router.back()}
+        >
+          <ArrowLeft color="#1E1E1E" size={24} />
+        </TouchableOpacity>
+
+        {/* Logo area */}
+        <View style={tw('flex-col items-center gap-2 mb-10')}>
+          <View style={tw('flex-row items-center gap-2')}>
+            <Plus color="#10b981" size={32} />
+            <Text style={tw('text-3xl font-bold text-[#313A34]')}>Healthcare</Text>
+          </View>
+        </View>
+
+        {/* Form Card */}
+        <View style={tw('w-full bg-white rounded-3xl border border-gray-200 shadow-sm px-6 py-8')}>
+          <Text style={tw('text-center text-3xl font-bold text-[#313A34] mb-2')}>New Password</Text>
+          <Text style={tw('text-center text-sm text-gray-500 mb-8')}>Create a new strong password for your account.</Text>
+
+          <View style={tw('gap-4')}>
+            {/* Password Field */}
+            <View style={tw('gap-1.5')}>
+              <Text style={tw('text-sm font-medium text-[#1E1E1E]')}>New Password</Text>
+              <View style={tw('flex-row items-center bg-gray-50 rounded-2xl px-4 py-3 border border-gray-200')}>
+                <Lock color="#9ca3af" size={20} />
+                <TextInput
+                  style={tw('flex-1 ml-3 text-base text-gray-900')}
+                  placeholder="Enter new password"
+                  placeholderTextColor="#9ca3af"
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry
+                />
+              </View>
+            </View>
+
+            {/* Confirm Password Field */}
+            <View style={tw('gap-1.5 mt-2')}>
+              <Text style={tw('text-sm font-medium text-[#1E1E1E]')}>Confirm Password</Text>
+              <View style={tw('flex-row items-center bg-gray-50 rounded-2xl px-4 py-3 border border-gray-200')}>
+                <Lock color="#9ca3af" size={20} />
+                <TextInput
+                  style={tw('flex-1 ml-3 text-base text-gray-900')}
+                  placeholder="Confirm new password"
+                  placeholderTextColor="#9ca3af"
+                  value={confirmPassword}
+                  onChangeText={setConfirmPassword}
+                  secureTextEntry
+                />
+              </View>
+            </View>
+
+            {/* Submit Button */}
+            <TouchableOpacity 
+              style={tw('h-12 w-full bg-emerald-500 rounded-2xl items-center justify-center mt-4')}
+              onPress={handleChangePassword}
+            >
+              <Text style={tw('text-white text-base font-semibold')}>Change Password</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
+  );
+}

@@ -1,5 +1,5 @@
 import axios, { type AxiosError, type InternalAxiosRequestConfig } from "axios";
-import { useAuthStore } from "@repo/ui/store/useAuthStore";
+import { useSharedAuthStore as useAuthStore } from "@repo/shared-hooks";
 import { io } from "socket.io-client";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;

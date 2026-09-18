@@ -19,7 +19,7 @@ import { useConsultations } from "../hooks/useConsultations";
 import { type MessageApiResponse } from "../services/doctor-chat.service";
 import { useSessionChat } from "../hooks/useDoctorChat";
 import { showToast } from "@repo/ui/components/ui/toasts";
-import { useAuthStore } from "@repo/ui/store/useAuthStore";
+import { useSharedAuthStore as useAuthStore } from "@repo/shared-hooks";
 import { usePresenceStatus } from "@/features/shared/hooks/usePresenceStatus";
 import { useReport } from "@/features/shared/hooks/useReport";
 import { useViewProfile } from "@/features/shared/hooks/useProfile";

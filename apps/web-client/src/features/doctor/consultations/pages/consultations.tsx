@@ -16,7 +16,7 @@ import { ChatWindow } from "@/features/chat/window/chat-window";
 import type { SendMessagePayload } from "@/features/chat/components/send-bar";
 import type { ChatMessage } from "@/features/chat/components/message";
 import { useConsultations } from "../hooks/useConsultations";
-import { useAuthStore } from "@repo/ui/store/useAuthStore";
+import { useSharedAuthStore as useAuthStore } from "@repo/shared-hooks";
 import { usePresenceStatus } from "@/features/shared/hooks/usePresenceStatus";
 import { useViewProfile } from "@/features/shared/hooks/useProfile";
 import { useReport } from "@/features/shared/hooks/useReport";

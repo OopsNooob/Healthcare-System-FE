@@ -13,7 +13,7 @@ import { Mail } from "lucide-react";
 import { Spinner } from "@repo/ui/components/ui/spinner";
 import { showToast } from "@repo/ui/components/ui/toasts";
 import { Header } from "@/features/auth/components/authen_header";
-import { useConfirmOtp } from "../hooks/useConfirmOtp";
+import { useConfirmOtp  } from "@repo/shared-hooks";
 import { useNavigate } from "react-router-dom";
 
 interface ConfirmOTPProps {

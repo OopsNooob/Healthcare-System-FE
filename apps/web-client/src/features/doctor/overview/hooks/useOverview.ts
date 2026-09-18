@@ -3,7 +3,7 @@ import {
   getOverviewSummary,
   type DoctorOverviewSummary,
 } from "../services/overview.service";
-import { useAuthStore } from "@repo/ui/store/useAuthStore";
+import { useSharedAuthStore as useAuthStore } from "@repo/shared-hooks";
 
 export function useOverviewSummary() {
   const [summary, setSummary] = useState<DoctorOverviewSummary | null>(null);

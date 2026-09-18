@@ -13,7 +13,7 @@ import { FormEvent, useState, useEffect } from "react";
 import { Mail } from "lucide-react";
 import { Spinner } from "@repo/ui/components/ui/spinner";
 import { showToast } from "@repo/ui/components/ui/toasts";
-import { useForgotPassword } from "../hooks/useForgotPassword";
+import { useForgotPassword  } from "@repo/shared-hooks";
 import { useNavigate } from "react-router-dom";
 
 interface ForgetPasswordProps {

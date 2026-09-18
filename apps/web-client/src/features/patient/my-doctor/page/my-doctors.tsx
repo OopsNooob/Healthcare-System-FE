@@ -7,7 +7,7 @@ import { RequestModal } from "../components/request-modal";
 import { useMyDoctor } from "../hooks/useMyDoctor";
 import { useViewProfile } from "@/features/shared/hooks/useProfile";
 import { doctorSpecialty } from "../services/my-doctor.service";
-import { useAuthStore } from "@repo/ui/store/useAuthStore";
+import { useSharedAuthStore as useAuthStore } from "@repo/shared-hooks";
 
 export function MyDoctors() {
   const [searchTerm, setSearchTerm] = useState("");

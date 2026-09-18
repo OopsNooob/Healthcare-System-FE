@@ -1,0 +1,29 @@
+{
+  "name": "@repo/shared-hooks",
+  "version": "0.0.0",
+  "private": true,
+  "main": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "lint": "eslint . --max-warnings 0",
+    "check-types": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@repo/eslint-config": "workspace:*",
+    "@repo/typescript-config": "workspace:*",
+    "@types/node": "^20.0.0",
+    "@types/react": "19.2.2",
+    "eslint": "^9.39.1",
+    "typescript": "5.9.2"
+  },
+  "dependencies": {
+    "react": "^19.0.0",
+    "@healthcare/api-client": "workspace:*",
+    "@repo/shared-types": "workspace:*",
+    "axios": "^1.7.0",
+    "socket.io-client": "^4.7.0",
+    "zustand": "^5.0.0"
+  }
+}

@@ -14,7 +14,7 @@ import { Spinner } from "@repo/ui/components/ui/spinner";
 import { showToast } from "@repo/ui/components/ui/toasts";
 import { Header } from "@/features/auth/components/authen_header";
 import { useNavigate } from "react-router-dom";
-import { useChangePassword } from "../hooks/useChangePassword";
+import { useChangePassword  } from "@repo/shared-hooks";
 interface ChangePasswordProps {
   /** Xử lý submit — nhận email và password */
   onSubmit?: (values: {

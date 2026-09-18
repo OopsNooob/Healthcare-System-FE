@@ -11,6 +11,9 @@
   },
   "dependencies": {
     "@fontsource-variable/geist": "^5.2.8",
+    "@healthcare/api-client": "workspace:*",
+    "@radix-ui/react-tooltip": "^1.1.8",
+    "@repo/shared-hooks": "workspace:*",
     "@repo/shared-types": "workspace:*",
     "@repo/ui": "workspace:*",
     "@tanstack/react-query": "^5.102.8",

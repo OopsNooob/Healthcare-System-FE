@@ -6,11 +6,10 @@ import { Cross } from "lucide-react";
 import { showToast } from "@repo/ui/components/ui/toasts";
 import authenImage from "@/features/auth/images/authen_image.png";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { useSignUpDoctor, useSignUpPatient } from "../hooks/useSignUp";
-import {
-  type SignUpDoctor,
+import { useSignUpDoctor, useSignUpPatient  } from "@repo/shared-hooks";
+import { type SignUpDoctor,
   type SignUpPatient,
-} from "../services/signup.service";
+ } from "@repo/shared-hooks";
 
 type SignUpRole = "patient" | "doctor";
 

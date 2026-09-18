@@ -7,7 +7,7 @@ import {
   sessionSocket,
   notificationsSocket,
 } from "@/lib/api";
-import { useAuthStore } from "@repo/ui/store/useAuthStore";
+import { useSharedAuthStore as useAuthStore } from "@repo/shared-hooks";
 import {
   getConsultationsEnriched,
   getConsultationReview,

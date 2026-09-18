@@ -10,7 +10,7 @@ import {
   type ReportType,
 } from "@repo/ui/components/complex-modal/AIReportModal";
 import { useAiChat } from "../hooks/useAiChat";
-import { useAuthStore } from "@repo/ui/store/useAuthStore";
+import { useSharedAuthStore as useAuthStore } from "@repo/shared-hooks";
 import { useReport } from "@/features/shared/hooks/useReport";
 import { showToast } from "@repo/ui/components/ui/toasts";
 

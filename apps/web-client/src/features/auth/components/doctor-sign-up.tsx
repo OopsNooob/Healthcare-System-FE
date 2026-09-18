@@ -23,11 +23,10 @@ import {
   User,
   X,
 } from "lucide-react";
-import { useDoctorPrefillData } from "../hooks/useDoctorPrefillData"; // Import the new hook
-import {
-  type DoctorReRegisterPrefillApiResponse,
+import { useDoctorPrefillData  } from "@repo/shared-hooks"; // Import the new hook
+import { type DoctorReRegisterPrefillApiResponse,
   type DoctorVerificationStatus, // Moved from here
-} from "../services/signup.service"; // Import types from service
+ } from "@repo/shared-hooks"; // Import types from service
 import { doctorSpecialty } from "@/features/shared/types/doctor.constants";
 
 const ACCEPTED_FILE_TYPES = ["application/pdf", "image/jpeg", "image/png"];

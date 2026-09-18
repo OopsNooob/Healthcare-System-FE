@@ -1,0 +1,214 @@
+import { useState } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, SafeAreaView, TextInput, Modal, KeyboardAvoidingView, Platform } from 'react-native';
+import { Calendar, Clock, MessageCircle, Search, CheckCircle, XCircle, AlertTriangle, FileText, X } from 'lucide-react-native';
+import { useRouter } from 'expo-router';
+import { tw } from '@/tw';
+
+export default function DoctorConsultationsScreen() {
+  const router = useRouter();
+  const [activeTab, setActiveTab] = useState<'pending' | 'active' | 'history'>('pending');
+  const [reportModalVisible, setReportModalVisible] = useState(false);
+  const [endModalVisible, setEndModalVisible] = useState(false);
+  const [reportReason, setReportReason] = useState('');
+  const [doctorNote, setDoctorNote] = useState('');
+
+  const pendingRequests = [
+    { id: '1', patientName: 'Alex Johnson', time: '10:30 AM', date: 'Today', type: 'Chat', age: 28, gender: 'Male', reason: 'Mild headache and dizziness for 2 days.' },
+  ];
+
+  const activeSessions = [
+    { id: '2', patientName: 'Maria Garcia', time: '11:00 AM', date: 'Today', type: 'Chat', status: 'In Progress', age: 34, gender: 'Female', reason: 'Follow-up on blood test results.' },
+  ];
+
+  const history = [
+    { id: '3', patientName: 'James Smith', time: '02:15 PM', date: 'Yesterday', type: 'Chat', status: 'Completed', age: 45, gender: 'Male', rating: 5, review: 'Very helpful doctor.' },
+  ];
+
+  const handleAction = (action: string) => {
+    alert(`${action} successful`);
+  };
+
+  const handleEndSubmit = () => {
+    setEndModalVisible(false);
+    setDoctorNote('');
+    alert('Consultation Ended');
+  };
+
+  const handleReportSubmit = () => {
+    setReportModalVisible(false);
+    setReportReason('');
+    alert('Report Submitted');
+  };
+
+  return (
+    <SafeAreaView style={tw('flex-1 bg-slate-50')}>
+      {/* Header */}
+      <View style={tw('px-6 pt-6 pb-4 bg-white border-b border-slate-100')}>
+        <Text style={tw('text-2xl font-bold text-slate-900')}>Consultations</Text>
+        <Text style={tw('text-slate-500 text-sm mt-1')}>Manage your appointments and chats</Text>
+      </View>
+
+      {/* Tabs */}
+      <View style={tw('flex-row px-4 py-2 bg-white border-b border-slate-100')}>
+        <TouchableOpacity 
+          onPress={() => setActiveTab('pending')}
+          style={tw(`flex-1 py-3 items-center border-b-2 ${activeTab === 'pending' ? 'border-brand' : 'border-transparent'}`)}
+        >
+          <Text style={tw(`font-bold ${activeTab === 'pending' ? 'text-brand' : 'text-slate-500'}`)}>Pending</Text>
+        </TouchableOpacity>
+        <TouchableOpacity 
+          onPress={() => setActiveTab('active')}
+          style={tw(`flex-1 py-3 items-center border-b-2 ${activeTab === 'active' ? 'border-brand' : 'border-transparent'}`)}
+        >
+          <Text style={tw(`font-bold ${activeTab === 'active' ? 'text-brand' : 'text-slate-500'}`)}>Active</Text>
+        </TouchableOpacity>
+        <TouchableOpacity 
+          onPress={() => setActiveTab('history')}
+          style={tw(`flex-1 py-3 items-center border-b-2 ${activeTab === 'history' ? 'border-brand' : 'border-transparent'}`)}
+        >
+          <Text style={tw(`font-bold ${activeTab === 'history' ? 'text-brand' : 'text-slate-500'}`)}>History</Text>
+        </TouchableOpacity>
+      </View>
+
+      <ScrollView contentContainerStyle={tw('p-6 pb-20')} showsVerticalScrollIndicator={false}>
+        {/* Pending Requests */}
+        {activeTab === 'pending' && pendingRequests.map(req => (
+          <View key={req.id} style={tw('bg-white rounded-2xl p-4 mb-4 border border-slate-100 shadow-sm')}>
+            <View style={tw('flex-row justify-between items-start mb-3')}>
+              <View>
+                <Text style={tw('text-lg font-bold text-slate-900')}>{req.patientName}</Text>
+                <Text style={tw('text-sm text-slate-500')}>{req.age} yrs • {req.gender}</Text>
+              </View>
+              <View style={tw('px-3 py-1 bg-amber-50 rounded-full border border-amber-100')}>
+                <Text style={tw('text-xs font-bold text-amber-600')}>Pending Request</Text>
+              </View>
+            </View>
+            <Text style={tw('text-slate-700 text-sm mb-4 bg-slate-50 p-3 rounded-xl')}>{req.reason}</Text>
+            <View style={tw('flex-row gap-3 mt-2')}>
+              <TouchableOpacity onPress={() => handleAction('Accepted')} style={tw('flex-1 bg-brand py-3 rounded-xl flex-row justify-center items-center')}>
+                <CheckCircle color="white" size={18} style={tw('mr-2')} />
+                <Text style={tw('text-white font-bold text-sm')}>Accept</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => handleAction('Declined')} style={tw('flex-1 bg-red-50 py-3 rounded-xl border border-red-100 flex-row justify-center items-center')}>
+                <XCircle color="#ef4444" size={18} style={tw('mr-2')} />
+                <Text style={tw('text-red-500 font-bold text-sm')}>Decline</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        ))}
+
+        {/* Active Sessions */}
+        {activeTab === 'active' && activeSessions.map(session => (
+          <View key={session.id} style={tw('bg-white rounded-2xl p-4 mb-4 border border-slate-100 shadow-sm')}>
+            <View style={tw('flex-row justify-between items-start mb-3')}>
+              <View>
+                <Text style={tw('text-lg font-bold text-slate-900')}>{session.patientName}</Text>
+                <Text style={tw('text-sm text-slate-500')}>{session.age} yrs • {session.gender}</Text>
+              </View>
+              <View style={tw('flex-row gap-2')}>
+                <TouchableOpacity onPress={() => setReportModalVisible(true)} style={tw('w-8 h-8 rounded-full bg-red-50 items-center justify-center')}>
+                  <AlertTriangle color="#ef4444" size={16} />
+                </TouchableOpacity>
+              </View>
+            </View>
+            
+            <View style={tw('flex-row gap-3 mt-4')}>
+              <TouchableOpacity onPress={() => router.push(`/(doctor)/chat/${session.id}` as any)} style={tw('flex-1 bg-brand-light py-3 rounded-xl flex-row justify-center items-center')}>
+                <MessageCircle color="#10b981" size={18} style={tw('mr-2')} />
+                <Text style={tw('text-brand font-bold text-sm')}>Open Chat</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => setEndModalVisible(true)} style={tw('flex-1 bg-slate-100 py-3 rounded-xl flex-row justify-center items-center')}>
+                <CheckCircle color="#64748b" size={18} style={tw('mr-2')} />
+                <Text style={tw('text-slate-600 font-bold text-sm')}>End Session</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        ))}
+
+        {/* History */}
+        {activeTab === 'history' && history.map(session => (
+          <View key={session.id} style={tw('bg-white rounded-2xl p-4 mb-4 border border-slate-100 shadow-sm')}>
+            <View style={tw('flex-row justify-between items-start mb-2')}>
+              <View>
+                <Text style={tw('text-lg font-bold text-slate-900')}>{session.patientName}</Text>
+                <Text style={tw('text-xs text-slate-400')}>{session.date} • {session.time}</Text>
+              </View>
+              <View style={tw('px-3 py-1 bg-slate-100 rounded-full')}>
+                <Text style={tw('text-xs font-bold text-slate-600')}>{session.status}</Text>
+              </View>
+            </View>
+            
+            <View style={tw('mt-2 bg-slate-50 p-3 rounded-xl')}>
+              <Text style={tw('text-sm text-slate-700 font-medium mb-1')}>Patient Review:</Text>
+              <Text style={tw('text-sm text-slate-600 italic')}>"{session.review}" (Rating: {session.rating}/5)</Text>
+            </View>
+
+            <View style={tw('flex-row gap-3 mt-4')}>
+              <TouchableOpacity onPress={() => router.push(`/(doctor)/chat/${session.id}` as any)} style={tw('flex-1 bg-slate-50 border border-slate-200 py-2 rounded-xl flex-row justify-center items-center')}>
+                <MessageCircle color="#64748b" size={16} style={tw('mr-2')} />
+                <Text style={tw('text-slate-600 font-bold text-sm')}>View Log</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => setReportModalVisible(true)} style={tw('flex-1 bg-red-50 py-2 border border-red-100 rounded-xl flex-row justify-center items-center')}>
+                <AlertTriangle color="#ef4444" size={16} style={tw('mr-2')} />
+                <Text style={tw('text-red-500 font-bold text-sm')}>Report</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        ))}
+
+      </ScrollView>
+
+      {/* End Consultation Modal */}
+      <Modal visible={endModalVisible} transparent animationType="slide" onRequestClose={() => setEndModalVisible(false)}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={tw('flex-1 justify-end bg-black/40')}>
+          <View style={tw('bg-white rounded-t-3xl p-6')}>
+            <View style={tw('flex-row justify-between items-center mb-6')}>
+              <Text style={tw('text-xl font-bold text-slate-900')}>End Consultation</Text>
+              <TouchableOpacity onPress={() => setEndModalVisible(false)}><X color="#64748b" size={24} /></TouchableOpacity>
+            </View>
+            <View style={tw('mb-4')}>
+              <Text style={tw('text-sm font-semibold text-slate-700 mb-2')}>Doctor's Note (Optional)</Text>
+              <TextInput
+                value={doctorNote}
+                onChangeText={setDoctorNote}
+                placeholder="Write your diagnostic notes here..."
+                style={tw('bg-slate-50 border border-slate-200 rounded-xl p-4 text-slate-900 h-32')}
+                multiline
+                textAlignVertical="top"
+              />
+            </View>
+            <TouchableOpacity onPress={handleEndSubmit} style={tw('bg-brand py-4 rounded-xl items-center')}>
+              <Text style={tw('text-white font-bold text-base')}>End and Save Note</Text>
+            </TouchableOpacity>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      {/* Report Modal */}
+      <Modal visible={reportModalVisible} transparent animationType="slide" onRequestClose={() => setReportModalVisible(false)}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={tw('flex-1 justify-end bg-black/40')}>
+          <View style={tw('bg-white rounded-t-3xl p-6')}>
+            <View style={tw('flex-row justify-between items-center mb-6')}>
+              <Text style={tw('text-xl font-bold text-slate-900')}>Report Patient</Text>
+              <TouchableOpacity onPress={() => setReportModalVisible(false)}><X color="#64748b" size={24} /></TouchableOpacity>
+            </View>
+            <View style={tw('mb-4')}>
+              <Text style={tw('text-sm font-semibold text-slate-700 mb-2')}>Reason for Report</Text>
+              <TextInput
+                value={reportReason}
+                onChangeText={setReportReason}
+                placeholder="Inappropriate behavior, spam..."
+                style={tw('bg-slate-50 border border-slate-200 rounded-xl p-4 text-slate-900 h-32')}
+                multiline
+                textAlignVertical="top"
+              />
+            </View>
+            <TouchableOpacity onPress={handleReportSubmit} style={tw('bg-red-500 py-4 rounded-xl items-center')}>
+              <Text style={tw('text-white font-bold text-base')}>Submit Report</Text>
+            </TouchableOpacity>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+    </SafeAreaView>
+  );
+}

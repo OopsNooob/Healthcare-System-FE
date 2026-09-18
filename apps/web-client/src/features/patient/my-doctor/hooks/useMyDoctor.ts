@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { getProfile } from "@/features/shared/services/profile-service";
 import { connectSessionSocket, sessionSocket } from "@/lib/api";
-import { useAuthStore } from "@repo/ui/store/useAuthStore";
+import { useSharedAuthStore as useAuthStore } from "@repo/shared-hooks";
 import { usePresenceStatus } from "@/features/shared/hooks/usePresenceStatus";
 import {
   createSession,
