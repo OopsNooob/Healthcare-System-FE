@@ -1,11 +1,13 @@
-import { View, Text, ScrollView, TouchableOpacity, SafeAreaView, Dimensions } from 'react-native';
+import { useState } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, SafeAreaView, Dimensions, Switch } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Users, Calendar as CalendarIcon, Clock, TrendingUp, Bell } from 'lucide-react-native';
+import { Users, Calendar as CalendarIcon, Clock, TrendingUp, Bell, Power } from 'lucide-react-native';
 import { LineChart } from 'react-native-chart-kit';
 import { tw } from '@/tw';
 
 export default function DoctorHomeScreen() {
   const router = useRouter();
+  const [isOnline, setIsOnline] = useState(true);
 
   const stats = [
     { title: 'Total Patients', value: '1,248', icon: <Users color="#3b82f6" size={24} />, bg: 'bg-blue-50', trend: '+12%' },
@@ -24,17 +26,29 @@ export default function DoctorHomeScreen() {
       <ScrollView contentContainerStyle={tw('pb-20')} showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={tw('flex-row justify-between items-center px-6 pt-6 pb-4')}>
-          <View>
+          <View style={tw('flex-1')}>
             <Text style={tw('text-gray-500 text-sm')}>Good morning,</Text>
             <Text style={tw('text-2xl font-bold text-[#313A34]')}>Dr. Sarah Connor</Text>
           </View>
-          <TouchableOpacity 
-            style={tw('p-2 bg-white rounded-full shadow-sm border border-gray-100 relative')}
-            onPress={() => router.push('/(doctor)/notifications')}
-          >
-            <Bell color="#1E1E1E" size={24} />
-            <View style={tw('absolute top-2 right-2 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white')} />
-          </TouchableOpacity>
+          <View style={tw('flex-row items-center')}>
+            <View style={tw('flex-row items-center mr-4 bg-white px-3 py-1.5 rounded-full border border-gray-100 shadow-sm')}>
+              <Power color={isOnline ? "#10b981" : "#94a3b8"} size={16} style={tw('mr-2')} />
+              <Switch 
+                value={isOnline}
+                onValueChange={setIsOnline}
+                trackColor={{ false: '#cbd5e1', true: '#34d399' }}
+                thumbColor={'#ffffff'}
+                style={{ transform: [{ scaleX: 0.8 }, { scaleY: 0.8 }] }}
+              />
+            </View>
+            <TouchableOpacity 
+              style={tw('p-2 bg-white rounded-full shadow-sm border border-gray-100 relative')}
+              onPress={() => router.push('/(doctor)/notifications')}
+            >
+              <Bell color="#1E1E1E" size={24} />
+              <View style={tw('absolute top-2 right-2 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white')} />
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Stats Grid */}

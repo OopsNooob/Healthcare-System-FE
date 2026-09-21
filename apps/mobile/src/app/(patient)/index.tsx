@@ -1,6 +1,6 @@
 import { View, Text, ScrollView, TouchableOpacity, Image, TextInput, SafeAreaView } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Search, Bell, Calendar, ChevronRight, Star, Heart, Activity } from 'lucide-react-native';
+import { Search, Bell, Calendar, ChevronRight, Star, Heart, Activity, Crown } from 'lucide-react-native';
 import { tw } from '@/tw';
 
 export default function PatientHomeScreen() {
@@ -59,6 +59,25 @@ export default function PatientHomeScreen() {
               placeholderTextColor="#9ca3af"
             />
           </View>
+        </View>
+
+        {/* Premium Banner */}
+        <View style={tw('px-6 mb-6')}>
+          <TouchableOpacity 
+            onPress={() => router.push('/(patient)/premium')}
+            style={tw('bg-amber-500 rounded-3xl p-5 flex-row items-center justify-between shadow-md')}
+          >
+            <View style={tw('flex-1 pr-4')}>
+              <View style={tw('flex-row items-center mb-1')}>
+                <Crown color="#ffffff" size={20} style={tw('mr-2')} />
+                <Text style={tw('text-white font-bold text-lg')}>Upgrade Premium</Text>
+              </View>
+              <Text style={tw('text-amber-50 text-sm leading-tight')}>Unlimited AI chats & priority doctor queue</Text>
+            </View>
+            <View style={tw('bg-white/20 p-2 rounded-full')}>
+              <ChevronRight color="#ffffff" size={24} />
+            </View>
+          </TouchableOpacity>
         </View>
 
         {/* Upcoming Appointment */}

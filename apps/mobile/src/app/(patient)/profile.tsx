@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, SafeAreaView, Image, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Camera, Mail, Phone, MapPin, User, LogOut } from 'lucide-react-native';
+import { Camera, Mail, Phone, MapPin, User, LogOut, Crown, ChevronRight } from 'lucide-react-native';
 import { tw } from '@/tw';
 
 export default function ProfileScreen() {
@@ -48,6 +48,25 @@ export default function ProfileScreen() {
               <User color="#10b981" size={14} />
               <Text style={tw('text-emerald-700 font-bold text-xs ml-1')}>Patient</Text>
             </View>
+          </View>
+
+          {/* Premium Card */}
+          <View style={tw('px-6 mb-8')}>
+            <TouchableOpacity 
+              onPress={() => router.push('/(patient)/premium')}
+              style={tw('bg-slate-900 p-4 rounded-3xl flex-row items-center justify-between shadow-lg')}
+            >
+              <View style={tw('flex-row items-center')}>
+                <View style={tw('w-12 h-12 bg-amber-400 rounded-2xl items-center justify-center mr-4')}>
+                  <Crown color="#0f172a" size={24} />
+                </View>
+                <View>
+                  <Text style={tw('text-white font-bold text-base mb-0.5')}>Free Plan</Text>
+                  <Text style={tw('text-amber-400 text-xs font-semibold')}>Upgrade to Premium</Text>
+                </View>
+              </View>
+              <ChevronRight color="#94a3b8" size={20} />
+            </TouchableOpacity>
           </View>
 
           {/* Basic Info Form */}

@@ -59,6 +59,10 @@ export default function MyDoctorsScreen() {
   const [profileModalVisible, setProfileModalVisible] = useState(false);
   const [requestModalVisible, setRequestModalVisible] = useState(false);
   const [patientNote, setPatientNote] = useState('');
+  const [selectedDate, setSelectedDate] = useState('2023-10-25');
+  const [selectedTime, setSelectedTime] = useState('09:00 AM');
+
+  const availableTimes = ['09:00 AM', '10:00 AM', '11:00 AM', '02:00 PM', '03:30 PM'];
 
   const filteredDoctors = doctors.filter(doc => 
     doc.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -312,9 +316,40 @@ export default function MyDoctorsScreen() {
                   </View>
                 </View>
 
+                {/* Booking Date & Time */}
+                <Text style={tw('text-base font-bold text-slate-900 mb-2')}>Select Date</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={tw('mb-4 -mx-6 px-6')} contentContainerStyle={tw('gap-3 pr-12')}>
+                  {['2023-10-25', '2023-10-26', '2023-10-27', '2023-10-28'].map(date => (
+                    <TouchableOpacity 
+                      key={date}
+                      onPress={() => setSelectedDate(date)}
+                      style={tw(`px-4 py-3 rounded-2xl border ${selectedDate === date ? 'bg-brand border-brand' : 'bg-slate-50 border-slate-200'}`)}
+                    >
+                      <Text style={tw(`text-sm font-bold ${selectedDate === date ? 'text-slate-900' : 'text-slate-500'}`)}>
+                        {date.split('-')[2]} Oct
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+
+                <Text style={tw('text-base font-bold text-slate-900 mb-2')}>Select Time Slot</Text>
+                <View style={tw('flex-row flex-wrap gap-2 mb-6')}>
+                  {availableTimes.map(time => (
+                    <TouchableOpacity 
+                      key={time}
+                      onPress={() => setSelectedTime(time)}
+                      style={tw(`px-3 py-2 rounded-xl border ${selectedTime === time ? 'bg-brand border-brand' : 'bg-slate-50 border-slate-200'}`)}
+                    >
+                      <Text style={tw(`text-xs font-bold ${selectedTime === time ? 'text-slate-900' : 'text-slate-500'}`)}>
+                        {time}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+
                 <Text style={tw('text-base font-bold text-slate-900 mb-2')}>Reason for consultation</Text>
                 <TextInput
-                  style={tw('bg-slate-50 border border-slate-200 rounded-2xl p-4 min-h-[120px] text-base text-slate-800')}
+                  style={tw('bg-slate-50 border border-slate-200 rounded-2xl p-4 min-h-[100px] text-base text-slate-800')}
                   placeholder="Please describe what you are experiencing..."
                   placeholderTextColor="#94a3b8"
                   multiline
