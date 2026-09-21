@@ -245,5 +245,10 @@
   "mobile.yrs": "tuổi",
   "mobile.type_a_message": "Nhập tin nhắn...",
   "mobile.share_your_experience": "Chia sẻ trải nghiệm của bạn...",
-  "mobile.ask_anything": "Hỏi bất cứ điều gì..."
+  "mobile.ask_anything": "Hỏi bất cứ điều gì...",
+  "mobile.dont_have_account": "Chưa có tài khoản?",
+  "mobile.already_have_account": "Đã có tài khoản?",
+  "mobile.remember_your_password": "Đã nhớ mật khẩu?",
+  "mobile.enter_your_email_and_well_send": "Nhập email và chúng tôi sẽ gửi OTP để đặt lại mật khẩu.",
+  "mobile.please_describe": "Vui lòng mô tả triệu chứng của bạn..."
 }
