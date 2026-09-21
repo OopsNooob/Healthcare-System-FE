@@ -14,6 +14,8 @@ import {
   Bot,
   PanelLeftClose,
   PanelLeftOpen,
+  CreditCard,
+  Calendar,
 } from "lucide-react";
 import { cn } from "../lib/utils";
 import { UserAvatar } from "../components/ui/user-avatar";
@@ -86,6 +88,18 @@ const adminMenuItems = {
       label: "AI Knowledge Base",
       icon: BookOpen,
       path: "/ai-knowledge-base",
+    },
+    {
+      id: "premium_management",
+      label: "Premium & Payments",
+      icon: CreditCard,
+      path: "/premium-management",
+    },
+    {
+      id: "appointment_management",
+      label: "Appointments",
+      icon: Calendar,
+      path: "/appointments",
     },
     {
       id: "violation_reports",

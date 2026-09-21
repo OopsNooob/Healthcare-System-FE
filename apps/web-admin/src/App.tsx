@@ -11,6 +11,8 @@ import { UserManagement } from "./features/user-management/pages/user-management
 import { DocumentVerification } from "./features/doc-verification/pages/doc-verification";
 import { ViolationReport } from "./features/violation-report/pages/violation-report";
 import { AIManagement } from "./features/ai_management/pages/ai_management";
+import { PremiumManagement } from "./features/premium-management/pages/premium-management";
+import { AppointmentManagement } from "./features/appointment-management/pages/appointment-management";
 import { Profile } from "./features/profile/page/profile";
 import { useAuthStore } from "@repo/ui/store/useAuthStore";
 import { useEffect, useState } from "react";
@@ -130,11 +132,13 @@ function App() {
           <Route element={<ProtectedRoutes />}>
             <Route index element={<Overview />} />
             <Route path="/user-management" element={<UserManagement />} />
-            <Route
-              path="/doc-verification"
-              element={<DocumentVerification />}
-            />
+            <Route path="/doc-verification" element={<DocumentVerification />} />
             <Route path="/ai-knowledge-base" element={<AIManagement />} />
+            <Route path="/premium-management" element={<PremiumManagement />} />
+            <Route path="/appointments" element={<AppointmentManagement />} />
+            <Route path="/violation-reports" element={<ViolationReport />} />
+            <Route path="/premium-management" element={<PremiumManagement />} />
+            <Route path="/appointments" element={<AppointmentManagement />} />
             <Route path="/violation-reports" element={<ViolationReport />} />
             <Route path="/profile" element={<Profile />} />
           </Route>
