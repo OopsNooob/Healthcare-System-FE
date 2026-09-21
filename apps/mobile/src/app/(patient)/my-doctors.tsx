@@ -5,11 +5,13 @@ import { useRouter } from 'expo-router';
 import Toast from 'react-native-toast-message';
 import { Star, MessageCircle, Video, MapPin, Search, ArrowRight, X, Clock, ShieldCheck, Mail, Phone, Calendar, UserX } from 'lucide-react-native';
 import { tw } from '@/tw';
+import { useThemeContext } from '@/context/ThemeContext';
 
 type DoctorStatus = 'unrequested' | 'pending' | 'accepted';
 
 export default function MyDoctorsScreen() {
   const { t } = useTranslation();
+  useThemeContext();
 
   const router = useRouter();
   const [loading, setLoading] = useState(true);
@@ -169,7 +171,7 @@ export default function MyDoctorsScreen() {
             <Search color="#94a3b8" size={20} style={tw('mr-2')} />
             <TextInput
               style={tw('flex-1 text-base text-slate-900 dark:text-white')}
-              placeholder="Search by name or specialty..."
+              placeholder={t('mobile.search_by_name_or_specialty', 'Search by name or specialty...')}
               placeholderTextColor="#94a3b8"
               value={searchQuery}
               onChangeText={setSearchQuery}
@@ -224,7 +226,7 @@ export default function MyDoctorsScreen() {
               <View style={tw('w-full h-[1px] bg-slate-100 dark:bg-slate-800 my-4')} />
               
               <View style={tw('flex-row justify-between items-center')}>
-                <Text style={tw('text-xs text-slate-400 dark:text-slate-500 font-medium')}>Last visit: {doc.lastVisit}</Text>
+                <Text style={tw('text-xs text-slate-400 dark:text-slate-500 font-medium')}>{t('mobile.last_visit', 'Last visit')}: {doc.lastVisit}</Text>
                 
                 <View style={tw('flex-row gap-2')}>
                   {doc.status === 'accepted' && (
@@ -304,7 +306,7 @@ export default function MyDoctorsScreen() {
                   <View style={tw('flex-row my-1')}>
                     {[1,2,3,4,5].map(i => <Star key={i} color="#f59e0b" fill={i <= Math.round(selectedDoctor.rating) ? "#f59e0b" : "transparent"} size={12} />)}
                   </View>
-                  <Text style={tw('text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500 font-medium')}>{selectedDoctor.reviews} reviews</Text>
+                  <Text style={tw('text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500 font-medium')}>{selectedDoctor.reviews} {t('mobile.reviews', 'reviews')}</Text>
                 </View>
                 <View style={tw('flex-1 items-center justify-center')}>
                   <Text style={tw('text-3xl font-bold text-slate-900 dark:text-white')}>{selectedDoctor.experience}</Text>

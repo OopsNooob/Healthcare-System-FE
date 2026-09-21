@@ -3,10 +3,12 @@ import { useTranslation } from 'react-i18next';
 import { View, Text, ScrollView, TouchableOpacity, Image, TextInput, SafeAreaView, RefreshControl } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Search, Bell, Calendar, ChevronRight, Star, Heart, Activity, Crown } from 'lucide-react-native';
-import { tw } from '@/tw';
+import { tw, twInstance } from '@/tw';
+import { useThemeContext } from '@/context/ThemeContext';
 
 export default function PatientHomeScreen() {
   const { t } = useTranslation();
+  useThemeContext(); // Subscribe to theme changes for reactive re-render
 
   const router = useRouter();
   const [loading, setLoading] = useState(true);
@@ -72,13 +74,13 @@ export default function PatientHomeScreen() {
         <View style={tw('flex-row justify-between items-center px-6 pt-6 pb-4')}>
           <View>
             <Text style={tw('text-gray-500 text-sm')}>{t('mobile.good_morning', `Good morning,`)}</Text>
-            <Text style={tw('text-2xl font-bold text-[#313A34]')}>{t('mobile.alex_johnson', `Alex Johnson`)}</Text>
+            <Text style={tw('text-2xl font-bold text-[#313A34] dark:text-slate-100')}>{t('mobile.alex_johnson', `Alex Johnson`)}</Text>
           </View>
           <TouchableOpacity 
             style={tw('p-2 bg-white dark:bg-slate-900 rounded-full shadow-sm border border-gray-100 dark:border-gray-800 relative')}
             onPress={() => router.push('/(patient)/notifications')}
           >
-            <Bell color="#1E1E1E" size={24} />
+            <Bell color={twInstance.color('text-slate-900 dark:text-slate-100')} size={24} />
             <View style={tw('absolute top-2 right-2 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white')} />
           </TouchableOpacity>
         </View>
@@ -88,8 +90,8 @@ export default function PatientHomeScreen() {
           <View style={tw('flex-row items-center bg-white dark:bg-slate-900 rounded-2xl px-4 py-3 shadow-sm border border-gray-100 dark:border-gray-800')}>
             <Search color="#9ca3af" size={20} />
             <TextInput
-              style={tw('flex-1 ml-3 text-base text-gray-900')}
-              placeholder="Search doctor, specialties..."
+              style={tw('flex-1 ml-3 text-base text-gray-900 dark:text-gray-100')}
+              placeholder={t('mobile.search_doctor_specialties', 'Search doctor, specialties...')}
               placeholderTextColor="#9ca3af"
             />
           </View>
@@ -117,7 +119,7 @@ export default function PatientHomeScreen() {
         {/* Upcoming Appointment */}
         <View style={tw('px-6 mb-8')}>
           <View style={tw('flex-row justify-between items-end mb-4')}>
-            <Text style={tw('text-lg font-bold text-[#313A34]')}>{t('mobile.upcoming_appointment', `Upcoming Appointment`)}</Text>
+            <Text style={tw('text-lg font-bold text-[#313A34] dark:text-slate-100')}>{t('mobile.upcoming_appointment', `Upcoming Appointment`)}</Text>
             <TouchableOpacity onPress={() => router.push('/(patient)/chat-hub')}>
               <Text style={tw('text-sm font-medium text-emerald-500')}>{t('mobile.see_all', `See all`)}</Text>
             </TouchableOpacity>
@@ -155,7 +157,7 @@ export default function PatientHomeScreen() {
 
         {/* Specialties (Vertical List as requested) */}
         <View style={tw('px-6 mb-8')}>
-          <Text style={tw('text-lg font-bold text-[#313A34] mb-4')}>{t('mobile.specialties', `Specialties`)}</Text>
+          <Text style={tw('text-lg font-bold text-[#313A34] dark:text-slate-100 mb-4')}>{t('mobile.specialties', `Specialties`)}</Text>
           <View style={tw('flex-row flex-wrap justify-between gap-y-4')}>
             {specialties.map((item) => (
               <TouchableOpacity key={item.id} style={tw('w-[30%] items-center')}>
@@ -171,7 +173,7 @@ export default function PatientHomeScreen() {
         {/* Top Doctors (Vertical Scroll) */}
         <View style={tw('px-6')}>
           <View style={tw('flex-row justify-between items-end mb-4')}>
-            <Text style={tw('text-lg font-bold text-[#313A34]')}>{t('mobile.top_doctors', `Top Doctors`)}</Text>
+            <Text style={tw('text-lg font-bold text-[#313A34] dark:text-slate-100')}>{t('mobile.top_doctors', `Top Doctors`)}</Text>
             <TouchableOpacity onPress={() => router.push('/(patient)/my-doctors')}>
               <Text style={tw('text-sm font-medium text-emerald-500')}>{t('mobile.see_all', `See all`)}</Text>
             </TouchableOpacity>
@@ -193,7 +195,7 @@ export default function PatientHomeScreen() {
                   <Image source={{ uri: doc.image }} style={tw('w-20 h-20 rounded-xl bg-gray-200')} />
                   <View style={tw('ml-4 flex-1 justify-center')}>
                     <View style={tw('flex-row justify-between items-start mb-1')}>
-                      <Text style={tw('text-base font-bold text-[#313A34]')} numberOfLines={1}>{doc.name}</Text>
+                      <Text style={tw('text-base font-bold text-[#313A34] dark:text-slate-100')} numberOfLines={1}>{doc.name}</Text>
                       <TouchableOpacity>
                         <Heart color="#9ca3af" size={20} />
                       </TouchableOpacity>

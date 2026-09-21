@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { View, Text, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Lock, Plus, ArrowLeft } from 'lucide-react-native';
-import { tw } from '@/tw';
+import { tw, twInstance } from '@/tw';
 
 export default function ChangePasswordScreen() {
   const { t } = useTranslation();
@@ -28,30 +28,30 @@ export default function ChangePasswordScreen() {
           style={tw('absolute top-12 left-6 p-2 bg-white dark:bg-slate-900 rounded-full shadow-sm')}
           onPress={() => router.back()}
         >
-          <ArrowLeft color="#1E1E1E" size={24} />
+          <ArrowLeft color={twInstance.color('text-slate-900 dark:text-slate-100')} size={24} />
         </TouchableOpacity>
 
         {/* Logo area */}
         <View style={tw('flex-col items-center gap-2 mb-10')}>
           <View style={tw('flex-row items-center gap-2')}>
             <Plus color="#10b981" size={32} />
-            <Text style={tw('text-3xl font-bold text-[#313A34]')}>{t('mobile.healthcare', `Healthcare`)}</Text>
+            <Text style={tw('text-3xl font-bold text-[#313A34] dark:text-slate-100')}>{t('mobile.healthcare', `Healthcare`)}</Text>
           </View>
         </View>
 
         {/* Form Card */}
         <View style={tw('w-full bg-white dark:bg-slate-900 rounded-3xl border border-gray-200 shadow-sm px-6 py-8')}>
-          <Text style={tw('text-center text-3xl font-bold text-[#313A34] mb-2')}>{t('mobile.new_password', `New Password`)}</Text>
+          <Text style={tw('text-center text-3xl font-bold text-[#313A34] dark:text-slate-100 mb-2')}>{t('mobile.new_password', `New Password`)}</Text>
           <Text style={tw('text-center text-sm text-gray-500 mb-8')}>{t('mobile.create_a_new_strong_password_f', `Create a new strong password for your account.`)}</Text>
 
           <View style={tw('gap-4')}>
             {/* Password Field */}
             <View style={tw('gap-1.5')}>
-              <Text style={tw('text-sm font-medium text-[#1E1E1E]')}>{t('mobile.new_password', `New Password`)}</Text>
+              <Text style={tw('text-sm font-medium text-[#1E1E1E] dark:text-slate-200')}>{t('mobile.new_password', `New Password`)}</Text>
               <View style={tw('flex-row items-center bg-gray-50 rounded-2xl px-4 py-3 border border-gray-200')}>
                 <Lock color="#9ca3af" size={20} />
                 <TextInput
-                  style={tw('flex-1 ml-3 text-base text-gray-900')}
+                  style={tw('flex-1 ml-3 text-base text-gray-900 dark:text-gray-100')}
                   placeholder="Enter new password"
                   placeholderTextColor="#9ca3af"
                   value={password}
@@ -63,11 +63,11 @@ export default function ChangePasswordScreen() {
 
             {/* Confirm Password Field */}
             <View style={tw('gap-1.5 mt-2')}>
-              <Text style={tw('text-sm font-medium text-[#1E1E1E]')}>{t('mobile.confirm_password', `Confirm Password`)}</Text>
+              <Text style={tw('text-sm font-medium text-[#1E1E1E] dark:text-slate-200')}>{t('mobile.confirm_password', `Confirm Password`)}</Text>
               <View style={tw('flex-row items-center bg-gray-50 rounded-2xl px-4 py-3 border border-gray-200')}>
                 <Lock color="#9ca3af" size={20} />
                 <TextInput
-                  style={tw('flex-1 ml-3 text-base text-gray-900')}
+                  style={tw('flex-1 ml-3 text-base text-gray-900 dark:text-gray-100')}
                   placeholder="Confirm new password"
                   placeholderTextColor="#9ca3af"
                   value={confirmPassword}

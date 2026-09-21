@@ -5,6 +5,7 @@ import { Activity, Heart, Droplet, Plus, Edit2, Trash2, Bot, X } from 'lucide-re
 import { tw } from '@/tw';
 import { useRouter } from 'expo-router';
 import Toast from 'react-native-toast-message';
+import { useThemeContext } from '@/context/ThemeContext';
 
 type MetricEntry = {
   id: string;
@@ -24,13 +25,14 @@ type Metric = {
 
 export default function HealthMetricScreen() {
   const { t } = useTranslation();
+  useThemeContext(); // Subscribe to theme changes
 
   const router = useRouter();
   
   const [metrics, setMetrics] = useState<Metric[]>([
     {
       id: 'heart_rate',
-      title: 'Heart Rate',
+      title: t('mobile.heart_rate', 'Heart Rate'),
       unit: 'bpm',
       icon: <Heart color="#ef4444" size={24} />,
       bg: 'bg-red-50',
@@ -41,7 +43,7 @@ export default function HealthMetricScreen() {
     },
     {
       id: 'blood_pressure',
-      title: 'Blood Pressure',
+      title: t('mobile.blood_pressure', 'Blood Pressure'),
       unit: 'mmHg',
       icon: <Activity color="#3b82f6" size={24} />,
       bg: 'bg-blue-50',
@@ -51,7 +53,7 @@ export default function HealthMetricScreen() {
     },
     {
       id: 'blood_sugar',
-      title: 'Blood Sugar',
+      title: t('mobile.blood_sugar', 'Blood Sugar'),
       unit: 'mg/dL',
       icon: <Droplet color="#f59e0b" size={24} />,
       bg: 'bg-yellow-50',
@@ -243,7 +245,7 @@ export default function HealthMetricScreen() {
           <View style={tw('bg-white dark:bg-slate-900 rounded-t-3xl p-6')}>
             <View style={tw('flex-row justify-between items-center mb-6')}>
               <Text style={tw('text-xl font-bold text-slate-900 dark:text-white')}>
-                {editId ? 'Edit Record' : 'Add Record'} - {selectedMetric.title}
+                {editId ? t('mobile.edit_record', 'Edit Record') : t('mobile.add_record', 'Add Record')} - {selectedMetric.title}
               </Text>
               <TouchableOpacity onPress={() => setModalVisible(false)}>
                 <X color="#64748b" size={24} />
@@ -252,11 +254,11 @@ export default function HealthMetricScreen() {
 
             <View style={tw('gap-4')}>
               <View>
-                <Text style={tw('text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2')}>Value ({selectedMetric.unit})</Text>
+                <Text style={tw('text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2')}>{t('mobile.value', 'Value')} ({selectedMetric.unit})</Text>
                 <TextInput
                   value={formValue}
                   onChangeText={setFormValue}
-                  placeholder={`Enter ${selectedMetric.title}`}
+                   placeholder={t('mobile.enter_metric_value', `Enter ${selectedMetric.title}`)}
                   style={tw('bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-slate-900 dark:text-white font-medium')}
                   keyboardType="default"
                 />

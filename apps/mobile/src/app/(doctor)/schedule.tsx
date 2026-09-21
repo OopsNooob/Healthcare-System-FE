@@ -139,7 +139,7 @@ export default function DoctorScheduleScreen() {
                     <View>
                       <Text style={tw('text-lg font-bold text-slate-900 dark:text-white mb-0.5')}>{slot.time}</Text>
                       {slot.status === 'Booked' ? (
-                        <Text style={tw('text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500')}>Booked by: <Text style={tw('font-bold text-slate-700 dark:text-slate-200')}>{slot.patient}</Text></Text>
+                        <Text style={tw('text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500')}>{t('mobile.booked_by', 'Booked by')}: <Text style={tw('font-bold text-slate-700 dark:text-slate-200')}>{slot.patient}</Text></Text>
                       ) : (
                         <Text style={tw('text-sm text-emerald-600 font-medium')}>{t('mobile.available', `Available`)}</Text>
                       )}

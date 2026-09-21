@@ -113,7 +113,7 @@ function DocumentPreviewModal({
       <div className="relative flex h-[88vh] w-full max-w-6xl flex-col rounded-2xl bg-white shadow-2xl">
         <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
           <div>
-            <h3 className="text-lg font-semibold text-slate-900">
+            <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
               {document.title}
             </h3>
             <p className="text-sm text-slate-500">
@@ -692,7 +692,7 @@ export function AIManagement() {
                                 <FileText className="h-4 w-4" />
                               </span>
                               <div>
-                                <p className="text-sm font-semibold text-slate-800">
+                                <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">
                                   {doc.title}
                                 </p>
                                 <p className="text-xs uppercase tracking-wide text-slate-400">
@@ -830,7 +830,7 @@ export function AIManagement() {
                   <Ban className="h-5 w-5" />
                 </span>
                 <div>
-                  <h3 className="text-lg font-semibold text-slate-900">
+                  <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
                     Restricted Words Manager
                   </h3>
                   <p className="text-sm text-slate-500">

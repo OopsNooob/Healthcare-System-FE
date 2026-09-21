@@ -4,7 +4,7 @@ import { View, Text, TouchableOpacity, ScrollView, TextInput, Image, KeyboardAvo
 import { useRouter } from 'expo-router';
 import Toast from 'react-native-toast-message';
 import { ArrowLeft, Send, Video, Phone, ImagePlus, Paperclip, AlertTriangle, CheckCircle, X, Star } from 'lucide-react-native';
-import { tw } from '@/tw';
+import { tw, twInstance } from '@/tw';
 
 export default function DoctorChatScreen() {
   const { t } = useTranslation();
@@ -48,7 +48,7 @@ export default function DoctorChatScreen() {
               style={tw('p-2')}
               onPress={() => router.back()}
             >
-              <ArrowLeft color="#1E1E1E" size={24} />
+              <ArrowLeft color={twInstance.color('text-slate-900 dark:text-slate-100')} size={24} />
             </TouchableOpacity>
             <View style={tw('flex-row items-center ml-2')}>
               <Image 
@@ -101,8 +101,8 @@ export default function DoctorChatScreen() {
           </TouchableOpacity>
           <View style={tw('flex-1 bg-gray-100 rounded-3xl px-4 py-2 mr-3 flex-row items-center min-h-[48px]')}>
             <TextInput
-              style={tw('flex-1 text-base text-gray-900 h-10')}
-              placeholder="Type a message..."
+              style={tw('flex-1 text-base text-gray-900 dark:text-gray-100 h-10')}
+              placeholder={t('mobile.type_a_message', 'Type a message...')}
               placeholderTextColor="#9ca3af"
               value={message}
               onChangeText={setMessage}
@@ -146,7 +146,7 @@ export default function DoctorChatScreen() {
               <TextInput
                 value={review}
                 onChangeText={setReview}
-                placeholder="Share your experience..."
+                placeholder={t('mobile.share_your_experience', 'Share your experience...')}
                 style={tw('bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl p-4 text-slate-900 dark:text-white h-24')}
                 multiline
                 textAlignVertical="top"
@@ -172,7 +172,7 @@ export default function DoctorChatScreen() {
               <TextInput
                 value={reportReason}
                 onChangeText={setReportReason}
-                placeholder="Inappropriate behavior, spam..."
+                placeholder={t('mobile.inappropriate_behavior', 'Inappropriate behavior, spam...')}
                 style={tw('bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl p-4 text-slate-900 dark:text-white h-32')}
                 multiline
                 textAlignVertical="top"

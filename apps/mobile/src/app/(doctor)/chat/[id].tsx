@@ -4,7 +4,7 @@ import { View, Text, TextInput, TouchableOpacity, SafeAreaView, KeyboardAvoiding
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import Toast from 'react-native-toast-message';
 import { ArrowLeft, Send, Activity, X, Info, ImagePlus, Paperclip, AlertTriangle, CheckCircle, Phone, Video } from 'lucide-react-native';
-import { tw } from '@/tw';
+import { tw, twInstance } from '@/tw';
 
 export default function DoctorChatSessionScreen() {
   const { t } = useTranslation();
@@ -58,7 +58,7 @@ export default function DoctorChatSessionScreen() {
               style={tw('p-2')}
               onPress={() => router.back()}
             >
-              <ArrowLeft color="#1E1E1E" size={24} />
+              <ArrowLeft color={twInstance.color('text-slate-900 dark:text-slate-100')} size={24} />
             </TouchableOpacity>
             <TouchableOpacity onPress={() => setShowProfile(true)} style={tw('flex-row items-center ml-2')}>
               <Image 
@@ -74,10 +74,10 @@ export default function DoctorChatSessionScreen() {
           
           <View style={tw('flex-row gap-1')}>
             <TouchableOpacity style={tw('p-2')}>
-              <Phone color="#1E1E1E" size={20} />
+              <Phone color={twInstance.color('text-slate-900 dark:text-slate-100')} size={20} />
             </TouchableOpacity>
             <TouchableOpacity style={tw('p-2')} onPress={() => router.push('/(doctor)/video-call')}>
-              <Video color="#1E1E1E" size={20} />
+              <Video color={twInstance.color('text-slate-900 dark:text-slate-100')} size={20} />
             </TouchableOpacity>
             <TouchableOpacity 
               style={tw('p-2')}

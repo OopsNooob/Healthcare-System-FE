@@ -139,7 +139,7 @@ export default function DoctorConsultationsScreen() {
             <View style={tw('flex-row justify-between items-start mb-3')}>
               <View>
                 <Text style={tw('text-lg font-bold text-slate-900 dark:text-white')}>{req.patientName}</Text>
-                <Text style={tw('text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500')}>{req.age} yrs • {req.gender}</Text>
+                <Text style={tw('text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500')}>{req.age} {t('mobile.yrs', 'yrs')} • {req.gender}</Text>
               </View>
               <View style={tw('px-3 py-1 bg-amber-50 rounded-full border border-amber-100')}>
                 <Text style={tw('text-xs font-bold text-amber-600')}>{t('mobile.pending_request', `Pending Request`)}</Text>
@@ -169,7 +169,7 @@ export default function DoctorConsultationsScreen() {
             <View style={tw('flex-row justify-between items-start mb-3')}>
               <View>
                 <Text style={tw('text-lg font-bold text-slate-900 dark:text-white')}>{session.patientName}</Text>
-                <Text style={tw('text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500')}>{session.age} yrs • {session.gender}</Text>
+                <Text style={tw('text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500')}>{session.age} {t('mobile.yrs', 'yrs')} • {session.gender}</Text>
               </View>
               <View style={tw('flex-row gap-2')}>
                 <TouchableOpacity onPress={() => setReportModalVisible(true)} style={tw('w-8 h-8 rounded-full bg-red-50 items-center justify-center')}>
@@ -245,7 +245,7 @@ export default function DoctorConsultationsScreen() {
               <TextInput
                 value={doctorNote}
                 onChangeText={setDoctorNote}
-                placeholder="Write your diagnostic notes here..."
+                placeholder={t('mobile.write_diagnostic_notes', 'Write your diagnostic notes here...')}
                 style={tw('bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl p-4 text-slate-900 dark:text-white h-32')}
                 multiline
                 textAlignVertical="top"
@@ -271,7 +271,7 @@ export default function DoctorConsultationsScreen() {
               <TextInput
                 value={reportReason}
                 onChangeText={setReportReason}
-                placeholder="Inappropriate behavior, spam..."
+                placeholder={t('mobile.inappropriate_behavior', 'Inappropriate behavior, spam...')}
                 style={tw('bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl p-4 text-slate-900 dark:text-white h-32')}
                 multiline
                 textAlignVertical="top"

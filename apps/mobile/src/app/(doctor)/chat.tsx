@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { View, Text, ScrollView, TouchableOpacity, SafeAreaView, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Search } from 'lucide-react-native';
-import { tw } from '@/tw';
+import { tw, twInstance } from '@/tw';
 
 export default function DoctorChatScreen() {
   const { t } = useTranslation();
@@ -35,9 +35,9 @@ export default function DoctorChatScreen() {
       <ScrollView contentContainerStyle={tw('pb-20')} showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={tw('px-6 pt-6 pb-6 flex-row justify-between items-center')}>
-          <Text style={tw('text-2xl font-bold text-[#313A34]')}>{t('mobile.messages', `Messages`)}</Text>
+          <Text style={tw('text-2xl font-bold text-[#313A34] dark:text-slate-100')}>{t('mobile.messages', `Messages`)}</Text>
           <TouchableOpacity style={tw('w-10 h-10 bg-white dark:bg-slate-900 rounded-full items-center justify-center shadow-sm border border-gray-100 dark:border-gray-800')}>
-            <Search color="#1E1E1E" size={20} />
+            <Search color={twInstance.color('text-slate-900 dark:text-slate-100')} size={20} />
           </TouchableOpacity>
         </View>
 

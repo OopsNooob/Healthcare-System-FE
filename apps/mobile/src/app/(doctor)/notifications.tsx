@@ -3,17 +3,19 @@ import { useTranslation } from 'react-i18next';
 import { View, Text, ScrollView, TouchableOpacity, SafeAreaView, RefreshControl } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ArrowLeft, Bell, Calendar, MessageCircle, AlertTriangle } from 'lucide-react-native';
-import { tw } from '@/tw';
+import { tw, twInstance } from '@/tw';
+import { useThemeContext } from '@/context/ThemeContext';
 
 export default function DoctorNotificationsScreen() {
   const { t } = useTranslation();
+  useThemeContext();
 
   const router = useRouter();
 
   const notifications = [
-    { id: '1', title: 'New Consultation Request', desc: 'Alex Johnson has requested a new video consultation for today at 2:00 PM.', time: '10 mins ago', type: 'appointment', read: false },
-    { id: '2', title: 'New Message', desc: 'Maria Garcia sent you a message: "Thank you for the advice, doctor."', time: '1 hour ago', type: 'message', read: true },
-    { id: '3', title: 'System Alert', desc: 'Your profile has been successfully verified.', time: '1 day ago', type: 'alert', read: true },
+    { id: '1', title: t('mobile.notif_new_consult_request', 'New Consultation Request'), desc: t('mobile.notif_new_consult_request_desc', 'Alex Johnson has requested a new video consultation for today at 2:00 PM.'), time: t('mobile.time_10_mins_ago', '10 mins ago'), type: 'appointment', read: false },
+    { id: '2', title: t('mobile.notif_new_message', 'New Message'), desc: t('mobile.notif_new_message_doctor_desc', 'Maria Garcia sent you a message: "Thank you for the advice, doctor."'), time: t('mobile.time_1_hour_ago', '1 hour ago'), type: 'message', read: true },
+    { id: '3', title: t('mobile.notif_system_alert', 'System Alert'), desc: t('mobile.notif_profile_verified', 'Your profile has been successfully verified.'), time: t('mobile.time_1_day_ago', '1 day ago'), type: 'alert', read: true },
   ];
 
   const getIcon = (type: string) => {
@@ -59,7 +61,7 @@ export default function DoctorNotificationsScreen() {
       {/* Header */}
       <View style={tw('px-4 pt-6 pb-4 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 flex-row items-center')}>
         <TouchableOpacity onPress={() => router.back()} style={tw('p-2 mr-2')}>
-          <ArrowLeft color="#1E1E1E" size={24} />
+          <ArrowLeft color={twInstance.color('text-slate-900 dark:text-slate-100')} size={24} />
         </TouchableOpacity>
         <Text style={tw('text-xl font-bold text-slate-900 dark:text-white')}>{t('mobile.notifications', `Notifications`)}</Text>
       </View>

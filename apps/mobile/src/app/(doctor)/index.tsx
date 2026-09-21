@@ -4,24 +4,26 @@ import { View, Text, ScrollView, TouchableOpacity, SafeAreaView, Dimensions, Swi
 import { useRouter } from 'expo-router';
 import { Users, Calendar as CalendarIcon, Clock, TrendingUp, Bell, Power } from 'lucide-react-native';
 import { LineChart } from 'react-native-chart-kit';
-import { tw } from '@/tw';
+import { tw, twInstance } from '@/tw';
+import { useThemeContext } from '@/context/ThemeContext';
 
 export default function DoctorHomeScreen() {
   const { t } = useTranslation();
+  useThemeContext(); // Subscribe to theme changes for reactive re-render
 
   const router = useRouter();
   const [isOnline, setIsOnline] = useState(true);
 
   const stats = [
-    { title: 'Total Patients', value: '1,248', icon: <Users color="#3b82f6" size={24} />, bg: 'bg-blue-50', trend: '+12%' },
-    { title: 'Consultations', value: '142', icon: <CalendarIcon color="#10b981" size={24} />, bg: 'bg-emerald-50', trend: '+5%' },
-    { title: 'Hours Online', value: '64h', icon: <Clock color="#f59e0b" size={24} />, bg: 'bg-yellow-50', trend: '+2%' },
+    { title: t('mobile.total_patients', 'Total Patients'), value: '1,248', icon: <Users color="#3b82f6" size={24} />, bg: 'bg-blue-50', trend: '+12%' },
+    { title: t('mobile.consultations', 'Consultations'), value: '142', icon: <CalendarIcon color="#10b981" size={24} />, bg: 'bg-emerald-50', trend: '+5%' },
+    { title: t('mobile.hours_online', 'Hours Online'), value: '64h', icon: <Clock color="#f59e0b" size={24} />, bg: 'bg-yellow-50', trend: '+2%' },
   ];
 
   const todayQueue = [
-    { id: 1, name: 'Alex Johnson', time: '10:30 AM', status: 'Waiting', type: 'Video Call' },
-    { id: 2, name: 'Maria Garcia', time: '11:00 AM', status: 'Upcoming', type: 'Chat' },
-    { id: 3, name: 'James Smith', time: '02:15 PM', status: 'Upcoming', type: 'Video Call' },
+    { id: 1, name: 'Alex Johnson', time: '10:30 AM', statusKey: 'waiting', type: t('mobile.video_call', 'Video Call') },
+    { id: 2, name: 'Maria Garcia', time: '11:00 AM', statusKey: 'upcoming', type: t('mobile.chat', 'Chat') },
+    { id: 3, name: 'James Smith', time: '02:15 PM', statusKey: 'upcoming', type: t('mobile.video_call', 'Video Call') },
   ];
 
   const [loading, setLoading] = useState(true);
@@ -63,7 +65,7 @@ export default function DoctorHomeScreen() {
         <View style={tw('flex-row justify-between items-center px-6 pt-6 pb-4')}>
           <View style={tw('flex-1')}>
             <Text style={tw('text-gray-500 text-sm')}>{t('mobile.good_morning', `Good morning,`)}</Text>
-            <Text style={tw('text-2xl font-bold text-[#313A34]')}>{t('mobile.dr_sarah_connor', `Dr. Sarah Connor`)}</Text>
+            <Text style={tw('text-2xl font-bold text-[#313A34] dark:text-slate-100')}>{t('mobile.dr_sarah_connor', `Dr. Sarah Connor`)}</Text>
           </View>
           <View style={tw('flex-row items-center')}>
             <View style={tw('flex-row items-center mr-4 bg-white dark:bg-slate-900 px-3 py-1.5 rounded-full border border-gray-100 dark:border-gray-800 shadow-sm')}>
@@ -80,7 +82,7 @@ export default function DoctorHomeScreen() {
               style={tw('p-2 bg-white dark:bg-slate-900 rounded-full shadow-sm border border-gray-100 dark:border-gray-800 relative')}
               onPress={() => router.push('/(doctor)/notifications')}
             >
-              <Bell color="#1E1E1E" size={24} />
+              <Bell color={twInstance.color('text-slate-900 dark:text-slate-100')} size={24} />
               <View style={tw('absolute top-2 right-2 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white')} />
             </TouchableOpacity>
           </View>
@@ -88,7 +90,7 @@ export default function DoctorHomeScreen() {
 
         {/* Stats Grid */}
         <View style={tw('px-6 mb-8')}>
-          <Text style={tw('text-lg font-bold text-[#313A34] mb-4')}>{t('mobile.overview', `Overview`)}</Text>
+          <Text style={tw('text-lg font-bold text-[#313A34] dark:text-slate-100 mb-4')}>{t('mobile.overview', `Overview`)}</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={tw('-mx-6 px-6')}>
             <View style={tw('flex-row gap-4')}>
               {stats.map((stat, idx) => (
@@ -96,7 +98,7 @@ export default function DoctorHomeScreen() {
                   <View style={tw(`w-12 h-12 rounded-2xl ${stat.bg} items-center justify-center mb-4`)}>
                     {stat.icon}
                   </View>
-                  <Text style={tw('text-2xl font-bold text-[#313A34]')}>{stat.value}</Text>
+                  <Text style={tw('text-2xl font-bold text-[#313A34] dark:text-slate-100')}>{stat.value}</Text>
                   <Text style={tw('text-sm text-gray-500 mb-2')}>{stat.title}</Text>
                   <View style={tw('flex-row items-center gap-1')}>
                     <TrendingUp color="#10b981" size={14} />
@@ -111,7 +113,7 @@ export default function DoctorHomeScreen() {
 
         {/* Consultations Chart */}
         <View style={tw('px-6 mb-8')}>
-          <Text style={tw('text-lg font-bold text-[#313A34] mb-4')}>{t('mobile.consultations_over_time', `Consultations Over Time`)}</Text>
+          <Text style={tw('text-lg font-bold text-[#313A34] dark:text-slate-100 mb-4')}>{t('mobile.consultations_over_time', `Consultations Over Time`)}</Text>
           <View style={tw('bg-white dark:bg-slate-900 p-4 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800')}>
             <LineChart
               data={{
@@ -155,7 +157,7 @@ export default function DoctorHomeScreen() {
         {/* Today's Queue */}
         <View style={tw('px-6')}>
           <View style={tw('flex-row justify-between items-end mb-4')}>
-            <Text style={tw('text-lg font-bold text-[#313A34]')}>{t('mobile.todays_queue', `Today's Queue`)}</Text>
+            <Text style={tw('text-lg font-bold text-[#313A34] dark:text-slate-100')}>{t('mobile.todays_queue', `Today's Queue`)}</Text>
             <TouchableOpacity onPress={() => router.push('/(doctor)/consultations')}>
               <Text style={tw('text-sm font-medium text-blue-500')}>{t('mobile.view_schedule', `View Schedule`)}</Text>
             </TouchableOpacity>
@@ -175,16 +177,16 @@ export default function DoctorHomeScreen() {
                   style={tw('flex-row items-center justify-between bg-white dark:bg-slate-900 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800')}
                 >
                   <View style={tw('flex-1')}>
-                    <Text style={tw('text-base font-bold text-[#313A34]')}>{item.name}</Text>
+                    <Text style={tw('text-base font-bold text-[#313A34] dark:text-slate-100')}>{item.name}</Text>
                     <Text style={tw('text-sm text-gray-500 mt-0.5')}>{item.type} • {item.time}</Text>
                   </View>
                   <View style={tw('items-end')}>
-                    <View style={tw(`px-3 py-1 rounded-full ${item.status === 'Waiting' ? 'bg-orange-100' : 'bg-gray-100'}`)}>
-                      <Text style={tw(`text-xs font-bold ${item.status === 'Waiting' ? 'text-orange-600' : 'text-gray-600'}`)}>
-                        {item.status}
+                    <View style={tw(`px-3 py-1 rounded-full ${item.statusKey === 'waiting' ? 'bg-orange-100' : 'bg-gray-100'}`)}>
+                      <Text style={tw(`text-xs font-bold ${item.statusKey === 'waiting' ? 'text-orange-600' : 'text-gray-600'}`)}>
+                        {item.statusKey === 'waiting' ? t('mobile.waiting', 'Waiting') : t('mobile.upcoming', 'Upcoming')}
                       </Text>
                     </View>
-                    {item.status === 'Waiting' && (
+                    {item.statusKey === 'waiting' && (
                       <TouchableOpacity 
                         style={tw('mt-2 bg-blue-500 px-4 py-1.5 rounded-full')}
                         onPress={() => router.push('/(doctor)/video-call')}

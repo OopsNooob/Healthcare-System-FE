@@ -3,7 +3,7 @@ export function AboutUs() {
     <main className="flex-1 overflow-auto p-6">
       <div className="max-w-6xl mx-auto">
         <div className="flex items-center justify-between mb-8">
-          <h1 className="text-3xl font-semibold text-gray-900">About Healthcare System</h1>
+          <h1 className="text-3xl font-semibold text-gray-900 dark:text-gray-100">About Healthcare System</h1>
           <a href="/" className="px-6 py-2 bg-brand text-white font-semibold rounded-lg hover:bg-blue-700 transition">
             ← Back
           </a>
@@ -11,7 +11,7 @@ export function AboutUs() {
 
         {/* Mission */}
         <section className="bg-white dark:bg-slate-900 rounded-lg border border-gray-200 p-6 mb-6">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">🎯 Our Mission</h2>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">🎯 Our Mission</h2>
           <p className="text-gray-700 leading-relaxed">
             We empower healthcare administrators with tools to manage doctor networks, verify credentials, 
             monitor patient health metrics, and ensure compliance with healthcare standards. Our platform 
@@ -21,7 +21,7 @@ export function AboutUs() {
 
         {/* Core Values */}
         <section className="bg-white dark:bg-slate-900 rounded-lg border border-gray-200 p-6 mb-6">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">💎 Core Values</h2>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">💎 Core Values</h2>
           <div className="space-y-4">
             {[
               { title: "Integrity", desc: "Upholding the highest standards of healthcare management" },
@@ -32,7 +32,7 @@ export function AboutUs() {
               <div key={value.title} className="flex gap-3">
                 <div className="text-brand font-bold text-lg">•</div>
                 <div>
-                  <h3 className="font-semibold text-gray-900">{value.title}</h3>
+                  <h3 className="font-semibold text-gray-900 dark:text-gray-100">{value.title}</h3>
                   <p className="text-gray-600">{value.desc}</p>
                 </div>
               </div>
@@ -60,7 +60,7 @@ export function AboutUs() {
 
         {/* Admin Features */}
         <section className="bg-white dark:bg-slate-900 rounded-lg border border-gray-200 p-6">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">🛠️ Admin Capabilities</h2>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">🛠️ Admin Capabilities</h2>
           <div className="space-y-3">
             {[
               "Verify and manage doctor credentials",

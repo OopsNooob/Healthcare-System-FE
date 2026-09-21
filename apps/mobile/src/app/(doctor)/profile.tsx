@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { View, Text, ScrollView, TouchableOpacity, SafeAreaView, Image, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, SafeAreaView, Image, TextInput, KeyboardAvoidingView, Platform, useColorScheme as useRNColorScheme } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Camera, Mail, Phone, MapPin, Stethoscope, LogOut, FileText, Pencil, Trash2, Plus, Radical, Building, ShieldCheck } from 'lucide-react-native';
 import { useAppColorScheme } from 'twrnc';
@@ -9,6 +9,8 @@ import { tw, twInstance } from '@/tw';
 export default function DoctorProfileScreen() {
   const { t, i18n } = useTranslation();
   const [colorScheme, toggleColorScheme, setColorScheme] = useAppColorScheme(twInstance);
+  const rnColorScheme = useRNColorScheme();
+  const activeScheme = colorScheme || rnColorScheme || 'light';
 
   const router = useRouter();
 
@@ -256,15 +258,15 @@ export default function DoctorProfileScreen() {
                 <View style={tw('flex-row bg-slate-100 dark:bg-slate-800 rounded-xl p-1')}>
                   <TouchableOpacity 
                     onPress={() => setColorScheme('light')}
-                    style={tw(`px-4 py-2 rounded-lg ${colorScheme === 'light' ? 'bg-white dark:bg-slate-700 shadow-sm' : ''}`)}
+                    style={tw(`px-4 py-2 rounded-lg ${activeScheme === 'light' ? 'bg-white dark:bg-slate-700 shadow-sm' : ''}`)}
                   >
-                    <Text style={tw(`text-xs font-bold ${colorScheme === 'light' ? 'text-slate-900 dark:text-white' : 'text-slate-500 dark:text-slate-400'}`)}>Light</Text>
+                    <Text style={tw(`text-xs font-bold ${activeScheme === 'light' ? 'text-slate-900 dark:text-white' : 'text-slate-500 dark:text-slate-400'}`)}>Light</Text>
                   </TouchableOpacity>
                   <TouchableOpacity 
                     onPress={() => setColorScheme('dark')}
-                    style={tw(`px-4 py-2 rounded-lg ${colorScheme === 'dark' ? 'bg-white dark:bg-slate-700 shadow-sm' : ''}`)}
+                    style={tw(`px-4 py-2 rounded-lg ${activeScheme === 'dark' ? 'bg-white dark:bg-slate-700 shadow-sm' : ''}`)}
                   >
-                    <Text style={tw(`text-xs font-bold ${colorScheme === 'dark' ? 'text-slate-900 dark:text-white' : 'text-slate-500 dark:text-slate-400'}`)}>Dark</Text>
+                    <Text style={tw(`text-xs font-bold ${activeScheme === 'dark' ? 'text-slate-900 dark:text-white' : 'text-slate-500 dark:text-slate-400'}`)}>Dark</Text>
                   </TouchableOpacity>
                 </View>
               </View>

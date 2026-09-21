@@ -5,7 +5,7 @@ export function Contact() {
     <main className="flex-1 overflow-auto p-6">
       <div className="max-w-6xl mx-auto">
         <div className="flex items-center justify-between mb-8">
-          <h1 className="text-3xl font-semibold text-gray-900">Contact Support</h1>
+          <h1 className="text-3xl font-semibold text-gray-900 dark:text-gray-100">Contact Support</h1>
           <a href="/" className="px-6 py-2 bg-brand text-white font-semibold rounded-lg hover:bg-blue-700 transition">
             ← Back
           </a>
@@ -17,7 +17,7 @@ export function Contact() {
           <div className="bg-white dark:bg-slate-900 rounded-lg border border-gray-200 p-6">
             <div className="flex items-center gap-3 mb-4">
               <Mail className="h-6 w-6 text-blue-500" />
-              <h3 className="font-semibold text-gray-900">Email Support</h3>
+              <h3 className="font-semibold text-gray-900 dark:text-gray-100">Email Support</h3>
             </div>
             <p className="text-gray-600 text-sm mb-2">
               <a href="mailto:admin@healthcare.com" className="text-blue-600 hover:underline">
@@ -35,7 +35,7 @@ export function Contact() {
           <div className="bg-white dark:bg-slate-900 rounded-lg border border-gray-200 p-6">
             <div className="flex items-center gap-3 mb-4">
               <Phone className="h-6 w-6 text-green-500" />
-              <h3 className="font-semibold text-gray-900">Phone Support</h3>
+              <h3 className="font-semibold text-gray-900 dark:text-gray-100">Phone Support</h3>
             </div>
             <p className="text-gray-600 text-sm mb-2">+84 (0) 123 456 789</p>
             <p className="text-gray-600 text-sm">Mon-Fri 9AM-6PM (Vietnam Time)</p>
@@ -45,7 +45,7 @@ export function Contact() {
           <div className="bg-white dark:bg-slate-900 rounded-lg border border-gray-200 p-6">
             <div className="flex items-center gap-3 mb-4">
               <MapPin className="h-6 w-6 text-red-500" />
-              <h3 className="font-semibold text-gray-900">Office Location</h3>
+              <h3 className="font-semibold text-gray-900 dark:text-gray-100">Office Location</h3>
             </div>
             <p className="text-gray-600 text-sm mb-1">123 Healthcare Street</p>
             <p className="text-gray-600 text-sm">Ho Chi Minh City, Vietnam</p>
@@ -54,7 +54,7 @@ export function Contact() {
 
         {/* Support Categories */}
         <div className="bg-white dark:bg-slate-900 rounded-lg border border-gray-200 p-6 mb-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">📞 Support Categories</h2>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6">📞 Support Categories</h2>
           <div className="space-y-3">
             {[
               { category: "System Issues", desc: "Report bugs or technical problems" },
@@ -67,7 +67,7 @@ export function Contact() {
               <div key={item.category} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg hover:bg-blue-50 transition cursor-pointer">
                 <div className="text-blue-500 font-bold text-lg mt-0.5">→</div>
                 <div>
-                  <h3 className="font-semibold text-gray-900">{item.category}</h3>
+                  <h3 className="font-semibold text-gray-900 dark:text-gray-100">{item.category}</h3>
                   <p className="text-gray-600 text-sm">{item.desc}</p>
                 </div>
               </div>
@@ -77,7 +77,7 @@ export function Contact() {
 
         {/* FAQ */}
         <section className="bg-white dark:bg-slate-900 rounded-lg border border-gray-200 p-6 mb-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">❓ Frequently Asked Questions</h2>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6">❓ Frequently Asked Questions</h2>
           <div className="space-y-3">
             {[
               {
@@ -98,7 +98,7 @@ export function Contact() {
               },
             ].map((faq, idx) => (
               <details key={idx} className="bg-gray-50 border border-gray-200 rounded-lg p-4 cursor-pointer hover:bg-blue-50 transition">
-                <summary className="font-semibold text-gray-900">{faq.q}</summary>
+                <summary className="font-semibold text-gray-900 dark:text-gray-100">{faq.q}</summary>
                 <p className="text-gray-600 mt-3 text-sm">{faq.a}</p>
               </details>
             ))}
@@ -107,7 +107,7 @@ export function Contact() {
 
         {/* Response Time */}
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-          <h3 className="font-semibold text-gray-900 mb-2">⏱️ Response Time</h3>
+          <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">⏱️ Response Time</h3>
           <p className="text-gray-700">
             We strive to respond to all support inquiries within 24 hours. For urgent security issues, 
             please call our hotline immediately.

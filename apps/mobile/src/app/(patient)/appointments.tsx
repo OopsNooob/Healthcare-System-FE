@@ -5,9 +5,11 @@ import Toast from 'react-native-toast-message';
 import { Calendar, Clock, Video, MessageCircle, MapPin, AlertCircle, X, Check, CalendarX2 } from 'lucide-react-native';
 import { tw } from '@/tw';
 import { useRouter } from 'expo-router';
+import { useThemeContext } from '@/context/ThemeContext';
 
 export default function AppointmentsScreen() {
   const { t } = useTranslation();
+  useThemeContext();
 
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<'upcoming' | 'history'>('upcoming');
@@ -191,7 +193,7 @@ export default function AppointmentsScreen() {
                   <AlertCircle color="#d97706" size={20} />
                   <View style={tw('ml-3')}>
                     <Text style={tw('text-amber-800 font-bold')}>{t('mobile.you_are_in_queue', `You are in Queue`)}</Text>
-                    <Text style={tw('text-amber-600 text-xs')}>Estimated wait: {apt.estimatedWait}</Text>
+                    <Text style={tw('text-amber-600 text-xs')}>{t('mobile.estimated_wait', 'Estimated wait')}: {apt.estimatedWait}</Text>
                   </View>
                 </View>
                 <View style={tw('bg-amber-200 w-10 h-10 rounded-full items-center justify-center')}>

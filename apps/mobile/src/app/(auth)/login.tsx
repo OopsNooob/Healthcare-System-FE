@@ -32,24 +32,24 @@ export default function LoginScreen() {
         <View style={tw('flex-col items-center gap-2 mb-10')}>
           <View style={tw('flex-row items-center gap-2')}>
             <Plus color="#10b981" size={32} />
-            <Text style={tw('text-3xl font-bold text-[#313A34]')}>{t('mobile.healthcare', `Healthcare`)}</Text>
+            <Text style={tw('text-3xl font-bold text-[#313A34] dark:text-slate-100')}>{t('mobile.healthcare', `Healthcare`)}</Text>
           </View>
           <Text style={tw('text-sm text-gray-500')}>{t('mobile.your_intelligent_telecare_ai_s', `Your intelligent telecare AI solutions. ✨`)}</Text>
         </View>
 
         {/* Form Card */}
         <View style={tw('w-full bg-white dark:bg-slate-900 rounded-3xl border border-gray-200 shadow-sm px-6 py-8')}>
-          <Text style={tw('text-center text-3xl font-bold text-[#313A34] mb-8')}>{t('mobile.sign_in', `Sign in`)}</Text>
+          <Text style={tw('text-center text-3xl font-bold text-[#313A34] dark:text-slate-100 mb-8')}>{t('mobile.sign_in', `Sign in`)}</Text>
 
           <View style={tw('gap-4')}>
             {/* Email Field */}
             <View style={tw('gap-1.5')}>
-              <Text style={tw('text-sm font-medium text-[#1E1E1E]')}>{t('mobile.email', `Email`)}</Text>
+              <Text style={tw('text-sm font-medium text-[#1E1E1E] dark:text-slate-200')}>{t('mobile.email', `Email`)}</Text>
               <View style={tw('flex-row items-center bg-gray-50 rounded-2xl px-4 py-3 border border-gray-200')}>
                 <Mail color="#9ca3af" size={20} />
                 <TextInput
-                  style={tw('flex-1 ml-3 text-base text-gray-900')}
-                  placeholder="Enter your email account"
+                  style={tw('flex-1 ml-3 text-base text-gray-900 dark:text-gray-100')}
+                  placeholder={t('mobile.enter_your_email', 'Enter your email account')}
                   placeholderTextColor="#9ca3af"
                   value={email}
                   onChangeText={setEmail}
@@ -61,12 +61,12 @@ export default function LoginScreen() {
 
             {/* Password Field */}
             <View style={tw('gap-1.5 mt-2')}>
-              <Text style={tw('text-sm font-medium text-[#1E1E1E]')}>{t('mobile.password', `Password`)}</Text>
+              <Text style={tw('text-sm font-medium text-[#1E1E1E] dark:text-slate-200')}>{t('mobile.password', `Password`)}</Text>
               <View style={tw('flex-row items-center bg-gray-50 rounded-2xl px-4 py-3 border border-gray-200')}>
                 <Lock color="#9ca3af" size={20} />
                 <TextInput
-                  style={tw('flex-1 ml-3 text-base text-gray-900')}
-                  placeholder="Enter your password"
+                  style={tw('flex-1 ml-3 text-base text-gray-900 dark:text-gray-100')}
+                  placeholder={t('mobile.enter_your_password', 'Enter your password')}
                   placeholderTextColor="#9ca3af"
                   value={password}
                   onChangeText={setPassword}
@@ -105,7 +105,7 @@ export default function LoginScreen() {
               onPress={() => router.push('/(auth)/register')}
             >
               <Text style={tw('text-sm text-gray-500')}>
-                Don't have an account? <Text style={tw('font-medium text-emerald-500')}>{t('mobile.create_an_account', `Create an account`)}</Text>
+                {t('mobile.dont_have_account', "Don't have an account?")} <Text style={tw('font-medium text-emerald-500')}>{t('mobile.create_an_account', `Create an account`)}</Text>
               </Text>
             </TouchableOpacity>
           </View>

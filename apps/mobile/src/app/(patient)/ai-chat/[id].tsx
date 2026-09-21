@@ -4,7 +4,7 @@ import { View, Text, TouchableOpacity, ScrollView, TextInput, KeyboardAvoidingVi
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import Toast from 'react-native-toast-message';
 import { ArrowLeft, Send, Sparkles, Paperclip, AlertTriangle, X } from 'lucide-react-native';
-import { tw } from '@/tw';
+import { tw, twInstance } from '@/tw';
 
 export default function AiChatSessionScreen() {
   const { t } = useTranslation();
@@ -81,7 +81,7 @@ export default function AiChatSessionScreen() {
               style={tw('p-2')}
               onPress={() => router.back()}
             >
-              <ArrowLeft color="#1E1E1E" size={24} />
+              <ArrowLeft color={twInstance.color('text-slate-900 dark:text-slate-100')} size={24} />
             </TouchableOpacity>
             <View style={tw('flex-row items-center ml-2')}>
               <View style={tw('w-10 h-10 bg-ai-light rounded-full items-center justify-center mr-3')}>
@@ -132,7 +132,7 @@ export default function AiChatSessionScreen() {
           <View style={tw('flex-1 bg-slate-100 dark:bg-slate-800 rounded-3xl px-4 py-1 mr-2 flex-row items-center min-h-[48px]')}>
             <TextInput
               style={tw('flex-1 text-base text-slate-900 dark:text-white h-10')}
-              placeholder="Ask anything..."
+              placeholder={t('mobile.ask_anything', 'Ask anything...')}
               placeholderTextColor="#94a3b8"
               value={message}
               onChangeText={setMessage}

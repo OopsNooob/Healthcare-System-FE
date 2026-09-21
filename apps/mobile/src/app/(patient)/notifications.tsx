@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { View, Text, ScrollView, TouchableOpacity, SafeAreaView, RefreshControl } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ArrowLeft, Bell, Calendar, MessageCircle, FileText, BellOff } from 'lucide-react-native';
-import { tw } from '@/tw';
+import { tw, twInstance } from '@/tw';
 
 interface NotificationItem {
   id: string;
@@ -23,9 +23,9 @@ export default function PatientNotificationsScreen() {
   const [notifs, setNotifs] = useState<NotificationItem[]>([]);
 
   const notifications = [
-    { id: '1', title: 'Consultation Accepted', desc: 'Dr. Sarah Connor has accepted your consultation request.', time: '5 mins ago', type: 'appointment', read: false },
-    { id: '2', title: 'Consultation Ended', desc: 'Your consultation with Dr. Michael Chen has ended. Please leave a review.', time: '2 hours ago', type: 'review', read: false },
-    { id: '3', title: 'New Message', desc: 'Dr. Emily Watson replied to your message.', time: '1 day ago', type: 'message', read: true },
+    { id: '1', title: t('mobile.notif_consultation_accepted', 'Consultation Accepted'), desc: t('mobile.notif_consultation_accepted_desc', 'Dr. Sarah Connor has accepted your consultation request.'), time: t('mobile.time_5_mins_ago', '5 mins ago'), type: 'appointment', read: false },
+    { id: '2', title: t('mobile.notif_consultation_ended', 'Consultation Ended'), desc: t('mobile.notif_consultation_ended_desc', 'Your consultation with Dr. Michael Chen has ended. Please leave a review.'), time: t('mobile.time_2_hours_ago', '2 hours ago'), type: 'review', read: false },
+    { id: '3', title: t('mobile.notif_new_message', 'New Message'), desc: t('mobile.notif_new_message_desc', 'Dr. Emily Watson replied to your message.'), time: t('mobile.time_1_day_ago', '1 day ago'), type: 'message', read: true },
   ];
 
   useEffect(() => {
@@ -77,7 +77,7 @@ export default function PatientNotificationsScreen() {
       {/* Header */}
       <View style={tw('px-4 pt-6 pb-4 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 flex-row items-center')}>
         <TouchableOpacity onPress={() => router.back()} style={tw('p-2 mr-2')}>
-          <ArrowLeft color="#1E1E1E" size={24} />
+          <ArrowLeft color={twInstance.color('text-slate-900 dark:text-slate-100')} size={24} />
         </TouchableOpacity>
         <Text style={tw('text-xl font-bold text-slate-900 dark:text-white')}>{t('mobile.notifications', `Notifications`)}</Text>
       </View>

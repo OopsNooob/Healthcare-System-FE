@@ -47,7 +47,7 @@ export function Services() {
       <div className="max-w-6xl mx-auto">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-semibold text-gray-900 mb-2">Admin Services</h1>
+            <h1 className="text-3xl font-semibold text-gray-900 dark:text-gray-100 mb-2">Admin Services</h1>
             <p className="text-gray-600">Comprehensive tools for healthcare platform management</p>
           </div>
           <a href="/" className="px-6 py-2 bg-brand text-white font-semibold rounded-lg hover:bg-blue-700 transition whitespace-nowrap">
@@ -57,7 +57,7 @@ export function Services() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           {services.map((service) => (
             <div key={service.title} className="bg-white dark:bg-slate-900 rounded-lg border border-gray-200 p-6 hover:shadow-md transition">
-              <h3 className="text-xl font-bold text-gray-900 mb-2">{service.title}</h3>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">{service.title}</h3>
               <p className="text-gray-600 mb-4">{service.description}</p>
               <ul className="space-y-2">
                 {service.features.map((feature) => (
@@ -73,22 +73,22 @@ export function Services() {
 
         {/* How to Use */}
         <section className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">📖 How to Use Admin Dashboard</h2>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">📖 How to Use Admin Dashboard</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <h3 className="font-semibold text-gray-900 mb-2">1. User Management</h3>
+              <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">1. User Management</h3>
               <p className="text-gray-700">Manage doctors and patient accounts. Verify credentials and handle account issues.</p>
             </div>
             <div>
-              <h3 className="font-semibold text-gray-900 mb-2">2. Document Verification</h3>
+              <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">2. Document Verification</h3>
               <p className="text-gray-700">Review and verify doctor credentials, licenses, and certifications.</p>
             </div>
             <div>
-              <h3 className="font-semibold text-gray-900 mb-2">3. Violation Reports</h3>
+              <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">3. Violation Reports</h3>
               <p className="text-gray-700">Monitor and handle user violations and compliance issues.</p>
             </div>
             <div>
-              <h3 className="font-semibold text-gray-900 mb-2">4. Overview Dashboard</h3>
+              <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">4. Overview Dashboard</h3>
               <p className="text-gray-700">View real-time statistics and platform health metrics.</p>
             </div>
           </div>

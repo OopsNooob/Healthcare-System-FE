@@ -4,9 +4,11 @@ import { View, Text, ScrollView, TouchableOpacity, SafeAreaView, Image, RefreshC
 import { useRouter } from 'expo-router';
 import { Sparkles, MessageCircle, ChevronRight, MessageSquareOff } from 'lucide-react-native';
 import { tw } from '@/tw';
+import { useThemeContext } from '@/context/ThemeContext';
 
 export default function ChatHubScreen() {
   const { t } = useTranslation();
+  useThemeContext();
 
   const router = useRouter();
   const [loading, setLoading] = useState(true);
@@ -85,7 +87,7 @@ export default function ChatHubScreen() {
       >
         {/* Header */}
         <View style={tw('px-6 pt-6 pb-6')}>
-          <Text style={tw('text-2xl font-bold text-[#313A34]')}>{t('mobile.messages', `Messages`)}</Text>
+          <Text style={tw('text-2xl font-bold text-[#313A34] dark:text-slate-100')}>{t('mobile.messages', `Messages`)}</Text>
         </View>
 
         {/* AI Assistant Banner */}
@@ -95,11 +97,11 @@ export default function ChatHubScreen() {
             onPress={() => router.push('/(patient)/ai-chat')}
           >
             <View style={tw('absolute -right-4 -top-4 opacity-20')}>
-              <Sparkles color="#ffffff" size={100} />
+              <Sparkles color="#a3e635" size={100} />
             </View>
             
             <View style={tw('flex-row items-center gap-4 relative z-10')}>
-              <View style={tw('w-14 h-14 bg-white dark:bg-slate-900/20 rounded-2xl items-center justify-center')}>
+              <View style={tw('w-14 h-14 bg-ai rounded-2xl items-center justify-center')}>
                 <Sparkles color="#ffffff" size={28} />
               </View>
               <View style={tw('flex-1')}>
@@ -113,7 +115,7 @@ export default function ChatHubScreen() {
 
         {/* Doctor Chats */}
         <View style={tw('px-6')}>
-          <Text style={tw('text-lg font-bold text-[#313A34] mb-4')}>{t('mobile.doctor_conversations', `Doctor Conversations`)}</Text>
+          <Text style={tw('text-lg font-bold text-[#313A34] dark:text-slate-100 mb-4')}>{t('mobile.doctor_conversations', `Doctor Conversations`)}</Text>
           
           <View style={tw('gap-4')}>
             {loading ? (
@@ -137,7 +139,7 @@ export default function ChatHubScreen() {
                   
                   <View style={tw('flex-1 ml-4')}>
                     <View style={tw('flex-row justify-between items-center mb-1')}>
-                      <Text style={tw('text-base font-bold text-[#313A34]')}>{chat.name}</Text>
+                      <Text style={tw('text-base font-bold text-[#313A34] dark:text-slate-100')}>{chat.name}</Text>
                       <Text style={tw(`text-xs ${chat.unread > 0 ? 'text-emerald-500 font-bold' : 'text-gray-400'}`)}>
                         {chat.time}
                       </Text>

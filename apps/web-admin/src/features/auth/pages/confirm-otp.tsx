@@ -112,11 +112,11 @@ export function ConfirmOTP({
       <AuthenticationHeader />
       <div className="flex flex-1 items-center justify-center px-4 py-10">
         <form onSubmit={handleSubmit} className="w-full max-w-md space-y-6">
-          <p className="text-center text-5xl font-bold text-[#313A34] mb-2">
+          <p className="text-center text-5xl font-bold text-[#313A34] dark:text-slate-100 mb-2">
             Verify OTP
           </p>
 
-          <p className="text-center text-lg text-black font-light ">
+          <p className="text-center text-lg text-black dark:text-white font-light ">
             Enter the code from our email sent to you.
           </p>
 
@@ -131,7 +131,7 @@ export function ConfirmOTP({
               <Field className="gap-2">
                 <FieldLabel
                   htmlFor="otp"
-                  className="text-lg font-medium text-[#1E1E1E]"
+                  className="text-lg font-medium text-[#1E1E1E] dark:text-slate-200"
                 >
                   OTP
                 </FieldLabel>

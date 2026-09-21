@@ -14,7 +14,7 @@ export default function AiChatHistoryScreen() {
   // If we receive a prefill from Health Metrics, automatically start a new session
   useEffect(() => {
     if (prefill) {
-      router.push({
+      router.replace({
         pathname: '/(patient)/ai-chat/[id]',
         params: { id: 'new-session', prefill }
       });

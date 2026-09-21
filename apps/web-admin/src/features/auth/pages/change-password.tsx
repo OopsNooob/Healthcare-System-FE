@@ -133,11 +133,11 @@ export function ChangePassword({
       <AuthenticationHeader />
       <div className="flex flex-1 items-center justify-center px-4 py-10">
         <form onSubmit={handleSubmit} className="w-full max-w-md space-y-6">
-          <h1 className="text-center text-5xl font-bold text-[#313A34]">
+          <h1 className="text-center text-5xl font-bold text-[#313A34] dark:text-slate-100">
             Change password
           </h1>
 
-          <p className="text-center text-lg text-black font-light ">
+          <p className="text-center text-lg text-black dark:text-white font-light ">
             Set a new password for your account.
           </p>
 
@@ -152,7 +152,7 @@ export function ChangePassword({
               <Field className="gap-2">
                 <FieldLabel
                   htmlFor="password"
-                  className="text-lg font-medium text-[#1E1E1E]"
+                  className="text-lg font-medium text-[#1E1E1E] dark:text-slate-200"
                 >
                   Password
                 </FieldLabel>
@@ -175,7 +175,7 @@ export function ChangePassword({
               <Field className="gap-2">
                 <FieldLabel
                   htmlFor="confirmedPassword"
-                  className="text-lg font-medium text-[#1E1E1E]"
+                  className="text-lg font-medium text-[#1E1E1E] dark:text-slate-200"
                 >
                   Confirm password
                 </FieldLabel>
