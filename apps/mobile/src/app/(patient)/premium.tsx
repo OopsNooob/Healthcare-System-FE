@@ -1,5 +1,6 @@
-import { View, Text, ScrollView, TouchableOpacity, SafeAreaView, Image } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, SafeAreaView, Platform, Alert, Image } from 'react-native';
 import { useRouter } from 'expo-router';
+import Toast from 'react-native-toast-message';
 import { Crown, CheckCircle2, ArrowRight, ShieldCheck, Zap } from 'lucide-react-native';
 import { tw } from '@/tw';
 
@@ -7,8 +8,11 @@ export default function PremiumScreen() {
   const router = useRouter();
 
   const handleUpgrade = () => {
-    // Mock VNPAY integration
-    alert('Redirecting to VNPAY Sandbox...');
+    Toast.show({
+      type: 'info',
+      text1: 'Redirecting',
+      text2: 'Redirecting to VNPAY Sandbox...'
+    });
   };
 
   return (

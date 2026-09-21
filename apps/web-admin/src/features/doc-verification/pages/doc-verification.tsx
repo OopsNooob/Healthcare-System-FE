@@ -1,5 +1,6 @@
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { Badge } from "@repo/ui/components/ui/badge";
+import { Skeleton } from "@repo/ui/components/ui/skeleton";
 import {
   Table,
   TableBody,
@@ -26,7 +27,7 @@ import type {
   VerificationFile,
 } from "../services/doc-verification.service";
 
-import { Check, X, Search } from "lucide-react";
+import { Check, X, Search, Database } from "lucide-react";
 import { Button } from "@repo/ui/components/ui/button";
 import { showToast } from "@repo/ui/components/ui/toasts";
 
@@ -521,11 +522,7 @@ export function DocumentVerification() {
         </div>
 
         <div className="mt-4 rounded-2xl border border-slate-200 bg-white shadow-sm">
-          {isLoading && (
-            <div className="border-b border-slate-200 px-3 py-2 text-sm text-slate-500">
-              Loading doctor documents...
-            </div>
-          )}
+
 
           <div className="flex flex-col gap-3 border-b border-slate-200 p-3 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex items-center gap-2 flex-wrap">
@@ -595,34 +592,47 @@ export function DocumentVerification() {
             </div>
           </div>
 
-          <Table>
-            <TableHeader>
-              <TableRow className="hover:bg-transparent">
-                <TableHead className="px-3 text-xs text-slate-400">
-                  USER
-                </TableHead>
-                <TableHead className="px-3 text-xs text-slate-400">
-                  EMAIL
-                </TableHead>
-                <TableHead className="px-3 text-xs text-slate-400">
-                  SPECIALTY
-                </TableHead>
-                <TableHead className="px-3 text-xs text-slate-400">
-                  WORKPLACE
-                </TableHead>
-                <TableHead className="px-3 text-xs text-slate-400">
-                  SENT AT
-                </TableHead>
-                <TableHead className="px-3 text-xs text-slate-400">
-                  STATUS
-                </TableHead>
-                <TableHead className="px-3 text-xs text-slate-400">
-                  ACTIONS
-                </TableHead>
-              </TableRow>
-            </TableHeader>
+          <div className="overflow-x-auto max-h-[500px] overflow-y-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="hover:bg-transparent sticky top-0 bg-white z-10 shadow-sm">
+                  <TableHead className="px-3 text-xs text-slate-400">
+                    USER
+                  </TableHead>
+                  <TableHead className="px-3 text-xs text-slate-400">
+                    EMAIL
+                  </TableHead>
+                  <TableHead className="px-3 text-xs text-slate-400">
+                    SPECIALTY
+                  </TableHead>
+                  <TableHead className="px-3 text-xs text-slate-400">
+                    WORKPLACE
+                  </TableHead>
+                  <TableHead className="px-3 text-xs text-slate-400">
+                    SENT AT
+                  </TableHead>
+                  <TableHead className="px-3 text-xs text-slate-400">
+                    STATUS
+                  </TableHead>
+                  <TableHead className="px-3 text-xs text-slate-400">
+                    ACTIONS
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
             <TableBody>
-              {mergedDocuments.length > 0 ? (
+              {isLoading ? (
+                Array.from({ length: 5 }).map((_, i) => (
+                  <TableRow key={i}>
+                    <TableCell className="px-3 py-3"><Skeleton className="h-6 w-32" /></TableCell>
+                    <TableCell className="px-3"><Skeleton className="h-5 w-40" /></TableCell>
+                    <TableCell className="px-3"><Skeleton className="h-5 w-24" /></TableCell>
+                    <TableCell className="px-3"><Skeleton className="h-5 w-32" /></TableCell>
+                    <TableCell className="px-3"><Skeleton className="h-5 w-24" /></TableCell>
+                    <TableCell className="px-3"><Skeleton className="h-5 w-16" /></TableCell>
+                    <TableCell className="px-3"><Skeleton className="h-8 w-16 rounded-lg" /></TableCell>
+                  </TableRow>
+                ))
+              ) : mergedDocuments.length > 0 ? (
                 mergedDocuments.map((doc) => (
                   <TableRow key={doc.id}>
                     <TableCell className="px-3 py-3">
@@ -690,14 +700,21 @@ export function DocumentVerification() {
                 <TableRow>
                   <TableCell
                     colSpan={7}
-                    className="px-3 py-8 text-center text-sm text-slate-500"
+                    className="px-3 py-16 text-center"
                   >
-                    No users found for your current filter.
+                    <div className="flex flex-col items-center justify-center">
+                      <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4">
+                        <Database className="w-8 h-8 text-slate-400" />
+                      </div>
+                      <h3 className="text-slate-900 font-medium mb-1">No documents found</h3>
+                      <p className="text-slate-500 text-sm">Try adjusting your search filters or status</p>
+                    </div>
                   </TableCell>
                 </TableRow>
               )}
             </TableBody>
           </Table>
+        </div>
 
           <div className="flex flex-col gap-3 border-t border-slate-200 px-3 py-2 text-xs text-slate-400 sm:flex-row sm:items-center sm:justify-between">
             <p>

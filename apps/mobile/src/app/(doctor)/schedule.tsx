@@ -1,9 +1,12 @@
-import { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, SafeAreaView, Switch } from 'react-native';
+import { useState, useEffect } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, SafeAreaView, Switch, RefreshControl } from 'react-native';
+import { useRouter } from 'expo-router';
+import Toast from 'react-native-toast-message';
 import { Calendar, Plus, Clock, Copy, Trash2 } from 'lucide-react-native';
 import { tw } from '@/tw';
 
 export default function DoctorScheduleScreen() {
+  const router = useRouter();
   const [selectedDate, setSelectedDate] = useState('2023-10-25');
   const [isAcceptingAppts, setIsAcceptingAppts] = useState(true);
 
@@ -24,8 +27,39 @@ export default function DoctorScheduleScreen() {
     { id: '5', time: '03:30 PM', status: 'Available' },
   ];
 
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [slots, setSlots] = useState<any[]>([]);
+
+  useEffect(() => {
+    setLoading(true);
+    setTimeout(() => {
+      setSlots(timeSlots);
+      setLoading(false);
+    }, 1000);
+  }, [selectedDate]);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    setTimeout(() => setRefreshing(false), 1000);
+  };
+
+  const renderSlotSkeleton = () => (
+    <View style={tw('flex-row items-center p-4 rounded-2xl bg-white border border-slate-200 mb-4')}>
+      <View style={tw('w-2 h-2 rounded-full bg-slate-200 mr-3')} />
+      <View style={tw('flex-1')}>
+        <View style={tw('w-24 h-5 bg-slate-200 rounded mb-1')} />
+        <View style={tw('w-32 h-4 bg-slate-200 rounded')} />
+      </View>
+    </View>
+  );
+
   const handleAddSlot = () => {
-    alert('Open Time picker to add new slot');
+    Toast.show({
+      type: 'info',
+      text1: 'Info',
+      text2: 'Open Time picker to add new slot',
+    });
   };
 
   return (
@@ -49,7 +83,11 @@ export default function DoctorScheduleScreen() {
         </View>
       </View>
 
-      <ScrollView contentContainerStyle={tw('pb-20')} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        contentContainerStyle={tw('pb-20')} 
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#0f172a" />}
+      >
         {/* Date Selector */}
         <View style={tw('py-6 bg-white border-b border-slate-100')}>
           <View style={tw('flex-row justify-between items-center px-6 mb-4')}>
@@ -84,26 +122,39 @@ export default function DoctorScheduleScreen() {
           </View>
 
           <View style={tw('gap-4')}>
-            {timeSlots.map(slot => (
-              <View key={slot.id} style={tw(`flex-row items-center p-4 rounded-2xl border ${slot.status === 'Booked' ? 'bg-white border-slate-200' : 'bg-slate-50 border-slate-200 border-dashed'}`)}>
-                <View style={tw('flex-row items-center flex-1')}>
-                  <View style={tw(`w-2 h-2 rounded-full mr-3 ${slot.status === 'Booked' ? 'bg-red-500' : 'bg-emerald-500'}`)} />
-                  <View>
-                    <Text style={tw('text-lg font-bold text-slate-900 mb-0.5')}>{slot.time}</Text>
-                    {slot.status === 'Booked' ? (
-                      <Text style={tw('text-sm text-slate-500')}>Booked by: <Text style={tw('font-bold text-slate-700')}>{slot.patient}</Text></Text>
-                    ) : (
-                      <Text style={tw('text-sm text-emerald-600 font-medium')}>Available</Text>
-                    )}
+            {loading ? (
+              <>
+                {renderSlotSkeleton()}
+                {renderSlotSkeleton()}
+                {renderSlotSkeleton()}
+              </>
+            ) : slots.length > 0 ? (
+              slots.map(slot => (
+                <View key={slot.id} style={tw(`flex-row items-center p-4 rounded-2xl border ${slot.status === 'Booked' ? 'bg-white border-slate-200' : 'bg-slate-50 border-slate-200 border-dashed'}`)}>
+                  <View style={tw('flex-row items-center flex-1')}>
+                    <View style={tw(`w-2 h-2 rounded-full mr-3 ${slot.status === 'Booked' ? 'bg-red-500' : 'bg-emerald-500'}`)} />
+                    <View>
+                      <Text style={tw('text-lg font-bold text-slate-900 mb-0.5')}>{slot.time}</Text>
+                      {slot.status === 'Booked' ? (
+                        <Text style={tw('text-sm text-slate-500')}>Booked by: <Text style={tw('font-bold text-slate-700')}>{slot.patient}</Text></Text>
+                      ) : (
+                        <Text style={tw('text-sm text-emerald-600 font-medium')}>Available</Text>
+                      )}
+                    </View>
                   </View>
+                  {slot.status === 'Available' && (
+                    <TouchableOpacity style={tw('p-2')}>
+                      <Trash2 color="#ef4444" size={20} />
+                    </TouchableOpacity>
+                  )}
                 </View>
-                {slot.status === 'Available' && (
-                  <TouchableOpacity style={tw('p-2')}>
-                    <Trash2 color="#ef4444" size={20} />
-                  </TouchableOpacity>
-                )}
+              ))
+            ) : (
+              <View style={tw('items-center justify-center py-8 border border-slate-200 border-dashed rounded-2xl bg-slate-50')}>
+                <Clock color="#94a3b8" size={32} style={tw('mb-2')} />
+                <Text style={tw('text-slate-500 font-medium')}>No time slots for this date</Text>
               </View>
-            ))}
+            )}
           </View>
 
           <TouchableOpacity style={tw('mt-8 py-4 bg-white border border-slate-200 rounded-2xl flex-row items-center justify-center border-dashed')}>

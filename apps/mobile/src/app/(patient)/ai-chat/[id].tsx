@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, SafeAreaView, KeyboardAvoidingView, Platform, ScrollView, Modal } from 'react-native';
+import { useState, useEffect, useRef } from 'react';
+import { View, Text, TouchableOpacity, ScrollView, TextInput, KeyboardAvoidingView, Platform, SafeAreaView, Modal } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import Toast from 'react-native-toast-message';
 import { ArrowLeft, Send, Sparkles, Paperclip, AlertTriangle, X } from 'lucide-react-native';
 import { tw } from '@/tw';
 
@@ -55,7 +56,11 @@ export default function AiChatSessionScreen() {
     setReportReason('');
     // Mock submit report
     setTimeout(() => {
-      alert("Report submitted successfully.");
+      Toast.show({
+        type: 'success',
+        text1: 'Success',
+        text2: 'Report submitted successfully.'
+      });
     }, 500);
   };
 

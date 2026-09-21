@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, SafeAreaView, Dimensions, Switch } from 'react-native';
+import { useState, useEffect } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, SafeAreaView, Dimensions, Switch, RefreshControl } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Users, Calendar as CalendarIcon, Clock, TrendingUp, Bell, Power } from 'lucide-react-native';
 import { LineChart } from 'react-native-chart-kit';
@@ -21,9 +21,41 @@ export default function DoctorHomeScreen() {
     { id: 3, name: 'James Smith', time: '02:15 PM', status: 'Upcoming', type: 'Video Call' },
   ];
 
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [queue, setQueue] = useState<any[]>([]);
+
+  useEffect(() => {
+    setTimeout(() => {
+      setQueue(todayQueue);
+      setLoading(false);
+    }, 1200);
+  }, []);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    setTimeout(() => setRefreshing(false), 1200);
+  };
+
+  const renderQueueSkeleton = () => (
+    <View style={tw('flex-row items-center justify-between bg-white p-4 rounded-2xl shadow-sm border border-gray-100 mb-4')}>
+      <View style={tw('flex-1')}>
+        <View style={tw('w-32 h-5 bg-slate-200 rounded mb-2')} />
+        <View style={tw('w-24 h-4 bg-slate-200 rounded')} />
+      </View>
+      <View style={tw('items-end')}>
+        <View style={tw('w-16 h-6 bg-slate-200 rounded-full mb-2')} />
+      </View>
+    </View>
+  );
+
   return (
     <SafeAreaView style={tw('flex-1 bg-slate-50')}>
-      <ScrollView contentContainerStyle={tw('pb-20')} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        contentContainerStyle={tw('pb-20')} 
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#0f172a" />}
+      >
         {/* Header */}
         <View style={tw('flex-row justify-between items-center px-6 pt-6 pb-4')}>
           <View style={tw('flex-1')}>
@@ -127,32 +159,45 @@ export default function DoctorHomeScreen() {
           </View>
 
           <View style={tw('gap-4')}>
-            {todayQueue.map((item) => (
-              <View 
-                key={item.id}
-                style={tw('flex-row items-center justify-between bg-white p-4 rounded-2xl shadow-sm border border-gray-100')}
-              >
-                <View style={tw('flex-1')}>
-                  <Text style={tw('text-base font-bold text-[#313A34]')}>{item.name}</Text>
-                  <Text style={tw('text-sm text-gray-500 mt-0.5')}>{item.type} • {item.time}</Text>
-                </View>
-                <View style={tw('items-end')}>
-                  <View style={tw(`px-3 py-1 rounded-full ${item.status === 'Waiting' ? 'bg-orange-100' : 'bg-gray-100'}`)}>
-                    <Text style={tw(`text-xs font-bold ${item.status === 'Waiting' ? 'text-orange-600' : 'text-gray-600'}`)}>
-                      {item.status}
-                    </Text>
+            {loading ? (
+              <>
+                {renderQueueSkeleton()}
+                {renderQueueSkeleton()}
+                {renderQueueSkeleton()}
+              </>
+            ) : queue.length > 0 ? (
+              queue.map((item) => (
+                <View 
+                  key={item.id}
+                  style={tw('flex-row items-center justify-between bg-white p-4 rounded-2xl shadow-sm border border-gray-100')}
+                >
+                  <View style={tw('flex-1')}>
+                    <Text style={tw('text-base font-bold text-[#313A34]')}>{item.name}</Text>
+                    <Text style={tw('text-sm text-gray-500 mt-0.5')}>{item.type} • {item.time}</Text>
                   </View>
-                  {item.status === 'Waiting' && (
-                    <TouchableOpacity 
-                      style={tw('mt-2 bg-blue-500 px-4 py-1.5 rounded-full')}
-                      onPress={() => router.push('/(doctor)/video-call')}
-                    >
-                      <Text style={tw('text-white text-xs font-bold')}>Start</Text>
-                    </TouchableOpacity>
-                  )}
+                  <View style={tw('items-end')}>
+                    <View style={tw(`px-3 py-1 rounded-full ${item.status === 'Waiting' ? 'bg-orange-100' : 'bg-gray-100'}`)}>
+                      <Text style={tw(`text-xs font-bold ${item.status === 'Waiting' ? 'text-orange-600' : 'text-gray-600'}`)}>
+                        {item.status}
+                      </Text>
+                    </View>
+                    {item.status === 'Waiting' && (
+                      <TouchableOpacity 
+                        style={tw('mt-2 bg-blue-500 px-4 py-1.5 rounded-full')}
+                        onPress={() => router.push('/(doctor)/video-call')}
+                      >
+                        <Text style={tw('text-white text-xs font-bold')}>Start</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
                 </View>
+              ))
+            ) : (
+              <View style={tw('items-center justify-center py-8 bg-white rounded-2xl border border-gray-100 border-dashed')}>
+                <Users color="#94a3b8" size={32} style={tw('mb-2')} />
+                <Text style={tw('text-gray-500 font-medium')}>No patients in queue</Text>
               </View>
-            ))}
+            )}
           </View>
         </View>
 

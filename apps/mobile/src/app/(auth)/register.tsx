@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, SafeAreaView, ScrollView, KeyboardAvoidingView, Platform, Alert, Image } from 'react-native';
 import { useRouter } from 'expo-router';
+import Toast from 'react-native-toast-message';
 import { Mail, Lock, Plus, User, Phone, Briefcase, Stethoscope, Clock, UploadCloud } from 'lucide-react-native';
 import { tw } from '@/tw';
 
@@ -86,7 +87,7 @@ export default function RegisterScreen() {
 
             {/* Doctor Load Previous Registration Data */}
             {role === 'doctor' && (
-              <TouchableOpacity onPress={() => alert('Load previous registration data')} style={tw('flex-row items-center justify-end -mt-2 mb-2')}>
+              <TouchableOpacity onPress={() => Toast.show({ type: 'info', text1: 'Info', text2: 'Load previous registration data' })} style={tw('flex-row items-center justify-end -mt-2 mb-2')}>
                 <Text style={tw('text-sm text-emerald-600 font-medium')}>Load previous registration data?</Text>
               </TouchableOpacity>
             )}
@@ -230,7 +231,7 @@ export default function RegisterScreen() {
                   </View>
                   <Text style={tw('text-xs text-gray-500 mb-2')}>Required to activate your account</Text>
                   
-                  <TouchableOpacity onPress={() => alert('Select verification documents to upload')} style={tw('border border-dashed border-gray-300 rounded-2xl bg-gray-50 py-6 items-center')}>
+                  <TouchableOpacity onPress={() => Toast.show({ type: 'info', text1: 'Info', text2: 'Select verification documents to upload' })} style={tw('border border-dashed border-gray-300 rounded-2xl bg-gray-50 py-6 items-center')}>
                     <View style={tw('bg-gray-200 p-3 rounded-full mb-2')}>
                       <UploadCloud color="#9ca3af" size={24} />
                     </View>

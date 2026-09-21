@@ -1,13 +1,16 @@
-import { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, SafeAreaView, Image, Modal, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
+import { useState, useEffect } from 'react';
+import { View, Text, TouchableOpacity, ScrollView, TextInput, Image, RefreshControl, Modal, SafeAreaView, Platform, KeyboardAvoidingView, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Star, MessageCircle, Video, MapPin, Search, ArrowRight, X, Clock, ShieldCheck, Mail, Phone, Calendar } from 'lucide-react-native';
+import Toast from 'react-native-toast-message';
+import { Star, MessageCircle, Video, MapPin, Search, ArrowRight, X, Clock, ShieldCheck, Mail, Phone, Calendar, UserX } from 'lucide-react-native';
 import { tw } from '@/tw';
 
 type DoctorStatus = 'unrequested' | 'pending' | 'accepted';
 
 export default function MyDoctorsScreen() {
   const router = useRouter();
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   const [doctors, setDoctors] = useState([
     {
@@ -62,6 +65,16 @@ export default function MyDoctorsScreen() {
   const [selectedDate, setSelectedDate] = useState('2023-10-25');
   const [selectedTime, setSelectedTime] = useState('09:00 AM');
 
+  useEffect(() => {
+    // Simulate initial loading
+    setTimeout(() => setLoading(false), 1200);
+  }, []);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    setTimeout(() => setRefreshing(false), 1200);
+  };
+
   const availableTimes = ['09:00 AM', '10:00 AM', '11:00 AM', '02:00 PM', '03:30 PM'];
 
   const filteredDoctors = doctors.filter(doc => 
@@ -88,11 +101,62 @@ export default function MyDoctorsScreen() {
     ));
     
     setRequestModalVisible(false);
+    setTimeout(() => {
+      Toast.show({
+        type: 'success',
+        text1: 'Request Sent',
+        text2: 'Your consultation request has been sent to the doctor.'
+      });
+    }, 500);
   };
+
+  const renderSkeleton = () => (
+    <View style={tw('bg-white rounded-3xl p-5 shadow-sm border border-slate-100')}>
+      <View style={tw('flex-row gap-4')}>
+        <View style={tw('w-20 h-20 rounded-2xl bg-slate-200')} />
+        <View style={tw('flex-1 justify-center')}>
+          <View style={tw('w-32 h-6 bg-slate-200 rounded mb-2')} />
+          <View style={tw('w-24 h-4 bg-slate-200 rounded mb-2')} />
+          <View style={tw('w-36 h-4 bg-slate-200 rounded')} />
+        </View>
+      </View>
+      <View style={tw('w-full h-[1px] bg-slate-100 my-4')} />
+      <View style={tw('flex-row justify-between items-center')}>
+        <View style={tw('w-32 h-4 bg-slate-200 rounded')} />
+        <View style={tw('w-24 h-10 bg-slate-200 rounded-full')} />
+      </View>
+    </View>
+  );
+
+  const renderEmptyState = () => (
+    <View style={tw('items-center justify-center py-20 px-6')}>
+      <View style={tw('w-24 h-24 bg-slate-100 rounded-full items-center justify-center mb-6')}>
+        <UserX color="#94a3b8" size={40} />
+      </View>
+      <Text style={tw('text-xl font-bold text-slate-900 mb-2 text-center')}>No doctors found</Text>
+      <Text style={tw('text-slate-500 text-center mb-8')}>
+        {searchQuery.length > 0 
+          ? `We couldn't find any doctors matching "${searchQuery}". Try different keywords.`
+          : "You haven't added or connected with any doctors yet."}
+      </Text>
+      {searchQuery.length > 0 && (
+        <TouchableOpacity 
+          onPress={() => setSearchQuery('')}
+          style={tw('bg-slate-100 px-6 py-3 rounded-2xl')}
+        >
+          <Text style={tw('text-slate-900 font-bold')}>Clear Search</Text>
+        </TouchableOpacity>
+      )}
+    </View>
+  );
 
   return (
     <SafeAreaView style={tw('flex-1 bg-slate-50')}>
-      <ScrollView contentContainerStyle={tw('pb-20')} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        contentContainerStyle={tw('pb-20')} 
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#0f172a" colors={['#0f172a']} />}
+      >
         {/* Header */}
         <View style={tw('px-6 pt-6 pb-4')}>
           <Text style={tw('text-2xl font-bold text-slate-900')}>My Doctors</Text>
@@ -117,8 +181,15 @@ export default function MyDoctorsScreen() {
 
         {/* Doctors List */}
         <View style={tw('px-6 gap-4 mt-2')}>
-          {filteredDoctors.map((doc) => (
-            <TouchableOpacity 
+          {loading ? (
+            <>
+              {renderSkeleton()}
+              {renderSkeleton()}
+              {renderSkeleton()}
+            </>
+          ) : (
+            filteredDoctors.length > 0 ? filteredDoctors.map((doc) => (
+              <TouchableOpacity 
               key={doc.id} 
               style={tw('bg-white rounded-3xl p-5 shadow-sm border border-slate-100')}
               onPress={() => handleOpenProfile(doc)}
@@ -182,11 +253,12 @@ export default function MyDoctorsScreen() {
                     >
                       <Text style={tw('text-slate-900 font-bold text-sm')}>Request</Text>
                     </TouchableOpacity>
-                  )}
+                    )}
+                  </View>
                 </View>
-              </View>
-            </TouchableOpacity>
-          ))}
+              </TouchableOpacity>
+            )) : renderEmptyState()
+          )}
         </View>
       </ScrollView>
 

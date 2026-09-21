@@ -17,6 +17,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@repo/ui/components/ui/pagination";
+import { Skeleton } from "@repo/ui/components/ui/skeleton";
 import {
   Table,
   TableBody,
@@ -37,6 +38,7 @@ import {
   User,
   UserX,
   X,
+  Database
 } from "lucide-react";
 
 import { useReportList } from "../hooks/useReportManagement";
@@ -539,34 +541,47 @@ export function ViolationReport() {
             </div>
           </div>
 
-          <Table>
-            <TableHeader>
-              <TableRow className="hover:bg-transparent">
-                <TableHead className="px-3 text-xs text-slate-400">
-                  TYPE
-                </TableHead>
-                <TableHead className="px-3 text-xs text-slate-400">
-                  REPORTED BY
-                </TableHead>
-                <TableHead className="px-3 text-xs text-slate-400">
-                  REPORTED ACCOUNT
-                </TableHead>
-                <TableHead className="px-3 text-xs text-slate-400">
-                  DETAILS
-                </TableHead>
-                <TableHead className="px-3 text-xs text-slate-400">
-                  DATE
-                </TableHead>
-                <TableHead className="px-3 text-xs text-slate-400">
-                  STATUS
-                </TableHead>
-                <TableHead className="px-3 text-xs text-slate-400">
-                  ACTIONS
-                </TableHead>
-              </TableRow>
-            </TableHeader>
+          <div className="overflow-x-auto max-h-[500px] overflow-y-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="hover:bg-transparent sticky top-0 bg-white z-10 shadow-sm">
+                  <TableHead className="px-3 text-xs text-slate-400">
+                    TYPE
+                  </TableHead>
+                  <TableHead className="px-3 text-xs text-slate-400">
+                    REPORTED BY
+                  </TableHead>
+                  <TableHead className="px-3 text-xs text-slate-400">
+                    REPORTED ACCOUNT
+                  </TableHead>
+                  <TableHead className="px-3 text-xs text-slate-400">
+                    DETAILS
+                  </TableHead>
+                  <TableHead className="px-3 text-xs text-slate-400">
+                    DATE
+                  </TableHead>
+                  <TableHead className="px-3 text-xs text-slate-400">
+                    STATUS
+                  </TableHead>
+                  <TableHead className="px-3 text-xs text-slate-400">
+                    ACTIONS
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
             <TableBody>
-              {paginatedReports.length > 0 ? (
+              {isReportListLoading ? (
+                Array.from({ length: 5 }).map((_, i) => (
+                  <TableRow key={`skeleton-${i}`}>
+                    <TableCell className="px-4"><Skeleton className="h-6 w-20 rounded-full" /></TableCell>
+                    <TableCell className="px-4"><Skeleton className="h-5 w-32" /></TableCell>
+                    <TableCell className="px-4"><Skeleton className="h-5 w-32" /></TableCell>
+                    <TableCell className="px-4"><Skeleton className="h-5 w-48" /></TableCell>
+                    <TableCell className="px-4"><Skeleton className="h-5 w-24" /></TableCell>
+                    <TableCell className="px-4"><Skeleton className="h-5 w-16 rounded-full" /></TableCell>
+                    <TableCell className="px-4"><Skeleton className="h-8 w-16 rounded-lg" /></TableCell>
+                  </TableRow>
+                ))
+              ) : paginatedReports.length > 0 ? (
                 paginatedReports.map((report) => {
                   const typeMeta = REPORT_TYPE_META[report.reportType];
                   const TypeIcon = typeMeta.icon;
@@ -627,14 +642,21 @@ export function ViolationReport() {
                 <TableRow>
                   <TableCell
                     colSpan={7}
-                    className="px-4 py-8 text-center text-sm text-slate-500"
+                    className="px-3 py-16 text-center"
                   >
-                    No report found for your current filters.
+                    <div className="flex flex-col items-center justify-center">
+                      <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4">
+                        <Database className="w-8 h-8 text-slate-400" />
+                      </div>
+                      <h3 className="text-slate-900 font-medium mb-1">No reports found</h3>
+                      <p className="text-slate-500 text-sm">Try adjusting your search filters or status</p>
+                    </div>
                   </TableCell>
                 </TableRow>
               )}
             </TableBody>
           </Table>
+        </div>
 
           <div className="flex flex-col gap-3 border-t border-slate-200 px-3 py-2 text-xs text-slate-400 sm:flex-row sm:items-center sm:justify-between">
             <p>

@@ -3,6 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity, SafeAreaView, Modal, TextInpu
 import { Activity, Heart, Droplet, Plus, Edit2, Trash2, Bot, X } from 'lucide-react-native';
 import { tw } from '@/tw';
 import { useRouter } from 'expo-router';
+import Toast from 'react-native-toast-message';
 
 type MetricEntry = {
   id: string;
@@ -103,7 +104,11 @@ export default function HealthMetricScreen() {
 
   const handleSave = () => {
     if (!formValue.trim() || !formTime.trim() || !formDate.trim()) {
-      Alert.alert('Error', 'Please fill in all fields');
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: 'Please fill in all fields'
+      });
       return;
     }
 
@@ -125,6 +130,11 @@ export default function HealthMetricScreen() {
     }));
     
     setModalVisible(false);
+    Toast.show({
+      type: 'success',
+      text1: 'Success',
+      text2: editId ? 'Entry updated successfully' : 'New entry added'
+    });
   };
 
   const handleAskAI = (entry: MetricEntry) => {

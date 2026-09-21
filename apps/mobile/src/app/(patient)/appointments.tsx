@@ -1,12 +1,17 @@
-import { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, SafeAreaView } from 'react-native';
-import { Calendar, Clock, Video, MessageCircle, MapPin, AlertCircle, X, Check } from 'lucide-react-native';
+import { useState, useEffect } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, SafeAreaView, RefreshControl, Alert } from 'react-native';
+import Toast from 'react-native-toast-message';
+import { Calendar, Clock, Video, MessageCircle, MapPin, AlertCircle, X, Check, CalendarX2 } from 'lucide-react-native';
 import { tw } from '@/tw';
 import { useRouter } from 'expo-router';
 
 export default function AppointmentsScreen() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<'upcoming' | 'history'>('upcoming');
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [upcomingList, setUpcomingList] = useState<any[]>([]);
+  const [historyList, setHistoryList] = useState<any[]>([]);
 
   const upcomingAppointments = [
     { 
@@ -52,9 +57,87 @@ export default function AppointmentsScreen() {
     },
   ];
 
-  const handleCancel = () => {
-    alert('Are you sure you want to cancel this appointment?');
+  useEffect(() => {
+    // Simulate initial loading
+    setTimeout(() => {
+      setUpcomingList(upcomingAppointments);
+      setHistoryList(historyAppointments);
+      setLoading(false);
+    }, 1500);
+  }, []);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    setTimeout(() => {
+      setRefreshing(false);
+      // Simulate refreshing data
+    }, 1500);
   };
+
+  const handleCancel = (id: string) => {
+    Alert.alert('Cancel Appointment', 'Are you sure you want to cancel this appointment?', [
+      { text: 'No', style: 'cancel' },
+      { 
+        text: 'Yes, Cancel', 
+        style: 'destructive',
+        onPress: () => {
+          setUpcomingList(prev => prev.filter(apt => apt.id !== id));
+          Toast.show({
+            type: 'success',
+            text1: 'Success',
+            text2: 'Appointment cancelled successfully'
+          });
+        }
+      }
+    ]);
+  };
+
+  const renderSkeleton = () => (
+    <View style={tw('bg-white rounded-3xl p-5 mb-5 border border-slate-200 shadow-sm opacity-60')}>
+      <View style={tw('flex-row justify-between items-start mb-4')}>
+        <View>
+          <View style={tw('w-40 h-6 bg-slate-200 rounded-md mb-2')} />
+          <View style={tw('w-24 h-4 bg-slate-200 rounded-md')} />
+        </View>
+        <View style={tw('w-16 h-6 bg-slate-200 rounded-full')} />
+      </View>
+      <View style={tw('flex-row flex-wrap gap-y-3 mb-5')}>
+        <View style={tw('w-1/2 flex-row items-center')}>
+          <View style={tw('w-4 h-4 bg-slate-200 rounded')} />
+          <View style={tw('w-20 h-4 bg-slate-200 rounded ml-2')} />
+        </View>
+        <View style={tw('w-1/2 flex-row items-center')}>
+          <View style={tw('w-4 h-4 bg-slate-200 rounded')} />
+          <View style={tw('w-20 h-4 bg-slate-200 rounded ml-2')} />
+        </View>
+      </View>
+      <View style={tw('flex-row gap-3 mt-2')}>
+        <View style={tw('flex-1 h-12 bg-slate-200 rounded-xl')} />
+      </View>
+    </View>
+  );
+
+  const renderEmptyState = (tab: 'upcoming' | 'history') => (
+    <View style={tw('items-center justify-center py-20 px-6')}>
+      <View style={tw('w-24 h-24 bg-slate-100 rounded-full items-center justify-center mb-6')}>
+        <CalendarX2 color="#94a3b8" size={40} />
+      </View>
+      <Text style={tw('text-xl font-bold text-slate-900 mb-2 text-center')}>No {tab} appointments</Text>
+      <Text style={tw('text-slate-500 text-center mb-8')}>
+        {tab === 'upcoming' 
+          ? "You don't have any upcoming appointments scheduled at the moment."
+          : "You haven't had any appointments yet."}
+      </Text>
+      {tab === 'upcoming' && (
+        <TouchableOpacity 
+          onPress={() => router.push('/(patient)/my-doctors')}
+          style={tw('bg-brand px-8 py-4 rounded-2xl flex-row items-center')}
+        >
+          <Text style={tw('text-slate-900 font-bold')}>Book New Appointment</Text>
+        </TouchableOpacity>
+      )}
+    </View>
+  );
 
   return (
     <SafeAreaView style={tw('flex-1 bg-slate-50')}>
@@ -80,10 +163,25 @@ export default function AppointmentsScreen() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView contentContainerStyle={tw('p-6 pb-20')} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        contentContainerStyle={tw('p-6 pb-20')} 
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#0f172a" colors={['#0f172a']} />
+        }
+      >
         
-        {activeTab === 'upcoming' && upcomingAppointments.map((apt) => (
-          <View key={apt.id} style={tw('bg-white rounded-3xl p-5 mb-5 border border-slate-200 shadow-sm')}>
+        {loading ? (
+          <>
+            {renderSkeleton()}
+            {renderSkeleton()}
+            {renderSkeleton()}
+          </>
+        ) : (
+          <>
+            {activeTab === 'upcoming' && (
+              upcomingList.length > 0 ? upcomingList.map((apt) => (
+                <View key={apt.id} style={tw('bg-white rounded-3xl p-5 mb-5 border border-slate-200 shadow-sm')}>
             {apt.status === 'Queueing' && (
               <View style={tw('bg-amber-50 border border-amber-100 rounded-2xl p-4 mb-4 flex-row items-center justify-between')}>
                 <View style={tw('flex-row items-center')}>
@@ -136,7 +234,7 @@ export default function AppointmentsScreen() {
                 </TouchableOpacity>
               ) : (
                 <TouchableOpacity 
-                  onPress={handleCancel}
+                  onPress={() => handleCancel(apt.id)}
                   style={tw('flex-1 bg-red-50 border border-red-100 py-3.5 rounded-xl flex-row justify-center items-center')}
                 >
                   <Text style={tw('text-red-500 font-bold text-sm')}>Cancel</Text>
@@ -144,9 +242,10 @@ export default function AppointmentsScreen() {
               )}
             </View>
           </View>
-        ))}
+        )) : renderEmptyState('upcoming'))}
 
-        {activeTab === 'history' && historyAppointments.map((apt) => (
+        {activeTab === 'history' && (
+          historyList.length > 0 ? historyList.map((apt) => (
           <View key={apt.id} style={tw('bg-white rounded-3xl p-5 mb-5 border border-slate-200 shadow-sm opacity-80')}>
             <View style={tw('flex-row justify-between items-start mb-4')}>
               <View>
@@ -178,7 +277,9 @@ export default function AppointmentsScreen() {
               <Text style={tw('text-slate-700 font-bold text-sm')}>View Log</Text>
             </TouchableOpacity>
           </View>
-        ))}
+        )) : renderEmptyState('history'))}
+          </>
+        )}
 
       </ScrollView>
     </SafeAreaView>

@@ -1,7 +1,8 @@
-import { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, SafeAreaView, TextInput, Modal, KeyboardAvoidingView, Platform } from 'react-native';
+import { useState, useEffect } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, SafeAreaView, TextInput, Modal, KeyboardAvoidingView, Platform, RefreshControl } from 'react-native';
 import { Calendar, Clock, MessageCircle, Search, CheckCircle, XCircle, AlertTriangle, FileText, X } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
+import Toast from 'react-native-toast-message';
 import { tw } from '@/tw';
 
 export default function DoctorConsultationsScreen() {
@@ -23,21 +24,70 @@ export default function DoctorConsultationsScreen() {
   const history = [
     { id: '3', patientName: 'James Smith', time: '02:15 PM', date: 'Yesterday', type: 'Chat', status: 'Completed', age: 45, gender: 'Male', rating: 5, review: 'Very helpful doctor.' },
   ];
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [pending, setPending] = useState<any[]>([]);
+  const [active, setActive] = useState<any[]>([]);
+  const [hist, setHist] = useState<any[]>([]);
+
+  useEffect(() => {
+    setLoading(true);
+    setTimeout(() => {
+      setPending(pendingRequests);
+      setActive(activeSessions);
+      setHist(history);
+      setLoading(false);
+    }, 1000);
+  }, [activeTab]);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    setTimeout(() => setRefreshing(false), 1000);
+  };
+
+  const renderSkeleton = () => (
+    <View style={tw('bg-white rounded-2xl p-4 mb-4 border border-slate-100 shadow-sm')}>
+      <View style={tw('flex-row justify-between items-start mb-3')}>
+        <View>
+          <View style={tw('w-32 h-6 bg-slate-200 rounded mb-2')} />
+          <View style={tw('w-20 h-4 bg-slate-200 rounded')} />
+        </View>
+        <View style={tw('w-24 h-6 bg-slate-200 rounded-full')} />
+      </View>
+      <View style={tw('w-full h-12 bg-slate-200 rounded-xl mb-4')} />
+      <View style={tw('flex-row gap-3 mt-2')}>
+        <View style={tw('flex-1 h-12 bg-slate-200 rounded-xl')} />
+        <View style={tw('flex-1 h-12 bg-slate-200 rounded-xl')} />
+      </View>
+    </View>
+  );
 
   const handleAction = (action: string) => {
-    alert(`${action} successful`);
+    Toast.show({
+      type: 'success',
+      text1: 'Success',
+      text2: `${action} successful`,
+    });
   };
 
   const handleEndSubmit = () => {
     setEndModalVisible(false);
     setDoctorNote('');
-    alert('Consultation Ended');
+    Toast.show({
+      type: 'success',
+      text1: 'Success',
+      text2: 'Consultation Ended',
+    });
   };
 
   const handleReportSubmit = () => {
     setReportModalVisible(false);
     setReportReason('');
-    alert('Report Submitted');
+    Toast.show({
+      type: 'success',
+      text1: 'Success',
+      text2: 'Report Submitted',
+    });
   };
 
   return (
@@ -70,9 +120,18 @@ export default function DoctorConsultationsScreen() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView contentContainerStyle={tw('p-6 pb-20')} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        contentContainerStyle={tw('p-6 pb-20')} 
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#0f172a" />}
+      >
         {/* Pending Requests */}
-        {activeTab === 'pending' && pendingRequests.map(req => (
+        {loading ? (
+          <>
+            {renderSkeleton()}
+            {renderSkeleton()}
+          </>
+        ) : activeTab === 'pending' && pending.length > 0 ? pending.map(req => (
           <View key={req.id} style={tw('bg-white rounded-2xl p-4 mb-4 border border-slate-100 shadow-sm')}>
             <View style={tw('flex-row justify-between items-start mb-3')}>
               <View>
@@ -95,10 +154,14 @@ export default function DoctorConsultationsScreen() {
               </TouchableOpacity>
             </View>
           </View>
-        ))}
+        )) : activeTab === 'pending' && (
+          <View style={tw('items-center justify-center py-12')}>
+            <Text style={tw('text-slate-500 font-medium')}>No pending requests</Text>
+          </View>
+        )}
 
         {/* Active Sessions */}
-        {activeTab === 'active' && activeSessions.map(session => (
+        {!loading && activeTab === 'active' && active.length > 0 ? active.map(session => (
           <View key={session.id} style={tw('bg-white rounded-2xl p-4 mb-4 border border-slate-100 shadow-sm')}>
             <View style={tw('flex-row justify-between items-start mb-3')}>
               <View>
@@ -123,10 +186,14 @@ export default function DoctorConsultationsScreen() {
               </TouchableOpacity>
             </View>
           </View>
-        ))}
+        )) : !loading && activeTab === 'active' && (
+          <View style={tw('items-center justify-center py-12')}>
+            <Text style={tw('text-slate-500 font-medium')}>No active sessions</Text>
+          </View>
+        )}
 
         {/* History */}
-        {activeTab === 'history' && history.map(session => (
+        {!loading && activeTab === 'history' && hist.length > 0 ? hist.map(session => (
           <View key={session.id} style={tw('bg-white rounded-2xl p-4 mb-4 border border-slate-100 shadow-sm')}>
             <View style={tw('flex-row justify-between items-start mb-2')}>
               <View>
@@ -154,7 +221,11 @@ export default function DoctorConsultationsScreen() {
               </TouchableOpacity>
             </View>
           </View>
-        ))}
+        )) : !loading && activeTab === 'history' && (
+          <View style={tw('items-center justify-center py-12')}>
+            <Text style={tw('text-slate-500 font-medium')}>No consultation history</Text>
+          </View>
+        )}
 
       </ScrollView>
 

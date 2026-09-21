@@ -1,10 +1,14 @@
-import { View, Text, ScrollView, TouchableOpacity, Image, TextInput, SafeAreaView } from 'react-native';
+import { useState, useEffect } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, Image, TextInput, SafeAreaView, RefreshControl } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Search, Bell, Calendar, ChevronRight, Star, Heart, Activity, Crown } from 'lucide-react-native';
 import { tw } from '@/tw';
 
 export default function PatientHomeScreen() {
   const router = useRouter();
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [doctors, setDoctors] = useState<any[]>([]);
 
   // Mock data
   const upcomingAppointment = {
@@ -31,9 +35,36 @@ export default function PatientHomeScreen() {
     { id: 3, name: 'Dr. Emily Chen', specialty: 'Pediatrician', rating: 4.7, reviews: 89, image: 'https://i.pravatar.cc/150?img=9' },
   ];
 
+  useEffect(() => {
+    setTimeout(() => {
+      setDoctors(topDoctors);
+      setLoading(false);
+    }, 1200);
+  }, []);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    setTimeout(() => setRefreshing(false), 1200);
+  };
+
+  const renderDoctorSkeleton = () => (
+    <View style={tw('flex-row bg-white rounded-2xl p-4 shadow-sm border border-gray-100 mb-4')}>
+      <View style={tw('w-20 h-20 rounded-xl bg-slate-200')} />
+      <View style={tw('ml-4 flex-1 justify-center')}>
+        <View style={tw('w-3/4 h-5 bg-slate-200 rounded mb-2')} />
+        <View style={tw('w-1/2 h-4 bg-slate-200 rounded mb-3')} />
+        <View style={tw('w-1/3 h-4 bg-slate-200 rounded')} />
+      </View>
+    </View>
+  );
+
   return (
     <SafeAreaView style={tw('flex-1 bg-slate-50')}>
-      <ScrollView contentContainerStyle={tw('pb-20')} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        contentContainerStyle={tw('pb-20')} 
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#0f172a" />}
+      >
         {/* Header */}
         <View style={tw('flex-row justify-between items-center px-6 pt-6 pb-4')}>
           <View>
@@ -144,30 +175,37 @@ export default function PatientHomeScreen() {
           </View>
 
           <View style={tw('gap-4')}>
-            {topDoctors.map((doc) => (
-              <TouchableOpacity 
-                key={doc.id} 
-                style={tw('flex-row bg-white rounded-2xl p-4 shadow-sm border border-gray-100')}
-                onPress={() => {}}
-              >
-                <Image source={{ uri: doc.image }} style={tw('w-20 h-20 rounded-xl bg-gray-200')} />
-                <View style={tw('ml-4 flex-1 justify-center')}>
-                  <View style={tw('flex-row justify-between items-start mb-1')}>
-                    <Text style={tw('text-base font-bold text-[#313A34]')} numberOfLines={1}>{doc.name}</Text>
-                    <TouchableOpacity>
-                      <Heart color="#9ca3af" size={20} />
-                    </TouchableOpacity>
+            {loading ? (
+              <>
+                {renderDoctorSkeleton()}
+                {renderDoctorSkeleton()}
+              </>
+            ) : doctors.length > 0 ? (
+              doctors.map((doc) => (
+                <TouchableOpacity 
+                  key={doc.id} 
+                  style={tw('flex-row bg-white rounded-2xl p-4 shadow-sm border border-gray-100')}
+                  onPress={() => {}}
+                >
+                  <Image source={{ uri: doc.image }} style={tw('w-20 h-20 rounded-xl bg-gray-200')} />
+                  <View style={tw('ml-4 flex-1 justify-center')}>
+                    <View style={tw('flex-row justify-between items-start mb-1')}>
+                      <Text style={tw('text-base font-bold text-[#313A34]')} numberOfLines={1}>{doc.name}</Text>
+                      <TouchableOpacity>
+                        <Heart color="#9ca3af" size={20} />
+                      </TouchableOpacity>
+                    </View>
+                    <Text style={tw('text-sm text-gray-500 mb-2')}>{doc.specialty}</Text>
+                    
+                    <View style={tw('flex-row items-center gap-1')}>
+                      <Star color="#f59e0b" fill="#f59e0b" size={14} />
+                      <Text style={tw('text-sm font-bold text-gray-700')}>{doc.rating}</Text>
+                      <Text style={tw('text-xs text-gray-400')}>({doc.reviews} reviews)</Text>
+                    </View>
                   </View>
-                  <Text style={tw('text-sm text-gray-500 mb-2')}>{doc.specialty}</Text>
-                  
-                  <View style={tw('flex-row items-center gap-1')}>
-                    <Star color="#f59e0b" fill="#f59e0b" size={14} />
-                    <Text style={tw('text-sm font-bold text-gray-700')}>{doc.rating}</Text>
-                    <Text style={tw('text-xs text-gray-400')}>({doc.reviews} reviews)</Text>
-                  </View>
-                </View>
-              </TouchableOpacity>
-            ))}
+                </TouchableOpacity>
+              ))
+            ) : null}
           </View>
         </View>
 

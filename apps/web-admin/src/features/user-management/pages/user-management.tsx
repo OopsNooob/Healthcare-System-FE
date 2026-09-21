@@ -1,4 +1,5 @@
 import { OverviewCard } from "@repo/ui/components/data-display/overview-card";
+import { Skeleton } from "@repo/ui/components/ui/skeleton";
 import {
   ArrowLeftRight,
   Ban,
@@ -11,6 +12,7 @@ import {
   ShieldCheck,
   Stethoscope,
   Users,
+  Database
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@repo/ui/components/ui/button";
@@ -660,41 +662,59 @@ export function UserManagement() {
             </div>
           </div>
 
-          <Table>
-            <TableHeader>
-              <TableRow className="hover:bg-transparent">
-                <TableHead className="px-3 text-xs text-slate-400">
-                  USER
-                </TableHead>
-                <TableHead className="px-3 text-xs text-slate-400">
-                  EMAIL
-                </TableHead>
-                {selectedRole === "doctor" ? (
+          <div className="overflow-x-auto max-h-[500px] overflow-y-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="hover:bg-transparent sticky top-0 bg-white z-10 shadow-sm">
                   <TableHead className="px-3 text-xs text-slate-400">
-                    SPECIALTY
+                    USER
                   </TableHead>
-                ) : null}
-                {selectedRole === "admin" ? (
                   <TableHead className="px-3 text-xs text-slate-400">
-                    ASSIGNED ROLE
+                    EMAIL
                   </TableHead>
-                ) : null}
-                <TableHead className="px-3 text-xs text-slate-400">
-                  LOCATION
-                </TableHead>
-                <TableHead className="px-3 text-xs text-slate-400">
-                  JOINED
-                </TableHead>
-                <TableHead className="px-3 text-xs text-slate-400">
-                  STATUS
-                </TableHead>
-                <TableHead className="px-3 text-xs text-slate-400">
-                  ACTIONS
-                </TableHead>
-              </TableRow>
-            </TableHeader>
+                  {selectedRole === "doctor" ? (
+                    <TableHead className="px-3 text-xs text-slate-400">
+                      SPECIALTY
+                    </TableHead>
+                  ) : null}
+                  {selectedRole === "admin" ? (
+                    <TableHead className="px-3 text-xs text-slate-400">
+                      ASSIGNED ROLE
+                    </TableHead>
+                  ) : null}
+                  <TableHead className="px-3 text-xs text-slate-400">
+                    LOCATION
+                  </TableHead>
+                  <TableHead className="px-3 text-xs text-slate-400">
+                    JOINED
+                  </TableHead>
+                  <TableHead className="px-3 text-xs text-slate-400">
+                    STATUS
+                  </TableHead>
+                  <TableHead className="px-3 text-xs text-slate-400">
+                    ACTIONS
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
             <TableBody>
-              {paginatedUsers.length > 0 ? (
+              {isLoading ? (
+                Array.from({ length: 5 }).map((_, i) => (
+                  <TableRow key={`skeleton-${i}`}>
+                    <TableCell className="px-3 py-3">
+                      <div className="flex items-center gap-3">
+                        <Skeleton className="h-8 w-8 rounded-full" />
+                      </div>
+                    </TableCell>
+                    <TableCell className="px-3"><Skeleton className="h-5 w-40" /></TableCell>
+                    {selectedRole === "doctor" ? <TableCell className="px-3"><Skeleton className="h-5 w-24" /></TableCell> : null}
+                    {selectedRole === "admin" ? <TableCell className="px-3"><Skeleton className="h-5 w-24" /></TableCell> : null}
+                    <TableCell className="px-3"><Skeleton className="h-5 w-32" /></TableCell>
+                    <TableCell className="px-3"><Skeleton className="h-5 w-24" /></TableCell>
+                    <TableCell className="px-3"><Skeleton className="h-5 w-16" /></TableCell>
+                    <TableCell className="px-3"><Skeleton className="h-6 w-6 rounded-md" /></TableCell>
+                  </TableRow>
+                ))
+              ) : paginatedUsers.length > 0 ? (
                 paginatedUsers.map((user) => (
                   <TableRow key={user.id}>
                     <TableCell className="px-3 py-3">
@@ -766,14 +786,21 @@ export function UserManagement() {
                 <TableRow>
                   <TableCell
                     colSpan={tableColSpan}
-                    className="px-3 py-8 text-center text-sm text-slate-500"
+                    className="px-3 py-16 text-center"
                   >
-                    No users found for your current filter.
+                    <div className="flex flex-col items-center justify-center">
+                      <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4">
+                        <Database className="w-8 h-8 text-slate-400" />
+                      </div>
+                      <h3 className="text-slate-900 font-medium mb-1">No users found</h3>
+                      <p className="text-slate-500 text-sm">Try adjusting your search filters or roles</p>
+                    </div>
                   </TableCell>
                 </TableRow>
               )}
             </TableBody>
           </Table>
+        </div>
 
           <div className="flex flex-col gap-3 border-t border-slate-200 px-3 py-2 text-xs text-slate-400 sm:flex-row sm:items-center sm:justify-between">
             <p>

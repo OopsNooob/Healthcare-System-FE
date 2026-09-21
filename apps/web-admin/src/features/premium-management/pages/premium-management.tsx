@@ -1,9 +1,40 @@
-import { useState } from "react";
-import { CreditCard, Eye, Search, TrendingUp, Users } from "lucide-react";
+import { useState, useEffect } from 'react';
+import { CreditCard, Eye, TrendingUp, Users, Search, Database } from 'lucide-react';
 import { Badge } from "@repo/ui/components/ui/badge";
+import { Skeleton } from "@repo/ui/components/ui/skeleton";
+
+interface Transaction {
+  id: string;
+  user: string;
+  amount: string;
+  date: string;
+  status: string;
+}
 
 export function PremiumManagement() {
   const [activeTab, setActiveTab] = useState<"transactions" | "config">("transactions");
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+
+  useEffect(() => {
+    // Simulate loading data
+    const timer = setTimeout(() => {
+      setTransactions([
+        { id: "VN109283", user: "Vu Quoc Huy", amount: "199,000 VND", date: "Oct 15, 2026", status: "Success" },
+        { id: "VN109284", user: "Do Dinh Khang", amount: "199,000 VND", date: "Oct 15, 2026", status: "Success" },
+        { id: "VN109285", user: "Nguyen Van A", amount: "199,000 VND", date: "Oct 14, 2026", status: "Pending" },
+        { id: "VN109286", user: "Tran Thi B", amount: "199,000 VND", date: "Oct 12, 2026", status: "Failed" },
+      ]);
+      setLoading(false);
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const filteredTransactions = transactions.filter(t =>
+    t.user.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    t.id.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
@@ -47,37 +78,39 @@ export function PremiumManagement() {
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-6">
         <div className="border-b border-gray-100 px-6 py-4 flex flex-col sm:flex-row justify-between items-start sm:items-center">
           <div className="flex space-x-6 mb-4 sm:mb-0">
-            <button 
+            <button
               className={`font-medium pb-4 border-b-2 -mb-4 ${activeTab === 'transactions' ? 'border-brand text-brand' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
               onClick={() => setActiveTab('transactions')}
             >
               VNPAY Transactions
             </button>
-            <button 
+            <button
               className={`font-medium pb-4 border-b-2 -mb-4 ${activeTab === 'config' ? 'border-brand text-brand' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
               onClick={() => setActiveTab('config')}
             >
               Package Configuration
             </button>
           </div>
-          
+
           {activeTab === 'transactions' && (
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <input 
-                type="text" 
-                placeholder="Search transaction..." 
+              <input
+                type="text"
+                placeholder="Search transaction..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent w-64"
               />
             </div>
           )}
         </div>
 
-        <div className="p-0 overflow-x-auto">
+        <div className="p-0 overflow-x-auto max-h-[500px] overflow-y-auto">
           {activeTab === 'transactions' ? (
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
+                <tr className="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider sticky top-0 z-10 shadow-sm">
                   <th className="px-6 py-3 font-medium">Transaction ID</th>
                   <th className="px-6 py-3 font-medium">User</th>
                   <th className="px-6 py-3 font-medium">Amount</th>
@@ -87,12 +120,18 @@ export function PremiumManagement() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 text-sm">
-                {[
-                  { id: "VN109283", user: "Vu Quoc Huy", amount: "199,000 VND", date: "Oct 15, 2026", status: "Success" },
-                  { id: "VN109284", user: "Do Dinh Khang", amount: "199,000 VND", date: "Oct 15, 2026", status: "Success" },
-                  { id: "VN109285", user: "Nguyen Van A", amount: "199,000 VND", date: "Oct 14, 2026", status: "Pending" },
-                  { id: "VN109286", user: "Tran Thi B", amount: "199,000 VND", date: "Oct 12, 2026", status: "Failed" },
-                ].map((tx, idx) => (
+                {loading ? (
+                  Array.from({ length: 5 }).map((_, i) => (
+                    <tr key={`skeleton-${i}`}>
+                      <td className="px-6 py-4"><Skeleton className="h-5 w-24" /></td>
+                      <td className="px-6 py-4"><Skeleton className="h-5 w-32" /></td>
+                      <td className="px-6 py-4"><Skeleton className="h-5 w-24" /></td>
+                      <td className="px-6 py-4"><Skeleton className="h-5 w-24" /></td>
+                      <td className="px-6 py-4"><Skeleton className="h-6 w-20 rounded-full" /></td>
+                      <td className="px-6 py-4"><Skeleton className="h-6 w-6 ml-auto" /></td>
+                    </tr>
+                  ))
+                ) : filteredTransactions.length > 0 ? filteredTransactions.map((tx, idx) => (
                   <tr key={idx} className="hover:bg-gray-50">
                     <td className="px-6 py-4 font-medium text-gray-900">{tx.id}</td>
                     <td className="px-6 py-4 text-gray-600">{tx.user}</td>
@@ -109,7 +148,19 @@ export function PremiumManagement() {
                       </button>
                     </td>
                   </tr>
-                ))}
+                )) : (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-16 text-center">
+                      <div className="flex flex-col items-center justify-center">
+                        <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
+                          <Database className="w-8 h-8 text-gray-400" />
+                        </div>
+                        <h3 className="text-gray-900 font-medium mb-1">No transactions found</h3>
+                        <p className="text-gray-500 text-sm">Try adjusting your search criteria</p>
+                      </div>
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           ) : (

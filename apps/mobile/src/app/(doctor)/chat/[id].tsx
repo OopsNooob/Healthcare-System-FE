@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { View, Text, TextInput, TouchableOpacity, SafeAreaView, KeyboardAvoidingView, Platform, ScrollView, Image, Modal } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import Toast from 'react-native-toast-message';
 import { ArrowLeft, Send, Activity, X, Info, ImagePlus, Paperclip, AlertTriangle, CheckCircle, Phone, Video } from 'lucide-react-native';
 import { tw } from '@/tw';
 
@@ -110,11 +111,11 @@ export default function DoctorChatSessionScreen() {
         </ScrollView>
 
         {/* Input Area */}
-        <View style={tw('p-4 border-t border-slate-100 bg-white flex-row items-center')}>
-          <TouchableOpacity onPress={() => alert('Add Image clicked')} style={tw('p-3 bg-slate-100 rounded-full mr-2')}>
+        <View style={tw('p-4 border-t border-gray-100 bg-white flex-row items-center')}>
+          <TouchableOpacity onPress={() => Toast.show({ type: 'info', text1: 'Info', text2: 'Add Image clicked' })} style={tw('p-3 bg-slate-100 rounded-full mr-2')}>
             <ImagePlus color="#64748b" size={20} />
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => alert('Add File clicked')} style={tw('p-3 bg-slate-100 rounded-full mr-3')}>
+          <TouchableOpacity onPress={() => Toast.show({ type: 'info', text1: 'Info', text2: 'Add File clicked' })} style={tw('p-3 bg-slate-100 rounded-full mr-3')}>
             <Paperclip color="#64748b" size={20} />
           </TouchableOpacity>
           <View style={tw('flex-1 bg-slate-100 rounded-3xl px-4 py-2 mr-3 flex-row items-center min-h-[48px]')}>
@@ -224,8 +225,8 @@ export default function DoctorChatSessionScreen() {
                 textAlignVertical="top"
               />
             </View>
-            <TouchableOpacity onPress={() => { setEndModalVisible(false); alert('Consultation Ended'); router.back(); }} style={tw('bg-brand py-4 rounded-xl items-center')}>
-              <Text style={tw('text-slate-900 font-bold text-base')}>End Session</Text>
+            <TouchableOpacity onPress={() => { setEndModalVisible(false); Toast.show({ type: 'success', text1: 'Success', text2: 'Consultation Ended' }); router.back(); }} style={tw('bg-brand py-4 rounded-xl items-center')}>
+              <Text style={tw('text-slate-900 font-bold text-base')}>End Consultation</Text>
             </TouchableOpacity>
           </View>
         </KeyboardAvoidingView>
@@ -250,7 +251,7 @@ export default function DoctorChatSessionScreen() {
                 textAlignVertical="top"
               />
             </View>
-            <TouchableOpacity onPress={() => { setReportModalVisible(false); alert('Report Submitted'); }} style={tw('bg-red-500 py-4 rounded-xl items-center')}>
+            <TouchableOpacity onPress={() => { setReportModalVisible(false); Toast.show({ type: 'success', text1: 'Success', text2: 'Report Submitted' }); }} style={tw('bg-red-500 py-4 rounded-xl items-center')}>
               <Text style={tw('text-white font-bold text-base')}>Submit Report</Text>
             </TouchableOpacity>
           </View>

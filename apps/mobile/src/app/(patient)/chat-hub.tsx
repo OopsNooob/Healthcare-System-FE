@@ -1,10 +1,14 @@
-import { View, Text, ScrollView, TouchableOpacity, SafeAreaView, Image } from 'react-native';
+import { useState, useEffect } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, SafeAreaView, Image, RefreshControl } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Sparkles, MessageCircle, ChevronRight } from 'lucide-react-native';
+import { Sparkles, MessageCircle, ChevronRight, MessageSquareOff } from 'lucide-react-native';
 import { tw } from '@/tw';
 
 export default function ChatHubScreen() {
   const router = useRouter();
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [chats, setChats] = useState<any[]>([]);
 
   const doctorChats = [
     {
@@ -27,9 +31,55 @@ export default function ChatHubScreen() {
     }
   ];
 
+  useEffect(() => {
+    // Simulate loading
+    setTimeout(() => {
+      setChats(doctorChats);
+      setLoading(false);
+    }, 1200);
+  }, []);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    setTimeout(() => setRefreshing(false), 1200);
+  };
+
+  const renderSkeleton = () => (
+    <View style={tw('flex-row bg-white rounded-3xl p-4 shadow-sm border border-gray-100 items-center mb-4')}>
+      <View style={tw('w-16 h-16 rounded-full bg-slate-200')} />
+      <View style={tw('flex-1 ml-4')}>
+        <View style={tw('flex-row justify-between items-center mb-2')}>
+          <View style={tw('w-24 h-5 bg-slate-200 rounded')} />
+          <View style={tw('w-12 h-4 bg-slate-200 rounded')} />
+        </View>
+        <View style={tw('w-3/4 h-4 bg-slate-200 rounded')} />
+      </View>
+    </View>
+  );
+
+  const renderEmptyState = () => (
+    <View style={tw('items-center justify-center py-10')}>
+      <View style={tw('w-20 h-20 bg-slate-100 rounded-full items-center justify-center mb-4')}>
+        <MessageSquareOff color="#94a3b8" size={32} />
+      </View>
+      <Text style={tw('text-lg font-bold text-slate-900 mb-2 text-center')}>No active conversations</Text>
+      <Text style={tw('text-slate-500 text-center mb-6')}>You don't have any messages with doctors yet.</Text>
+      <TouchableOpacity 
+        onPress={() => router.push('/(patient)/my-doctors')}
+        style={tw('bg-brand px-6 py-3 rounded-2xl')}
+      >
+        <Text style={tw('text-slate-900 font-bold')}>Find a Doctor</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
   return (
     <SafeAreaView style={tw('flex-1 bg-slate-50')}>
-      <ScrollView contentContainerStyle={tw('pb-20')} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        contentContainerStyle={tw('pb-20')} 
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#0f172a" />}
+      >
         {/* Header */}
         <View style={tw('px-6 pt-6 pb-6')}>
           <Text style={tw('text-2xl font-bold text-[#313A34]')}>Messages</Text>
@@ -63,40 +113,49 @@ export default function ChatHubScreen() {
           <Text style={tw('text-lg font-bold text-[#313A34] mb-4')}>Doctor Conversations</Text>
           
           <View style={tw('gap-4')}>
-            {doctorChats.map((chat) => (
-              <TouchableOpacity 
-                key={chat.id}
-                style={tw('flex-row bg-white rounded-3xl p-4 shadow-sm border border-gray-100 items-center')}
-                onPress={() => router.push('/(patient)/doctor-chat')}
-              >
-                <View style={tw('relative')}>
-                  <Image source={{ uri: chat.image }} style={tw('w-16 h-16 rounded-full bg-gray-200')} />
-                  {chat.online && (
-                    <View style={tw('absolute bottom-0 right-0 w-4 h-4 bg-emerald-500 rounded-full border-2 border-white')} />
-                  )}
-                </View>
-                
-                <View style={tw('flex-1 ml-4')}>
-                  <View style={tw('flex-row justify-between items-center mb-1')}>
-                    <Text style={tw('text-base font-bold text-[#313A34]')}>{chat.name}</Text>
-                    <Text style={tw(`text-xs ${chat.unread > 0 ? 'text-emerald-500 font-bold' : 'text-gray-400'}`)}>
-                      {chat.time}
-                    </Text>
-                  </View>
-                  
-                  <View style={tw('flex-row justify-between items-center')}>
-                    <Text style={tw('text-sm text-gray-500 flex-1 mr-4')} numberOfLines={1}>
-                      {chat.lastMessage}
-                    </Text>
-                    {chat.unread > 0 && (
-                      <View style={tw('w-5 h-5 bg-emerald-500 rounded-full items-center justify-center')}>
-                        <Text style={tw('text-white text-xs font-bold')}>{chat.unread}</Text>
-                      </View>
+            {loading ? (
+              <>
+                {renderSkeleton()}
+                {renderSkeleton()}
+              </>
+            ) : chats.length > 0 ? (
+              chats.map((chat) => (
+                <TouchableOpacity 
+                  key={chat.id}
+                  style={tw('flex-row bg-white rounded-3xl p-4 shadow-sm border border-gray-100 items-center')}
+                  onPress={() => router.push('/(patient)/doctor-chat')}
+                >
+                  <View style={tw('relative')}>
+                    <Image source={{ uri: chat.image }} style={tw('w-16 h-16 rounded-full bg-gray-200')} />
+                    {chat.online && (
+                      <View style={tw('absolute bottom-0 right-0 w-4 h-4 bg-emerald-500 rounded-full border-2 border-white')} />
                     )}
                   </View>
-                </View>
-              </TouchableOpacity>
-            ))}
+                  
+                  <View style={tw('flex-1 ml-4')}>
+                    <View style={tw('flex-row justify-between items-center mb-1')}>
+                      <Text style={tw('text-base font-bold text-[#313A34]')}>{chat.name}</Text>
+                      <Text style={tw(`text-xs ${chat.unread > 0 ? 'text-emerald-500 font-bold' : 'text-gray-400'}`)}>
+                        {chat.time}
+                      </Text>
+                    </View>
+                    
+                    <View style={tw('flex-row justify-between items-center')}>
+                      <Text style={tw('text-sm text-gray-500 flex-1 mr-4')} numberOfLines={1}>
+                        {chat.lastMessage}
+                      </Text>
+                      {chat.unread > 0 && (
+                        <View style={tw('w-5 h-5 bg-emerald-500 rounded-full items-center justify-center')}>
+                          <Text style={tw('text-white text-xs font-bold')}>{chat.unread}</Text>
+                        </View>
+                      )}
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              ))
+            ) : (
+              renderEmptyState()
+            )}
           </View>
         </View>
 
