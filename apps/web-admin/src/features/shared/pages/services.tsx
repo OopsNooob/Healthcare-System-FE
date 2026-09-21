@@ -56,7 +56,7 @@ export function Services() {
         </div>        {/* Services Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           {services.map((service) => (
-            <div key={service.title} className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition">
+            <div key={service.title} className="bg-white dark:bg-slate-900 rounded-lg border border-gray-200 p-6 hover:shadow-md transition">
               <h3 className="text-xl font-bold text-gray-900 mb-2">{service.title}</h3>
               <p className="text-gray-600 mb-4">{service.description}</p>
               <ul className="space-y-2">

@@ -40,6 +40,7 @@ import {
   X,
   Database
 } from "lucide-react";
+import { useTranslation, Trans } from "react-i18next";
 
 import { useReportList } from "../hooks/useReportManagement";
 import { useChangeReportStatus } from "../hooks/useChangeReportStatus";
@@ -150,29 +151,30 @@ function ReportDetailModal({
   onBanUser,
   isUpdating,
 }: ReportDetailModalProps) {
+  const { t } = useTranslation();
   if (!isOpen || !report) return null;
 
   const typeMeta = REPORT_TYPE_META[report.reportType];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="w-full max-w-[880px] rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+      <div className="w-full max-w-[880px] rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-2xl">
         <div className="mb-4 flex items-start justify-between">
           <div className="flex items-start gap-3">
-            <div className="rounded-full bg-blue-50 p-2">
+            <div className="rounded-full bg-blue-50 dark:bg-blue-900/20 p-2">
               <typeMeta.icon className={`h-5 w-5 ${typeMeta.iconClassName}`} />
             </div>
             <div>
-              <p className="text-3xl font-semibold text-slate-900">
-                {typeMeta.label} Report
+              <p className="text-3xl font-semibold text-slate-900 dark:text-gray-100">
+                {t(`violationReport.types.${report.reportType}`)}
               </p>
-              <p className="text-sm text-slate-500">{report.createdAt}</p>
+              <p className="text-sm text-slate-500 dark:text-gray-400">{report.createdAt}</p>
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-md p-2 text-slate-500 transition hover:bg-slate-100"
+            className="rounded-md p-2 text-slate-500 dark:text-gray-400 transition hover:bg-slate-100 dark:hover:bg-slate-800"
           >
             <X className="h-5 w-5" />
           </button>
@@ -182,73 +184,73 @@ function ReportDetailModal({
           variant="outline"
           className={`mb-5 rounded-full border px-2 py-1 text-xs ${
             report.status === "resolved"
-              ? "border-emerald-200 bg-emerald-50 text-emerald-600"
-              : "border-amber-200 bg-amber-50 text-amber-700"
+              ? "border-emerald-200 dark:border-emerald-900 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400"
+              : "border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400"
           }`}
         >
-          {report.status === "resolved" ? "Resolved" : "Pending"}
+          {report.status === "resolved" ? t("violationReport.modal.resolved") : t("violationReport.modal.pending")}
         </Badge>
 
         <div className="mb-4 grid gap-3 md:grid-cols-2">
-          <div className="rounded-2xl bg-[#F7F8FA] p-4">
-            <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
-              Reported By
+          <div className="rounded-2xl bg-[#F7F8FA] dark:bg-slate-800 p-4">
+            <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-slate-400 dark:text-gray-500">
+              {t("violationReport.modal.reportedBy")}
             </p>
-            <p className="text-base font-semibold text-slate-900">
+            <p className="text-base font-semibold text-slate-900 dark:text-gray-100">
               {report.reporterName}
             </p>
           </div>
-          <div className="rounded-2xl bg-[#FEF2F2] p-4">
-            <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
-              Reported Account
+          <div className="rounded-2xl bg-[#FEF2F2] dark:bg-red-900/20 p-4">
+            <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-slate-400 dark:text-gray-500">
+              {t("violationReport.modal.reportedAccount")}
             </p>
-            <p className="text-base font-semibold text-slate-900">
+            <p className="text-base font-semibold text-slate-900 dark:text-gray-100">
               {report.reportedAccount}
             </p>
           </div>
         </div>
 
-        <div className="mb-6 rounded-2xl bg-slate-50 p-4">
-          <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
-            Report Details
+        <div className="mb-6 rounded-2xl bg-slate-50 dark:bg-slate-800 p-4">
+          <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-400 dark:text-gray-500">
+            {t("violationReport.modal.details")}
           </p>
-          <p className="text-base text-slate-700">{report.reason}</p>
+          <p className="text-base text-slate-700 dark:text-gray-300">{report.reason}</p>
         </div>
 
         <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
           <Button
             type="button"
             variant="outline"
-            className="sm:min-w-36"
+            className="sm:min-w-36 dark:border-slate-700 dark:text-gray-300 dark:hover:bg-slate-800"
             onClick={onClose}
           >
-            Close
+            {t("violationReport.modal.close")}
           </Button>
           <Button
             type="button"
             className={`sm:min-w-36 text-white ${
               report.status === "pending"
-                ? "bg-lime-500 hover:bg-lime-600"
-                : "bg-slate-600 hover:bg-slate-700"
+                ? "bg-lime-500 hover:bg-lime-600 dark:bg-lime-600 dark:hover:bg-lime-700"
+                : "bg-slate-600 hover:bg-slate-700 dark:bg-slate-700 dark:hover:bg-slate-800"
             }`}
             onClick={() => onToggleResolved(report.id)}
             disabled={isUpdating}
           >
             <CheckCircle className="mr-2 h-4 w-4" />
-            {report.status === "pending" ? "Mark Resolved" : "Unmark"}
+            {report.status === "pending" ? t("violationReport.modal.markResolved") : t("violationReport.modal.unmark")}
           </Button>
           <Button
             type="button"
             className={`sm:min-w-36 text-white ${
               canBan
-                ? "bg-red-500 hover:bg-red-600"
-                : "cursor-not-allowed bg-slate-300 text-slate-100"
+                ? "bg-red-500 hover:bg-red-600 dark:bg-red-600 dark:hover:bg-red-700"
+                : "cursor-not-allowed bg-slate-300 dark:bg-slate-700 text-slate-100 dark:text-slate-400 dark:text-slate-500"
             }`}
             onClick={() => onBanUser(report.id)}
             disabled={!canBan || isUpdating}
           >
             <UserX className="mr-2 h-4 w-4" />
-            {canBan ? "Ban User" : "Banned"}
+            {canBan ? t("violationReport.modal.banUser") : t("violationReport.modal.banned")}
           </Button>
         </div>
       </div>
@@ -257,6 +259,7 @@ function ReportDetailModal({
 }
 
 export function ViolationReport() {
+  const { t } = useTranslation();
   const [reportOverrides, setReportOverrides] = useState<
     Record<
       string,
@@ -449,39 +452,41 @@ export function ViolationReport() {
 
   return (
     <div className="w-full p-6">
-      <div className="rounded-3xl border border-slate-200/70 bg-white p-6 shadow-sm">
+      <div className="rounded-3xl border border-slate-200/70 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm">
         <div className="mb-5">
-          <h1 className="text-3xl font-semibold text-slate-900">
-            Violation Reports
+          <h1 className="text-3xl font-semibold text-slate-900 dark:text-gray-100">
+            {t("violationReport.title")}
           </h1>
-          <p className="text-sm text-slate-500">
-            Review reports from patients and doctors to keep the platform safe.
+          <p className="text-sm text-slate-500 dark:text-gray-400">
+            {t("violationReport.subtitle")}
           </p>
-          <p className="py-4 text-2xl">
-            You have{" "}
-            <span className="font-bold text-amber-500">{pendingCount}</span>{" "}
-            pending reports.
+          <p className="py-4 text-2xl dark:text-gray-200">
+            <Trans
+              i18nKey="violationReport.pendingCount"
+              values={{ count: pendingCount }}
+              components={[<span key="1" className="font-bold text-amber-500" />]}
+            />
           </p>
         </div>
 
         {/* Loading */}
         {isReportListLoading ? (
-          <div className="mb-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500">
+          <div className="mb-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 px-4 py-3 text-sm text-slate-500 dark:text-gray-400">
             Loading violation reports...
           </div>
         ) : null}
 
         {reportListError || changeReportStatusError || banUserError ? (
-          <div className="mb-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <div className="mb-4 rounded-2xl border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-900/20 px-4 py-3 text-sm text-red-700 dark:text-red-400">
             {reportListError || changeReportStatusError || banUserError}
           </div>
         ) : null}
 
-        <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
-          <div className="flex flex-col gap-3 border-b border-slate-200 p-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm">
+          <div className="flex flex-col gap-3 border-b border-slate-200 dark:border-slate-800 p-3 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex w-full flex-col gap-2 md:w-auto md:flex-row">
               <div className="relative">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
                 <input
                   type="text"
                   value={searchQuery}
@@ -489,8 +494,8 @@ export function ViolationReport() {
                     setSearchQuery(e.target.value);
                     setCurrentPage(1);
                   }}
-                  placeholder="Search by reporter, account or details..."
-                  className="h-9 w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 text-xs text-slate-700 outline-none ring-brand/30 transition focus:ring-2 md:w-72"
+                  placeholder={t("violationReport.filters.search")}
+                  className="h-9 w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 pl-9 pr-3 text-xs text-slate-700 dark:text-gray-200 outline-none ring-brand/30 transition focus:ring-2 md:w-72"
                 />
               </div>
 
@@ -502,16 +507,16 @@ export function ViolationReport() {
                 }}
               >
                 <ComboboxInput
-                  placeholder="Filter by type"
-                  className="w-full md:w-52"
+                  placeholder={t("violationReport.filters.filterType")}
+                  className="w-full md:w-52 bg-white dark:bg-slate-900 dark:border-slate-700"
                 />
-                <ComboboxContent>
+                <ComboboxContent className="dark:bg-slate-900">
                   <ComboboxEmpty>No type found.</ComboboxEmpty>
                   <ComboboxList>
-                    <ComboboxItem value="all">All types</ComboboxItem>
-                    {Object.entries(REPORT_TYPE_META).map(([value, meta]) => (
+                    <ComboboxItem value="all">{t("violationReport.filters.allTypes")}</ComboboxItem>
+                    {Object.keys(REPORT_TYPE_META).map((value) => (
                       <ComboboxItem key={value} value={value}>
-                        {meta.label}
+                        {t(`violationReport.types.${value}`)}
                       </ComboboxItem>
                     ))}
                   </ComboboxList>
@@ -526,15 +531,15 @@ export function ViolationReport() {
                 }}
               >
                 <ComboboxInput
-                  placeholder="Filter by status"
-                  className="w-full md:w-44"
+                  placeholder={t("violationReport.filters.filterStatus")}
+                  className="w-full md:w-44 bg-white dark:bg-slate-900 dark:border-slate-700"
                 />
-                <ComboboxContent>
+                <ComboboxContent className="dark:bg-slate-900">
                   <ComboboxEmpty>No status found.</ComboboxEmpty>
                   <ComboboxList>
-                    <ComboboxItem value="all">All status</ComboboxItem>
-                    <ComboboxItem value="pending">Pending</ComboboxItem>
-                    <ComboboxItem value="resolved">Resolved</ComboboxItem>
+                    <ComboboxItem value="all">{t("violationReport.filters.allStatus")}</ComboboxItem>
+                    <ComboboxItem value="pending">{t("violationReport.filters.pending")}</ComboboxItem>
+                    <ComboboxItem value="resolved">{t("violationReport.filters.resolved")}</ComboboxItem>
                   </ComboboxList>
                 </ComboboxContent>
               </Combobox>
@@ -544,27 +549,27 @@ export function ViolationReport() {
           <div className="overflow-x-auto max-h-[500px] overflow-y-auto">
             <Table>
               <TableHeader>
-                <TableRow className="hover:bg-transparent sticky top-0 bg-white z-10 shadow-sm">
-                  <TableHead className="px-3 text-xs text-slate-400">
-                    TYPE
+                <TableRow className="hover:bg-transparent sticky top-0 bg-white dark:bg-slate-900 z-10 shadow-sm dark:border-b dark:border-slate-800">
+                  <TableHead className="px-3 text-xs text-slate-400 dark:text-slate-500">
+                    {t("violationReport.table.type")}
                   </TableHead>
-                  <TableHead className="px-3 text-xs text-slate-400">
-                    REPORTED BY
+                  <TableHead className="px-3 text-xs text-slate-400 dark:text-slate-500">
+                    {t("violationReport.table.reportedBy")}
                   </TableHead>
-                  <TableHead className="px-3 text-xs text-slate-400">
-                    REPORTED ACCOUNT
+                  <TableHead className="px-3 text-xs text-slate-400 dark:text-slate-500">
+                    {t("violationReport.table.reportedAccount")}
                   </TableHead>
-                  <TableHead className="px-3 text-xs text-slate-400">
-                    DETAILS
+                  <TableHead className="px-3 text-xs text-slate-400 dark:text-slate-500">
+                    {t("violationReport.table.details")}
                   </TableHead>
-                  <TableHead className="px-3 text-xs text-slate-400">
-                    DATE
+                  <TableHead className="px-3 text-xs text-slate-400 dark:text-slate-500">
+                    {t("violationReport.table.date")}
                   </TableHead>
-                  <TableHead className="px-3 text-xs text-slate-400">
-                    STATUS
+                  <TableHead className="px-3 text-xs text-slate-400 dark:text-slate-500">
+                    {t("violationReport.table.status")}
                   </TableHead>
-                  <TableHead className="px-3 text-xs text-slate-400">
-                    ACTIONS
+                  <TableHead className="px-3 text-xs text-slate-400 dark:text-slate-500">
+                    {t("violationReport.table.actions")}
                   </TableHead>
                 </TableRow>
               </TableHeader>
@@ -596,19 +601,19 @@ export function ViolationReport() {
                           <TypeIcon
                             className={`h-3.5 w-3.5 ${typeMeta.iconClassName}`}
                           />
-                          {typeMeta.label}
+                          {t(`violationReport.types.${report.reportType}`)}
                         </Badge>
                       </TableCell>
-                      <TableCell className="px-4 text-sm font-medium text-slate-700">
+                      <TableCell className="px-4 text-sm font-medium text-slate-700 dark:text-gray-300">
                         {report.reporterName}
                       </TableCell>
-                      <TableCell className="px-4 text-sm text-slate-600">
+                      <TableCell className="px-4 text-sm text-slate-600 dark:text-gray-400">
                         {report.reportedAccount}
                       </TableCell>
-                      <TableCell className="max-w-[320px] truncate px-4 text-sm text-slate-500">
+                      <TableCell className="max-w-[320px] truncate px-4 text-sm text-slate-500 dark:text-gray-500">
                         {report.reason}
                       </TableCell>
-                      <TableCell className="px-4 text-sm text-slate-500">
+                      <TableCell className="px-4 text-sm text-slate-500 dark:text-gray-500">
                         {report.createdAt}
                       </TableCell>
                       <TableCell className="px-4">
@@ -616,11 +621,11 @@ export function ViolationReport() {
                           variant="outline"
                           className={`h-5 rounded-full border px-2 text-[10px] font-medium ${
                             report.status === "pending"
-                              ? "border-amber-200 bg-amber-50 text-amber-700"
-                              : "border-emerald-200 bg-emerald-50 text-emerald-600"
+                              ? "border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400"
+                              : "border-emerald-200 dark:border-emerald-900 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400"
                           }`}
                         >
-                          {report.status === "pending" ? "Pending" : "Resolved"}
+                          {report.status === "pending" ? t("violationReport.modal.pending") : t("violationReport.modal.resolved")}
                         </Badge>
                       </TableCell>
                       <TableCell className="px-4 text-left">
@@ -628,11 +633,11 @@ export function ViolationReport() {
                           type="button"
                           variant="outline"
                           size="sm"
-                          className="rounded-lg text-xs"
+                          className="rounded-lg text-xs dark:border-slate-700 dark:text-gray-300 dark:hover:bg-slate-800"
                           onClick={() => openReportModal(report)}
                           disabled={modalLoading}
                         >
-                          View
+                          {t("violationReport.table.view")}
                         </Button>
                       </TableCell>
                     </TableRow>
@@ -645,11 +650,11 @@ export function ViolationReport() {
                     className="px-3 py-16 text-center"
                   >
                     <div className="flex flex-col items-center justify-center">
-                      <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4">
-                        <Database className="w-8 h-8 text-slate-400" />
+                      <div className="w-16 h-16 bg-slate-50 dark:bg-slate-800 rounded-full flex items-center justify-center mb-4">
+                        <Database className="w-8 h-8 text-slate-400 dark:text-slate-500" />
                       </div>
-                      <h3 className="text-slate-900 font-medium mb-1">No reports found</h3>
-                      <p className="text-slate-500 text-sm">Try adjusting your search filters or status</p>
+                      <h3 className="text-slate-900 dark:text-gray-100 font-medium mb-1">{t("violationReport.table.noReports")}</h3>
+                      <p className="text-slate-500 dark:text-gray-500 text-sm">{t("violationReport.table.tryAdjusting")}</p>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -658,7 +663,7 @@ export function ViolationReport() {
           </Table>
         </div>
 
-          <div className="flex flex-col gap-3 border-t border-slate-200 px-3 py-2 text-xs text-slate-400 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-3 border-t border-slate-200 dark:border-slate-800 px-3 py-2 text-xs text-slate-400 dark:text-slate-500 sm:flex-row sm:items-center sm:justify-between">
             <p>
               Showing {paginatedReports.length} of {filteredReports.length}{" "}
               results

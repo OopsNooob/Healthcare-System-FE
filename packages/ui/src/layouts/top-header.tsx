@@ -1,5 +1,6 @@
 import { Bell, CheckCheck, Search } from "lucide-react";
 import { useMemo, useState } from "react";
+import { ThemeLanguageToggle } from "../components/ThemeLanguageToggle";
 import {
   NotificationDetailCard,
   type NotificationType,
@@ -101,6 +102,9 @@ export function TopHeader({
             className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#84cc16] w-64"
           />
         </div>
+
+        {/* Theme & Language Toggle */}
+        <ThemeLanguageToggle />
 
         {/* Notification */}
         <div className="relative">

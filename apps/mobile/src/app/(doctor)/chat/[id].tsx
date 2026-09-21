@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { View, Text, TextInput, TouchableOpacity, SafeAreaView, KeyboardAvoidingView, Platform, ScrollView, Image, Modal } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import Toast from 'react-native-toast-message';
@@ -6,6 +7,8 @@ import { ArrowLeft, Send, Activity, X, Info, ImagePlus, Paperclip, AlertTriangle
 import { tw } from '@/tw';
 
 export default function DoctorChatSessionScreen() {
+  const { t } = useTranslation();
+
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   
@@ -42,14 +45,14 @@ export default function DoctorChatSessionScreen() {
   };
 
   return (
-    <SafeAreaView style={tw('flex-1 bg-white')}>
+    <SafeAreaView style={tw('flex-1 bg-white dark:bg-slate-900')}>
       <KeyboardAvoidingView 
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={tw('flex-1')}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
       >
         {/* Header */}
-        <View style={tw('flex-row items-center justify-between px-4 py-4 border-b border-slate-100')}>
+        <View style={tw('flex-row items-center justify-between px-4 py-4 border-b border-slate-100 dark:border-slate-800')}>
           <View style={tw('flex-row items-center')}>
             <TouchableOpacity 
               style={tw('p-2')}
@@ -60,11 +63,11 @@ export default function DoctorChatSessionScreen() {
             <TouchableOpacity onPress={() => setShowProfile(true)} style={tw('flex-row items-center ml-2')}>
               <Image 
                 source={{ uri: 'https://i.pravatar.cc/150?img=12' }} 
-                style={tw('w-10 h-10 rounded-full bg-slate-200 mr-3')} 
+                style={tw('w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-700 mr-3')} 
               />
               <View>
-                <Text style={tw('text-lg font-bold text-slate-900')}>Alex Johnson</Text>
-                <Text style={tw('text-brand text-xs font-medium')}>Online</Text>
+                <Text style={tw('text-lg font-bold text-slate-900 dark:text-white')}>{t('mobile.alex_johnson', `Alex Johnson`)}</Text>
+                <Text style={tw('text-brand text-xs font-medium')}>{t('mobile.online', `Online`)}</Text>
               </View>
             </TouchableOpacity>
           </View>
@@ -98,12 +101,12 @@ export default function DoctorChatSessionScreen() {
               key={msg.id} 
               style={tw(`mb-4 max-w-[80%] ${msg.sender === 'doctor' ? 'self-end' : 'self-start'}`)}
             >
-              <View style={tw(`p-4 rounded-2xl ${msg.sender === 'doctor' ? 'bg-brand rounded-tr-sm' : 'bg-slate-100 rounded-tl-sm'}`)}>
-                <Text style={tw(`text-base ${msg.sender === 'doctor' ? 'text-slate-900 font-medium' : 'text-slate-800'} ${msg.hasAttachment ? 'italic' : ''}`)}>
+              <View style={tw(`p-4 rounded-2xl ${msg.sender === 'doctor' ? 'bg-brand rounded-tr-sm' : 'bg-slate-100 dark:bg-slate-800 rounded-tl-sm'}`)}>
+                <Text style={tw(`text-base ${msg.sender === 'doctor' ? 'text-slate-900 dark:text-white font-medium' : 'text-slate-800 dark:text-slate-100'} ${msg.hasAttachment ? 'italic' : ''}`)}>
                   {msg.text}
                 </Text>
               </View>
-              <Text style={tw(`text-xs text-slate-400 mt-1 ${msg.sender === 'doctor' ? 'text-right' : 'text-left'}`)}>
+              <Text style={tw(`text-xs text-slate-400 dark:text-slate-500 mt-1 ${msg.sender === 'doctor' ? 'text-right' : 'text-left'}`)}>
                 {msg.time}
               </Text>
             </View>
@@ -111,16 +114,16 @@ export default function DoctorChatSessionScreen() {
         </ScrollView>
 
         {/* Input Area */}
-        <View style={tw('p-4 border-t border-gray-100 bg-white flex-row items-center')}>
-          <TouchableOpacity onPress={() => Toast.show({ type: 'info', text1: 'Info', text2: 'Add Image clicked' })} style={tw('p-3 bg-slate-100 rounded-full mr-2')}>
+        <View style={tw('p-4 border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-slate-900 flex-row items-center')}>
+          <TouchableOpacity onPress={() => Toast.show({ type: 'info', text1: 'Info', text2: 'Add Image clicked' })} style={tw('p-3 bg-slate-100 dark:bg-slate-800 rounded-full mr-2')}>
             <ImagePlus color="#64748b" size={20} />
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => Toast.show({ type: 'info', text1: 'Info', text2: 'Add File clicked' })} style={tw('p-3 bg-slate-100 rounded-full mr-3')}>
+          <TouchableOpacity onPress={() => Toast.show({ type: 'info', text1: 'Info', text2: 'Add File clicked' })} style={tw('p-3 bg-slate-100 dark:bg-slate-800 rounded-full mr-3')}>
             <Paperclip color="#64748b" size={20} />
           </TouchableOpacity>
-          <View style={tw('flex-1 bg-slate-100 rounded-3xl px-4 py-2 mr-3 flex-row items-center min-h-[48px]')}>
+          <View style={tw('flex-1 bg-slate-100 dark:bg-slate-800 rounded-3xl px-4 py-2 mr-3 flex-row items-center min-h-[48px]')}>
             <TextInput
-              style={tw('flex-1 text-base text-slate-900 h-10')}
+              style={tw('flex-1 text-base text-slate-900 dark:text-white h-10')}
               placeholder="Type a message..."
               placeholderTextColor="#94a3b8"
               value={message}
@@ -130,7 +133,7 @@ export default function DoctorChatSessionScreen() {
           </View>
           <TouchableOpacity 
             onPress={() => handleSend(false)}
-            style={tw(`w-12 h-12 rounded-full items-center justify-center ${message.trim() ? 'bg-brand' : 'bg-slate-200'}`)}
+            style={tw(`w-12 h-12 rounded-full items-center justify-center ${message.trim() ? 'bg-brand' : 'bg-slate-200 dark:bg-slate-700'}`)}
             disabled={!message.trim()}
           >
             <Send color={message.trim() ? "#1e293b" : "#94a3b8"} size={20} />
@@ -145,9 +148,9 @@ export default function DoctorChatSessionScreen() {
         presentationStyle="formSheet"
         onRequestClose={() => setShowProfile(false)}
       >
-        <SafeAreaView style={tw('flex-1 bg-slate-50')}>
-          <View style={tw('flex-row items-center justify-between p-4 bg-white border-b border-slate-100')}>
-            <Text style={tw('text-xl font-bold text-slate-900')}>Health Profile</Text>
+        <SafeAreaView style={tw('flex-1 bg-slate-50 dark:bg-slate-950')}>
+          <View style={tw('flex-row items-center justify-between p-4 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800')}>
+            <Text style={tw('text-xl font-bold text-slate-900 dark:text-white')}>{t('mobile.health_profile', `Health Profile`)}</Text>
             <TouchableOpacity onPress={() => setShowProfile(false)} style={tw('p-2')}>
               <X color="#64748b" size={24} />
             </TouchableOpacity>
@@ -155,51 +158,51 @@ export default function DoctorChatSessionScreen() {
 
           <ScrollView contentContainerStyle={tw('p-6 gap-4')} showsVerticalScrollIndicator={false}>
             {/* Patient Info */}
-            <View style={tw('bg-white p-4 rounded-2xl border border-slate-100 shadow-sm')}>
-              <Text style={tw('text-lg font-bold text-slate-900 mb-2')}>Alex Johnson</Text>
-              <Text style={tw('text-sm text-slate-600 mb-1')}>Birthday: Oct 12, 1990</Text>
-              <Text style={tw('text-sm text-slate-600 mb-1')}>Gender: Male</Text>
-              <Text style={tw('text-sm text-slate-600')}>Patient's note: Feeling dizzy occasionally.</Text>
+            <View style={tw('bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm')}>
+              <Text style={tw('text-lg font-bold text-slate-900 dark:text-white mb-2')}>{t('mobile.alex_johnson', `Alex Johnson`)}</Text>
+              <Text style={tw('text-sm text-slate-600 dark:text-slate-300 mb-1')}>{t('mobile.birthday_oct_12_1990', `Birthday: Oct 12, 1990`)}</Text>
+              <Text style={tw('text-sm text-slate-600 dark:text-slate-300 mb-1')}>{t('mobile.gender_male', `Gender: Male`)}</Text>
+              <Text style={tw('text-sm text-slate-600 dark:text-slate-300')}>{t('mobile.patients_note_feeling_dizzy_oc', `Patient's note: Feeling dizzy occasionally.`)}</Text>
             </View>
 
             {/* AI Summary */}
-            <View style={tw('bg-white p-4 rounded-2xl border border-slate-100 shadow-sm')}>
+            <View style={tw('bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm')}>
               <View style={tw('flex-row justify-between items-center mb-3')}>
-                <Text style={tw('text-xs font-bold uppercase tracking-widest text-slate-400')}>AI Summary</Text>
+                <Text style={tw('text-xs font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500')}>{t('mobile.ai_summary', `AI Summary`)}</Text>
                 <TouchableOpacity 
                   onPress={handleSummarize}
                   disabled={isSummarizing || summary.length > 0}
-                  style={tw(`px-3 py-1 rounded-full border ${summary ? 'border-slate-200 bg-slate-50' : 'border-ai bg-ai-light'}`)}
+                  style={tw(`px-3 py-1 rounded-full border ${summary ? 'border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950' : 'border-ai bg-ai-light'}`)}
                 >
-                  <Text style={tw(`text-xs font-bold ${summary ? 'text-slate-400' : 'text-ai'}`)}>
+                  <Text style={tw(`text-xs font-bold ${summary ? 'text-slate-400 dark:text-slate-500' : 'text-ai'}`)}>
                     {isSummarizing ? 'Summarizing...' : 'Summarize'}
                   </Text>
                 </TouchableOpacity>
               </View>
               
-              <Text style={tw('text-sm text-slate-600 leading-5')}>
+              <Text style={tw('text-sm text-slate-600 dark:text-slate-300 leading-5')}>
                 {summary ? summary : "Click summarize to generate an AI assessment of the patient's recent health metrics."}
               </Text>
             </View>
 
             {/* Vitals */}
             <View>
-              <Text style={tw('text-xs font-bold uppercase tracking-widest text-slate-400 mb-3')}>Current Vitals</Text>
+              <Text style={tw('text-xs font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-3')}>{t('mobile.current_vitals', `Current Vitals`)}</Text>
               
-              <View style={tw('bg-white p-4 rounded-2xl border border-slate-100 shadow-sm mb-3')}>
+              <View style={tw('bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm mb-3')}>
                 <View style={tw('flex-row justify-between mb-2')}>
-                  <Text style={tw('text-slate-500 font-medium')}>Heart Rate</Text>
+                  <Text style={tw('text-slate-500 dark:text-slate-400 dark:text-slate-500 font-medium')}>{t('mobile.heart_rate', `Heart Rate`)}</Text>
                   <Activity color="#ef4444" size={20} />
                 </View>
-                <Text style={tw('text-2xl font-bold text-slate-900')}>82 <Text style={tw('text-sm text-slate-500')}>bpm</Text></Text>
+                <Text style={tw('text-2xl font-bold text-slate-900 dark:text-white')}>82 <Text style={tw('text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500')}>{t('mobile.bpm', `bpm`)}</Text></Text>
               </View>
 
-              <View style={tw('bg-white p-4 rounded-2xl border border-slate-100 shadow-sm mb-3')}>
+              <View style={tw('bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm mb-3')}>
                 <View style={tw('flex-row justify-between mb-2')}>
-                  <Text style={tw('text-slate-500 font-medium')}>Blood Pressure</Text>
+                  <Text style={tw('text-slate-500 dark:text-slate-400 dark:text-slate-500 font-medium')}>{t('mobile.blood_pressure', `Blood Pressure`)}</Text>
                   <Activity color="#3b82f6" size={20} />
                 </View>
-                <Text style={tw('text-2xl font-bold text-slate-900')}>120/80 <Text style={tw('text-sm text-slate-500')}>mmHg</Text></Text>
+                <Text style={tw('text-2xl font-bold text-slate-900 dark:text-white')}>120/80 <Text style={tw('text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500')}>{t('mobile.mmhg', `mmHg`)}</Text></Text>
               </View>
             </View>
           </ScrollView>
@@ -209,24 +212,24 @@ export default function DoctorChatSessionScreen() {
       {/* End Consultation Modal */}
       <Modal visible={endModalVisible} transparent animationType="slide" onRequestClose={() => setEndModalVisible(false)}>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={tw('flex-1 justify-end bg-black/40')}>
-          <View style={tw('bg-white rounded-t-3xl p-6')}>
+          <View style={tw('bg-white dark:bg-slate-900 rounded-t-3xl p-6')}>
             <View style={tw('flex-row justify-between items-center mb-6')}>
-              <Text style={tw('text-xl font-bold text-slate-900')}>End Consultation</Text>
+              <Text style={tw('text-xl font-bold text-slate-900 dark:text-white')}>{t('mobile.end_consultation', `End Consultation`)}</Text>
               <TouchableOpacity onPress={() => setEndModalVisible(false)}><X color="#64748b" size={24} /></TouchableOpacity>
             </View>
             <View style={tw('mb-4')}>
-              <Text style={tw('text-sm font-semibold text-slate-700 mb-2')}>Doctor's Note</Text>
+              <Text style={tw('text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2')}>{t('mobile.doctors_note', `Doctor's Note`)}</Text>
               <TextInput
                 value={doctorNote}
                 onChangeText={setDoctorNote}
                 placeholder="Write your diagnostic notes here..."
-                style={tw('bg-slate-50 border border-slate-200 rounded-xl p-4 text-slate-900 h-32')}
+                style={tw('bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl p-4 text-slate-900 dark:text-white h-32')}
                 multiline
                 textAlignVertical="top"
               />
             </View>
             <TouchableOpacity onPress={() => { setEndModalVisible(false); Toast.show({ type: 'success', text1: 'Success', text2: 'Consultation Ended' }); router.back(); }} style={tw('bg-brand py-4 rounded-xl items-center')}>
-              <Text style={tw('text-slate-900 font-bold text-base')}>End Consultation</Text>
+              <Text style={tw('text-slate-900 dark:text-white font-bold text-base')}>{t('mobile.end_consultation', `End Consultation`)}</Text>
             </TouchableOpacity>
           </View>
         </KeyboardAvoidingView>
@@ -235,24 +238,24 @@ export default function DoctorChatSessionScreen() {
       {/* Report Modal */}
       <Modal visible={reportModalVisible} transparent animationType="slide" onRequestClose={() => setReportModalVisible(false)}>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={tw('flex-1 justify-end bg-black/40')}>
-          <View style={tw('bg-white rounded-t-3xl p-6')}>
+          <View style={tw('bg-white dark:bg-slate-900 rounded-t-3xl p-6')}>
             <View style={tw('flex-row justify-between items-center mb-6')}>
-              <Text style={tw('text-xl font-bold text-slate-900')}>Report Patient</Text>
+              <Text style={tw('text-xl font-bold text-slate-900 dark:text-white')}>{t('mobile.report_patient', `Report Patient`)}</Text>
               <TouchableOpacity onPress={() => setReportModalVisible(false)}><X color="#64748b" size={24} /></TouchableOpacity>
             </View>
             <View style={tw('mb-4')}>
-              <Text style={tw('text-sm font-semibold text-slate-700 mb-2')}>Reason for Report</Text>
+              <Text style={tw('text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2')}>{t('mobile.reason_for_report', `Reason for Report`)}</Text>
               <TextInput
                 value={reportReason}
                 onChangeText={setReportReason}
                 placeholder="Inappropriate behavior, spam..."
-                style={tw('bg-slate-50 border border-slate-200 rounded-xl p-4 text-slate-900 h-32')}
+                style={tw('bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl p-4 text-slate-900 dark:text-white h-32')}
                 multiline
                 textAlignVertical="top"
               />
             </View>
             <TouchableOpacity onPress={() => { setReportModalVisible(false); Toast.show({ type: 'success', text1: 'Success', text2: 'Report Submitted' }); }} style={tw('bg-red-500 py-4 rounded-xl items-center')}>
-              <Text style={tw('text-white font-bold text-base')}>Submit Report</Text>
+              <Text style={tw('text-white font-bold text-base')}>{t('mobile.submit_report', `Submit Report`)}</Text>
             </TouchableOpacity>
           </View>
         </KeyboardAvoidingView>

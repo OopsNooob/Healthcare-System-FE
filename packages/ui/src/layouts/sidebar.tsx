@@ -22,124 +22,125 @@ import { UserAvatar } from "../components/ui/user-avatar";
 import { useState } from "react";
 import { useAuthStore } from "../store/useAuthStore";
 import { type AdminRole, type AppRole } from "../types/auth";
+import { useTranslation } from "react-i18next";
 
 const clientMenuItems = {
   doctor: [
     {
       id: "doctor-overview",
-      label: "Overview",
+      label: "sidebar.overview",
       icon: LayoutDashboard,
       path: "/doctor-overview",
     },
     {
       id: "consultations",
-      label: "Consultations",
+      label: "sidebar.consultations",
       icon: MessageSquare,
       path: "/consultations",
     },
-    { id: "profile", label: "Profile", icon: CircleUser, path: "/profile" },
+    { id: "profile", label: "sidebar.profile", icon: CircleUser, path: "/profile" },
   ],
   patient: [
     {
       id: "patient-overview",
-      label: "Overview",
+      label: "sidebar.overview",
       icon: LayoutDashboard,
       path: "/patient-overview",
     },
     {
       id: "my-doctors",
-      label: "My doctors",
+      label: "sidebar.myDoctors",
       icon: Stethoscope,
       path: "/my-doctors",
     },
     {
       id: "ai-chat",
-      label: "AI chat",
+      label: "sidebar.aiChat",
       icon: Bot,
       path: "/ai-chat",
     },
     {
       id: "doctor-chat",
-      label: "Doctor chat",
+      label: "sidebar.doctorChat",
       icon: MessageSquare,
       path: "/doctor-chat",
     },
-    { id: "profile", label: "Profile", icon: CircleUser, path: "/profile" },
+    { id: "profile", label: "sidebar.profile", icon: CircleUser, path: "/profile" },
   ],
 };
 
 const adminMenuItems = {
   super_admin: [
-    { id: "overview", label: "Overview", icon: LayoutDashboard, path: "/" },
+    { id: "overview", label: "sidebar.overview", icon: LayoutDashboard, path: "/" },
     {
       id: "user_management",
-      label: "User Management",
+      label: "sidebar.userManagement",
       icon: Users,
       path: "/user-management",
     },
     {
       id: "doc_verification",
-      label: "Doc Verification",
+      label: "sidebar.docVerification",
       icon: FileCheck,
       path: "/doc-verification",
     },
     {
       id: "ai_knowledge_base",
-      label: "AI Knowledge Base",
+      label: "sidebar.aiKnowledgeBase",
       icon: BookOpen,
       path: "/ai-knowledge-base",
     },
     {
       id: "premium_management",
-      label: "Premium & Payments",
+      label: "sidebar.premium",
       icon: CreditCard,
       path: "/premium-management",
     },
     {
       id: "appointment_management",
-      label: "Appointments",
+      label: "sidebar.appointments",
       icon: Calendar,
       path: "/appointments",
     },
     {
       id: "violation_reports",
-      label: "Violation Reports",
+      label: "sidebar.violationReports",
       icon: ShieldAlert,
       path: "/violation-reports",
     },
-    { id: "profile", label: "Profile", icon: CircleUser, path: "/profile" },
+    { id: "profile", label: "sidebar.profile", icon: CircleUser, path: "/profile" },
   ],
   ai_admin: [
-    { id: "overview", label: "Overview", icon: LayoutDashboard, path: "/" },
+    { id: "overview", label: "sidebar.overview", icon: LayoutDashboard, path: "/" },
     {
       id: "ai_knowledge_base",
-      label: "AI Knowledge Base",
+      label: "sidebar.aiKnowledgeBase",
       icon: BookOpen,
       path: "/ai-knowledge-base",
     },
-    { id: "profile", label: "Profile", icon: CircleUser, path: "/profile" },
+    { id: "profile", label: "sidebar.profile", icon: CircleUser, path: "/profile" },
   ],
   user_admin: [
-    { id: "overview", label: "Overview", icon: LayoutDashboard, path: "/" },
+    { id: "overview", label: "sidebar.overview", icon: LayoutDashboard, path: "/" },
     {
       id: "user_management",
-      label: "User Management",
+      label: "sidebar.userManagement",
       icon: Users,
       path: "/user-management",
     },
     {
       id: "doc_verification",
-      label: "Doc Verification",
+      label: "sidebar.docVerification",
       icon: FileCheck,
       path: "/doc-verification",
     },
     {
       id: "violation_reports",
-      label: "Violation Reports",
+      label: "sidebar.violationReports",
       icon: ShieldAlert,
       path: "/violation-reports",
     },
-    { id: "profile", label: "Profile", icon: CircleUser, path: "/profile" },
+    { id: "profile", label: "sidebar.profile", icon: CircleUser, path: "/profile" },
   ],
 };
 
@@ -160,6 +161,7 @@ export function Sidebar({
   const clearAuthState = useAuthStore((state) => state.logout);
   const navigate = useNavigate();
   const [shrunk, setShrunk] = useState(false);
+  const { t } = useTranslation();
 
   const roleItems =
     userRole === "admin"
@@ -178,7 +180,7 @@ export function Sidebar({
   return (
     <aside
       className={cn(
-        "bg-white shadow-lg flex h-screen shrink-0 flex-col transition-all duration-300",
+        "bg-white dark:bg-slate-900 border-r border-gray-100 dark:border-slate-800 shadow-sm flex h-screen shrink-0 flex-col transition-all duration-300",
         shrunk ? "w-20" : "w-64",
       )}
     >
@@ -192,10 +194,10 @@ export function Sidebar({
           <Cross className="h-9 w-9 text-brand fill-brand shrink-0" />
           {!shrunk && (
             <div>
-              <p className="text-2xl font-bold text-gray-900 leading-tight">
+              <p className="text-2xl font-bold text-gray-900 dark:text-white leading-tight">
                 Healthcare
               </p>
-              <p className="text-sm text-center text-[#6B7280] font-semibold">
+              <p className="text-sm text-center text-[#6B7280] dark:text-slate-400 font-semibold">
                 {userRole === "admin"
                   ? adminRole === "super_admin"
                     ? "Super Admin"
@@ -221,8 +223,8 @@ export function Sidebar({
           )}
         >
           {!shrunk && (
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest">
-              Main Menu
+            <p className="text-xs font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-widest">
+              {t('sidebar.mainMenu')}
             </p>
           )}
           <button
@@ -255,15 +257,15 @@ export function Sidebar({
                         : "gap-3 px-3 py-2.5",
                       isActive
                         ? "bg-brand text-white"
-                        : "text-gray-500 hover:bg-gray-100 hover:text-gray-900",
+                        : "text-gray-500 hover:bg-gray-100 hover:text-gray-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white",
                     )
                   }
-                  title={shrunk ? item.label : undefined}
+                  title={shrunk ? t(item.label) : undefined}
                 >
                   {({ isActive }: { isActive: boolean }) => (
                     <>
                       <Icon className="w-5 h-5 shrink-0" />
-                      {!shrunk && <span className="flex-1">{item.label}</span>}
+                      {!shrunk && <span className="flex-1">{t(item.label)}</span>}
                       {!shrunk && isActive && (
                         <ChevronRight className="w-4 h-4" />
                       )}
@@ -278,7 +280,7 @@ export function Sidebar({
 
       <div
         className={cn(
-          "border-t py-4",
+          "border-t border-gray-100 dark:border-slate-800 py-4",
           shrunk
             ? "px-2 flex flex-col items-center gap-3"
             : "px-4 flex items-center gap-3",
@@ -291,7 +293,7 @@ export function Sidebar({
         />
         {!shrunk && (
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-gray-900 truncate">
+            <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">
               {user?.name || "Unknown User"}
             </p>
           </div>

@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { View, Text, TouchableOpacity, SafeAreaView, ScrollView } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { ArrowLeft, Sparkles, MessageSquare, Plus, ChevronRight } from 'lucide-react-native';
 import { tw } from '@/tw';
 
 export default function AiChatHistoryScreen() {
+  const { t } = useTranslation();
+
   const router = useRouter();
   const { prefill } = useLocalSearchParams<{ prefill?: string }>();
 
@@ -25,15 +28,15 @@ export default function AiChatHistoryScreen() {
   ];
 
   return (
-    <SafeAreaView style={tw('flex-1 bg-slate-50')}>
+    <SafeAreaView style={tw('flex-1 bg-slate-50 dark:bg-slate-950')}>
       {/* Header */}
-      <View style={tw('flex-row items-center px-6 py-4 bg-white border-b border-slate-100')}>
+      <View style={tw('flex-row items-center px-6 py-4 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800')}>
         <View style={tw('w-10 h-10 bg-ai-light rounded-full items-center justify-center mr-3')}>
           <Sparkles color="#6366f1" size={20} />
         </View>
         <View>
-          <Text style={tw('text-xl font-bold text-slate-900')}>AI Consultations</Text>
-          <Text style={tw('text-slate-500 text-sm')}>Your health analysis history</Text>
+          <Text style={tw('text-xl font-bold text-slate-900 dark:text-white')}>{t('mobile.ai_consultations', `AI Consultations`)}</Text>
+          <Text style={tw('text-slate-500 dark:text-slate-400 dark:text-slate-500 text-sm')}>{t('mobile.your_health_analysis_history', `Your health analysis history`)}</Text>
         </View>
       </View>
 
@@ -42,14 +45,14 @@ export default function AiChatHistoryScreen() {
           <TouchableOpacity 
             key={session.id}
             onPress={() => router.push(`/(patient)/ai-chat/${session.id}`)}
-            style={tw('bg-white p-4 rounded-2xl mb-3 border border-slate-100 flex-row items-center justify-between shadow-sm')}
+            style={tw('bg-white dark:bg-slate-900 p-4 rounded-2xl mb-3 border border-slate-100 dark:border-slate-800 flex-row items-center justify-between shadow-sm')}
           >
             <View style={tw('flex-1 mr-4')}>
-              <Text style={tw('text-base font-bold text-slate-900 mb-1')} numberOfLines={1}>{session.title}</Text>
-              <Text style={tw('text-sm text-slate-500')} numberOfLines={1}>{session.preview}</Text>
-              <Text style={tw('text-xs text-slate-400 mt-2')}>{session.date}</Text>
+              <Text style={tw('text-base font-bold text-slate-900 dark:text-white mb-1')} numberOfLines={1}>{session.title}</Text>
+              <Text style={tw('text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500')} numberOfLines={1}>{session.preview}</Text>
+              <Text style={tw('text-xs text-slate-400 dark:text-slate-500 mt-2')}>{session.date}</Text>
             </View>
-            <View style={tw('w-8 h-8 bg-slate-50 rounded-full items-center justify-center')}>
+            <View style={tw('w-8 h-8 bg-slate-50 dark:bg-slate-950 rounded-full items-center justify-center')}>
               <ChevronRight color="#94a3b8" size={20} />
             </View>
           </TouchableOpacity>
@@ -65,7 +68,7 @@ export default function AiChatHistoryScreen() {
         ]}
       >
         <Plus color="#ffffff" size={24} style={tw('mr-2')} />
-        <Text style={tw('text-white font-bold text-base')}>New Chat</Text>
+        <Text style={tw('text-white font-bold text-base')}>{t('mobile.new_chat', `New Chat`)}</Text>
       </TouchableOpacity>
     </SafeAreaView>
   );

@@ -57,6 +57,7 @@ import type {
   ReportType,
 } from "@repo/ui/components/complex-modal/ReportModal";
 import { useAuthStore } from "@repo/ui/store/useAuthStore";
+import { useTranslation } from "react-i18next";
 
 type UserRole = "patient" | "doctor" | "admin";
 type UserStatus = "active" | "banned";
@@ -126,6 +127,7 @@ function mergeUsers(baseUsers: UserRecord[], localUsers: UserRecord[]) {
 }
 
 export function UserManagement() {
+  const { t } = useTranslation();
   const { users: usersData, isLoading, error, refresh } = useUsers();
   const { submitBanUser, isLoading: isBanning, error: banError } = useBanUser();
   const {
@@ -353,36 +355,36 @@ export function UserManagement() {
 
   const summaryCards = [
     {
-      title: "Total Users",
+      title: t("userManagement.stats.totalUsers"),
       icon: <Users size={18} />,
       stats: usersData.totalUser,
-      subText: "all users",
+      subText: t("userManagement.stats.allUsers"),
       comparedStats: 6.4,
-      iconClassName: "bg-blue-50 text-blue-600",
+      iconClassName: "bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400",
     },
     {
-      title: "Active Doctors",
+      title: t("userManagement.stats.activeDoctors"),
       icon: <Stethoscope size={18} />,
       stats: usersData.activeDoctors,
-      subText: "active doctors",
+      subText: t("userManagement.stats.activeDoctorsSub"),
       comparedStats: 4.2,
-      iconClassName: "bg-emerald-50 text-emerald-600",
+      iconClassName: "bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400",
     },
     {
-      title: "Pending Application",
+      title: t("userManagement.stats.pendingApp"),
       icon: <Clock size={18} />,
       stats: usersData.pendingVerifications,
-      subText: "need attention",
+      subText: t("userManagement.stats.needAttention"),
       comparedStats: -1.2,
-      iconClassName: "bg-amber-50 text-amber-600",
+      iconClassName: "bg-amber-50 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400",
     },
     {
-      title: "Banned Users",
+      title: t("userManagement.stats.bannedUsers"),
       icon: <Ban size={18} />,
       stats: usersData.bannedUsers,
-      subText: "across platform",
+      subText: t("userManagement.stats.acrossPlatform"),
       comparedStats: -5,
-      iconClassName: "bg-red-50 text-red-500",
+      iconClassName: "bg-red-50 text-red-500 dark:bg-red-900/30 dark:text-red-400",
     },
   ];
 
@@ -481,7 +483,7 @@ export function UserManagement() {
     const actions: ActionCardItem[] = [
       {
         id: `${user.id}-view-profile`,
-        title: "View profile",
+        title: t("userManagement.actions.viewProfile"),
         icon: <Eye className="h-4 w-4" />,
         onHandle: () => {
           setSelectedUserId(user.id);
@@ -493,7 +495,7 @@ export function UserManagement() {
     if (!isSelf) {
       actions.push({
         id: `${user.id}-lock-unlock`,
-        title: user.status === "active" ? "Lock user" : "Unlock user",
+        title: user.status === "active" ? t("userManagement.actions.lockUser") : t("userManagement.actions.unlockUser"),
         icon:
           user.status === "active" ? (
             <Lock className="h-4 w-4" />
@@ -528,17 +530,17 @@ export function UserManagement() {
   const roleTabs = [
     {
       key: "patient" as const,
-      label: "Patients",
+      label: t("userManagement.tabs.patients"),
       count: roleCounts.patient,
     },
     {
       key: "doctor" as const,
-      label: "Doctors",
+      label: t("userManagement.tabs.doctors"),
       count: roleCounts.doctor,
     },
     {
       key: "admin" as const,
-      label: "Admin",
+      label: t("userManagement.tabs.admin"),
       count: roleCounts.admin,
     },
   ];
@@ -572,27 +574,27 @@ export function UserManagement() {
 
   return (
     <div className="w-full p-6">
-      <div className="rounded-3xl border border-slate-200/70 bg-white p-6 shadow-sm">
+      <div className="rounded-3xl border border-slate-200 dark:border-slate-700/70 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
         <div className="mb-5 flex items-center justify-between gap-3">
           <div>
-            <h1 className="text-3xl font-semibold text-slate-900">
-              User & Doctor Management
+            <h1 className="text-3xl font-semibold text-slate-900 dark:text-slate-100">
+              {t("userManagement.title")}
             </h1>
-            <p className="text-sm text-slate-500">
-              Manage all platform users, patients and doctors
+            <p className="text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500">
+              {t("userManagement.subtitle")}
             </p>
           </div>
         </div>
 
         {error ? (
-          <div className="mb-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <div className="mb-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900/30 dark:bg-red-900/20 dark:text-red-400">
             {error}
           </div>
         ) : null}
 
         {isLoading ? (
-          <div className="mb-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500">
-            Loading user data...
+          <div className="mb-4 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-4 py-3 text-sm text-slate-500 dark:border-slate-800 dark:bg-slate-800/50 dark:text-slate-400 dark:text-slate-500">
+            {t("userManagement.loading")}
           </div>
         ) : null}
 
@@ -602,8 +604,8 @@ export function UserManagement() {
           ))}
         </ul>
 
-        <div className="mt-4 rounded-2xl border border-slate-200 bg-white shadow-sm">
-          <div className="flex flex-col gap-3 border-b border-slate-200 p-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="mt-4 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+          <div className="flex flex-col gap-3 border-b border-slate-200 dark:border-slate-800 p-3 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex items-center gap-2">
               {roleTabs.map((item) => (
                 <Button
@@ -611,7 +613,7 @@ export function UserManagement() {
                   type="button"
                   variant={selectedRole === item.key ? "outline" : "ghost"}
                   size="sm"
-                  className={`rounded-xl px-3 ${selectedRole === item.key ? "border-slate-300 bg-slate-50" : "text-slate-500"}`}
+                  className={`rounded-xl px-3 ${selectedRole === item.key ? "border-slate-300 bg-slate-50 dark:border-slate-700 dark:bg-slate-800 text-slate-900 dark:text-slate-100" : "text-slate-500 dark:text-slate-400 dark:text-slate-500"}`}
                   onClick={() => changeRole(item.key)}
                 >
                   {item.label}
@@ -627,10 +629,10 @@ export function UserManagement() {
                 type="button"
                 variant={selectedRole === "all" ? "outline" : "ghost"}
                 size="sm"
-                className={`rounded-xl px-3 ${selectedRole === "all" ? "border-slate-300 bg-slate-50" : "text-slate-500"}`}
+                className={`rounded-xl px-3 ${selectedRole === "all" ? "border-slate-300 bg-slate-50 dark:border-slate-700 dark:bg-slate-800 text-slate-900 dark:text-slate-100" : "text-slate-500 dark:text-slate-400 dark:text-slate-500"}`}
                 onClick={() => changeRole("all")}
               >
-                All
+                {t("userManagement.tabs.all")}
                 <Badge
                   variant="outline"
                   className="ml-1 h-4 px-1.5 text-[10px] leading-none"
@@ -642,13 +644,13 @@ export function UserManagement() {
 
             <div className="flex items-center gap-2">
               <div className="relative">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => handleSearch(e.target.value)}
-                  placeholder="Search name or email..."
-                  className="h-9 w-64 rounded-lg border border-slate-200 bg-white pl-9 pr-3 text-xs text-slate-700 outline-none ring-brand/30 transition focus:ring-2"
+                  placeholder={t("userManagement.searchPlaceholder")}
+                  className="h-9 w-64 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:border-slate-700 dark:bg-slate-900 pl-9 pr-3 text-xs text-slate-700 dark:text-slate-200 outline-none ring-brand/30 transition focus:ring-2"
                 />
               </div>
               {selectedRole === "admin" ? (
@@ -656,7 +658,7 @@ export function UserManagement() {
                   onClick={handleOpenAddAdminModal}
                   disabled={isCreatingAdmin}
                 >
-                  {isCreatingAdmin ? "Creating..." : "Add admin"}
+                  {isCreatingAdmin ? t("userManagement.creating") : t("userManagement.addAdmin")}
                 </Button>
               ) : null}
             </div>
@@ -665,34 +667,34 @@ export function UserManagement() {
           <div className="overflow-x-auto max-h-[500px] overflow-y-auto">
             <Table>
               <TableHeader>
-                <TableRow className="hover:bg-transparent sticky top-0 bg-white z-10 shadow-sm">
-                  <TableHead className="px-3 text-xs text-slate-400">
-                    USER
+                <TableRow className="hover:bg-transparent sticky top-0 bg-white dark:bg-slate-900 z-10 shadow-sm">
+                  <TableHead className="px-3 text-xs text-slate-400 dark:text-slate-500">
+                    {t("userManagement.table.user")}
                   </TableHead>
-                  <TableHead className="px-3 text-xs text-slate-400">
-                    EMAIL
+                  <TableHead className="px-3 text-xs text-slate-400 dark:text-slate-500">
+                    {t("userManagement.table.email")}
                   </TableHead>
                   {selectedRole === "doctor" ? (
-                    <TableHead className="px-3 text-xs text-slate-400">
-                      SPECIALTY
+                    <TableHead className="px-3 text-xs text-slate-400 dark:text-slate-500">
+                      {t("userManagement.table.specialty")}
                     </TableHead>
                   ) : null}
                   {selectedRole === "admin" ? (
-                    <TableHead className="px-3 text-xs text-slate-400">
-                      ASSIGNED ROLE
+                    <TableHead className="px-3 text-xs text-slate-400 dark:text-slate-500">
+                      {t("userManagement.table.assignedRole")}
                     </TableHead>
                   ) : null}
-                  <TableHead className="px-3 text-xs text-slate-400">
-                    LOCATION
+                  <TableHead className="px-3 text-xs text-slate-400 dark:text-slate-500">
+                    {t("userManagement.table.location")}
                   </TableHead>
-                  <TableHead className="px-3 text-xs text-slate-400">
-                    JOINED
+                  <TableHead className="px-3 text-xs text-slate-400 dark:text-slate-500">
+                    {t("userManagement.table.joined")}
                   </TableHead>
-                  <TableHead className="px-3 text-xs text-slate-400">
-                    STATUS
+                  <TableHead className="px-3 text-xs text-slate-400 dark:text-slate-500">
+                    {t("userManagement.table.status")}
                   </TableHead>
-                  <TableHead className="px-3 text-xs text-slate-400">
-                    ACTIONS
+                  <TableHead className="px-3 text-xs text-slate-400 dark:text-slate-500">
+                    {t("userManagement.table.actions")}
                   </TableHead>
                 </TableRow>
               </TableHeader>
@@ -722,25 +724,25 @@ export function UserManagement() {
                         <UserAvatar name={user.name} url={user.avatarUrl} />
                       </div>
                     </TableCell>
-                    <TableCell className="px-3 text-sm text-slate-500">
+                    <TableCell className="px-3 text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500">
                       {user.email}
                     </TableCell>
                     {selectedRole === "doctor" ? (
-                      <TableCell className="px-3 text-sm text-slate-500">
-                        <span className="bg-[#DBEAFE] p-1 rounded-xl text-[#3B7BF8]">
+                      <TableCell className="px-3 text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500">
+                        <span className="bg-[#DBEAFE] dark:bg-blue-900/30 p-1 rounded-xl text-[#3B7BF8] dark:text-blue-400">
                           {user.specialty}
                         </span>
                       </TableCell>
                     ) : null}
                     {selectedRole === "admin" ? (
-                      <TableCell className="px-3 text-sm text-slate-500">
+                      <TableCell className="px-3 text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500">
                         {getAssignedRoleBadge(user.assigned_role)}
                       </TableCell>
                     ) : null}
-                    <TableCell className="px-3 text-sm text-slate-500">
+                    <TableCell className="px-3 text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500">
                       {user.location}
                     </TableCell>
-                    <TableCell className="px-3 text-sm text-slate-500">
+                    <TableCell className="px-3 text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500">
                       {user.joined}
                     </TableCell>
                     <TableCell className="px-3">
@@ -748,22 +750,22 @@ export function UserManagement() {
                         variant="outline"
                         className={`h-5 rounded-full border px-2 text-[10px] font-medium ${
                           user.status === "active"
-                            ? "border-emerald-200 bg-emerald-50 text-emerald-600"
-                            : "border-red-200 bg-red-50 text-red-500"
+                            ? "border-emerald-200 bg-emerald-50 text-emerald-600 dark:border-emerald-900/30 dark:bg-emerald-900/20 dark:text-emerald-400"
+                            : "border-red-200 bg-red-50 text-red-500 dark:border-red-900/30 dark:bg-red-900/20 dark:text-red-400"
                         }`}
                       >
                         <ShieldCheck className="mr-1 h-3 w-3" />
-                        {user.status === "active" ? "Active" : "Banned"}
+                        {user.status === "active" ? t("userManagement.table.active") : t("userManagement.table.banned")}
                       </Badge>
                     </TableCell>
-                    <TableCell className="px-3 text-left text-slate-400">
+                    <TableCell className="px-3 text-left text-slate-400 dark:text-slate-500">
                       <div
                         className="relative inline-block"
                         data-actions-root="true"
                       >
                         <button
                           type="button"
-                          className="h-6 w-6 cursor-pointer rounded-md p-1 transition-colors hover:bg-slate-100"
+                          className="h-6 w-6 cursor-pointer rounded-md p-1 transition-colors hover:bg-slate-100 dark:bg-slate-800"
                           onClick={(event) =>
                             handleToggleActionMenu(event, user.id)
                           }
@@ -789,11 +791,11 @@ export function UserManagement() {
                     className="px-3 py-16 text-center"
                   >
                     <div className="flex flex-col items-center justify-center">
-                      <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4">
-                        <Database className="w-8 h-8 text-slate-400" />
+                      <div className="w-16 h-16 bg-slate-50 dark:bg-slate-800/50 rounded-full flex items-center justify-center mb-4">
+                        <Database className="w-8 h-8 text-slate-400 dark:text-slate-500" />
                       </div>
-                      <h3 className="text-slate-900 font-medium mb-1">No users found</h3>
-                      <p className="text-slate-500 text-sm">Try adjusting your search filters or roles</p>
+                      <h3 className="text-slate-900 dark:text-slate-100 font-medium mb-1">{t("userManagement.table.noUsers")}</h3>
+                      <p className="text-slate-500 dark:text-slate-400 dark:text-slate-500 text-sm">{t("userManagement.table.tryAdjusting")}</p>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -802,7 +804,7 @@ export function UserManagement() {
           </Table>
         </div>
 
-          <div className="flex flex-col gap-3 border-t border-slate-200 px-3 py-2 text-xs text-slate-400 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-3 border-t border-slate-200 dark:border-slate-700 px-3 py-2 text-xs text-slate-400 dark:text-slate-500 sm:flex-row sm:items-center sm:justify-between">
             <p>
               Showing {paginatedUsers.length} of {filteredUsers.length} results
             </p>

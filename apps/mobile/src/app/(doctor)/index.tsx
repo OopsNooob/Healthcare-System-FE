@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { View, Text, ScrollView, TouchableOpacity, SafeAreaView, Dimensions, Switch, RefreshControl } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Users, Calendar as CalendarIcon, Clock, TrendingUp, Bell, Power } from 'lucide-react-native';
@@ -6,6 +7,8 @@ import { LineChart } from 'react-native-chart-kit';
 import { tw } from '@/tw';
 
 export default function DoctorHomeScreen() {
+  const { t } = useTranslation();
+
   const router = useRouter();
   const [isOnline, setIsOnline] = useState(true);
 
@@ -38,19 +41,19 @@ export default function DoctorHomeScreen() {
   };
 
   const renderQueueSkeleton = () => (
-    <View style={tw('flex-row items-center justify-between bg-white p-4 rounded-2xl shadow-sm border border-gray-100 mb-4')}>
+    <View style={tw('flex-row items-center justify-between bg-white dark:bg-slate-900 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 mb-4')}>
       <View style={tw('flex-1')}>
-        <View style={tw('w-32 h-5 bg-slate-200 rounded mb-2')} />
-        <View style={tw('w-24 h-4 bg-slate-200 rounded')} />
+        <View style={tw('w-32 h-5 bg-slate-200 dark:bg-slate-700 rounded mb-2')} />
+        <View style={tw('w-24 h-4 bg-slate-200 dark:bg-slate-700 rounded')} />
       </View>
       <View style={tw('items-end')}>
-        <View style={tw('w-16 h-6 bg-slate-200 rounded-full mb-2')} />
+        <View style={tw('w-16 h-6 bg-slate-200 dark:bg-slate-700 rounded-full mb-2')} />
       </View>
     </View>
   );
 
   return (
-    <SafeAreaView style={tw('flex-1 bg-slate-50')}>
+    <SafeAreaView style={tw('flex-1 bg-slate-50 dark:bg-slate-950')}>
       <ScrollView 
         contentContainerStyle={tw('pb-20')} 
         showsVerticalScrollIndicator={false}
@@ -59,11 +62,11 @@ export default function DoctorHomeScreen() {
         {/* Header */}
         <View style={tw('flex-row justify-between items-center px-6 pt-6 pb-4')}>
           <View style={tw('flex-1')}>
-            <Text style={tw('text-gray-500 text-sm')}>Good morning,</Text>
-            <Text style={tw('text-2xl font-bold text-[#313A34]')}>Dr. Sarah Connor</Text>
+            <Text style={tw('text-gray-500 text-sm')}>{t('mobile.good_morning', `Good morning,`)}</Text>
+            <Text style={tw('text-2xl font-bold text-[#313A34]')}>{t('mobile.dr_sarah_connor', `Dr. Sarah Connor`)}</Text>
           </View>
           <View style={tw('flex-row items-center')}>
-            <View style={tw('flex-row items-center mr-4 bg-white px-3 py-1.5 rounded-full border border-gray-100 shadow-sm')}>
+            <View style={tw('flex-row items-center mr-4 bg-white dark:bg-slate-900 px-3 py-1.5 rounded-full border border-gray-100 dark:border-gray-800 shadow-sm')}>
               <Power color={isOnline ? "#10b981" : "#94a3b8"} size={16} style={tw('mr-2')} />
               <Switch 
                 value={isOnline}
@@ -74,7 +77,7 @@ export default function DoctorHomeScreen() {
               />
             </View>
             <TouchableOpacity 
-              style={tw('p-2 bg-white rounded-full shadow-sm border border-gray-100 relative')}
+              style={tw('p-2 bg-white dark:bg-slate-900 rounded-full shadow-sm border border-gray-100 dark:border-gray-800 relative')}
               onPress={() => router.push('/(doctor)/notifications')}
             >
               <Bell color="#1E1E1E" size={24} />
@@ -85,11 +88,11 @@ export default function DoctorHomeScreen() {
 
         {/* Stats Grid */}
         <View style={tw('px-6 mb-8')}>
-          <Text style={tw('text-lg font-bold text-[#313A34] mb-4')}>Overview</Text>
+          <Text style={tw('text-lg font-bold text-[#313A34] mb-4')}>{t('mobile.overview', `Overview`)}</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={tw('-mx-6 px-6')}>
             <View style={tw('flex-row gap-4')}>
               {stats.map((stat, idx) => (
-                <View key={idx} style={tw('bg-white p-5 rounded-3xl shadow-sm border border-gray-100 w-40')}>
+                <View key={idx} style={tw('bg-white dark:bg-slate-900 p-5 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800 w-40')}>
                   <View style={tw(`w-12 h-12 rounded-2xl ${stat.bg} items-center justify-center mb-4`)}>
                     {stat.icon}
                   </View>
@@ -98,7 +101,7 @@ export default function DoctorHomeScreen() {
                   <View style={tw('flex-row items-center gap-1')}>
                     <TrendingUp color="#10b981" size={14} />
                     <Text style={tw('text-xs font-bold text-emerald-500')}>{stat.trend}</Text>
-                    <Text style={tw('text-xs text-gray-400')}>this month</Text>
+                    <Text style={tw('text-xs text-gray-400')}>{t('mobile.this_month', `this month`)}</Text>
                   </View>
                 </View>
               ))}
@@ -108,8 +111,8 @@ export default function DoctorHomeScreen() {
 
         {/* Consultations Chart */}
         <View style={tw('px-6 mb-8')}>
-          <Text style={tw('text-lg font-bold text-[#313A34] mb-4')}>Consultations Over Time</Text>
-          <View style={tw('bg-white p-4 rounded-3xl shadow-sm border border-gray-100')}>
+          <Text style={tw('text-lg font-bold text-[#313A34] mb-4')}>{t('mobile.consultations_over_time', `Consultations Over Time`)}</Text>
+          <View style={tw('bg-white dark:bg-slate-900 p-4 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800')}>
             <LineChart
               data={{
                 labels: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
@@ -152,9 +155,9 @@ export default function DoctorHomeScreen() {
         {/* Today's Queue */}
         <View style={tw('px-6')}>
           <View style={tw('flex-row justify-between items-end mb-4')}>
-            <Text style={tw('text-lg font-bold text-[#313A34]')}>Today's Queue</Text>
+            <Text style={tw('text-lg font-bold text-[#313A34]')}>{t('mobile.todays_queue', `Today's Queue`)}</Text>
             <TouchableOpacity onPress={() => router.push('/(doctor)/consultations')}>
-              <Text style={tw('text-sm font-medium text-blue-500')}>View Schedule</Text>
+              <Text style={tw('text-sm font-medium text-blue-500')}>{t('mobile.view_schedule', `View Schedule`)}</Text>
             </TouchableOpacity>
           </View>
 
@@ -169,7 +172,7 @@ export default function DoctorHomeScreen() {
               queue.map((item) => (
                 <View 
                   key={item.id}
-                  style={tw('flex-row items-center justify-between bg-white p-4 rounded-2xl shadow-sm border border-gray-100')}
+                  style={tw('flex-row items-center justify-between bg-white dark:bg-slate-900 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800')}
                 >
                   <View style={tw('flex-1')}>
                     <Text style={tw('text-base font-bold text-[#313A34]')}>{item.name}</Text>
@@ -186,16 +189,16 @@ export default function DoctorHomeScreen() {
                         style={tw('mt-2 bg-blue-500 px-4 py-1.5 rounded-full')}
                         onPress={() => router.push('/(doctor)/video-call')}
                       >
-                        <Text style={tw('text-white text-xs font-bold')}>Start</Text>
+                        <Text style={tw('text-white text-xs font-bold')}>{t('mobile.start', `Start`)}</Text>
                       </TouchableOpacity>
                     )}
                   </View>
                 </View>
               ))
             ) : (
-              <View style={tw('items-center justify-center py-8 bg-white rounded-2xl border border-gray-100 border-dashed')}>
+              <View style={tw('items-center justify-center py-8 bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-gray-800 border-dashed')}>
                 <Users color="#94a3b8" size={32} style={tw('mb-2')} />
-                <Text style={tw('text-gray-500 font-medium')}>No patients in queue</Text>
+                <Text style={tw('text-gray-500 font-medium')}>{t('mobile.no_patients_in_queue', `No patients in queue`)}</Text>
               </View>
             )}
           </View>

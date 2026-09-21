@@ -58,6 +58,7 @@ import {
 } from "../hooks/useBlacklistKeywords";
 import { showToast } from "@repo/ui/components/ui/toasts";
 import { Spinner } from "@repo/ui/components/ui/spinner";
+import { useTranslation } from "react-i18next";
 
 type TabSwitch = "doc" | "words";
 type DocumentStatus = "processing" | "error" | "active" | "inactive";
@@ -161,6 +162,7 @@ function DocumentPreviewModal({
 }
 
 export function AIManagement() {
+  const { t } = useTranslation();
   const [tab, setTab] = useState<TabSwitch>("doc");
   const [searchDoc, setSearchDoc] = useState("");
   const [selectedType, setSelectedType] = useState<"all" | DocumentType>("all");
@@ -236,6 +238,7 @@ export function AIManagement() {
 
   useEffect(() => {
     if (!openActionFor) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setOpenActionRect(null);
     }
   }, [openActionFor]);
@@ -470,57 +473,54 @@ export function AIManagement() {
   return (
     <div className="relative w-full p-6">
       {isProcessing ? (
-        <div className="absolute inset-0 z-30 flex items-center justify-center rounded-3xl bg-white/70 backdrop-blur-sm">
-          <div className="flex flex-col items-center gap-3 rounded-2xl border border-slate-200 bg-white px-6 py-5 shadow-lg">
+        <div className="absolute inset-0 z-30 flex items-center justify-center rounded-3xl bg-white/70 dark:bg-slate-900/70 backdrop-blur-sm">
+          <div className="flex flex-col items-center gap-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-6 py-5 shadow-lg">
             <Spinner size="md" />
-            <p className="text-sm font-medium text-slate-700">
+            <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
               Processing changes...
             </p>
           </div>
         </div>
       ) : null}
 
-      <div className="rounded-3xl border border-slate-200/70 bg-white p-6 shadow-sm">
+      <div className="rounded-3xl border border-slate-200/70 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm">
         <div className="mb-5">
-          <h1 className="text-3xl font-semibold text-slate-900">
-            AI Knowledge Base
+          <h1 className="text-3xl font-semibold text-slate-900 dark:text-gray-100">
+            {t("aiManagement.title")}
           </h1>
-          <p className="text-sm text-slate-500">
-            Manage RAG documents and content restrictions for AI medical
-            assistance.
+          <p className="text-sm text-slate-500 dark:text-gray-400">
+            {t("aiManagement.subtitle")}
           </p>
         </div>
 
-        <div className="mb-4 border-b border-slate-200">
+        <div className="mb-4 border-b border-slate-200 dark:border-slate-800">
           <div className="flex items-center gap-6">
             <button
               type="button"
-              className={`flex items-center gap-2 border-b-2 px-1 py-3 text-sm font-semibold transition ${
-                tab === "doc"
-                  ? "border-brand text-brand"
-                  : "border-transparent text-slate-500 hover:text-slate-700"
-              }`}
+              className={`flex items-center gap-2 border-b-2 px-1 py-3 text-sm font-semibold transition ${tab === "doc"
+                ? "border-brand text-brand"
+                : "border-transparent text-slate-500 hover:text-slate-700 dark:text-gray-400 dark:hover:text-gray-200"
+                }`}
               onClick={() => setTab("doc")}
             >
               <BookOpen className="h-4 w-4" />
-              Knowledge Documents
-              <span className="ml-1 text-xs text-slate-400">
+              {t("aiManagement.tabs.documents")}
+              <span className="ml-1 text-xs text-slate-400 dark:text-gray-500">
                 {docList.length}
               </span>
             </button>
 
             <button
               type="button"
-              className={`flex items-center gap-2 border-b-2 px-1 py-3 text-sm font-semibold transition ${
-                tab === "words"
-                  ? "border-red-400 text-red-500"
-                  : "border-transparent text-slate-500 hover:text-slate-700"
-              }`}
+              className={`flex items-center gap-2 border-b-2 px-1 py-3 text-sm font-semibold transition ${tab === "words"
+                ? "border-red-400 text-red-500"
+                : "border-transparent text-slate-500 hover:text-slate-700 dark:text-gray-400 dark:hover:text-gray-200"
+                }`}
               onClick={() => setTab("words")}
             >
               <Ban className="h-4 w-4" />
-              Blacklist Words
-              <span className="ml-1 text-xs text-slate-400">
+              {t("aiManagement.tabs.blacklist")}
+              <span className="ml-1 text-xs text-slate-400 dark:text-gray-500">
                 {blacklistWords.length}
               </span>
             </button>
@@ -530,46 +530,46 @@ export function AIManagement() {
         {tab === "doc" ? (
           <div>
             <ul className="mb-3 grid grid-cols-1 gap-3 lg:grid-cols-4">
-              <li className="rounded-2xl border border-blue-100 bg-white p-4 shadow-sm">
-                <div className="mb-3 inline-flex h-9 w-9 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+              <li className="rounded-2xl border border-blue-100 dark:border-blue-900/50 bg-white dark:bg-slate-900 p-4 shadow-sm">
+                <div className="mb-3 inline-flex h-9 w-9 items-center justify-center rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-600">
                   <FileText className="h-5 w-5" />
                 </div>
-                <p className="text-2xl font-bold text-slate-900">
+                <p className="text-2xl font-bold text-slate-900 dark:text-gray-100">
                   {totalDocuments}
                 </p>
-                <p className="text-sm text-slate-600">Total Documents</p>
+                <p className="text-sm text-slate-600 dark:text-gray-400">{t("aiManagement.stats.total")}</p>
               </li>
-              <li className="rounded-2xl border border-emerald-100 bg-white p-4 shadow-sm">
-                <div className="mb-3 inline-flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">
+              <li className="rounded-2xl border border-emerald-100 dark:border-emerald-900/50 bg-white dark:bg-slate-900 p-4 shadow-sm">
+                <div className="mb-3 inline-flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600">
                   <Check className="h-5 w-5" />
                 </div>
-                <p className="text-2xl font-bold text-slate-900">
+                <p className="text-2xl font-bold text-slate-900 dark:text-gray-100">
                   {activeDocuments}
                 </p>
-                <p className="text-sm text-slate-600">Active</p>
+                <p className="text-sm text-slate-600 dark:text-gray-400">{t("aiManagement.stats.active")}</p>
               </li>
-              <li className="rounded-2xl border border-amber-100 bg-white p-4 shadow-sm">
-                <div className="mb-3 inline-flex h-9 w-9 items-center justify-center rounded-lg bg-amber-50 text-amber-600">
+              <li className="rounded-2xl border border-amber-100 dark:border-amber-900/50 bg-white dark:bg-slate-900 p-4 shadow-sm">
+                <div className="mb-3 inline-flex h-9 w-9 items-center justify-center rounded-lg bg-amber-50 dark:bg-amber-900/20 text-amber-600">
                   <CircleSlash className="h-5 w-5" />
                 </div>
-                <p className="text-2xl font-bold text-slate-900">
+                <p className="text-2xl font-bold text-slate-900 dark:text-gray-100">
                   {inactiveDocuments}
                 </p>
-                <p className="text-sm text-slate-600">Inactive</p>
+                <p className="text-sm text-slate-600 dark:text-gray-400">{t("aiManagement.stats.inactive")}</p>
               </li>
-              <li className="rounded-2xl border border-red-100 bg-white p-4 shadow-sm">
-                <div className="mb-3 inline-flex h-9 w-9 items-center justify-center rounded-lg bg-red-50 text-red-600">
+              <li className="rounded-2xl border border-red-100 dark:border-red-900/50 bg-white dark:bg-slate-900 p-4 shadow-sm">
+                <div className="mb-3 inline-flex h-9 w-9 items-center justify-center rounded-lg bg-red-50 dark:bg-red-900/20 text-red-600">
                   <TriangleAlert className="h-5 w-5" />
                 </div>
-                <p className="text-2xl font-bold text-slate-900">
+                <p className="text-2xl font-bold text-slate-900 dark:text-gray-100">
                   {errorDocuments}
                 </p>
-                <p className="text-sm text-slate-600">Error</p>
+                <p className="text-sm text-slate-600 dark:text-gray-400">{t("aiManagement.stats.error")}</p>
               </li>
             </ul>
 
-            <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
-              <div className="flex flex-col gap-3 border-b border-slate-200 p-3 lg:flex-row lg:items-center lg:justify-between">
+            <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm">
+              <div className="flex flex-col gap-3 border-b border-slate-200 dark:border-slate-800 p-3 lg:flex-row lg:items-center lg:justify-between">
                 <div className="flex w-full flex-col gap-2 md:w-auto md:flex-row">
                   <div className="relative">
                     <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
@@ -580,8 +580,8 @@ export function AIManagement() {
                         setSearchDoc(e.target.value);
                         setCurrentPage(1);
                       }}
-                      placeholder="Search by name or uploader..."
-                      className="h-9 w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 text-xs text-slate-700 outline-none transition focus:ring-2 focus:ring-brand/30 md:w-64"
+                      placeholder={t("aiManagement.filters.searchDoc")}
+                      className="h-9 w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 pl-9 pr-3 text-xs text-slate-700 dark:text-gray-200 outline-none transition focus:ring-2 focus:ring-brand/30 md:w-64"
                     />
                   </div>
 
@@ -593,13 +593,13 @@ export function AIManagement() {
                     }}
                   >
                     <ComboboxInput
-                      placeholder="All types"
-                      className="w-full md:w-44"
+                      placeholder={t("aiManagement.filters.allTypes")}
+                      className="w-full md:w-44 bg-white dark:bg-slate-900 dark:border-slate-700"
                     />
-                    <ComboboxContent>
+                    <ComboboxContent className="dark:bg-slate-900">
                       <ComboboxEmpty>No type found.</ComboboxEmpty>
                       <ComboboxList>
-                        <ComboboxItem value="all">All types</ComboboxItem>
+                        <ComboboxItem value="all">{t("aiManagement.filters.allTypes")}</ComboboxItem>
                         <ComboboxItem value="pdf">PDF</ComboboxItem>
                         <ComboboxItem value="doc">DOC</ComboboxItem>
                         <ComboboxItem value="docx">DOCX</ComboboxItem>
@@ -616,13 +616,13 @@ export function AIManagement() {
                     }}
                   >
                     <ComboboxInput
-                      placeholder="All status"
-                      className="w-full md:w-44"
+                      placeholder={t("aiManagement.filters.allStatus")}
+                      className="w-full md:w-44 bg-white dark:bg-slate-900 dark:border-slate-700"
                     />
-                    <ComboboxContent>
+                    <ComboboxContent className="dark:bg-slate-900">
                       <ComboboxEmpty>No status found.</ComboboxEmpty>
                       <ComboboxList>
-                        <ComboboxItem value="all">All status</ComboboxItem>
+                        <ComboboxItem value="all">{t("aiManagement.filters.allStatus")}</ComboboxItem>
                         <ComboboxItem value="active">Active</ComboboxItem>
                         <ComboboxItem value="inactive">Inactive</ComboboxItem>
                         <ComboboxItem value="processing">
@@ -653,7 +653,7 @@ export function AIManagement() {
                     disabled={isProcessing}
                   >
                     <Upload className="mr-1 h-4 w-4" />
-                    Upload New Document
+                    {t("aiManagement.actions.upload")}
                   </Button>
                 </div>
               </div>
@@ -662,19 +662,19 @@ export function AIManagement() {
                 <TableHeader>
                   <TableRow className="hover:bg-transparent">
                     <TableHead className="px-3 text-xs text-slate-400">
-                      DOCUMENT NAME
+                      {t("aiManagement.table.docName")}
                     </TableHead>
                     <TableHead className="px-3 text-xs text-slate-400">
-                      UPLOADED BY
+                      {t("aiManagement.table.uploadedBy")}
                     </TableHead>
                     <TableHead className="px-3 text-xs text-slate-400">
-                      UPLOADED DATE
+                      {t("aiManagement.table.uploadedDate")}
                     </TableHead>
                     <TableHead className="px-3 text-xs text-slate-400">
-                      STATUS
+                      {t("aiManagement.table.status")}
                     </TableHead>
                     <TableHead className="px-3 text-xs text-slate-400">
-                      ACTIONS
+                      {t("aiManagement.table.actions")}
                     </TableHead>
                   </TableRow>
                 </TableHeader>

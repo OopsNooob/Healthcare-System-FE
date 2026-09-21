@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { View, Text, TextInput, TouchableOpacity, SafeAreaView, ScrollView, KeyboardAvoidingView, Platform, Alert, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import Toast from 'react-native-toast-message';
@@ -6,6 +7,8 @@ import { Mail, Lock, Plus, User, Phone, Briefcase, Stethoscope, Clock, UploadClo
 import { tw } from '@/tw';
 
 export default function RegisterScreen() {
+  const { t } = useTranslation();
+
   const router = useRouter();
   const [role, setRole] = useState<'patient' | 'doctor'>('patient');
   
@@ -33,36 +36,36 @@ export default function RegisterScreen() {
   return (
     <KeyboardAvoidingView 
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={tw('flex-1 bg-slate-50')}
+      style={tw('flex-1 bg-slate-50 dark:bg-slate-950')}
     >
       <ScrollView contentContainerStyle={tw('flex-grow items-center justify-center px-6 py-10')}>
         {/* Logo area */}
         <View style={tw('flex-col items-center gap-2 mb-8')}>
           <View style={tw('flex-row items-center gap-2')}>
             <Plus color="#10b981" size={32} />
-            <Text style={tw('text-3xl font-bold text-[#313A34]')}>Healthcare</Text>
+            <Text style={tw('text-3xl font-bold text-[#313A34]')}>{t('mobile.healthcare', `Healthcare`)}</Text>
           </View>
-          <Text style={tw('text-sm text-gray-500')}>Your intelligent telecare AI solutions. ✨</Text>
+          <Text style={tw('text-sm text-gray-500')}>{t('mobile.your_intelligent_telecare_ai_s', `Your intelligent telecare AI solutions. ✨`)}</Text>
         </View>
 
         {/* Form Card */}
-        <View style={tw('w-full bg-white rounded-3xl border border-gray-200 shadow-sm px-6 py-8')}>
-          <Text style={tw('text-center text-3xl font-bold text-[#313A34] mb-2')}>Sign up</Text>
-          <Text style={tw('text-center text-sm text-gray-500 mb-6')}>Create a new account</Text>
+        <View style={tw('w-full bg-white dark:bg-slate-900 rounded-3xl border border-gray-200 shadow-sm px-6 py-8')}>
+          <Text style={tw('text-center text-3xl font-bold text-[#313A34] mb-2')}>{t('mobile.sign_up', `Sign up`)}</Text>
+          <Text style={tw('text-center text-sm text-gray-500 mb-6')}>{t('mobile.create_a_new_account', `Create a new account`)}</Text>
 
           {/* Role selector */}
           <View style={tw('flex-row bg-gray-100 p-1 rounded-xl mb-6')}>
             <TouchableOpacity 
-              style={tw(`flex-1 py-2 items-center rounded-lg ${role === 'patient' ? 'bg-white shadow-sm' : ''}`)}
+              style={tw(`flex-1 py-2 items-center rounded-lg ${role === 'patient' ? 'bg-white dark:bg-slate-900 shadow-sm' : ''}`)}
               onPress={() => setRole('patient')}
             >
-              <Text style={tw(`font-medium ${role === 'patient' ? 'text-emerald-600' : 'text-gray-500'}`)}>Patient</Text>
+              <Text style={tw(`font-medium ${role === 'patient' ? 'text-emerald-600' : 'text-gray-500'}`)}>{t('mobile.patient', `Patient`)}</Text>
             </TouchableOpacity>
             <TouchableOpacity 
-              style={tw(`flex-1 py-2 items-center rounded-lg ${role === 'doctor' ? 'bg-white shadow-sm' : ''}`)}
+              style={tw(`flex-1 py-2 items-center rounded-lg ${role === 'doctor' ? 'bg-white dark:bg-slate-900 shadow-sm' : ''}`)}
               onPress={() => setRole('doctor')}
             >
-              <Text style={tw(`font-medium ${role === 'doctor' ? 'text-emerald-600' : 'text-gray-500'}`)}>Doctor</Text>
+              <Text style={tw(`font-medium ${role === 'doctor' ? 'text-emerald-600' : 'text-gray-500'}`)}>{t('mobile.doctor', `Doctor`)}</Text>
             </TouchableOpacity>
           </View>
 
@@ -70,7 +73,7 @@ export default function RegisterScreen() {
             
             {/* Email Field - Both */}
             <View style={tw('gap-1.5')}>
-              <Text style={tw('text-sm font-medium text-[#1E1E1E]')}>Email</Text>
+              <Text style={tw('text-sm font-medium text-[#1E1E1E]')}>{t('mobile.email', `Email`)}</Text>
               <View style={tw('flex-row items-center bg-gray-50 rounded-2xl px-4 py-3 border border-gray-200')}>
                 <Mail color="#9ca3af" size={20} />
                 <TextInput
@@ -88,14 +91,14 @@ export default function RegisterScreen() {
             {/* Doctor Load Previous Registration Data */}
             {role === 'doctor' && (
               <TouchableOpacity onPress={() => Toast.show({ type: 'info', text1: 'Info', text2: 'Load previous registration data' })} style={tw('flex-row items-center justify-end -mt-2 mb-2')}>
-                <Text style={tw('text-sm text-emerald-600 font-medium')}>Load previous registration data?</Text>
+                <Text style={tw('text-sm text-emerald-600 font-medium')}>{t('mobile.load_previous_registration_dat', `Load previous registration data?`)}</Text>
               </TouchableOpacity>
             )}
 
             {/* Phone Field - Doctor (Second for Doctor) */}
             {role === 'doctor' && (
               <View style={tw('gap-1.5')}>
-                <Text style={tw('text-sm font-medium text-[#1E1E1E]')}>Phone number</Text>
+                <Text style={tw('text-sm font-medium text-[#1E1E1E]')}>{t('mobile.phone_number', `Phone number`)}</Text>
                 <View style={tw('flex-row items-center bg-gray-50 rounded-2xl px-4 py-3 border border-gray-200')}>
                   <Phone color="#9ca3af" size={20} />
                   <TextInput
@@ -112,7 +115,7 @@ export default function RegisterScreen() {
 
             {/* Full Name Field - Both */}
             <View style={tw('gap-1.5 mt-2')}>
-              <Text style={tw('text-sm font-medium text-[#1E1E1E]')}>Full Name</Text>
+              <Text style={tw('text-sm font-medium text-[#1E1E1E]')}>{t('mobile.full_name', `Full Name`)}</Text>
               <View style={tw('flex-row items-center bg-gray-50 rounded-2xl px-4 py-3 border border-gray-200')}>
                 <User color="#9ca3af" size={20} />
                 <TextInput
@@ -128,7 +131,7 @@ export default function RegisterScreen() {
             {/* Phone Field - Patient (Third for Patient) */}
             {role === 'patient' && (
               <View style={tw('gap-1.5 mt-2')}>
-                <Text style={tw('text-sm font-medium text-[#1E1E1E]')}>Phone number</Text>
+                <Text style={tw('text-sm font-medium text-[#1E1E1E]')}>{t('mobile.phone_number', `Phone number`)}</Text>
                 <View style={tw('flex-row items-center bg-gray-50 rounded-2xl px-4 py-3 border border-gray-200')}>
                   <Phone color="#9ca3af" size={20} />
                   <TextInput
@@ -145,7 +148,7 @@ export default function RegisterScreen() {
 
             {/* Password Field - Both */}
             <View style={tw('gap-1.5 mt-2')}>
-              <Text style={tw('text-sm font-medium text-[#1E1E1E]')}>Password</Text>
+              <Text style={tw('text-sm font-medium text-[#1E1E1E]')}>{t('mobile.password', `Password`)}</Text>
               <View style={tw('flex-row items-center bg-gray-50 rounded-2xl px-4 py-3 border border-gray-200')}>
                 <Lock color="#9ca3af" size={20} />
                 <TextInput
@@ -161,7 +164,7 @@ export default function RegisterScreen() {
 
             {/* Confirm Password Field - Both */}
             <View style={tw('gap-1.5 mt-2')}>
-              <Text style={tw('text-sm font-medium text-[#1E1E1E]')}>Confirm Password</Text>
+              <Text style={tw('text-sm font-medium text-[#1E1E1E]')}>{t('mobile.confirm_password', `Confirm Password`)}</Text>
               <View style={tw('flex-row items-center bg-gray-50 rounded-2xl px-4 py-3 border border-gray-200')}>
                 <Lock color="#9ca3af" size={20} />
                 <TextInput
@@ -179,7 +182,7 @@ export default function RegisterScreen() {
               <>
                 {/* Specialty */}
                 <View style={tw('gap-1.5 mt-2')}>
-                  <Text style={tw('text-sm font-medium text-[#1E1E1E]')}>Specialty</Text>
+                  <Text style={tw('text-sm font-medium text-[#1E1E1E]')}>{t('mobile.specialty', `Specialty`)}</Text>
                   <View style={tw('flex-row items-center bg-gray-50 rounded-2xl px-4 py-3 border border-gray-200')}>
                     <Stethoscope color="#9ca3af" size={20} />
                     <TextInput
@@ -194,7 +197,7 @@ export default function RegisterScreen() {
 
                 {/* Experience */}
                 <View style={tw('gap-1.5 mt-2')}>
-                  <Text style={tw('text-sm font-medium text-[#1E1E1E]')}>Years of Experience</Text>
+                  <Text style={tw('text-sm font-medium text-[#1E1E1E]')}>{t('mobile.years_of_experience', `Years of Experience`)}</Text>
                   <View style={tw('flex-row items-center bg-gray-50 rounded-2xl px-4 py-3 border border-gray-200')}>
                     <Clock color="#9ca3af" size={20} />
                     <TextInput
@@ -210,7 +213,7 @@ export default function RegisterScreen() {
 
                 {/* Workplace */}
                 <View style={tw('gap-1.5 mt-2')}>
-                  <Text style={tw('text-sm font-medium text-[#1E1E1E]')}>Current workplace / Hospital</Text>
+                  <Text style={tw('text-sm font-medium text-[#1E1E1E]')}>{t('mobile.current_workplace_hospital', `Current workplace / Hospital`)}</Text>
                   <View style={tw('flex-row items-center bg-gray-50 rounded-2xl px-4 py-3 border border-gray-200')}>
                     <Briefcase color="#9ca3af" size={20} />
                     <TextInput
@@ -226,18 +229,18 @@ export default function RegisterScreen() {
                 {/* Verification Documents */}
                 <View style={tw('gap-1.5 mt-4')}>
                   <View style={tw('flex-row items-center justify-between')}>
-                    <Text style={tw('text-sm font-bold text-[#1E1E1E]')}>Professional Verification</Text>
-                    <Text style={tw('text-xs text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full font-bold')}>Required</Text>
+                    <Text style={tw('text-sm font-bold text-[#1E1E1E]')}>{t('mobile.professional_verification', `Professional Verification`)}</Text>
+                    <Text style={tw('text-xs text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full font-bold')}>{t('mobile.required', `Required`)}</Text>
                   </View>
-                  <Text style={tw('text-xs text-gray-500 mb-2')}>Required to activate your account</Text>
+                  <Text style={tw('text-xs text-gray-500 mb-2')}>{t('mobile.required_to_activate_your_acco', `Required to activate your account`)}</Text>
                   
                   <TouchableOpacity onPress={() => Toast.show({ type: 'info', text1: 'Info', text2: 'Select verification documents to upload' })} style={tw('border border-dashed border-gray-300 rounded-2xl bg-gray-50 py-6 items-center')}>
                     <View style={tw('bg-gray-200 p-3 rounded-full mb-2')}>
                       <UploadCloud color="#9ca3af" size={24} />
                     </View>
-                    <Text style={tw('text-sm font-semibold text-gray-700')}>Tap to select documents</Text>
-                    <Text style={tw('text-xs text-gray-500 mt-1')}>Upload Medical Degree and Practice License</Text>
-                    <Text style={tw('text-xs text-gray-500')}>PDF, JPG, PNG, MAX 10 MB</Text>
+                    <Text style={tw('text-sm font-semibold text-gray-700')}>{t('mobile.tap_to_select_documents', `Tap to select documents`)}</Text>
+                    <Text style={tw('text-xs text-gray-500 mt-1')}>{t('mobile.upload_medical_degree_and_prac', `Upload Medical Degree and Practice License`)}</Text>
+                    <Text style={tw('text-xs text-gray-500')}>{t('mobile.pdf_jpg_png_max_10_mb', `PDF, JPG, PNG, MAX 10 MB`)}</Text>
                   </TouchableOpacity>
                 </View>
               </>
@@ -248,7 +251,7 @@ export default function RegisterScreen() {
               style={tw('h-12 w-full bg-emerald-500 rounded-2xl items-center justify-center mt-6')}
               onPress={handleRegister}
             >
-              <Text style={tw('text-white text-base font-semibold')}>Create account</Text>
+              <Text style={tw('text-white text-base font-semibold')}>{t('mobile.create_account', `Create account`)}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity 
@@ -256,7 +259,7 @@ export default function RegisterScreen() {
               onPress={() => router.push('/(auth)/login')}
             >
               <Text style={tw('text-sm text-gray-500')}>
-                Already have an account? <Text style={tw('font-medium text-emerald-500')}>Log in</Text>
+                Already have an account? <Text style={tw('font-medium text-emerald-500')}>{t('mobile.log_in', `Log in`)}</Text>
               </Text>
             </TouchableOpacity>
           </View>

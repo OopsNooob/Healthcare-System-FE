@@ -1,16 +1,19 @@
+import { useTranslation } from 'react-i18next';
 import { View, Text, TouchableOpacity, SafeAreaView, Image } from 'react-native';
 import { PhoneOff, Phone, Video } from 'lucide-react-native';
 import { tw } from '@/tw';
 import { useRouter } from 'expo-router';
 
 export default function IncomingCallScreen() {
+  const { t } = useTranslation();
+
   const router = useRouter();
 
   return (
     <SafeAreaView style={tw('flex-1 bg-slate-900 justify-between items-center py-20')}>
       <View style={tw('items-center mt-10')}>
-        <Text style={tw('text-slate-400 text-lg mb-2 font-medium')}>Incoming Video Call...</Text>
-        <Text style={tw('text-white text-3xl font-bold mb-8')}>Dr. Sarah Connor</Text>
+        <Text style={tw('text-slate-400 dark:text-slate-500 text-lg mb-2 font-medium')}>{t('mobile.incoming_video_call', `Incoming Video Call...`)}</Text>
+        <Text style={tw('text-white text-3xl font-bold mb-8')}>{t('mobile.dr_sarah_connor', `Dr. Sarah Connor`)}</Text>
         
         <View style={tw('relative items-center justify-center')}>
           <View style={tw('absolute w-48 h-48 bg-brand/20 rounded-full')} />
@@ -20,7 +23,7 @@ export default function IncomingCallScreen() {
             style={tw('w-32 h-32 rounded-full border-4 border-slate-900 z-10')} 
           />
         </View>
-        <Text style={tw('text-brand text-base font-medium mt-10')}>Cardiologist</Text>
+        <Text style={tw('text-brand text-base font-medium mt-10')}>{t('mobile.cardiologist', `Cardiologist`)}</Text>
       </View>
 
       <View style={tw('flex-row gap-8 mb-10')}>

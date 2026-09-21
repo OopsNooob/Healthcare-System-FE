@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { View, Text, TouchableOpacity, ScrollView, TextInput, KeyboardAvoidingView, Platform, SafeAreaView, Modal } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import Toast from 'react-native-toast-message';
@@ -6,6 +7,8 @@ import { ArrowLeft, Send, Sparkles, Paperclip, AlertTriangle, X } from 'lucide-r
 import { tw } from '@/tw';
 
 export default function AiChatSessionScreen() {
+  const { t } = useTranslation();
+
   const router = useRouter();
   const { id, prefill } = useLocalSearchParams<{ id: string; prefill?: string }>();
   
@@ -65,14 +68,14 @@ export default function AiChatSessionScreen() {
   };
 
   return (
-    <SafeAreaView style={tw('flex-1 bg-white')}>
+    <SafeAreaView style={tw('flex-1 bg-white dark:bg-slate-900')}>
       <KeyboardAvoidingView 
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={tw('flex-1')}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
       >
         {/* Header */}
-        <View style={tw('flex-row items-center justify-between px-4 py-4 border-b border-slate-100')}>
+        <View style={tw('flex-row items-center justify-between px-4 py-4 border-b border-slate-100 dark:border-slate-800')}>
           <View style={tw('flex-row items-center')}>
             <TouchableOpacity 
               style={tw('p-2')}
@@ -85,8 +88,8 @@ export default function AiChatSessionScreen() {
                 <Sparkles color="#6366f1" size={20} />
               </View>
               <View>
-                <Text style={tw('text-lg font-bold text-slate-900')}>AI Assistant</Text>
-                <Text style={tw('text-ai text-xs font-medium')}>Online 24/7</Text>
+                <Text style={tw('text-lg font-bold text-slate-900 dark:text-white')}>{t('mobile.ai_assistant', `AI Assistant`)}</Text>
+                <Text style={tw('text-ai text-xs font-medium')}>{t('mobile.online_247', `Online 24/7`)}</Text>
               </View>
             </View>
           </View>
@@ -106,12 +109,12 @@ export default function AiChatSessionScreen() {
               key={msg.id} 
               style={tw(`mb-4 max-w-[80%] ${msg.sender === 'user' ? 'self-end' : 'self-start'}`)}
             >
-              <View style={tw(`p-4 rounded-2xl ${msg.sender === 'user' ? 'bg-brand rounded-tr-sm' : 'bg-slate-100 rounded-tl-sm'}`)}>
-                <Text style={tw(`text-base ${msg.sender === 'user' ? (msg.hasAttachment ? 'text-slate-900 italic' : 'text-slate-900 font-medium') : 'text-slate-800'}`)}>
+              <View style={tw(`p-4 rounded-2xl ${msg.sender === 'user' ? 'bg-brand rounded-tr-sm' : 'bg-slate-100 dark:bg-slate-800 rounded-tl-sm'}`)}>
+                <Text style={tw(`text-base ${msg.sender === 'user' ? (msg.hasAttachment ? 'text-slate-900 dark:text-white italic' : 'text-slate-900 dark:text-white font-medium') : 'text-slate-800 dark:text-slate-100'}`)}>
                   {msg.text}
                 </Text>
               </View>
-              <Text style={tw(`text-xs text-slate-400 mt-1 ${msg.sender === 'user' ? 'text-right' : 'text-left'}`)}>
+              <Text style={tw(`text-xs text-slate-400 dark:text-slate-500 mt-1 ${msg.sender === 'user' ? 'text-right' : 'text-left'}`)}>
                 {msg.time}
               </Text>
             </View>
@@ -119,16 +122,16 @@ export default function AiChatSessionScreen() {
         </ScrollView>
 
         {/* Input Area */}
-        <View style={tw('p-4 border-t border-slate-100 bg-white flex-row items-center')}>
+        <View style={tw('p-4 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 flex-row items-center')}>
           <TouchableOpacity 
             onPress={() => handleSend(true)}
-            style={tw('p-3 bg-slate-100 rounded-full mr-2')}
+            style={tw('p-3 bg-slate-100 dark:bg-slate-800 rounded-full mr-2')}
           >
             <Paperclip color="#64748b" size={20} />
           </TouchableOpacity>
-          <View style={tw('flex-1 bg-slate-100 rounded-3xl px-4 py-1 mr-2 flex-row items-center min-h-[48px]')}>
+          <View style={tw('flex-1 bg-slate-100 dark:bg-slate-800 rounded-3xl px-4 py-1 mr-2 flex-row items-center min-h-[48px]')}>
             <TextInput
-              style={tw('flex-1 text-base text-slate-900 h-10')}
+              style={tw('flex-1 text-base text-slate-900 dark:text-white h-10')}
               placeholder="Ask anything..."
               placeholderTextColor="#94a3b8"
               value={message}
@@ -138,7 +141,7 @@ export default function AiChatSessionScreen() {
           </View>
           <TouchableOpacity 
             onPress={() => handleSend(false)}
-            style={tw(`w-12 h-12 rounded-full items-center justify-center ${message.trim() ? 'bg-ai' : 'bg-slate-200'}`)}
+            style={tw(`w-12 h-12 rounded-full items-center justify-center ${message.trim() ? 'bg-ai' : 'bg-slate-200 dark:bg-slate-700'}`)}
             disabled={!message.trim()}
           >
             <Send color={message.trim() ? "#ffffff" : "#94a3b8"} size={20} />
@@ -157,11 +160,9 @@ export default function AiChatSessionScreen() {
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={tw('flex-1 justify-end bg-black/40')}
         >
-          <View style={tw('bg-white rounded-t-3xl p-6')}>
+          <View style={tw('bg-white dark:bg-slate-900 rounded-t-3xl p-6')}>
             <View style={tw('flex-row justify-between items-center mb-6')}>
-              <Text style={tw('text-xl font-bold text-slate-900')}>
-                Report AI Chat
-              </Text>
+              <Text style={tw('text-xl font-bold text-slate-900 dark:text-white')}>{t('mobile.report_ai_chat', `Report AI Chat`)}</Text>
               <TouchableOpacity onPress={() => setReportModalVisible(false)}>
                 <X color="#64748b" size={24} />
               </TouchableOpacity>
@@ -169,12 +170,12 @@ export default function AiChatSessionScreen() {
 
             <View style={tw('gap-4')}>
               <View>
-                <Text style={tw('text-sm font-semibold text-slate-700 mb-2')}>Reason for reporting</Text>
+                <Text style={tw('text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2')}>{t('mobile.reason_for_reporting', `Reason for reporting`)}</Text>
                 <TextInput
                   value={reportReason}
                   onChangeText={setReportReason}
                   placeholder="Inaccurate medical advice, inappropriate language..."
-                  style={tw('bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 font-medium h-32')}
+                  style={tw('bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-slate-900 dark:text-white font-medium h-32')}
                   multiline
                   textAlignVertical="top"
                 />
@@ -184,7 +185,7 @@ export default function AiChatSessionScreen() {
                 onPress={submitReport}
                 style={tw('bg-red-500 py-4 rounded-xl items-center mt-2')}
               >
-                <Text style={tw('text-white font-bold text-base')}>Submit Report</Text>
+                <Text style={tw('text-white font-bold text-base')}>{t('mobile.submit_report', `Submit Report`)}</Text>
               </TouchableOpacity>
             </View>
           </View>

@@ -1,5 +1,7 @@
 import React from 'react';
-import { View, Text, Pressable } from '../tw';
+import { useTranslation } from 'react-i18next';
+import { View, Text, Pressable } from 'react-native';
+import { tw } from '../tw';
 import {
   Activity,
   Droplet,
@@ -198,6 +200,8 @@ export function MetricOverviewCard({
   unit,
   onView,
 }: MetricOverviewCardProps) {
+  const { t } = useTranslation();
+
   const variant = VARIANT_STYLES[metricsType];
   const displayValue = formatMetricValue(metricsType, values);
 
@@ -214,59 +218,51 @@ export function MetricOverviewCard({
 
   return (
     <Pressable
-      className={`flex-col gap-3 rounded-3xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6 mb-4`}
+      style={tw(`flex-col gap-3 rounded-3xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6 mb-4`)}
       onPress={onView}
     >
-      <View className="flex-row items-center justify-between">
+      <View style={tw("flex-row items-center justify-between")}>
         <View
-          className={`flex h-12 w-12 items-center justify-center rounded-2xl ${variant.iconBgColor}`}
+          style={tw(`flex h-12 w-12 items-center justify-center rounded-2xl ${variant.iconBgColor}`)}
         >
           {variant.icon}
         </View>
         {hasData ? (
-          <View className="rounded-full bg-emerald-50 dark:bg-emerald-900/30 px-2.5 py-0.5">
-            <Text className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">
-              Active
-            </Text>
+          <View style={tw("rounded-full bg-emerald-50 dark:bg-emerald-900/30 px-2.5 py-0.5")}>
+            <Text style={tw("text-xs font-semibold text-emerald-700 dark:text-emerald-400")}>{t('mobile.active', `Active`)}</Text>
           </View>
         ) : (
-          <View className="rounded-full bg-zinc-100 dark:bg-zinc-800 px-2.5 py-0.5">
-            <Text className="text-xs font-semibold text-zinc-600 dark:text-zinc-400">
-              No Data
-            </Text>
+          <View style={tw("rounded-full bg-zinc-100 dark:bg-zinc-800 px-2.5 py-0.5")}>
+            <Text style={tw("text-xs font-semibold text-zinc-600 dark:text-zinc-400")}>{t('mobile.no_data', `No Data`)}</Text>
           </View>
         )}
       </View>
 
-      <View className="mt-2">
-        <Text className="text-xl font-semibold text-zinc-900 dark:text-white">{variant.label}</Text>
+      <View style={tw("mt-2")}>
+        <Text style={tw("text-xl font-semibold text-zinc-900 dark:text-white")}>{variant.label}</Text>
       </View>
 
       {hasData ? (
-        <View className="mt-2">
-          <View className="flex-row items-baseline gap-1">
-            <Text className={`text-4xl font-bold ${variant.textColor}`}>
+        <View style={tw("mt-2")}>
+          <View style={tw("flex-row items-baseline gap-1")}>
+            <Text style={tw(`text-4xl font-bold ${variant.textColor}`)}>
               {displayValue}
             </Text>
-            <Text className="text-sm font-normal text-zinc-500">
+            <Text style={tw("text-sm font-normal text-zinc-500")}>
               {unit}
             </Text>
           </View>
-          <View className="flex-row items-center justify-between mt-4">
-            <Text className="text-xs text-zinc-500">
+          <View style={tw("flex-row items-center justify-between mt-4")}>
+            <Text style={tw("text-xs text-zinc-500")}>
               Last update: {formattedTime}
             </Text>
-            <Text className={`text-sm font-semibold ${variant.textColor}`}>
-              View ›
-            </Text>
+            <Text style={tw(`text-sm font-semibold ${variant.textColor}`)}>{t('mobile.view_', `View ›`)}</Text>
           </View>
         </View>
       ) : (
-        <View className="mt-2 flex-row items-center justify-between">
-          <Text className="text-sm text-zinc-500">No data available yet</Text>
-          <Text className="text-sm font-semibold text-blue-600">
-            Add Data ›
-          </Text>
+        <View style={tw("mt-2 flex-row items-center justify-between")}>
+          <Text style={tw("text-sm text-zinc-500")}>{t('mobile.no_data_available_yet', `No data available yet`)}</Text>
+          <Text style={tw("text-sm font-semibold text-blue-600")}>{t('mobile.add_data_', `Add Data ›`)}</Text>
         </View>
       )}
     </Pressable>

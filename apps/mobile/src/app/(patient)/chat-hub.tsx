@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { View, Text, ScrollView, TouchableOpacity, SafeAreaView, Image, RefreshControl } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Sparkles, MessageCircle, ChevronRight, MessageSquareOff } from 'lucide-react-native';
 import { tw } from '@/tw';
 
 export default function ChatHubScreen() {
+  const { t } = useTranslation();
+
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -45,36 +48,36 @@ export default function ChatHubScreen() {
   };
 
   const renderSkeleton = () => (
-    <View style={tw('flex-row bg-white rounded-3xl p-4 shadow-sm border border-gray-100 items-center mb-4')}>
-      <View style={tw('w-16 h-16 rounded-full bg-slate-200')} />
+    <View style={tw('flex-row bg-white dark:bg-slate-900 rounded-3xl p-4 shadow-sm border border-gray-100 dark:border-gray-800 items-center mb-4')}>
+      <View style={tw('w-16 h-16 rounded-full bg-slate-200 dark:bg-slate-700')} />
       <View style={tw('flex-1 ml-4')}>
         <View style={tw('flex-row justify-between items-center mb-2')}>
-          <View style={tw('w-24 h-5 bg-slate-200 rounded')} />
-          <View style={tw('w-12 h-4 bg-slate-200 rounded')} />
+          <View style={tw('w-24 h-5 bg-slate-200 dark:bg-slate-700 rounded')} />
+          <View style={tw('w-12 h-4 bg-slate-200 dark:bg-slate-700 rounded')} />
         </View>
-        <View style={tw('w-3/4 h-4 bg-slate-200 rounded')} />
+        <View style={tw('w-3/4 h-4 bg-slate-200 dark:bg-slate-700 rounded')} />
       </View>
     </View>
   );
 
   const renderEmptyState = () => (
     <View style={tw('items-center justify-center py-10')}>
-      <View style={tw('w-20 h-20 bg-slate-100 rounded-full items-center justify-center mb-4')}>
+      <View style={tw('w-20 h-20 bg-slate-100 dark:bg-slate-800 rounded-full items-center justify-center mb-4')}>
         <MessageSquareOff color="#94a3b8" size={32} />
       </View>
-      <Text style={tw('text-lg font-bold text-slate-900 mb-2 text-center')}>No active conversations</Text>
-      <Text style={tw('text-slate-500 text-center mb-6')}>You don't have any messages with doctors yet.</Text>
+      <Text style={tw('text-lg font-bold text-slate-900 dark:text-white mb-2 text-center')}>{t('mobile.no_active_conversations', `No active conversations`)}</Text>
+      <Text style={tw('text-slate-500 dark:text-slate-400 dark:text-slate-500 text-center mb-6')}>{t('mobile.you_dont_have_any_messages_wit', `You don't have any messages with doctors yet.`)}</Text>
       <TouchableOpacity 
         onPress={() => router.push('/(patient)/my-doctors')}
         style={tw('bg-brand px-6 py-3 rounded-2xl')}
       >
-        <Text style={tw('text-slate-900 font-bold')}>Find a Doctor</Text>
+        <Text style={tw('text-slate-900 dark:text-white font-bold')}>{t('mobile.find_a_doctor', `Find a Doctor`)}</Text>
       </TouchableOpacity>
     </View>
   );
 
   return (
-    <SafeAreaView style={tw('flex-1 bg-slate-50')}>
+    <SafeAreaView style={tw('flex-1 bg-slate-50 dark:bg-slate-950')}>
       <ScrollView 
         contentContainerStyle={tw('pb-20')} 
         showsVerticalScrollIndicator={false}
@@ -82,7 +85,7 @@ export default function ChatHubScreen() {
       >
         {/* Header */}
         <View style={tw('px-6 pt-6 pb-6')}>
-          <Text style={tw('text-2xl font-bold text-[#313A34]')}>Messages</Text>
+          <Text style={tw('text-2xl font-bold text-[#313A34]')}>{t('mobile.messages', `Messages`)}</Text>
         </View>
 
         {/* AI Assistant Banner */}
@@ -96,12 +99,12 @@ export default function ChatHubScreen() {
             </View>
             
             <View style={tw('flex-row items-center gap-4 relative z-10')}>
-              <View style={tw('w-14 h-14 bg-white/20 rounded-2xl items-center justify-center')}>
+              <View style={tw('w-14 h-14 bg-white dark:bg-slate-900/20 rounded-2xl items-center justify-center')}>
                 <Sparkles color="#ffffff" size={28} />
               </View>
               <View style={tw('flex-1')}>
-                <Text style={tw('text-white text-xl font-bold mb-1')}>AI Assistant</Text>
-                <Text style={tw('text-emerald-50 text-sm')}>Ask anything about your health, 24/7</Text>
+                <Text style={tw('text-white text-xl font-bold mb-1')}>{t('mobile.ai_assistant', `AI Assistant`)}</Text>
+                <Text style={tw('text-emerald-50 text-sm')}>{t('mobile.ask_anything_about_your_health', `Ask anything about your health, 24/7`)}</Text>
               </View>
               <ChevronRight color="#ffffff" size={24} />
             </View>
@@ -110,7 +113,7 @@ export default function ChatHubScreen() {
 
         {/* Doctor Chats */}
         <View style={tw('px-6')}>
-          <Text style={tw('text-lg font-bold text-[#313A34] mb-4')}>Doctor Conversations</Text>
+          <Text style={tw('text-lg font-bold text-[#313A34] mb-4')}>{t('mobile.doctor_conversations', `Doctor Conversations`)}</Text>
           
           <View style={tw('gap-4')}>
             {loading ? (
@@ -122,7 +125,7 @@ export default function ChatHubScreen() {
               chats.map((chat) => (
                 <TouchableOpacity 
                   key={chat.id}
-                  style={tw('flex-row bg-white rounded-3xl p-4 shadow-sm border border-gray-100 items-center')}
+                  style={tw('flex-row bg-white dark:bg-slate-900 rounded-3xl p-4 shadow-sm border border-gray-100 dark:border-gray-800 items-center')}
                   onPress={() => router.push('/(patient)/doctor-chat')}
                 >
                   <View style={tw('relative')}>

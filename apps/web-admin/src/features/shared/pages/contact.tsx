@@ -14,7 +14,7 @@ export function Contact() {
         {/* Contact Info Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           {/* Email */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
+          <div className="bg-white dark:bg-slate-900 rounded-lg border border-gray-200 p-6">
             <div className="flex items-center gap-3 mb-4">
               <Mail className="h-6 w-6 text-blue-500" />
               <h3 className="font-semibold text-gray-900">Email Support</h3>
@@ -32,7 +32,7 @@ export function Contact() {
           </div>
 
           {/* Phone */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
+          <div className="bg-white dark:bg-slate-900 rounded-lg border border-gray-200 p-6">
             <div className="flex items-center gap-3 mb-4">
               <Phone className="h-6 w-6 text-green-500" />
               <h3 className="font-semibold text-gray-900">Phone Support</h3>
@@ -42,7 +42,7 @@ export function Contact() {
           </div>
 
           {/* Location */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
+          <div className="bg-white dark:bg-slate-900 rounded-lg border border-gray-200 p-6">
             <div className="flex items-center gap-3 mb-4">
               <MapPin className="h-6 w-6 text-red-500" />
               <h3 className="font-semibold text-gray-900">Office Location</h3>
@@ -53,7 +53,7 @@ export function Contact() {
         </div>
 
         {/* Support Categories */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6 mb-8">
+        <div className="bg-white dark:bg-slate-900 rounded-lg border border-gray-200 p-6 mb-8">
           <h2 className="text-2xl font-bold text-gray-900 mb-6">📞 Support Categories</h2>
           <div className="space-y-3">
             {[
@@ -76,7 +76,7 @@ export function Contact() {
         </div>
 
         {/* FAQ */}
-        <section className="bg-white rounded-lg border border-gray-200 p-6 mb-8">
+        <section className="bg-white dark:bg-slate-900 rounded-lg border border-gray-200 p-6 mb-8">
           <h2 className="text-2xl font-bold text-gray-900 mb-6">❓ Frequently Asked Questions</h2>
           <div className="space-y-3">
             {[

@@ -24,12 +24,12 @@ import { Services } from "./features/shared/pages/services";
 import { Contact } from "./features/shared/pages/contact";
 import { AccountBannedModal } from "./components/AccountBannedModal";
 import { useNotificationSync } from "./hooks/useNotificationSync";
+import { useTranslation } from "react-i18next";
 
 function SessionExpiredModal() {
+  const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
-  const [message, setMessage] = useState(
-    "Session expired. Please log in again!",
-  );
+  const [message, setMessage] = useState(t('auth.sessionExpiredMsg'));
   const navigate = useNavigate();
   const clearAuthState = useAuthStore((state) => state.logout);
 
@@ -37,7 +37,7 @@ function SessionExpiredModal() {
     const handleSessionExpired = (event: Event) => {
       const customEvent = event as CustomEvent<{ message?: string }>;
       setMessage(
-        customEvent.detail?.message ?? "Session expired. Please log in again!",
+        customEvent.detail?.message ?? t('auth.sessionExpiredMsg'),
       );
       setIsOpen(true);
     };
@@ -47,7 +47,7 @@ function SessionExpiredModal() {
     return () => {
       window.removeEventListener("auth:session-expired", handleSessionExpired);
     };
-  }, []);
+  }, [t]);
 
   const handleConfirm = async () => {
     setIsOpen(false);
@@ -62,10 +62,10 @@ function SessionExpiredModal() {
       isOpen={isOpen}
       onClose={() => setIsOpen(false)}
       onConfirm={handleConfirm}
-      title="Session expired"
+      title={t('auth.sessionExpired')}
       message={message}
-      confirmText="Log in again"
-      cancelText="Close"
+      confirmText={t('auth.logInAgain')}
+      cancelText={t('auth.close')}
       variant="warning"
     />
   );

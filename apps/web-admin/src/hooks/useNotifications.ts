@@ -211,6 +211,7 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
   }, [enabled]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void fetchNotifications();
   }, [fetchNotifications]);
 
@@ -238,7 +239,8 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
       }
 
       if (!notification?.id) {
-        void fetchNotifications();
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+    void fetchNotifications();
         return;
       }
 

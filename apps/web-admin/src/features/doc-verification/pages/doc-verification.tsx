@@ -30,6 +30,7 @@ import type {
 import { Check, X, Search, Database } from "lucide-react";
 import { Button } from "@repo/ui/components/ui/button";
 import { showToast } from "@repo/ui/components/ui/toasts";
+import { useTranslation } from "react-i18next";
 
 type DocumentRecord = DocumentItemReceiver;
 
@@ -69,7 +70,7 @@ function FilePreviewComponent({ file }: { file: VerificationFile }) {
           />
         </div>
         <div className="flex items-center justify-between gap-2">
-          <p className="truncate text-xs text-slate-600">{file.name}</p>
+          <p className="truncate text-xs text-slate-600 dark:text-slate-300">{file.name}</p>
           <a
             href={file.url}
             target="_blank"
@@ -90,7 +91,7 @@ function FilePreviewComponent({ file }: { file: VerificationFile }) {
           <iframe src={file.url} title={file.name} className="h-full w-full" />
         </div>
         <div className="flex items-center justify-between gap-2">
-          <p className="truncate text-xs text-slate-600">{file.name}</p>
+          <p className="truncate text-xs text-slate-600 dark:text-slate-300">{file.name}</p>
           <a
             href={file.url}
             target="_blank"
@@ -105,8 +106,8 @@ function FilePreviewComponent({ file }: { file: VerificationFile }) {
   }
 
   return (
-    <div className="w-full h-full flex items-center justify-center rounded-lg bg-slate-50 border border-slate-200">
-      <p className="text-slate-700 font-semibold">{file.name}</p>
+    <div className="w-full h-full flex items-center justify-center rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+      <p className="text-slate-700 dark:text-slate-300 font-semibold">{file.name}</p>
     </div>
   );
 }
@@ -126,6 +127,7 @@ function ReviewModal({
   onReject: (id: string, reason: string) => Promise<void>;
   isProcessing: boolean;
 }) {
+  const { t } = useTranslation();
   const [selectedFileIndex, setSelectedFileIndex] = useState(0);
   const [showRejectReason, setShowRejectReason] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
@@ -146,15 +148,15 @@ function ReviewModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="w-full max-w-7xl rounded-lg bg-white shadow-lg max-h-[92vh] overflow-y-auto">
+      <div className="w-full max-w-7xl rounded-lg bg-white dark:bg-slate-900 shadow-lg max-h-[92vh] overflow-y-auto">
         {/* Header */}
-        <div className="sticky top-0 bg-white border-b border-slate-200 flex items-center justify-between p-6 z-10">
-          <h2 className="text-2xl font-semibold text-slate-900">
-            Document Review - {document.name}
+        <div className="sticky top-0 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between p-6 z-10">
+          <h2 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">
+            {t("docVerification.modal.title")} - {document.name}
           </h2>
           <button
             onClick={onClose}
-            className="h-8 w-8 rounded-lg hover:bg-slate-100 flex items-center justify-center"
+            className="h-8 w-8 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center text-slate-500 dark:text-slate-400 dark:text-slate-500"
           >
             <X className="h-5 w-5" />
           </button>
@@ -165,9 +167,9 @@ function ReviewModal({
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-[220px_minmax(0,1fr)_380px]">
             {/* File List - Left */}
             <div className="min-w-0">
-              <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
-                <p className="mb-3 text-sm font-semibold text-slate-700">
-                  Documents ({document.verificationFiles.length})
+              <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-3">
+                <p className="mb-3 text-sm font-semibold text-slate-700 dark:text-slate-300">
+                  {t("docVerification.modal.documents")} ({document.verificationFiles.length})
                 </p>
 
                 {document.verificationFiles.length > 0 ? (
@@ -178,14 +180,14 @@ function ReviewModal({
                         onClick={() => setSelectedFileIndex(idx)}
                         className={`cursor-pointer rounded-md border px-2 py-2 text-left transition ${
                           selectedFileIndex === idx
-                            ? "border-brand bg-brand/5"
-                            : "border-slate-200 bg-white hover:border-slate-300"
+                            ? "border-brand bg-brand/5 dark:bg-brand/10"
+                            : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-600"
                         }`}
                       >
-                        <p className="truncate text-[11px] font-medium text-slate-900">
+                        <p className="truncate text-[11px] font-medium text-slate-900 dark:text-slate-100">
                           {file.name}
                         </p>
-                        <p className="mt-1 text-[10px] text-slate-500">
+                        <p className="mt-1 text-[10px] text-slate-500 dark:text-slate-400 dark:text-slate-500">
                           {file.type.toUpperCase()} ·{" "}
                           {Math.max(file.size / 1024, 1).toFixed(0)} KB
                         </p>
@@ -193,8 +195,8 @@ function ReviewModal({
                     ))}
                   </div>
                 ) : (
-                  <div className="flex h-140 items-center justify-center rounded-md border border-dashed border-slate-200 bg-white px-3 text-center text-sm text-slate-500">
-                    No documents uploaded
+                  <div className="flex h-140 items-center justify-center rounded-md border border-dashed border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 text-center text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500">
+                    {t("docVerification.modal.noDocsUploaded")}
                   </div>
                 )}
               </div>
@@ -202,56 +204,56 @@ function ReviewModal({
 
             {/* File Preview - Middle */}
             <div className="min-w-0">
-              <div className="flex h-140 items-center justify-center overflow-hidden rounded-lg border border-slate-200 bg-slate-50 p-4">
+              <div className="flex h-140 items-center justify-center overflow-hidden rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-4">
                 {selectedFile ? (
                   <FilePreviewComponent file={selectedFile} />
                 ) : (
-                  <p className="text-slate-500">No file selected</p>
+                  <p className="text-slate-500 dark:text-slate-400 dark:text-slate-500">{t("docVerification.modal.noFileSelected")}</p>
                 )}
               </div>
             </div>
 
             {/* Doctor Info - Right */}
             <div className="min-w-0">
-              <div className="space-y-4 rounded-lg bg-slate-50 p-5">
+              <div className="space-y-4 rounded-lg bg-slate-50 dark:bg-slate-800 p-5">
                 <div>
-                  <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">
-                    Professional Information
+                  <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 dark:text-slate-500 uppercase tracking-wide mb-3">
+                    {t("docVerification.modal.professionalInfo")}
                   </h3>
                   <div className="space-y-3 text-sm">
                     <div>
-                      <p className="text-slate-500 text-xs">Full Name</p>
-                      <p className="text-slate-900 font-semibold">
+                      <p className="text-slate-500 dark:text-slate-400 dark:text-slate-500 text-xs">{t("docVerification.modal.fullName")}</p>
+                      <p className="text-slate-900 dark:text-slate-100 font-semibold">
                         {document.name}
                       </p>
                     </div>
                     <div>
-                      <p className="text-slate-500 text-xs">Email</p>
-                      <p className="text-slate-900 font-semibold">
+                      <p className="text-slate-500 dark:text-slate-400 dark:text-slate-500 text-xs">{t("docVerification.modal.email")}</p>
+                      <p className="text-slate-900 dark:text-slate-100 font-semibold">
                         {document.email}
                       </p>
                     </div>
                     <div>
-                      <p className="text-slate-500 text-xs">Phone</p>
-                      <p className="text-slate-900 font-semibold">
+                      <p className="text-slate-500 dark:text-slate-400 dark:text-slate-500 text-xs">{t("docVerification.modal.phone")}</p>
+                      <p className="text-slate-900 dark:text-slate-100 font-semibold">
                         {document.phone}
                       </p>
                     </div>
                     <div>
-                      <p className="text-slate-500 text-xs">Specialty</p>
-                      <p className="text-slate-900 font-semibold">
+                      <p className="text-slate-500 dark:text-slate-400 dark:text-slate-500 text-xs">{t("docVerification.modal.specialty")}</p>
+                      <p className="text-slate-900 dark:text-slate-100 font-semibold">
                         {document.specialty}
                       </p>
                     </div>
                     <div>
-                      <p className="text-slate-500 text-xs">Experience</p>
-                      <p className="text-slate-900 font-semibold">
+                      <p className="text-slate-500 dark:text-slate-400 dark:text-slate-500 text-xs">{t("docVerification.modal.experience")}</p>
+                      <p className="text-slate-900 dark:text-slate-100 font-semibold">
                         {document.experience}
                       </p>
                     </div>
                     <div>
-                      <p className="text-slate-500 text-xs">Workplace</p>
-                      <p className="text-slate-900 font-semibold truncate">
+                      <p className="text-slate-500 dark:text-slate-400 dark:text-slate-500 text-xs">{t("docVerification.modal.workplace")}</p>
+                      <p className="text-slate-900 dark:text-slate-100 font-semibold truncate">
                         {document.workplace}
                       </p>
                     </div>
@@ -259,11 +261,11 @@ function ReviewModal({
                 </div>
 
                 {document.rejectionReason && (
-                  <div className="border-t border-slate-200 pt-4">
-                    <p className="text-xs font-semibold text-red-600 mb-2">
-                      REJECTION REASON
+                  <div className="border-t border-slate-200 dark:border-slate-700 pt-4">
+                    <p className="text-xs font-semibold text-red-600 dark:text-red-400 mb-2">
+                      {t("docVerification.modal.rejectionReason")}
                     </p>
-                    <p className="text-sm text-slate-700">
+                    <p className="text-sm text-slate-700 dark:text-slate-300">
                       {document.rejectionReason}
                     </p>
                   </div>
@@ -271,15 +273,15 @@ function ReviewModal({
 
                 {showRejectReason && (
                   <>
-                    <div className="border-t border-slate-200 pt-4">
-                      <p className="text-xs font-semibold text-red-600 mb-2">
-                        REJECTION REASON
+                    <div className="border-t border-slate-200 dark:border-slate-700 pt-4">
+                      <p className="text-xs font-semibold text-red-600 dark:text-red-400 mb-2">
+                        {t("docVerification.modal.rejectionReason")}
                       </p>
                       <textarea
                         value={rejectReason}
                         onChange={(e) => setRejectReason(e.target.value)}
-                        placeholder="Explain why you are rejecting this application..."
-                        className="min-h-45 w-full rounded-lg border border-red-200 p-3 text-sm outline-none focus:ring-2 focus:ring-red-500"
+                        placeholder={t("docVerification.modal.explainRejection")}
+                        className="min-h-45 w-full rounded-lg border border-red-200 dark:border-red-900/50 bg-white dark:bg-slate-900 p-3 text-sm text-slate-900 dark:text-slate-100 outline-none focus:ring-2 focus:ring-red-500"
                         rows={5}
                       />
                     </div>
@@ -291,7 +293,7 @@ function ReviewModal({
         </div>
 
         {/* Footer Actions */}
-        <div className="sticky bottom-0 bg-slate-50 border-t border-slate-200 p-6 flex gap-3 justify-end">
+        <div className="sticky bottom-0 bg-slate-50 dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 p-6 flex gap-3 justify-end">
           {showRejectReason ? (
             <>
               <Button
@@ -301,8 +303,9 @@ function ReviewModal({
                 }}
                 variant="outline"
                 disabled={isProcessing}
+                className="text-slate-700 dark:text-slate-300"
               >
-                Back
+                {t("docVerification.modal.back")}
               </Button>
               <Button
                 onClick={() => void handleReject()}
@@ -310,7 +313,7 @@ function ReviewModal({
                 className="bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <X className="h-4 w-4 mr-2" />
-                {isProcessing ? "Processing..." : "Confirm Rejection"}
+                {isProcessing ? t("docVerification.modal.processing") : t("docVerification.modal.confirmRejection")}
               </Button>
             </>
           ) : document.status === "pending" ? (
@@ -318,11 +321,11 @@ function ReviewModal({
               <Button
                 onClick={() => setShowRejectReason(true)}
                 variant="outline"
-                className="border-red-300 text-red-700 hover:bg-red-50"
+                className="border-red-300 text-red-700 hover:bg-red-50 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-900/20"
                 disabled={isProcessing}
               >
                 <X className="h-4 w-4 mr-2" />
-                Reject
+                {t("docVerification.modal.reject")}
               </Button>
 
               <Button
@@ -331,20 +334,21 @@ function ReviewModal({
                 disabled={isProcessing}
               >
                 <Check className="h-4 w-4 mr-2" />
-                {isProcessing ? "Processing..." : "Approve"}
+                {isProcessing ? t("docVerification.modal.processing") : t("docVerification.modal.approve")}
               </Button>
 
               <Button
                 onClick={onClose}
                 variant="outline"
                 disabled={isProcessing}
+                className="text-slate-700 dark:text-slate-300"
               >
-                Close
+                {t("docVerification.modal.close")}
               </Button>
             </>
           ) : (
-            <Button onClick={onClose} variant="outline">
-              Close
+            <Button onClick={onClose} variant="outline" className="text-slate-700 dark:text-slate-300">
+              {t("docVerification.modal.close")}
             </Button>
           )}
         </div>
@@ -354,6 +358,7 @@ function ReviewModal({
 }
 
 export function DocumentVerification() {
+  const { t } = useTranslation();
   type StatusFilter = "all" | "pending" | "approved" | "rejected";
 
   const [selectedStatus, setSelectedStatus] = useState<StatusFilter>("all");
@@ -411,17 +416,17 @@ export function DocumentVerification() {
   }[] = [
     {
       key: "pending",
-      label: "Pending",
+      label: t("docVerification.tabs.pending"),
       count: summary?.pending ?? 0,
     },
     {
       key: "approved",
-      label: "Approved",
+      label: t("docVerification.tabs.approved"),
       count: summary?.approved ?? 0,
     },
     {
       key: "rejected",
-      label: "Rejected",
+      label: t("docVerification.tabs.rejected"),
       count: summary?.rejected ?? 0,
     },
   ];
@@ -456,12 +461,12 @@ export function DocumentVerification() {
           ? { ...prev, status: "approved", rejectionReason: undefined }
           : prev,
       );
-      showToast.success("Approved successfully");
+      showToast.success(t("docVerification.messages.approveSuccess"));
       void refresh();
       setIsReviewOpen(false);
     } catch (error) {
       showToast.error(
-        error instanceof Error ? error.message : "Failed to approve doctor",
+        error instanceof Error ? error.message : t("docVerification.messages.approveFailed"),
       );
     }
   };
@@ -487,12 +492,12 @@ export function DocumentVerification() {
           : prev,
       );
 
-      showToast.success("Rejected successfully");
+      showToast.success(t("docVerification.messages.rejectSuccess"));
       void refresh();
       setIsReviewOpen(false);
     } catch (error) {
       showToast.error(
-        error instanceof Error ? error.message : "Failed to reject doctor",
+        error instanceof Error ? error.message : t("docVerification.messages.rejectFailed"),
       );
     }
   };
@@ -504,27 +509,27 @@ export function DocumentVerification() {
 
   return (
     <div className="w-full p-6">
-      <div className="rounded-3xl border border-slate-200/70 bg-white p-6 shadow-sm">
+      <div className="rounded-3xl border border-slate-200/70 bg-white dark:border-slate-800 dark:bg-slate-900 p-6 shadow-sm">
         <div className="mb-5 flex items-center justify-between gap-3">
           <div>
-            <h1 className="text-3xl font-semibold text-slate-900">
-              Document Verification
+            <h1 className="text-3xl font-semibold text-slate-900 dark:text-slate-100">
+              {t("docVerification.title")}
             </h1>
-            <p className="text-sm text-slate-500">
-              Review and verify doctor certificates and credentials.
+            <p className="text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500">
+              {t("docVerification.subtitle")}
             </p>
-            <p className="py-6 text-2xl">
-              You have{" "}
-              <span className="font-bold text-[#F59E0B]">{pendingCount}</span>{" "}
-              pending reviews.
+            <p className="py-6 text-2xl dark:text-slate-100">
+              {t("docVerification.pendingReviews_part1")}
+              <span className="font-bold text-[#F59E0B]">{pendingCount}</span>
+              {t("docVerification.pendingReviews_part2")}
             </p>
           </div>
         </div>
 
-        <div className="mt-4 rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className="mt-4 rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 shadow-sm">
 
 
-          <div className="flex flex-col gap-3 border-b border-slate-200 p-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex flex-col gap-3 border-b border-slate-200 dark:border-slate-800 p-3 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex items-center gap-2 flex-wrap">
               {statusFilters.map((item) => (
                 <Button
@@ -534,8 +539,8 @@ export function DocumentVerification() {
                   size="sm"
                   className={`rounded-xl px-3 ${
                     selectedStatus === item.key
-                      ? "border-slate-300 bg-slate-50"
-                      : "text-slate-500"
+                      ? "border-slate-300 bg-slate-50 dark:border-slate-700 dark:bg-slate-800 text-slate-900 dark:text-slate-100"
+                      : "text-slate-500 dark:text-slate-400 dark:text-slate-500"
                   }`}
                   onClick={() => {
                     setSelectedStatus(item.key);
@@ -557,15 +562,15 @@ export function DocumentVerification() {
                 size="sm"
                 className={`rounded-xl px-3 ${
                   selectedStatus === "all"
-                    ? "border-slate-300 bg-slate-50"
-                    : "text-slate-500"
+                    ? "border-slate-300 bg-slate-50 dark:border-slate-700 dark:bg-slate-800 text-slate-900 dark:text-slate-100"
+                    : "text-slate-500 dark:text-slate-400 dark:text-slate-500"
                 }`}
                 onClick={() => {
                   setSelectedStatus("all");
                   setCurrentPage(1);
                 }}
               >
-                All
+                {t("docVerification.tabs.all")}
                 <Badge
                   variant="outline"
                   className="ml-1 h-4 px-1.5 text-[10px] leading-none"
@@ -577,7 +582,7 @@ export function DocumentVerification() {
 
             <div className="flex items-center gap-2">
               <div className="relative">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
                 <input
                   type="text"
                   value={searchQuery}
@@ -585,8 +590,8 @@ export function DocumentVerification() {
                     setSearchQuery(e.target.value);
                     setCurrentPage(1);
                   }}
-                  placeholder="Search name or email..."
-                  className="h-9 w-64 rounded-lg border border-slate-200 bg-white pl-9 pr-3 text-xs text-slate-700 outline-none ring-brand/30 transition focus:ring-2"
+                  placeholder={t("docVerification.searchPlaceholder")}
+                  className="h-9 w-64 rounded-lg border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900 pl-9 pr-3 text-xs text-slate-700 dark:text-slate-200 outline-none ring-brand/30 transition focus:ring-2"
                 />
               </div>
             </div>
@@ -595,27 +600,27 @@ export function DocumentVerification() {
           <div className="overflow-x-auto max-h-[500px] overflow-y-auto">
             <Table>
               <TableHeader>
-                <TableRow className="hover:bg-transparent sticky top-0 bg-white z-10 shadow-sm">
-                  <TableHead className="px-3 text-xs text-slate-400">
-                    USER
+                <TableRow className="hover:bg-transparent sticky top-0 bg-white dark:bg-slate-900 z-10 shadow-sm">
+                  <TableHead className="px-3 text-xs text-slate-400 dark:text-slate-500">
+                    {t("docVerification.table.user")}
                   </TableHead>
-                  <TableHead className="px-3 text-xs text-slate-400">
-                    EMAIL
+                  <TableHead className="px-3 text-xs text-slate-400 dark:text-slate-500">
+                    {t("docVerification.table.email")}
                   </TableHead>
-                  <TableHead className="px-3 text-xs text-slate-400">
-                    SPECIALTY
+                  <TableHead className="px-3 text-xs text-slate-400 dark:text-slate-500">
+                    {t("docVerification.table.specialty")}
                   </TableHead>
-                  <TableHead className="px-3 text-xs text-slate-400">
-                    WORKPLACE
+                  <TableHead className="px-3 text-xs text-slate-400 dark:text-slate-500">
+                    {t("docVerification.table.workplace")}
                   </TableHead>
-                  <TableHead className="px-3 text-xs text-slate-400">
-                    SENT AT
+                  <TableHead className="px-3 text-xs text-slate-400 dark:text-slate-500">
+                    {t("docVerification.table.sentAt")}
                   </TableHead>
-                  <TableHead className="px-3 text-xs text-slate-400">
-                    STATUS
+                  <TableHead className="px-3 text-xs text-slate-400 dark:text-slate-500">
+                    {t("docVerification.table.status")}
                   </TableHead>
-                  <TableHead className="px-3 text-xs text-slate-400">
-                    ACTIONS
+                  <TableHead className="px-3 text-xs text-slate-400 dark:text-slate-500">
+                    {t("docVerification.table.actions")}
                   </TableHead>
                 </TableRow>
               </TableHeader>
@@ -644,25 +649,25 @@ export function DocumentVerification() {
                         >
                           {getInitials(doc.name)}
                         </div>
-                        <span className="text-sm text-slate-700">
+                        <span className="text-sm text-slate-700 dark:text-slate-300">
                           {doc.name}
                         </span>
                       </div>
                     </TableCell>
-                    <TableCell className="px-3 text-sm text-slate-500">
+                    <TableCell className="px-3 text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500">
                       {doc.email}
                     </TableCell>
 
-                    <TableCell className="px-3 text-sm text-slate-500">
-                      <span className="bg-[#DBEAFE] p-1 rounded-xl text-[#3B7BF8] text-xs font-medium">
+                    <TableCell className="px-3 text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500">
+                      <span className="bg-[#DBEAFE] dark:bg-blue-900/30 p-1 rounded-xl text-[#3B7BF8] dark:text-blue-400 text-xs font-medium">
                         {doc.specialty}
                       </span>
                     </TableCell>
 
-                    <TableCell className="px-3 text-sm text-slate-500">
+                    <TableCell className="px-3 text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500">
                       {doc.workplace}
                     </TableCell>
-                    <TableCell className="px-3 text-sm text-slate-500">
+                    <TableCell className="px-3 text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500">
                       {doc.sent_at}
                     </TableCell>
                     <TableCell className="px-3">
@@ -670,17 +675,17 @@ export function DocumentVerification() {
                         variant="outline"
                         className={`h-5 rounded-full border px-2 text-[10px] font-medium ${
                           doc.status === "pending"
-                            ? "border-blue-200 bg-blue-50 text-blue-600"
+                            ? "border-blue-200 bg-blue-50 text-blue-600 dark:border-blue-900/30 dark:bg-blue-900/20 dark:text-blue-400"
                             : doc.status === "approved"
-                              ? "border-emerald-200 bg-emerald-50 text-emerald-600"
-                              : "border-red-200 bg-red-50 text-red-500"
+                              ? "border-emerald-200 bg-emerald-50 text-emerald-600 dark:border-emerald-900/30 dark:bg-emerald-900/20 dark:text-emerald-400"
+                              : "border-red-200 bg-red-50 text-red-500 dark:border-red-900/30 dark:bg-red-900/20 dark:text-red-400"
                         }`}
                       >
                         {doc.status === "pending"
-                          ? "Pending"
+                          ? t("docVerification.table.pending")
                           : doc.status === "approved"
-                            ? "Approved"
-                            : "Rejected"}
+                            ? t("docVerification.table.approved")
+                            : t("docVerification.table.rejected")}
                       </Badge>
                     </TableCell>
                     <TableCell className="px-3 text-left">
@@ -688,10 +693,10 @@ export function DocumentVerification() {
                         type="button"
                         variant="outline"
                         size="sm"
-                        className="rounded-lg text-xs"
+                        className="rounded-lg text-xs text-slate-700 dark:text-slate-300"
                         onClick={() => openReviewModal(doc)}
                       >
-                        View
+                        {t("docVerification.table.view")}
                       </Button>
                     </TableCell>
                   </TableRow>
@@ -703,11 +708,11 @@ export function DocumentVerification() {
                     className="px-3 py-16 text-center"
                   >
                     <div className="flex flex-col items-center justify-center">
-                      <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4">
-                        <Database className="w-8 h-8 text-slate-400" />
+                      <div className="w-16 h-16 bg-slate-50 dark:bg-slate-800/50 rounded-full flex items-center justify-center mb-4">
+                        <Database className="w-8 h-8 text-slate-400 dark:text-slate-500" />
                       </div>
-                      <h3 className="text-slate-900 font-medium mb-1">No documents found</h3>
-                      <p className="text-slate-500 text-sm">Try adjusting your search filters or status</p>
+                      <h3 className="text-slate-900 dark:text-slate-100 font-medium mb-1">{t("docVerification.table.noDocs")}</h3>
+                      <p className="text-slate-500 dark:text-slate-400 dark:text-slate-500 text-sm">{t("docVerification.table.tryAdjusting")}</p>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -716,10 +721,10 @@ export function DocumentVerification() {
           </Table>
         </div>
 
-          <div className="flex flex-col gap-3 border-t border-slate-200 px-3 py-2 text-xs text-slate-400 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-3 border-t border-slate-200 dark:border-slate-800 px-3 py-2 text-xs text-slate-400 dark:text-slate-500 sm:flex-row sm:items-center sm:justify-between">
             <p>
-              Showing {mergedDocuments.length} of {pagination?.total ?? 0}{" "}
-              results
+              {t("docVerification.pagination.showing")} {mergedDocuments.length} {t("docVerification.pagination.of")} {pagination?.total ?? 0}{" "}
+              {t("docVerification.pagination.results")}
             </p>
 
             {totalPages > 1 && (

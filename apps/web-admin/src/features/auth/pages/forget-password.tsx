@@ -108,7 +108,7 @@ export function ForgetPassword({
   const buttonLabel = cooldown > 0 ? `Try again in ${cooldown}s` : submitLabel;
 
   return (
-    <div className="min-h-screen min-w-screen flex flex-col bg-white">
+    <div className="min-h-screen min-w-screen flex flex-col bg-white dark:bg-slate-900">
       <AuthenticationHeader />
       <div className="flex flex-1 items-center justify-center px-4 py-10">
         <form onSubmit={handleSubmit} className="w-full max-w-md space-y-6">

@@ -15,6 +15,7 @@ import { Spinner } from "@repo/ui/components/ui/spinner";
 import { showToast } from "@repo/ui/components/ui/toasts";
 import { useNavigate } from "react-router-dom";
 import { useLogin } from "../hooks/useLogin";
+import { useTranslation } from "react-i18next";
 
 interface LoginFormProps {
   /** Xử lý submit — nhận email và password */
@@ -41,11 +42,13 @@ export function LogIn({
   onSubmit,
   isLoading: propIsLoading = false,
   error: propError,
-  submitLabel = "Log in",
   forgotPasswordHref,
 }: LoginFormProps) {
   const navigate = useNavigate();
   const { login, isLoading, error } = useLogin();
+  const { t } = useTranslation();
+  
+  const submitLabel = t('auth.logIn');
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -60,15 +63,15 @@ export function LogIn({
     const nextErrors: LoginFormErrors = {};
 
     if (!values.email.trim()) {
-      nextErrors.email = "Please enter your email.";
+      nextErrors.email = t('auth.emailRequired');
     } else if (!/^\S+@\S+\.\S+$/.test(values.email)) {
-      nextErrors.email = "Invalid email.";
+      nextErrors.email = t('auth.emailInvalid');
     }
 
     if (!values.password) {
-      nextErrors.password = "Please enter your password.";
+      nextErrors.password = t('auth.passwordRequired');
     } else if (values.password.length < 8) {
-      nextErrors.password = "Your password must have at least 8 characters.";
+      nextErrors.password = t('auth.passwordMinLength');
     }
 
     return nextErrors;
@@ -101,13 +104,13 @@ export function LogIn({
             localStorage.setItem("rememberedEmail", response.user.email);
           }
 
-          showToast.success(`Welcome, ${response.user.fullName}!`);
+          showToast.success(t('auth.welcomeMsg', { name: response.user.fullName }));
           navigate("/");
         }
       }
     } catch (submitError) {
       const message =
-        submitError instanceof Error ? submitError.message : "Login failed";
+        submitError instanceof Error ? submitError.message : t('auth.loginFailed');
       showToast.error(message);
     }
   }
@@ -119,28 +122,28 @@ export function LogIn({
 
   return (
     <>
-      <div className="min-h-screen min-w-screen flex flex-col bg-white">
+      <div className="min-h-screen min-w-screen flex flex-col bg-white dark:bg-slate-900 transition-colors">
         <AuthenticationHeader />
         <div className="flex flex-1 items-center justify-center px-4 py-10">
           <form onSubmit={handleSubmit} className="w-full max-w-md space-y-6">
-            <h1 className="text-center text-5xl font-bold text-[#313A34]">
-              Sign in
+            <h1 className="text-center text-5xl font-bold text-[#313A34] dark:text-white">
+              {t('auth.signIn')}
             </h1>
 
             {displayError && (
-              <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+              <div className="rounded-lg border border-red-200 bg-red-50 dark:bg-red-900/30 px-4 py-3 text-sm text-red-600 dark:text-red-400">
                 {displayError}
               </div>
             )}
 
-            <FieldSet className="gap-4 border border-bordercolor px-10 py-20 rounded-sm">
+            <FieldSet className="gap-4 border border-bordercolor dark:border-slate-800 px-10 py-20 rounded-sm bg-white dark:bg-slate-900">
               <FieldGroup>
                 <Field className="gap-2">
                   <FieldLabel
                     htmlFor="email"
-                    className="text-lg font-medium text-[#1E1E1E]"
+                    className="text-lg font-medium text-[#1E1E1E] dark:text-gray-200"
                   >
-                    Email
+                    {t('auth.email')}
                   </FieldLabel>
                   <FieldControl invalid={Boolean(emailError)}>
                     <User className="h-5 w-5 shrink-0 text-muted-foreground" />
@@ -151,9 +154,9 @@ export function LogIn({
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       onBlur={() => handleBlur("email")}
-                      placeholder="Enter your email account"
+                      placeholder={t('auth.emailPlaceholder')}
                       disabled={submitting}
-                      className="h-auto border-0 bg-transparent px-0 py-0 shadow-none focus-visible:border-0 focus-visible:ring-0"
+                      className="h-auto border-0 bg-transparent px-0 py-0 shadow-none focus-visible:border-0 focus-visible:ring-0 dark:text-white"
                     />
                   </FieldControl>
                   <FieldError>{emailError}</FieldError>
@@ -162,9 +165,9 @@ export function LogIn({
                 <Field className="gap-2">
                   <FieldLabel
                     htmlFor="password"
-                    className="text-lg font-medium text-[#1E1E1E]"
+                    className="text-lg font-medium text-[#1E1E1E] dark:text-gray-200"
                   >
-                    Password
+                    {t('auth.password')}
                   </FieldLabel>
                   <FieldControl invalid={Boolean(passwordError)}>
                     <Lock className="h-5 w-5 shrink-0 text-muted-foreground" />
@@ -175,9 +178,9 @@ export function LogIn({
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       onBlur={() => handleBlur("password")}
-                      placeholder="Enter your password"
+                      placeholder={t('auth.passwordPlaceholder')}
                       disabled={submitting}
-                      className="h-auto border-0 bg-transparent px-0 py-0 shadow-none focus-visible:border-0 focus-visible:ring-0"
+                      className="h-auto border-0 bg-transparent px-0 py-0 shadow-none focus-visible:border-0 focus-visible:ring-0 dark:text-white"
                     />
                   </FieldControl>
                   <FieldError>{passwordError}</FieldError>
@@ -196,8 +199,8 @@ export function LogIn({
                       className="h-5 w-5 rounded border-input accent-brand"
                       disabled={submitting}
                     />
-                    <span className="text-sm text-muted-foreground">
-                      Remember me
+                    <span className="text-sm text-muted-foreground dark:text-gray-400">
+                      {t('auth.rememberMe')}
                     </span>
                   </label>
 
@@ -208,7 +211,7 @@ export function LogIn({
                     }}
                     className="text-base font-medium text-brand hover:text-brand-hover cursor-pointer"
                   >
-                    Forget your password?
+                    {t('auth.forgetPassword')}
                   </a>
                 </Field>
 

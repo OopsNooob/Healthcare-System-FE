@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { View, Text, ScrollView, TouchableOpacity, SafeAreaView, RefreshControl } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ArrowLeft, Bell, Calendar, MessageCircle, FileText, BellOff } from 'lucide-react-native';
@@ -14,6 +15,8 @@ interface NotificationItem {
 }
 
 export default function PatientNotificationsScreen() {
+  const { t } = useTranslation();
+
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -48,35 +51,35 @@ export default function PatientNotificationsScreen() {
   };
 
   const renderSkeleton = () => (
-    <View style={tw('bg-white p-4 rounded-2xl mb-3 flex-row border border-slate-100')}>
-      <View style={tw('w-12 h-12 rounded-full bg-slate-200 mr-4')} />
+    <View style={tw('bg-white dark:bg-slate-900 p-4 rounded-2xl mb-3 flex-row border border-slate-100 dark:border-slate-800')}>
+      <View style={tw('w-12 h-12 rounded-full bg-slate-200 dark:bg-slate-700 mr-4')} />
       <View style={tw('flex-1')}>
-        <View style={tw('w-3/4 h-5 bg-slate-200 rounded mb-2')} />
-        <View style={tw('w-full h-4 bg-slate-200 rounded mb-1')} />
-        <View style={tw('w-5/6 h-4 bg-slate-200 rounded mb-2')} />
-        <View style={tw('w-1/4 h-3 bg-slate-200 rounded')} />
+        <View style={tw('w-3/4 h-5 bg-slate-200 dark:bg-slate-700 rounded mb-2')} />
+        <View style={tw('w-full h-4 bg-slate-200 dark:bg-slate-700 rounded mb-1')} />
+        <View style={tw('w-5/6 h-4 bg-slate-200 dark:bg-slate-700 rounded mb-2')} />
+        <View style={tw('w-1/4 h-3 bg-slate-200 dark:bg-slate-700 rounded')} />
       </View>
     </View>
   );
 
   const renderEmptyState = () => (
     <View style={tw('items-center justify-center py-20')}>
-      <View style={tw('w-20 h-20 bg-slate-100 rounded-full items-center justify-center mb-4')}>
+      <View style={tw('w-20 h-20 bg-slate-100 dark:bg-slate-800 rounded-full items-center justify-center mb-4')}>
         <BellOff color="#94a3b8" size={32} />
       </View>
-      <Text style={tw('text-lg font-bold text-slate-900 mb-2 text-center')}>No Notifications</Text>
-      <Text style={tw('text-slate-500 text-center')}>You're all caught up! There are no new notifications at the moment.</Text>
+      <Text style={tw('text-lg font-bold text-slate-900 dark:text-white mb-2 text-center')}>{t('mobile.no_notifications', `No Notifications`)}</Text>
+      <Text style={tw('text-slate-500 dark:text-slate-400 dark:text-slate-500 text-center')}>{t('mobile.youre_all_caught_up_there_are_', `You're all caught up! There are no new notifications at the moment.`)}</Text>
     </View>
   );
 
   return (
-    <SafeAreaView style={tw('flex-1 bg-slate-50')}>
+    <SafeAreaView style={tw('flex-1 bg-slate-50 dark:bg-slate-950')}>
       {/* Header */}
-      <View style={tw('px-4 pt-6 pb-4 bg-white border-b border-slate-100 flex-row items-center')}>
+      <View style={tw('px-4 pt-6 pb-4 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 flex-row items-center')}>
         <TouchableOpacity onPress={() => router.back()} style={tw('p-2 mr-2')}>
           <ArrowLeft color="#1E1E1E" size={24} />
         </TouchableOpacity>
-        <Text style={tw('text-xl font-bold text-slate-900')}>Notifications</Text>
+        <Text style={tw('text-xl font-bold text-slate-900 dark:text-white')}>{t('mobile.notifications', `Notifications`)}</Text>
       </View>
 
       <ScrollView 
@@ -93,23 +96,23 @@ export default function PatientNotificationsScreen() {
           notifs.map((notif) => (
             <TouchableOpacity 
               key={notif.id} 
-              style={tw(`bg-white p-4 rounded-2xl mb-3 flex-row border ${notif.read ? 'border-slate-100' : 'border-brand-light shadow-sm'}`)}
+              style={tw(`bg-white dark:bg-slate-900 p-4 rounded-2xl mb-3 flex-row border ${notif.read ? 'border-slate-100 dark:border-slate-800' : 'border-brand-light shadow-sm'}`)}
               onPress={() => {
                 if (notif.type === 'review') {
                   router.push('/(patient)/doctor-chat');
                 }
               }}
             >
-              <View style={tw(`w-12 h-12 rounded-full items-center justify-center mr-4 ${notif.read ? 'bg-slate-50' : 'bg-brand-light'}`)}>
+              <View style={tw(`w-12 h-12 rounded-full items-center justify-center mr-4 ${notif.read ? 'bg-slate-50 dark:bg-slate-950' : 'bg-brand-light'}`)}>
                 {getIcon(notif.type)}
               </View>
               <View style={tw('flex-1')}>
                 <View style={tw('flex-row justify-between items-start mb-1')}>
-                  <Text style={tw(`text-base font-bold ${notif.read ? 'text-slate-700' : 'text-slate-900'}`)}>{notif.title}</Text>
+                  <Text style={tw(`text-base font-bold ${notif.read ? 'text-slate-700 dark:text-slate-200' : 'text-slate-900 dark:text-white'}`)}>{notif.title}</Text>
                   {!notif.read && <View style={tw('w-2.5 h-2.5 bg-brand rounded-full mt-1.5')} />}
                 </View>
-                <Text style={tw(`text-sm mb-2 ${notif.read ? 'text-slate-500' : 'text-slate-700'}`)}>{notif.desc}</Text>
-                <Text style={tw('text-xs text-slate-400 font-medium')}>{notif.time}</Text>
+                <Text style={tw(`text-sm mb-2 ${notif.read ? 'text-slate-500 dark:text-slate-400 dark:text-slate-500' : 'text-slate-700 dark:text-slate-200'}`)}>{notif.desc}</Text>
+                <Text style={tw('text-xs text-slate-400 dark:text-slate-500 font-medium')}>{notif.time}</Text>
               </View>
             </TouchableOpacity>
           ))

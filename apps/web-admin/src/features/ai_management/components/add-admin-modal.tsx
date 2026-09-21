@@ -80,7 +80,7 @@ export function AddAdminModal({
         className="absolute inset-0 bg-black/30 backdrop-blur-[1px]"
       />
 
-      <div className="relative z-10 w-full max-w-2xl overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl">
+      <div className="relative z-10 w-full max-w-2xl overflow-hidden rounded-3xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-2xl">
         <div className="p-6">
           <div className="flex items-start justify-between gap-4">
             <p className="text-lg font-bold">Create admin account</p>
@@ -88,7 +88,7 @@ export function AddAdminModal({
             <button
               type="button"
               onClick={onClose}
-              className="rounded-md p-1 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-500"
+              className="rounded-md p-1 text-slate-400 dark:text-slate-500 transition-colors hover:bg-slate-100 dark:bg-slate-800 hover:text-slate-500 dark:text-slate-400 dark:text-slate-500"
               aria-label="Close"
             >
               <X className="h-6 w-6" />
@@ -98,11 +98,11 @@ export function AddAdminModal({
           <FieldSet className="mt-6">
             <FieldGroup className="gap-4">
               <Field>
-                <FieldLabel className="text-sm font-semibold text-slate-700">
+                <FieldLabel className="text-sm font-semibold text-slate-700 dark:text-slate-200">
                   Full Name <span className="text-red-500">*</span>
                 </FieldLabel>
                 <FieldControl>
-                  <UserRound className="h-4 w-4 text-slate-400" />
+                  <UserRound className="h-4 w-4 text-slate-400 dark:text-slate-500" />
                   <Input
                     type="text"
                     value={fullName}
@@ -114,11 +114,11 @@ export function AddAdminModal({
               </Field>
 
               <Field>
-                <FieldLabel className="text-sm font-semibold text-slate-700">
+                <FieldLabel className="text-sm font-semibold text-slate-700 dark:text-slate-200">
                   Email Address <span className="text-red-500">*</span>
                 </FieldLabel>
                 <FieldControl>
-                  <Mail className="h-4 w-4 text-slate-400" />
+                  <Mail className="h-4 w-4 text-slate-400 dark:text-slate-500" />
                   <Input
                     type="email"
                     value={email}
@@ -130,11 +130,11 @@ export function AddAdminModal({
               </Field>
 
               <Field>
-                <FieldLabel className="text-sm font-semibold text-slate-700">
+                <FieldLabel className="text-sm font-semibold text-slate-700 dark:text-slate-200">
                   Temporary Password <span className="text-red-500">*</span>
                 </FieldLabel>
                 <FieldControl>
-                  <Lock className="h-4 w-4 text-slate-400" />
+                  <Lock className="h-4 w-4 text-slate-400 dark:text-slate-500" />
                   <Input
                     type={isPasswordVisible ? "text" : "password"}
                     value={password}
@@ -148,7 +148,7 @@ export function AddAdminModal({
                       isPasswordVisible ? "Hide password" : "Show password"
                     }
                     onClick={() => setIsPasswordVisible((prev) => !prev)}
-                    className="text-slate-400 transition-colors hover:text-slate-600"
+                    className="text-slate-400 dark:text-slate-500 transition-colors hover:text-slate-600 dark:text-slate-300"
                   >
                     {isPasswordVisible ? (
                       <EyeOff className="h-4 w-4" />
@@ -157,23 +157,23 @@ export function AddAdminModal({
                     )}
                   </button>
                 </FieldControl>
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-slate-400 dark:text-slate-500">
                   The admin will be prompted to change this on first login.
                 </p>
               </Field>
 
               <Field>
-                <FieldLabel className="text-sm font-semibold text-slate-700">
+                <FieldLabel className="text-sm font-semibold text-slate-700 dark:text-slate-200">
                   Select Role <span className="text-red-500">*</span>
                 </FieldLabel>
                 <FieldControl>
-                  <ShieldCheck className="h-4 w-4 text-slate-400" />
+                  <ShieldCheck className="h-4 w-4 text-slate-400 dark:text-slate-500" />
                   <select
                     value={role}
                     onChange={(e) =>
                       onChangeRole(e.target.value as AdminAssignedRole)
                     }
-                    className="h-full w-full appearance-none bg-transparent text-sm text-slate-700 outline-none"
+                    className="h-full w-full appearance-none bg-transparent text-sm text-slate-700 dark:text-slate-200 outline-none"
                   >
                     {ADMIN_ROLE_OPTIONS.map((option) => (
                       <option key={option.value} value={option.value}>
@@ -189,7 +189,7 @@ export function AddAdminModal({
           </FieldSet>
         </div>
 
-        <div className="flex items-center justify-end gap-3 border-t border-slate-200 bg-slate-50/50 p-4">
+        <div className="flex items-center justify-end gap-3 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950/50 p-4">
           <Button type="button" variant="outline" onClick={onClose}>
             Cancel
           </Button>

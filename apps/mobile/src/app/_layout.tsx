@@ -7,6 +7,7 @@ import { useColorScheme } from 'react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import Toast from 'react-native-toast-message';
 import "../global.css";
+import '../i18n';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();

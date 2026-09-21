@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { View, Text, ScrollView, TouchableOpacity, SafeAreaView, Modal, TextInput, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import { Activity, Heart, Droplet, Plus, Edit2, Trash2, Bot, X } from 'lucide-react-native';
 import { tw } from '@/tw';
@@ -22,6 +23,8 @@ type Metric = {
 };
 
 export default function HealthMetricScreen() {
+  const { t } = useTranslation();
+
   const router = useRouter();
   
   const [metrics, setMetrics] = useState<Metric[]>([
@@ -146,12 +149,12 @@ export default function HealthMetricScreen() {
   };
 
   return (
-    <SafeAreaView style={tw('flex-1 bg-slate-50')}>
+    <SafeAreaView style={tw('flex-1 bg-slate-50 dark:bg-slate-950')}>
       {/* Header */}
       <View style={tw('flex-row justify-between items-center px-6 pt-6 pb-4')}>
         <View>
-          <Text style={tw('text-2xl font-bold text-slate-900')}>Health Metrics</Text>
-          <Text style={tw('text-slate-500 text-sm mt-1')}>Track your daily health status</Text>
+          <Text style={tw('text-2xl font-bold text-slate-900 dark:text-white')}>{t('mobile.health_metrics', `Health Metrics`)}</Text>
+          <Text style={tw('text-slate-500 dark:text-slate-400 dark:text-slate-500 text-sm mt-1')}>{t('mobile.track_your_daily_health_status', `Track your daily health status`)}</Text>
         </View>
         <TouchableOpacity 
           onPress={openAddModal}
@@ -170,12 +173,12 @@ export default function HealthMetricScreen() {
               <TouchableOpacity
                 key={metric.id}
                 onPress={() => setSelectedMetricId(metric.id)}
-                style={tw(`flex-row items-center gap-2 px-4 py-3 rounded-2xl border ${isSelected ? 'border-brand bg-brand-light' : 'border-slate-200 bg-white'}`)}
+                style={tw(`flex-row items-center gap-2 px-4 py-3 rounded-2xl border ${isSelected ? 'border-brand bg-brand-light' : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900'}`)}
               >
                 <View style={tw(`w-8 h-8 rounded-full ${metric.bg} items-center justify-center`)}>
                   {metric.icon}
                 </View>
-                <Text style={tw(`font-semibold ${isSelected ? 'text-brand' : 'text-slate-700'}`)}>
+                <Text style={tw(`font-semibold ${isSelected ? 'text-brand' : 'text-slate-700 dark:text-slate-200'}`)}>
                   {metric.title}
                 </Text>
               </TouchableOpacity>
@@ -186,25 +189,25 @@ export default function HealthMetricScreen() {
 
       {/* Entries List */}
       <ScrollView contentContainerStyle={tw('px-6 pb-20')} showsVerticalScrollIndicator={false}>
-        <Text style={tw('text-lg font-bold text-slate-900 mb-4')}>Recent Records</Text>
+        <Text style={tw('text-lg font-bold text-slate-900 dark:text-white mb-4')}>{t('mobile.recent_records', `Recent Records`)}</Text>
         
         {selectedMetric.entries.length === 0 ? (
           <View style={tw('items-center justify-center py-12')}>
-            <Text style={tw('text-slate-400 font-medium')}>No records found</Text>
+            <Text style={tw('text-slate-400 dark:text-slate-500 font-medium')}>{t('mobile.no_records_found', `No records found`)}</Text>
           </View>
         ) : (
           selectedMetric.entries.map(entry => (
             <TouchableOpacity 
               key={entry.id} 
               onPress={() => openEditModal(entry)}
-              style={tw('bg-white rounded-2xl p-4 mb-3 border border-slate-100 shadow-sm')}
+              style={tw('bg-white dark:bg-slate-900 rounded-2xl p-4 mb-3 border border-slate-100 dark:border-slate-800 shadow-sm')}
             >
               <View style={tw('flex-row justify-between items-start mb-3')}>
                 <View>
-                  <Text style={tw('text-2xl font-bold text-slate-900')}>
-                    {entry.value} <Text style={tw('text-sm text-slate-500 font-medium')}>{selectedMetric.unit}</Text>
+                  <Text style={tw('text-2xl font-bold text-slate-900 dark:text-white')}>
+                    {entry.value} <Text style={tw('text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500 font-medium')}>{selectedMetric.unit}</Text>
                   </Text>
-                  <Text style={tw('text-xs text-slate-400 mt-1')}>{entry.time} • {entry.date}</Text>
+                  <Text style={tw('text-xs text-slate-400 dark:text-slate-500 mt-1')}>{entry.time} • {entry.date}</Text>
                 </View>
                 <View style={tw('flex-row gap-2')}>
                   <TouchableOpacity onPress={() => handleDelete(entry.id)} style={tw('w-8 h-8 bg-red-50 rounded-full items-center justify-center')}>
@@ -219,7 +222,7 @@ export default function HealthMetricScreen() {
                 style={tw('flex-row items-center justify-center gap-2 bg-ai-light py-2 rounded-xl mt-1')}
               >
                 <Bot color="#6366f1" size={18} />
-                <Text style={tw('text-ai font-bold text-sm')}>Ask AI about this</Text>
+                <Text style={tw('text-ai font-bold text-sm')}>{t('mobile.ask_ai_about_this', `Ask AI about this`)}</Text>
               </TouchableOpacity>
             </TouchableOpacity>
           ))
@@ -237,9 +240,9 @@ export default function HealthMetricScreen() {
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={tw('flex-1 justify-end bg-black/40')}
         >
-          <View style={tw('bg-white rounded-t-3xl p-6')}>
+          <View style={tw('bg-white dark:bg-slate-900 rounded-t-3xl p-6')}>
             <View style={tw('flex-row justify-between items-center mb-6')}>
-              <Text style={tw('text-xl font-bold text-slate-900')}>
+              <Text style={tw('text-xl font-bold text-slate-900 dark:text-white')}>
                 {editId ? 'Edit Record' : 'Add Record'} - {selectedMetric.title}
               </Text>
               <TouchableOpacity onPress={() => setModalVisible(false)}>
@@ -249,33 +252,33 @@ export default function HealthMetricScreen() {
 
             <View style={tw('gap-4')}>
               <View>
-                <Text style={tw('text-sm font-semibold text-slate-700 mb-2')}>Value ({selectedMetric.unit})</Text>
+                <Text style={tw('text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2')}>Value ({selectedMetric.unit})</Text>
                 <TextInput
                   value={formValue}
                   onChangeText={setFormValue}
                   placeholder={`Enter ${selectedMetric.title}`}
-                  style={tw('bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 font-medium')}
+                  style={tw('bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-slate-900 dark:text-white font-medium')}
                   keyboardType="default"
                 />
               </View>
 
               <View style={tw('flex-row gap-4')}>
                 <View style={tw('flex-1')}>
-                  <Text style={tw('text-sm font-semibold text-slate-700 mb-2')}>Time</Text>
+                  <Text style={tw('text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2')}>{t('mobile.time', `Time`)}</Text>
                   <TextInput
                     value={formTime}
                     onChangeText={setFormTime}
                     placeholder="10:00 AM"
-                    style={tw('bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 font-medium')}
+                    style={tw('bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-slate-900 dark:text-white font-medium')}
                   />
                 </View>
                 <View style={tw('flex-1')}>
-                  <Text style={tw('text-sm font-semibold text-slate-700 mb-2')}>Date</Text>
+                  <Text style={tw('text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2')}>{t('mobile.date', `Date`)}</Text>
                   <TextInput
                     value={formDate}
                     onChangeText={setFormDate}
                     placeholder="Oct 12, 2023"
-                    style={tw('bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 font-medium')}
+                    style={tw('bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-slate-900 dark:text-white font-medium')}
                   />
                 </View>
               </View>
@@ -284,7 +287,7 @@ export default function HealthMetricScreen() {
                 onPress={handleSave}
                 style={tw('bg-brand py-4 rounded-xl items-center mt-2')}
               >
-                <Text style={tw('text-slate-900 font-bold text-base')}>Save Record</Text>
+                <Text style={tw('text-slate-900 dark:text-white font-bold text-base')}>{t('mobile.save_record', `Save Record`)}</Text>
               </TouchableOpacity>
             </View>
           </View>

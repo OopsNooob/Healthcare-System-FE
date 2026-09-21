@@ -9,9 +9,15 @@ import type { ChartOptions } from "chart.js";
 import { LineChart } from "@repo/ui/components/ui/line-chart";
 import { BarChart } from "@repo/ui/components/ui/vertical-bar-chart";
 import { useOverview } from "../hooks/useOverview";
+import { useTranslation } from "react-i18next";
+import { useTheme } from "next-themes";
 
 export function Overview() {
   const { summary, isLoading, error } = useOverview();
+  const { t } = useTranslation();
+  const { theme } = useTheme();
+  
+  const isDark = theme === "dark";
 
   const lineChartLabels = summary.monthly.labels;
 
@@ -19,10 +25,10 @@ export function Overview() {
 
   const lineChartDatasets = [
     {
-      label: "Patients",
+      label: t("overview.patients"),
       data: summary.monthly.totalUsers,
-      borderColor: "rgb(59, 130, 246)",
-      backgroundColor: "rgba(59, 130, 246, 0.14)",
+      borderColor: isDark ? "rgb(96, 165, 250)" : "rgb(59, 130, 246)",
+      backgroundColor: isDark ? "rgba(96, 165, 250, 0.14)" : "rgba(59, 130, 246, 0.14)",
       tension: 0.4,
       fill: true,
       borderWidth: 2,
@@ -30,10 +36,10 @@ export function Overview() {
       pointHoverRadius: 3,
     },
     {
-      label: "Doctors",
+      label: t("overview.doctors"),
       data: summary.monthly.activeDoctors,
-      borderColor: "rgb(16, 185, 129)",
-      backgroundColor: "rgba(16, 185, 129, 0.08)",
+      borderColor: isDark ? "rgb(52, 211, 153)" : "rgb(16, 185, 129)",
+      backgroundColor: isDark ? "rgba(52, 211, 153, 0.08)" : "rgba(16, 185, 129, 0.08)",
       tension: 0.35,
       fill: false,
       borderWidth: 2,
@@ -41,7 +47,7 @@ export function Overview() {
       pointHoverRadius: 3,
     },
     {
-      label: "AI Sessions",
+      label: t("overview.aiSessions"),
       data: summary.monthly.aiChatSessions,
       borderColor: "rgb(245, 158, 11)",
       backgroundColor: "rgba(245, 158, 11, 0.12)",
@@ -55,18 +61,18 @@ export function Overview() {
 
   const barChartDatasets = [
     {
-      label: "Consultations",
+      label: t("overview.consultations"),
       data: summary.weekly.doctorSessions,
-      borderColor: "rgb(59, 130, 246)",
-      backgroundColor: "rgb(59, 130, 246)",
+      borderColor: isDark ? "rgb(96, 165, 250)" : "rgb(59, 130, 246)",
+      backgroundColor: isDark ? "rgb(96, 165, 250)" : "rgb(59, 130, 246)",
       borderRadius: 6,
       maxBarThickness: 14,
     },
     {
-      label: "Reports",
+      label: t("overview.reports"),
       data: summary.weekly.violationReports,
-      borderColor: "rgb(239, 68, 68)",
-      backgroundColor: "rgb(239, 68, 68)",
+      borderColor: isDark ? "rgb(248, 113, 113)" : "rgb(239, 68, 68)",
+      backgroundColor: isDark ? "rgb(248, 113, 113)" : "rgb(239, 68, 68)",
       borderRadius: 6,
       maxBarThickness: 14,
     },
@@ -167,36 +173,36 @@ export function Overview() {
 
   const overviewStats = [
     {
-      title: "Total Users",
+      title: t("overview.totalUsers"),
       icon: <UsersRound size={18} />,
       stats: isLoading ? 0 : summary.totalUsers,
-      subText: "vs last month",
+      subText: t("overview.vsLastMonth"),
       comparedStats: 12.5,
-      iconClassName: "bg-blue-50 text-blue-600",
+      iconClassName: "bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400",
     },
     {
-      title: "Active Doctors",
+      title: t("overview.activeDoctors"),
       icon: <Stethoscope size={18} />,
       stats: isLoading ? 0 : summary.activeDoctors,
-      subText: "vs last month",
+      subText: t("overview.vsLastMonth"),
       comparedStats: 8.2,
-      iconClassName: "bg-emerald-50 text-emerald-600",
+      iconClassName: "bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400",
     },
     {
-      title: "AI Chat Sessions",
+      title: t("overview.aiChatSessions"),
       icon: <MessageSquareText size={18} />,
       stats: isLoading ? 0 : summary.aiChatSessions,
-      subText: "this month",
+      subText: t("overview.thisMonth"),
       comparedStats: 31.4,
-      iconClassName: "bg-amber-50 text-amber-600",
+      iconClassName: "bg-amber-50 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400",
     },
     {
-      title: "Pending Verifications",
+      title: t("overview.pendingVerifications"),
       icon: <ShieldAlert size={18} />,
       stats: isLoading ? 0 : summary.pendingVerifications,
-      subText: "needs review",
+      subText: t("overview.needsReview"),
       comparedStats: -5,
-      iconClassName: "bg-red-50 text-red-500",
+      iconClassName: "bg-red-50 text-red-500 dark:bg-red-900/30 dark:text-red-400",
     },
   ];
 
@@ -209,19 +215,19 @@ export function Overview() {
   });
 
   return (
-    <div className="w-full p-6 ">
-      <div className="rounded-3xl border border-slate-200/70 bg-white p-6 shadow-sm">
+    <div className="w-full p-6">
+      <div className="rounded-3xl border border-slate-200/70 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm">
         <div className="mb-5 flex items-center justify-between gap-3">
           <div>
-            <h1 className="text-3xl font-semibold text-slate-900">Overview</h1>
-            <p className="text-sm text-slate-500">{today}</p>
-            {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
+            <h1 className="text-3xl font-semibold text-slate-900 dark:text-slate-100">{t("overview.title")}</h1>
+            <p className="text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500">{today}</p>
+            {error && <p className="mt-1 text-sm text-red-600 dark:text-red-400">{error}</p>}
           </div>
           <button
             type="button"
-            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+            className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
           >
-            {isLoading ? "Loading..." : null}
+            {isLoading ? t("overview.loading") : null}
           </button>
         </div>
 
@@ -231,10 +237,10 @@ export function Overview() {
           ))}
         </ul>
 
-        <div className="mt-5 grid min-h-130 grid-cols-1 gap-4 xl:grid-cols-3">
+        <div className="mt-5 grid min-h-[130px] grid-cols-1 gap-4 xl:grid-cols-3">
           <LineChart
-            title="Platform Growth"
-            subtitle="Patients, Doctors & AI usage over 8 months"
+            title={t("overview.platformGrowth")}
+            subtitle={t("overview.platformGrowthDesc")}
             labels={lineChartLabels}
             datasets={lineChartDatasets}
             options={lineOptions}
@@ -243,8 +249,8 @@ export function Overview() {
           />
 
           <BarChart
-            title="Weekly Activity"
-            subtitle="Consultations vs Reports"
+            title={t("overview.weeklyActivity")}
+            subtitle={t("overview.weeklyActivityDesc")}
             labels={barChartLabels}
             datasets={barChartDatasets}
             options={barOptions}

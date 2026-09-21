@@ -33,6 +33,7 @@ export function useViewProfile(userId?: string | null, isEnabled = true) {
 
   useEffect(() => {
     if (!userId || !isEnabled) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setData(null);
       setError(null);
       setIsLoading(false);

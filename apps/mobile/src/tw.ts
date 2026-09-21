@@ -1,6 +1,6 @@
 import { create } from 'twrnc';
 
-const twInstance = create({
+export const twInstance = create({
   theme: {
     extend: {
       colors: {

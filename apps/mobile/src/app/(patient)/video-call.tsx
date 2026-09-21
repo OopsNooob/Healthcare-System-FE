@@ -1,9 +1,12 @@
+import { useTranslation } from 'react-i18next';
 import { View, Text, TouchableOpacity, SafeAreaView, Image, StatusBar } from 'react-native';
 import { useRouter } from 'expo-router';
 import { MicOff, Video, PhoneOff, Maximize, MessageCircle } from 'lucide-react-native';
 import { tw } from '@/tw';
 
 export default function VideoCallScreen() {
+  const { t } = useTranslation();
+
   const router = useRouter();
 
   return (
@@ -23,10 +26,10 @@ export default function VideoCallScreen() {
           <View>
             <View style={tw('bg-black/40 px-3 py-1.5 rounded-full flex-row items-center gap-2 mb-2 self-start')}>
               <View style={tw('w-2 h-2 rounded-full bg-red-500')} />
-              <Text style={tw('text-white text-xs font-medium')}>10:24</Text>
+              <Text style={tw('text-white text-xs font-medium')}>{t('mobile.1024', `10:24`)}</Text>
             </View>
-            <Text style={tw('text-white text-xl font-bold shadow-sm')}>Dr. Sarah Connor</Text>
-            <Text style={tw('text-emerald-400 text-sm font-medium')}>Cardiologist</Text>
+            <Text style={tw('text-white text-xl font-bold shadow-sm')}>{t('mobile.dr_sarah_connor', `Dr. Sarah Connor`)}</Text>
+            <Text style={tw('text-emerald-400 text-sm font-medium')}>{t('mobile.cardiologist', `Cardiologist`)}</Text>
           </View>
           
           <TouchableOpacity style={tw('w-10 h-10 bg-black/40 rounded-full items-center justify-center')}>
@@ -46,15 +49,15 @@ export default function VideoCallScreen() {
 
           {/* Controls */}
           <View style={tw('flex-row justify-between items-center bg-black/60 p-6 rounded-full')}>
-            <TouchableOpacity style={tw('w-12 h-12 rounded-full bg-white/20 items-center justify-center')}>
+            <TouchableOpacity style={tw('w-12 h-12 rounded-full bg-white dark:bg-slate-900/20 items-center justify-center')}>
               <MicOff color="#ffffff" size={24} />
             </TouchableOpacity>
             
-            <TouchableOpacity style={tw('w-12 h-12 rounded-full bg-white/20 items-center justify-center')}>
+            <TouchableOpacity style={tw('w-12 h-12 rounded-full bg-white dark:bg-slate-900/20 items-center justify-center')}>
               <Video color="#ffffff" size={24} />
             </TouchableOpacity>
             
-            <TouchableOpacity style={tw('w-12 h-12 rounded-full bg-white/20 items-center justify-center')}>
+            <TouchableOpacity style={tw('w-12 h-12 rounded-full bg-white dark:bg-slate-900/20 items-center justify-center')}>
               <MessageCircle color="#ffffff" size={24} />
             </TouchableOpacity>
             

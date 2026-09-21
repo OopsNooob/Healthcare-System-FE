@@ -1,9 +1,12 @@
+import { useTranslation } from 'react-i18next';
 import { View, Text, ScrollView, TouchableOpacity, SafeAreaView, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Search } from 'lucide-react-native';
 import { tw } from '@/tw';
 
 export default function DoctorChatScreen() {
+  const { t } = useTranslation();
+
   const router = useRouter();
 
   const patientChats = [
@@ -28,12 +31,12 @@ export default function DoctorChatScreen() {
   ];
 
   return (
-    <SafeAreaView style={tw('flex-1 bg-slate-50')}>
+    <SafeAreaView style={tw('flex-1 bg-slate-50 dark:bg-slate-950')}>
       <ScrollView contentContainerStyle={tw('pb-20')} showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={tw('px-6 pt-6 pb-6 flex-row justify-between items-center')}>
-          <Text style={tw('text-2xl font-bold text-[#313A34]')}>Messages</Text>
-          <TouchableOpacity style={tw('w-10 h-10 bg-white rounded-full items-center justify-center shadow-sm border border-gray-100')}>
+          <Text style={tw('text-2xl font-bold text-[#313A34]')}>{t('mobile.messages', `Messages`)}</Text>
+          <TouchableOpacity style={tw('w-10 h-10 bg-white dark:bg-slate-900 rounded-full items-center justify-center shadow-sm border border-gray-100 dark:border-gray-800')}>
             <Search color="#1E1E1E" size={20} />
           </TouchableOpacity>
         </View>
@@ -44,11 +47,11 @@ export default function DoctorChatScreen() {
             {patientChats.map((chat) => (
               <TouchableOpacity 
                 key={chat.id}
-                style={tw('flex-row bg-white rounded-3xl p-4 shadow-sm border border-slate-100 items-center')}
+                style={tw('flex-row bg-white dark:bg-slate-900 rounded-3xl p-4 shadow-sm border border-slate-100 dark:border-slate-800 items-center')}
                 onPress={() => router.push(`/(doctor)/chat/${chat.id}`)}
               >
                 <View style={tw('relative')}>
-                  <Image source={{ uri: chat.image }} style={tw('w-16 h-16 rounded-full bg-slate-200')} />
+                  <Image source={{ uri: chat.image }} style={tw('w-16 h-16 rounded-full bg-slate-200 dark:bg-slate-700')} />
                   {chat.online && (
                     <View style={tw('absolute bottom-0 right-0 w-4 h-4 bg-brand rounded-full border-2 border-white')} />
                   )}
@@ -56,14 +59,14 @@ export default function DoctorChatScreen() {
                 
                 <View style={tw('flex-1 ml-4')}>
                   <View style={tw('flex-row justify-between items-center mb-1')}>
-                    <Text style={tw('text-base font-bold text-slate-900')}>{chat.name}</Text>
-                    <Text style={tw(`text-xs ${chat.unread > 0 ? 'text-blue-500 font-bold' : 'text-slate-400'}`)}>
+                    <Text style={tw('text-base font-bold text-slate-900 dark:text-white')}>{chat.name}</Text>
+                    <Text style={tw(`text-xs ${chat.unread > 0 ? 'text-blue-500 font-bold' : 'text-slate-400 dark:text-slate-500'}`)}>
                       {chat.time}
                     </Text>
                   </View>
                   
                   <View style={tw('flex-row justify-between items-center')}>
-                    <Text style={tw(`text-sm flex-1 mr-4 ${chat.unread > 0 ? 'text-slate-800 font-medium' : 'text-slate-500'}`)} numberOfLines={1}>
+                    <Text style={tw(`text-sm flex-1 mr-4 ${chat.unread > 0 ? 'text-slate-800 dark:text-slate-100 font-medium' : 'text-slate-500 dark:text-slate-400 dark:text-slate-500'}`)} numberOfLines={1}>
                       {chat.lastMessage}
                     </Text>
                     {chat.unread > 0 && (

@@ -10,7 +10,7 @@ export function AboutUs() {
         </div>
 
         {/* Mission */}
-        <section className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
+        <section className="bg-white dark:bg-slate-900 rounded-lg border border-gray-200 p-6 mb-6">
           <h2 className="text-2xl font-bold text-gray-900 mb-4">🎯 Our Mission</h2>
           <p className="text-gray-700 leading-relaxed">
             We empower healthcare administrators with tools to manage doctor networks, verify credentials, 
@@ -20,7 +20,7 @@ export function AboutUs() {
         </section>
 
         {/* Core Values */}
-        <section className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
+        <section className="bg-white dark:bg-slate-900 rounded-lg border border-gray-200 p-6 mb-6">
           <h2 className="text-2xl font-bold text-gray-900 mb-4">💎 Core Values</h2>
           <div className="space-y-4">
             {[
@@ -59,7 +59,7 @@ export function AboutUs() {
         </section>
 
         {/* Admin Features */}
-        <section className="bg-white rounded-lg border border-gray-200 p-6">
+        <section className="bg-white dark:bg-slate-900 rounded-lg border border-gray-200 p-6">
           <h2 className="text-2xl font-bold text-gray-900 mb-4">🛠️ Admin Capabilities</h2>
           <div className="space-y-3">
             {[
