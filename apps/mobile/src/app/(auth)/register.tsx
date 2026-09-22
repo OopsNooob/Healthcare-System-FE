@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { View, Text, TextInput, TouchableOpacity, SafeAreaView, ScrollView, KeyboardAvoidingView, Platform, Alert, Image } from 'react-native';
 import { useSafeRouter as useRouter } from '@/utils/useSafeRouter';
 import Toast from 'react-native-toast-message';
-import { Mail, Lock, Plus, User, Phone, Briefcase, Stethoscope, Clock, UploadCloud } from 'lucide-react-native';
+import { Mail, Lock, Cross, User, Phone, Briefcase, Stethoscope, Clock, UploadCloud } from 'lucide-react-native';
 import { tw } from '@/tw';
 
 export default function RegisterScreen() {
@@ -56,7 +56,7 @@ export default function RegisterScreen() {
         {/* Logo area */}
         <View style={tw('flex-col items-center gap-2 mb-8')}>
           <View style={tw('flex-row items-center gap-2')}>
-            <Plus color="#10b981" size={32} />
+            <Cross color="#10b981" fill="#10b981" size={32} />
             <Text style={tw('text-3xl font-bold text-[#313A34] dark:text-slate-100')}>{t('mobile.healthcare', `Healthcare`)}</Text>
           </View>
           <Text style={tw('text-sm text-gray-500')}>{t('mobile.your_intelligent_telecare_ai_s', `Your intelligent telecare AI solutions. ✨`)}</Text>

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { View, Text, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { useSafeRouter as useRouter } from '@/utils/useSafeRouter';
-import { Plus, ArrowLeft } from 'lucide-react-native';
+import { Cross, ArrowLeft } from 'lucide-react-native';
 import { tw, twInstance } from '@/tw';
 
 export default function ConfirmOTPScreen() {
@@ -39,7 +39,7 @@ export default function ConfirmOTPScreen() {
         {/* Logo area */}
         <View style={tw('flex-col items-center gap-2 mb-10')}>
           <View style={tw('flex-row items-center gap-2')}>
-            <Plus color="#10b981" size={32} />
+            <Cross color="#10b981" fill="#10b981" size={32} />
             <Text style={tw('text-3xl font-bold text-[#313A34] dark:text-slate-100')}>{t('mobile.healthcare', `Healthcare`)}</Text>
           </View>
         </View>
