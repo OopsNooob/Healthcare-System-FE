@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { View, Text, ScrollView, TouchableOpacity, SafeAreaView, Image, TextInput, KeyboardAvoidingView, Platform, useColorScheme as useRNColorScheme } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useSafeRouter as useRouter } from '@/utils/useSafeRouter';
 import { Camera, Mail, Phone, MapPin, User, LogOut, Crown, ChevronRight } from 'lucide-react-native';
 import { useAppColorScheme } from 'twrnc';
 import { tw, twInstance } from '@/tw';

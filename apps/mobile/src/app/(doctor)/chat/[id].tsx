@@ -1,7 +1,8 @@
 import { useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { View, Text, TextInput, TouchableOpacity, SafeAreaView, KeyboardAvoidingView, Platform, ScrollView, Image, Modal } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
+import { useSafeRouter as useRouter } from '@/utils/useSafeRouter';
 import Toast from 'react-native-toast-message';
 import { ArrowLeft, Send, Activity, X, Info, ImagePlus, Paperclip, AlertTriangle, CheckCircle, Phone, Video } from 'lucide-react-native';
 import { tw, twInstance } from '@/tw';

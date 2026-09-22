@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { View, Text, TextInput, TouchableOpacity, SafeAreaView, ScrollView, KeyboardAvoidingView, Platform, Alert, Image } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useSafeRouter as useRouter } from '@/utils/useSafeRouter';
 import Toast from 'react-native-toast-message';
 import { Mail, Lock, Plus, User, Phone, Briefcase, Stethoscope, Clock, UploadCloud } from 'lucide-react-native';
 import { tw } from '@/tw';
@@ -23,14 +23,28 @@ export default function RegisterScreen() {
   const [specialty, setSpecialty] = useState('');
   const [workplace, setWorkplace] = useState('');
   const [experience, setExperience] = useState('');
+  
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleRegister = () => {
+    if (isLoading) return;
+    setIsLoading(true);
     // Mock register logic
-    if (role === 'doctor') {
-      router.replace('/(doctor)');
-    } else {
-      router.replace('/(patient)');
-    }
+    setTimeout(() => {
+      setIsLoading(false);
+      if (role === 'doctor') {
+        router.replace('/(doctor)');
+      } else {
+        router.replace('/(patient)');
+      }
+    }, 500);
+  };
+
+  const handleNavigate = (path: any) => {
+    if (isLoading) return;
+    setIsLoading(true);
+    router.push(path);
+    setTimeout(() => setIsLoading(false), 500);
   };
 
   return (
@@ -58,12 +72,14 @@ export default function RegisterScreen() {
             <TouchableOpacity 
               style={tw(`flex-1 py-2 items-center rounded-lg ${role === 'patient' ? 'bg-white dark:bg-slate-900 shadow-sm' : ''}`)}
               onPress={() => setRole('patient')}
+              disabled={isLoading}
             >
               <Text style={tw(`font-medium ${role === 'patient' ? 'text-emerald-600' : 'text-gray-500'}`)}>{t('mobile.patient', `Patient`)}</Text>
             </TouchableOpacity>
             <TouchableOpacity 
               style={tw(`flex-1 py-2 items-center rounded-lg ${role === 'doctor' ? 'bg-white dark:bg-slate-900 shadow-sm' : ''}`)}
               onPress={() => setRole('doctor')}
+              disabled={isLoading}
             >
               <Text style={tw(`font-medium ${role === 'doctor' ? 'text-emerald-600' : 'text-gray-500'}`)}>{t('mobile.doctor', `Doctor`)}</Text>
             </TouchableOpacity>
@@ -234,7 +250,11 @@ export default function RegisterScreen() {
                   </View>
                   <Text style={tw('text-xs text-gray-500 mb-2')}>{t('mobile.required_to_activate_your_acco', `Required to activate your account`)}</Text>
                   
-                  <TouchableOpacity onPress={() => Toast.show({ type: 'info', text1: 'Info', text2: 'Select verification documents to upload' })} style={tw('border border-dashed border-gray-300 rounded-2xl bg-gray-50 py-6 items-center')}>
+                  <TouchableOpacity 
+                    onPress={() => Toast.show({ type: 'info', text1: 'Info', text2: 'Select verification documents to upload' })} 
+                    style={tw('border border-dashed border-gray-300 rounded-2xl bg-gray-50 py-6 items-center')}
+                    disabled={isLoading}
+                  >
                     <View style={tw('bg-gray-200 p-3 rounded-full mb-2')}>
                       <UploadCloud color="#9ca3af" size={24} />
                     </View>
@@ -248,15 +268,17 @@ export default function RegisterScreen() {
 
             {/* Submit Button */}
             <TouchableOpacity 
-              style={tw('h-12 w-full bg-emerald-500 rounded-2xl items-center justify-center mt-6')}
+              style={tw(`h-12 w-full mt-4 rounded-2xl items-center justify-center ${isLoading ? 'bg-emerald-400' : 'bg-emerald-500'}`)}
               onPress={handleRegister}
+              disabled={isLoading}
             >
-              <Text style={tw('text-white text-base font-semibold')}>{t('mobile.create_account', `Create account`)}</Text>
+              <Text style={tw('text-white text-base font-semibold')}>{isLoading ? t('mobile.loading', 'Loading...') : t('mobile.sign_up', `Sign up`)}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity 
               style={tw('mt-4 items-center')}
-              onPress={() => router.push('/(auth)/login')}
+              onPress={() => handleNavigate('/(auth)/login')}
+              disabled={isLoading}
             >
               <Text style={tw('text-sm text-gray-500')}>
                 {t('mobile.already_have_account', 'Already have an account?')} <Text style={tw('font-medium text-emerald-500')}>{t('mobile.log_in', `Log in`)}</Text>

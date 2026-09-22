@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { View, Text, TextInput, TouchableOpacity, Image, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useSafeRouter as useRouter } from '@/utils/useSafeRouter';
 import { Mail, Lock, Plus } from 'lucide-react-native';
 import { tw } from '@/tw';
 
@@ -12,14 +12,27 @@ export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleLogin = () => {
+    if (isLoading) return;
+    setIsLoading(true);
     // Mock login logic
-    if (email.toLowerCase().includes('doctor')) {
-      router.replace('/(doctor)');
-    } else {
-      router.replace('/(patient)');
-    }
+    setTimeout(() => {
+      setIsLoading(false);
+      if (email.toLowerCase().includes('doctor')) {
+        router.replace('/(doctor)');
+      } else {
+        router.replace('/(patient)');
+      }
+    }, 500);
+  };
+
+  const handleNavigate = (path: any) => {
+    if (isLoading) return;
+    setIsLoading(true);
+    router.push(path);
+    setTimeout(() => setIsLoading(false), 500);
   };
 
   return (
@@ -80,6 +93,7 @@ export default function LoginScreen() {
               <TouchableOpacity 
                 style={tw('flex-row items-center gap-2')}
                 onPress={() => setRememberMe(!rememberMe)}
+                disabled={isLoading}
               >
                 <View style={tw(`w-5 h-5 rounded border ${rememberMe ? 'bg-emerald-500 border-emerald-500 items-center justify-center' : 'border-gray-300'}`)}>
                   {rememberMe && <Text style={tw('text-white text-xs')}>{t('mobile.', '✓')}</Text>}
@@ -87,22 +101,24 @@ export default function LoginScreen() {
                 <Text style={tw('text-sm text-gray-500')}>{t('mobile.remember_me', `Remember me`)}</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity onPress={() => router.push('/(auth)/forgot-password')}>
+              <TouchableOpacity onPress={() => handleNavigate('/(auth)/forgot-password')} disabled={isLoading}>
                 <Text style={tw('text-sm font-medium text-emerald-500')}>{t('mobile.forget_your_password', `Forget your password?`)}</Text>
               </TouchableOpacity>
             </View>
 
             {/* Submit Button */}
             <TouchableOpacity 
-              style={tw('h-12 w-full bg-emerald-500 rounded-2xl items-center justify-center')}
+              style={tw(`h-12 w-full ${isLoading ? 'bg-emerald-400' : 'bg-emerald-500'} rounded-2xl items-center justify-center`)}
               onPress={handleLogin}
+              disabled={isLoading}
             >
-              <Text style={tw('text-white text-base font-semibold')}>{t('mobile.log_in', `Log in`)}</Text>
+              <Text style={tw('text-white text-base font-semibold')}>{isLoading ? t('mobile.loading', 'Loading...') : t('mobile.log_in', `Log in`)}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity 
               style={tw('mt-4 items-center')}
-              onPress={() => router.push('/(auth)/register')}
+              onPress={() => handleNavigate('/(auth)/register')}
+              disabled={isLoading}
             >
               <Text style={tw('text-sm text-gray-500')}>
                 {t('mobile.dont_have_account', "Don't have an account?")} <Text style={tw('font-medium text-emerald-500')}>{t('mobile.create_an_account', `Create an account`)}</Text>

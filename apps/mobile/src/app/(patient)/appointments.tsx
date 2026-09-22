@@ -4,7 +4,7 @@ import { View, Text, ScrollView, TouchableOpacity, SafeAreaView, RefreshControl,
 import Toast from 'react-native-toast-message';
 import { Calendar, Clock, Video, MessageCircle, MapPin, AlertCircle, X, Check, CalendarX2 } from 'lucide-react-native';
 import { tw } from '@/tw';
-import { useRouter } from 'expo-router';
+import { useSafeRouter as useRouter } from '@/utils/useSafeRouter';
 import { useThemeContext } from '@/context/ThemeContext';
 
 export default function AppointmentsScreen() {
@@ -80,21 +80,25 @@ export default function AppointmentsScreen() {
   };
 
   const handleCancel = (id: string) => {
-    Alert.alert('Cancel Appointment', 'Are you sure you want to cancel this appointment?', [
-      { text: 'No', style: 'cancel' },
-      { 
-        text: 'Yes, Cancel', 
-        style: 'destructive',
-        onPress: () => {
-          setUpcomingList(prev => prev.filter(apt => apt.id !== id));
-          Toast.show({
-            type: 'success',
-            text1: 'Success',
-            text2: 'Appointment cancelled successfully'
-          });
+    Alert.alert(
+      t('mobile.cancel_appointment', 'Cancel Appointment'), 
+      t('mobile.cancel_appointment_confirm', 'Are you sure you want to cancel this appointment?'), 
+      [
+        { text: t('mobile.no', 'No'), style: 'cancel' },
+        { 
+          text: t('mobile.yes_cancel', 'Yes, Cancel'), 
+          style: 'destructive',
+          onPress: () => {
+            setUpcomingList(prev => prev.filter(apt => apt.id !== id));
+            Toast.show({
+              type: 'success',
+              text1: t('mobile.success', 'Success'),
+              text2: t('mobile.appointment_cancelled_success', 'Appointment cancelled successfully')
+            });
+          }
         }
-      }
-    ]);
+      ]
+    );
   };
 
   const renderSkeleton = () => (

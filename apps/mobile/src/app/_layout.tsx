@@ -24,6 +24,24 @@ const queryClient = new QueryClient({
   },
 });
 
+const CustomDarkTheme = {
+  ...DarkTheme,
+  colors: {
+    ...DarkTheme.colors,
+    card: '#0f172a',
+    border: '#1e293b',
+  },
+};
+
+const CustomDefaultTheme = {
+  ...DefaultTheme,
+  colors: {
+    ...DefaultTheme.colors,
+    card: '#ffffff',
+    border: '#f1f5f9',
+  },
+};
+
 export default function RootLayout() {
   useDeviceContext(twInstance);
   const [colorScheme] = useAppColorScheme(twInstance);
@@ -46,7 +64,7 @@ export default function RootLayout() {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeContext.Provider value={{ colorScheme: activeScheme }}>
-        <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+        <ThemeProvider value={colorScheme === 'dark' ? CustomDarkTheme : CustomDefaultTheme}>
           <Stack screenOptions={{ headerShown: false }}>
             <Stack.Screen name="(auth)" options={{ headerShown: false }} />
             <Stack.Screen name="(patient)" options={{ headerShown: false }} />

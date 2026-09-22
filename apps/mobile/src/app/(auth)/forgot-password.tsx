@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { View, Text, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useSafeRouter as useRouter } from '@/utils/useSafeRouter';
 import { Mail, Plus, ArrowLeft } from 'lucide-react-native';
 import { tw, twInstance } from '@/tw';
 
@@ -10,10 +10,23 @@ export default function ForgotPasswordScreen() {
 
   const router = useRouter();
   const [email, setEmail] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleReset = () => {
+    if (isLoading) return;
+    setIsLoading(true);
     // Mock navigating to OTP screen
-    router.push('/(auth)/confirm-otp');
+    setTimeout(() => {
+      setIsLoading(false);
+      router.push('/(auth)/confirm-otp');
+    }, 500);
+  };
+
+  const handleNavigate = (path: any) => {
+    if (isLoading) return;
+    setIsLoading(true);
+    router.push(path);
+    setTimeout(() => setIsLoading(false), 500);
   };
 
   return (
@@ -63,15 +76,17 @@ export default function ForgotPasswordScreen() {
 
             {/* Submit Button */}
             <TouchableOpacity 
-              style={tw('h-12 w-full bg-emerald-500 rounded-2xl items-center justify-center mt-4')}
+              style={tw(`h-12 w-full mt-4 rounded-2xl items-center justify-center ${isLoading ? 'bg-emerald-400' : 'bg-emerald-500'}`)}
               onPress={handleReset}
+              disabled={isLoading}
             >
-              <Text style={tw('text-white text-base font-semibold')}>{t('mobile.send_otp', `Send OTP`)}</Text>
+              <Text style={tw('text-white text-base font-semibold')}>{isLoading ? t('mobile.loading', 'Loading...') : t('mobile.send_otp', `Send OTP`)}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity 
               style={tw('mt-4 items-center')}
-              onPress={() => router.push('/(auth)/login')}
+              onPress={() => handleNavigate('/(auth)/login')}
+              disabled={isLoading}
             >
               <Text style={tw('text-sm text-gray-500')}>
                 {t('mobile.remember_your_password', 'Remember your password?')} <Text style={tw('font-medium text-emerald-500')}>{t('mobile.log_in', `Log in`)}</Text>

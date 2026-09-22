@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { View, Text, ScrollView, TouchableOpacity, SafeAreaView, Platform, Alert, Image } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useSafeRouter as useRouter } from '@/utils/useSafeRouter';
 import Toast from 'react-native-toast-message';
 import { Crown, CheckCircle2, ArrowRight, ShieldCheck, Zap } from 'lucide-react-native';
 import { tw } from '@/tw';

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { View, Text, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useSafeRouter as useRouter } from '@/utils/useSafeRouter';
 import { Lock, Plus, ArrowLeft } from 'lucide-react-native';
 import { tw, twInstance } from '@/tw';
 
@@ -11,10 +11,16 @@ export default function ChangePasswordScreen() {
   const router = useRouter();
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleChangePassword = () => {
+    if (isLoading) return;
+    setIsLoading(true);
     // Mock navigating back to login
-    router.replace('/(auth)/login');
+    setTimeout(() => {
+      setIsLoading(false);
+      router.replace('/(auth)/login');
+    }, 500);
   };
 
   return (
@@ -52,7 +58,7 @@ export default function ChangePasswordScreen() {
                 <Lock color="#9ca3af" size={20} />
                 <TextInput
                   style={tw('flex-1 ml-3 text-base text-gray-900 dark:text-gray-100')}
-                  placeholder="Enter new password"
+                  placeholder={t('mobile.enter_new_password', 'Enter new password')}
                   placeholderTextColor="#9ca3af"
                   value={password}
                   onChangeText={setPassword}
@@ -68,7 +74,7 @@ export default function ChangePasswordScreen() {
                 <Lock color="#9ca3af" size={20} />
                 <TextInput
                   style={tw('flex-1 ml-3 text-base text-gray-900 dark:text-gray-100')}
-                  placeholder="Confirm new password"
+                  placeholder={t('mobile.confirm_new_password', 'Confirm new password')}
                   placeholderTextColor="#9ca3af"
                   value={confirmPassword}
                   onChangeText={setConfirmPassword}
@@ -79,10 +85,11 @@ export default function ChangePasswordScreen() {
 
             {/* Submit Button */}
             <TouchableOpacity 
-              style={tw('h-12 w-full bg-emerald-500 rounded-2xl items-center justify-center mt-4')}
+              style={tw(`h-12 w-full mt-4 rounded-2xl items-center justify-center ${isLoading ? 'bg-emerald-400' : 'bg-emerald-500'}`)}
               onPress={handleChangePassword}
+              disabled={isLoading}
             >
-              <Text style={tw('text-white text-base font-semibold')}>{t('mobile.change_password', `Change Password`)}</Text>
+              <Text style={tw('text-white text-base font-semibold')}>{isLoading ? t('mobile.loading', 'Loading...') : t('mobile.change_password', `Change Password`)}</Text>
             </TouchableOpacity>
           </View>
         </View>

@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { View, Text, TouchableOpacity, SafeAreaView, Image, StatusBar } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useSafeRouter as useRouter } from '@/utils/useSafeRouter';
 import { MicOff, Video, PhoneOff, Maximize, MessageCircle, FileText } from 'lucide-react-native';
 import { tw } from '@/tw';
 
@@ -54,15 +54,15 @@ export default function DoctorVideoCallScreen() {
 
           {/* Controls */}
           <View style={tw('flex-row justify-between items-center bg-black/60 p-6 rounded-full')}>
-            <TouchableOpacity style={tw('w-12 h-12 rounded-full bg-white dark:bg-slate-900/20 items-center justify-center')}>
+            <TouchableOpacity style={tw('w-12 h-12 rounded-full bg-white/20 dark:bg-slate-900/20 items-center justify-center')}>
               <MicOff color="#ffffff" size={24} />
             </TouchableOpacity>
             
-            <TouchableOpacity style={tw('w-12 h-12 rounded-full bg-white dark:bg-slate-900/20 items-center justify-center')}>
+            <TouchableOpacity style={tw('w-12 h-12 rounded-full bg-white/20 dark:bg-slate-900/20 items-center justify-center')}>
               <Video color="#ffffff" size={24} />
             </TouchableOpacity>
             
-            <TouchableOpacity style={tw('w-12 h-12 rounded-full bg-white dark:bg-slate-900/20 items-center justify-center')}>
+            <TouchableOpacity style={tw('w-12 h-12 rounded-full bg-white/20 dark:bg-slate-900/20 items-center justify-center')}>
               <MessageCircle color="#ffffff" size={24} />
             </TouchableOpacity>
             

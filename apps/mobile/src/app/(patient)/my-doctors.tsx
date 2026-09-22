@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { View, Text, TouchableOpacity, ScrollView, TextInput, Image, RefreshControl, Modal, SafeAreaView, Platform, KeyboardAvoidingView, Alert } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
+import { useSafeRouter as useRouter } from '@/utils/useSafeRouter';
 import Toast from 'react-native-toast-message';
 import { Star, MessageCircle, Video, MapPin, Search, ArrowRight, X, Clock, ShieldCheck, Mail, Phone, Calendar, UserX } from 'lucide-react-native';
 import { tw } from '@/tw';
@@ -62,7 +63,8 @@ export default function MyDoctorsScreen() {
     }
   ]);
 
-  const [searchQuery, setSearchQuery] = useState('');
+  const params = useLocalSearchParams<{ search?: string }>();
+  const [searchQuery, setSearchQuery] = useState(params.search || '');
   const [selectedDoctor, setSelectedDoctor] = useState<any>(null);
   const [profileModalVisible, setProfileModalVisible] = useState(false);
   const [requestModalVisible, setRequestModalVisible] = useState(false);

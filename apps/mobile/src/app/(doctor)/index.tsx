@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { View, Text, ScrollView, TouchableOpacity, SafeAreaView, Dimensions, Switch, RefreshControl } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useSafeRouter as useRouter } from '@/utils/useSafeRouter';
 import { Users, Calendar as CalendarIcon, Clock, TrendingUp, Bell, Power } from 'lucide-react-native';
 import { LineChart } from 'react-native-chart-kit';
 import { tw, twInstance } from '@/tw';

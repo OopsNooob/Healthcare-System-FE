@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { View, Text, ScrollView, TouchableOpacity, SafeAreaView, Image } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useSafeRouter as useRouter } from '@/utils/useSafeRouter';
 import { Search } from 'lucide-react-native';
 import { tw, twInstance } from '@/tw';
 

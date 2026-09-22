@@ -6,6 +6,7 @@
     "@expo/metro-runtime": "^57.0.16",
     "@healthcare/api-client": "workspace:*",
     "@react-native-async-storage/async-storage": "^3.1.1",
+    "@react-native-community/datetimepicker": "^9.2.1",
     "@repo/shared-hooks": "workspace:*",
     "@repo/shared-types": "workspace:*",
     "@tanstack/react-query": "^5.102.8",

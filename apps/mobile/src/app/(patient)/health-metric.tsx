@@ -3,15 +3,15 @@ import { useTranslation } from 'react-i18next';
 import { View, Text, ScrollView, TouchableOpacity, SafeAreaView, Modal, TextInput, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import { Activity, Heart, Droplet, Plus, Edit2, Trash2, Bot, X } from 'lucide-react-native';
 import { tw } from '@/tw';
-import { useRouter } from 'expo-router';
+import { useSafeRouter as useRouter } from '@/utils/useSafeRouter';
 import Toast from 'react-native-toast-message';
 import { useThemeContext } from '@/context/ThemeContext';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 type MetricEntry = {
   id: string;
   value: string;
-  time: string;
-  date: string;
+  timestamp: number;
 };
 
 type Metric = {
@@ -37,8 +37,8 @@ export default function HealthMetricScreen() {
       icon: <Heart color="#ef4444" size={24} />,
       bg: 'bg-red-50',
       entries: [
-        { id: '1', value: '72', time: '10:00 AM', date: 'Oct 12, 2023' },
-        { id: '2', value: '75', time: '02:00 PM', date: 'Oct 11, 2023' },
+        { id: '1', value: '72', timestamp: new Date(2023, 9, 12, 10, 0).getTime() },
+        { id: '2', value: '75', timestamp: new Date(2023, 9, 11, 14, 0).getTime() },
       ],
     },
     {
@@ -48,7 +48,7 @@ export default function HealthMetricScreen() {
       icon: <Activity color="#3b82f6" size={24} />,
       bg: 'bg-blue-50',
       entries: [
-        { id: '3', value: '120/80', time: '09:00 AM', date: 'Oct 12, 2023' },
+        { id: '3', value: '120/80', timestamp: new Date(2023, 9, 12, 9, 0).getTime() },
       ],
     },
     {
@@ -58,7 +58,7 @@ export default function HealthMetricScreen() {
       icon: <Droplet color="#f59e0b" size={24} />,
       bg: 'bg-yellow-50',
       entries: [
-        { id: '4', value: '95', time: '08:00 AM', date: 'Oct 12, 2023' },
+        { id: '4', value: '95', timestamp: new Date(2023, 9, 12, 8, 0).getTime() },
       ],
     }
   ]);
@@ -69,23 +69,34 @@ export default function HealthMetricScreen() {
   const [modalVisible, setModalVisible] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [formValue, setFormValue] = useState('');
-  const [formTime, setFormTime] = useState('');
-  const [formDate, setFormDate] = useState('');
+  const [formDateObj, setFormDateObj] = useState(new Date());
+  const [showPicker, setShowPicker] = useState(false);
+  const [pickerMode, setPickerMode] = useState<'date' | 'time'>('date');
+
+  const { i18n } = useTranslation();
+  const isVi = i18n.language === 'vi';
+
+  const formatTime = (date: Date) => {
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+  const formatDate = (date: Date) => {
+    if (isVi) {
+      return `Ngày ${date.getDate()} Thg ${date.getMonth() + 1}, ${date.getFullYear()}`;
+    }
+    return date.toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
+  };
 
   const openAddModal = () => {
     setEditId(null);
     setFormValue('');
-    const now = new Date();
-    setFormTime(now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
-    setFormDate(now.toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }));
+    setFormDateObj(new Date());
     setModalVisible(true);
   };
 
   const openEditModal = (entry: MetricEntry) => {
     setEditId(entry.id);
     setFormValue(entry.value);
-    setFormTime(entry.time);
-    setFormDate(entry.date);
+    setFormDateObj(new Date(entry.timestamp));
     setModalVisible(true);
   };
 
@@ -108,11 +119,11 @@ export default function HealthMetricScreen() {
   };
 
   const handleSave = () => {
-    if (!formValue.trim() || !formTime.trim() || !formDate.trim()) {
+    if (!formValue.trim()) {
       Toast.show({
         type: 'error',
-        text1: 'Error',
-        text2: 'Please fill in all fields'
+        text1: t('mobile.error', 'Error'),
+        text2: t('mobile.please_fill_all', 'Please fill in all fields')
       });
       return;
     }
@@ -122,12 +133,12 @@ export default function HealthMetricScreen() {
         if (editId) {
           return {
             ...m,
-            entries: m.entries.map(e => e.id === editId ? { ...e, value: formValue, time: formTime, date: formDate } : e)
+            entries: m.entries.map(e => e.id === editId ? { ...e, value: formValue, timestamp: formDateObj.getTime() } : e)
           };
         } else {
           return {
             ...m,
-            entries: [{ id: Date.now().toString(), value: formValue, time: formTime, date: formDate }, ...m.entries]
+            entries: [{ id: Date.now().toString(), value: formValue, timestamp: formDateObj.getTime() }, ...m.entries]
           };
         }
       }
@@ -137,13 +148,15 @@ export default function HealthMetricScreen() {
     setModalVisible(false);
     Toast.show({
       type: 'success',
-      text1: 'Success',
-      text2: editId ? 'Entry updated successfully' : 'New entry added'
+      text1: t('mobile.success', 'Success'),
+      text2: editId ? t('mobile.entry_updated', 'Entry updated successfully') : t('mobile.new_entry_added', 'New entry added')
     });
   };
 
   const handleAskAI = (entry: MetricEntry) => {
-    const prompt = `Đánh giá giúp tôi chỉ số ${selectedMetric.title} là ${entry.value} ${selectedMetric.unit} vừa đo lúc ${entry.time} ngày ${entry.date} có sao không?`;
+    const timeStr = formatTime(new Date(entry.timestamp));
+    const dateStr = formatDate(new Date(entry.timestamp));
+    const prompt = isVi ? `Đánh giá giúp tôi chỉ số ${selectedMetric.title} là ${entry.value} ${selectedMetric.unit} vừa đo lúc ${timeStr} ngày ${dateStr} có sao không?` : `Please evaluate my ${selectedMetric.title} which is ${entry.value} ${selectedMetric.unit} measured at ${timeStr} on ${dateStr}. Is it okay?`;
     router.push({
       pathname: '/(patient)/ai-chat',
       params: { prefill: prompt }
@@ -207,9 +220,9 @@ export default function HealthMetricScreen() {
               <View style={tw('flex-row justify-between items-start mb-3')}>
                 <View>
                   <Text style={tw('text-2xl font-bold text-slate-900 dark:text-white')}>
-                    {entry.value} <Text style={tw('text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500 font-medium')}>{selectedMetric.unit}</Text>
+                    {entry.value} <Text style={tw('text-sm text-slate-500 dark:text-slate-400 font-medium')}>{selectedMetric.unit}</Text>
                   </Text>
-                  <Text style={tw('text-xs text-slate-400 dark:text-slate-500 mt-1')}>{entry.time} • {entry.date}</Text>
+                  <Text style={tw('text-xs text-slate-400 dark:text-slate-500 mt-1')}>{formatTime(new Date(entry.timestamp))} • {formatDate(new Date(entry.timestamp))}</Text>
                 </View>
                 <View style={tw('flex-row gap-2')}>
                   <TouchableOpacity onPress={() => handleDelete(entry.id)} style={tw('w-8 h-8 bg-red-50 rounded-full items-center justify-center')}>
@@ -267,23 +280,35 @@ export default function HealthMetricScreen() {
               <View style={tw('flex-row gap-4')}>
                 <View style={tw('flex-1')}>
                   <Text style={tw('text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2')}>{t('mobile.time', `Time`)}</Text>
-                  <TextInput
-                    value={formTime}
-                    onChangeText={setFormTime}
-                    placeholder="10:00 AM"
-                    style={tw('bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-slate-900 dark:text-white font-medium')}
-                  />
+                  <TouchableOpacity
+                    onPress={() => { setPickerMode('time'); setShowPicker(true); }}
+                    style={tw('bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3')}
+                  >
+                    <Text style={tw('text-slate-900 dark:text-white font-medium')}>{formatTime(formDateObj)}</Text>
+                  </TouchableOpacity>
                 </View>
                 <View style={tw('flex-1')}>
                   <Text style={tw('text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2')}>{t('mobile.date', `Date`)}</Text>
-                  <TextInput
-                    value={formDate}
-                    onChangeText={setFormDate}
-                    placeholder="Oct 12, 2023"
-                    style={tw('bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-slate-900 dark:text-white font-medium')}
-                  />
+                  <TouchableOpacity
+                    onPress={() => { setPickerMode('date'); setShowPicker(true); }}
+                    style={tw('bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3')}
+                  >
+                    <Text style={tw('text-slate-900 dark:text-white font-medium')}>{formatDate(formDateObj)}</Text>
+                  </TouchableOpacity>
                 </View>
               </View>
+
+              {showPicker && (
+                <DateTimePicker
+                  value={formDateObj}
+                  mode={pickerMode}
+                  is24Hour={false}
+                  onChange={(event, selectedDate) => {
+                    setShowPicker(false);
+                    if (selectedDate) setFormDateObj(selectedDate);
+                  }}
+                />
+              )}
 
               <TouchableOpacity 
                 onPress={handleSave}

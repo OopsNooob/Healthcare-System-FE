@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { View, Text, ScrollView, TouchableOpacity, Image, TextInput, SafeAreaView, RefreshControl } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useSafeRouter as useRouter } from '@/utils/useSafeRouter';
 import { Search, Bell, Calendar, ChevronRight, Star, Heart, Activity, Crown } from 'lucide-react-native';
 import { tw, twInstance } from '@/tw';
 import { useThemeContext } from '@/context/ThemeContext';
@@ -25,13 +25,15 @@ export default function PatientHomeScreen() {
     image: 'https://i.pravatar.cc/150?img=1',
   };
 
+  const [searchText, setSearchText] = useState('');
+
   const specialties = [
-    { id: 1, name: 'Cardiology', icon: '❤️', color: 'bg-red-100' },
-    { id: 2, name: 'Dental', icon: '🦷', color: 'bg-blue-100' },
-    { id: 3, name: 'Eye Care', icon: '👁️', color: 'bg-emerald-100' },
-    { id: 4, name: 'Neurology', icon: '🧠', color: 'bg-purple-100' },
-    { id: 5, name: 'Pediatric', icon: '👶', color: 'bg-yellow-100' },
-    { id: 6, name: 'Nutrition', icon: '🥗', color: 'bg-orange-100' },
+    { id: 1, name: t('mobile.cardiology', 'Cardiology'), icon: '❤️', color: 'bg-red-100', query: 'Cardiolog' },
+    { id: 2, name: t('mobile.dental', 'Dental'), icon: '🦷', color: 'bg-blue-100', query: 'Dent' },
+    { id: 3, name: t('mobile.eye_care', 'Eye Care'), icon: '👁️', color: 'bg-emerald-100', query: 'Eye' },
+    { id: 4, name: t('mobile.neurology', 'Neurology'), icon: '🧠', color: 'bg-purple-100', query: 'Neurolog' },
+    { id: 5, name: t('mobile.pediatric', 'Pediatric'), icon: '👶', color: 'bg-yellow-100', query: 'Pediatric' },
+    { id: 6, name: t('mobile.nutrition', 'Nutrition'), icon: '🥗', color: 'bg-orange-100', query: 'Nutrition' },
   ];
 
   const topDoctors = [
@@ -93,6 +95,9 @@ export default function PatientHomeScreen() {
               style={tw('flex-1 ml-3 text-base text-gray-900 dark:text-gray-100')}
               placeholder={t('mobile.search_doctor_specialties', 'Search doctor, specialties...')}
               placeholderTextColor="#9ca3af"
+              value={searchText}
+              onChangeText={setSearchText}
+              onSubmitEditing={() => router.push({ pathname: '/(patient)/my-doctors', params: { search: searchText } })}
             />
           </View>
         </View>
@@ -111,7 +116,7 @@ export default function PatientHomeScreen() {
               <Text style={tw('text-amber-50 text-sm leading-tight')}>{t('mobile.unlimited_ai_chats_priority_do', `Unlimited AI chats & priority doctor queue`)}</Text>
             </View>
             <View style={tw('bg-white dark:bg-slate-900/20 p-2 rounded-full')}>
-              <ChevronRight color="#ffffff" size={24} />
+              <ChevronRight color={twInstance.color('text-amber-500 dark:text-white')} size={24} />
             </View>
           </TouchableOpacity>
         </View>
@@ -160,7 +165,11 @@ export default function PatientHomeScreen() {
           <Text style={tw('text-lg font-bold text-[#313A34] dark:text-slate-100 mb-4')}>{t('mobile.specialties', `Specialties`)}</Text>
           <View style={tw('flex-row flex-wrap justify-between gap-y-4')}>
             {specialties.map((item) => (
-              <TouchableOpacity key={item.id} style={tw('w-[30%] items-center')}>
+              <TouchableOpacity 
+                key={item.id} 
+                style={tw('w-[30%] items-center')}
+                onPress={() => router.push({ pathname: '/(patient)/my-doctors', params: { search: item.query } })}
+              >
                 <View style={tw(`w-16 h-16 rounded-2xl ${item.color} items-center justify-center mb-2`)}>
                   <Text style={tw('text-2xl')}>{item.icon}</Text>
                 </View>

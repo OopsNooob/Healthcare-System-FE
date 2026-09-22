@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { View, Text, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useSafeRouter as useRouter } from '@/utils/useSafeRouter';
 import { Plus, ArrowLeft } from 'lucide-react-native';
 import { tw, twInstance } from '@/tw';
 
@@ -10,10 +10,16 @@ export default function ConfirmOTPScreen() {
 
   const router = useRouter();
   const [otp, setOtp] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleConfirm = () => {
+    if (isLoading) return;
+    setIsLoading(true);
     // Mock navigating to change password
-    router.push('/(auth)/change-password');
+    setTimeout(() => {
+      setIsLoading(false);
+      router.push('/(auth)/change-password');
+    }, 500);
   };
 
   return (
@@ -61,18 +67,24 @@ export default function ConfirmOTPScreen() {
 
             {/* Submit Button */}
             <TouchableOpacity 
-              style={tw('h-12 w-full bg-emerald-500 rounded-2xl items-center justify-center mt-4')}
+              style={tw(`h-12 w-full mt-4 rounded-2xl items-center justify-center ${isLoading ? 'bg-emerald-400' : 'bg-emerald-500'}`)}
               onPress={handleConfirm}
+              disabled={isLoading}
             >
-              <Text style={tw('text-white text-base font-semibold')}>{t('mobile.verify', `Verify`)}</Text>
+              <Text style={tw('text-white text-base font-semibold')}>{isLoading ? t('mobile.loading', 'Loading...') : t('mobile.verify', `Verify`)}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity 
               style={tw('mt-4 items-center')}
-              onPress={() => {}}
+              onPress={() => {
+                if (isLoading) return;
+                setIsLoading(true);
+                setTimeout(() => setIsLoading(false), 500);
+              }}
+              disabled={isLoading}
             >
               <Text style={tw('text-sm text-gray-500')}>
-                Didn't receive code? <Text style={tw('font-medium text-emerald-500')}>{t('mobile.resend', `Resend`)}</Text>
+                {t('mobile.didnt_receive_code', `Didn't receive code?`)} <Text style={tw('font-medium text-emerald-500')}>{t('mobile.resend', `Resend`)}</Text>
               </Text>
             </TouchableOpacity>
           </View>

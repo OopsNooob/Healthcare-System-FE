@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { View, Text, TouchableOpacity, SafeAreaView, Image } from 'react-native';
 import { PhoneOff, Phone, Video } from 'lucide-react-native';
 import { tw } from '@/tw';
-import { useRouter } from 'expo-router';
+import { useSafeRouter as useRouter } from '@/utils/useSafeRouter';
 
 export default function IncomingCallScreen() {
   const { t } = useTranslation();
