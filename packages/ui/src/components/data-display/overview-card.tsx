@@ -4,7 +4,7 @@ import { TrendingDown, TrendingUp } from "lucide-react";
 interface CardProps {
   title: string;
   icon?: ReactNode;
-  stats: number;
+  stats: number | string;
   subText?: string;
   comparedStats?: number;
   iconClassName?: string;
@@ -48,7 +48,7 @@ export function OverviewCard({
       </div>
 
       <p className="text-2xl font-bold leading-none text-slate-900">
-        {formatNumber(stats)}
+        {typeof stats === "number" ? formatNumber(stats) : stats}
       </p>
       <p className="mt-2 text-sm font-medium text-slate-700">{title}</p>
       <p className="mt-1 text-xs text-slate-500">{subText}</p>

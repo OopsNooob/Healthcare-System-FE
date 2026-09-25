@@ -16,6 +16,8 @@ import {
   PanelLeftOpen,
   CreditCard,
   Calendar,
+  Activity,
+  Building2,
 } from "lucide-react";
 import { cn } from "../lib/utils";
 import { UserAvatar } from "../components/ui/user-avatar";
@@ -85,6 +87,18 @@ const adminMenuItems = {
       path: "/doc-verification",
     },
     {
+      id: "care_program",
+      label: "sidebar.careProgram",
+      icon: Activity,
+      path: "/care-program",
+    },
+    {
+      id: "medical_facilities",
+      label: "sidebar.medicalFacilities",
+      icon: Building2,
+      path: "/medical-facilities",
+    },
+    {
       id: "ai_knowledge_base",
       label: "sidebar.aiKnowledgeBase",
       icon: BookOpen,
@@ -133,6 +147,18 @@ const adminMenuItems = {
       label: "sidebar.docVerification",
       icon: FileCheck,
       path: "/doc-verification",
+    },
+    {
+      id: "care_program",
+      label: "sidebar.careProgram",
+      icon: Activity,
+      path: "/care-program",
+    },
+    {
+      id: "medical_facilities",
+      label: "sidebar.medicalFacilities",
+      icon: Building2,
+      path: "/medical-facilities",
     },
     {
       id: "violation_reports",

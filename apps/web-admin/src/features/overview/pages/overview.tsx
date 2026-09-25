@@ -258,6 +258,78 @@ export function Overview() {
             height={460}
           />
         </div>
+
+        {/* Care Program KPIs Section */}
+        <div className="mt-8 border-t border-slate-200/70 dark:border-slate-800 pt-6">
+          <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-4">{t("overview.careProgramKPIs", "Care Program KPIs")}</h2>
+          
+          <ul className="m-0 grid w-full list-none grid-cols-1 gap-4 p-0 md:grid-cols-3">
+            <OverviewCard 
+              title={t("overview.adherenceRate", "Adherence Rate")}
+              icon={<UsersRound size={18} />}
+              stats="87%"
+              subText={t("overview.adherenceRateDesc", "Patient compliance to scheduled tasks")}
+              comparedStats={2.4}
+              iconClassName="bg-indigo-50 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400"
+            />
+            <OverviewCard 
+              title={t("overview.alertAckTime", "Alert Ack. Time")}
+              icon={<ShieldAlert size={18} />}
+              stats="14m"
+              subText={t("overview.alertAckTimeDesc", "Avg time for doctors to acknowledge urgent alerts")}
+              comparedStats={-1.5}
+              iconClassName="bg-rose-50 text-rose-600 dark:bg-rose-900/30 dark:text-rose-400"
+            />
+            <OverviewCard 
+              title={t("overview.followUpConversion", "Follow-up Conversion")}
+              icon={<Stethoscope size={18} />}
+              stats="64%"
+              subText={t("overview.followUpConversionDesc", "Conversion from alert to consultation")}
+              comparedStats={5.2}
+              iconClassName="bg-teal-50 text-teal-600 dark:bg-teal-900/30 dark:text-teal-400"
+            />
+          </ul>
+
+          <div className="mt-5 grid min-h-[130px] grid-cols-1 gap-4 xl:grid-cols-2">
+             <BarChart
+              title={t("overview.tierUsage", "Consultation & Tier Usage")}
+              subtitle={t("overview.tierUsageDesc", "Usage of AI & Consultations across Premium Tiers")}
+              labels={["Free", "Plus", "Care"]}
+              datasets={[
+                {
+                  label: "AI Sessions",
+                  data: [1200, 3500, 8000],
+                  backgroundColor: isDark ? "rgb(59, 130, 246)" : "rgb(96, 165, 250)",
+                  borderColor: isDark ? "rgb(59, 130, 246)" : "rgb(96, 165, 250)",
+                  borderRadius: 6,
+                },
+                {
+                  label: "Consultations",
+                  data: [100, 800, 2400],
+                  backgroundColor: isDark ? "rgb(16, 185, 129)" : "rgb(52, 211, 153)",
+                  borderColor: isDark ? "rgb(16, 185, 129)" : "rgb(52, 211, 153)",
+                  borderRadius: 6,
+                }
+              ]}
+              options={{
+                ...barOptions,
+                scales: {
+                  y: {
+                    beginAtZero: true,
+                    grid: { color: "rgba(148, 163, 184, 0.18)" },
+                    border: { display: false }
+                  },
+                  x: {
+                    grid: { display: false },
+                    border: { display: false }
+                  }
+                }
+              }}
+              className="xl:col-span-2"
+              height={300}
+            />
+          </div>
+        </div>
       </div>
     </div>
   );

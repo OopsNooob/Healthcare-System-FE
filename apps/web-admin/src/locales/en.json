@@ -34,6 +34,8 @@
       "premium": "Premium & Payments",
       "appointments": "Appointments",
       "violationReports": "Violation Reports",
+      "careProgram": "Care Program",
+      "medicalFacilities": "Medical Facilities",
       "mainMenu": "Main Menu"
     },
     "overview": {
@@ -54,7 +56,16 @@
       "doctors": "Doctors",
       "aiSessions": "AI Sessions",
       "consultations": "Consultations",
-      "reports": "Reports"
+      "reports": "Reports",
+      "careProgramKPIs": "Care Program KPIs",
+      "adherenceRate": "Adherence Rate",
+      "adherenceRateDesc": "Patient compliance to scheduled tasks",
+      "alertAckTime": "Alert Ack. Time",
+      "alertAckTimeDesc": "Avg time for doctors to acknowledge urgent alerts",
+      "followUpConversion": "Follow-up Conversion",
+      "followUpConversionDesc": "Conversion from alert to consultation",
+      "tierUsage": "Consultation & Tier Usage",
+      "tierUsageDesc": "Usage of AI & Consultations across Premium Tiers"
     },
     "userManagement": {
       "title": "User & Doctor Management",

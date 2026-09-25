@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { View, Text, ScrollView, TouchableOpacity, SafeAreaView, Modal, TextInput, Alert, KeyboardAvoidingView, Platform } from 'react-native';
-import { Activity, Heart, Droplet, Plus, Edit2, Trash2, Bot, X } from 'lucide-react-native';
-import { tw } from '@/tw';
+import { View, Text, ScrollView, TouchableOpacity, SafeAreaView, Modal, TextInput, Alert, KeyboardAvoidingView, Platform, Linking } from 'react-native';
+import { Activity, Heart, Droplet, Plus, Edit2, Trash2, Bot, X, AlertTriangle, AlertCircle, PhoneCall, CheckCircle2 } from 'lucide-react-native';
+import { tw, twInstance } from '@/tw';
 import { useSafeRouter as useRouter } from '@/utils/useSafeRouter';
 import Toast from 'react-native-toast-message';
 import { useThemeContext } from '@/context/ThemeContext';
@@ -31,22 +31,11 @@ export default function HealthMetricScreen() {
   
   const [metrics, setMetrics] = useState<Metric[]>([
     {
-      id: 'heart_rate',
-      title: t('mobile.heart_rate', 'Heart Rate'),
-      unit: 'bpm',
-      icon: <Heart color="#ef4444" size={24} />,
-      bg: 'bg-red-50',
-      entries: [
-        { id: '1', value: '72', timestamp: new Date(2023, 9, 12, 10, 0).getTime() },
-        { id: '2', value: '75', timestamp: new Date(2023, 9, 11, 14, 0).getTime() },
-      ],
-    },
-    {
       id: 'blood_pressure',
       title: t('mobile.blood_pressure', 'Blood Pressure'),
       unit: 'mmHg',
-      icon: <Activity color="#3b82f6" size={24} />,
-      bg: 'bg-blue-50',
+      icon: <Activity color={twInstance.color('text-blue-500')} size={24} />,
+      bg: 'bg-blue-100 dark:bg-blue-900/30',
       entries: [
         { id: '3', value: '120/80', timestamp: new Date(2023, 9, 12, 9, 0).getTime() },
       ],
@@ -55,15 +44,26 @@ export default function HealthMetricScreen() {
       id: 'blood_sugar',
       title: t('mobile.blood_sugar', 'Blood Sugar'),
       unit: 'mg/dL',
-      icon: <Droplet color="#f59e0b" size={24} />,
-      bg: 'bg-yellow-50',
+      icon: <Droplet color={twInstance.color('text-amber-500')} size={24} />,
+      bg: 'bg-amber-100 dark:bg-amber-900/30',
       entries: [
         { id: '4', value: '95', timestamp: new Date(2023, 9, 12, 8, 0).getTime() },
+      ],
+    },
+    {
+      id: 'heart_rate',
+      title: t('mobile.heart_rate', 'Heart Rate'),
+      unit: 'bpm',
+      icon: <Heart color={twInstance.color('text-rose-500')} size={24} />,
+      bg: 'bg-rose-100 dark:bg-rose-900/30',
+      entries: [
+        { id: '1', value: '72', timestamp: new Date(2023, 9, 12, 10, 0).getTime() },
+        { id: '2', value: '75', timestamp: new Date(2023, 9, 11, 14, 0).getTime() },
       ],
     }
   ]);
 
-  const [selectedMetricId, setSelectedMetricId] = useState<string>('heart_rate');
+  const [selectedMetricId, setSelectedMetricId] = useState<string>('blood_pressure');
   const selectedMetric = metrics.find(m => m.id === selectedMetricId) || metrics[0];
 
   const [modalVisible, setModalVisible] = useState(false);
@@ -72,6 +72,11 @@ export default function HealthMetricScreen() {
   const [formDateObj, setFormDateObj] = useState(new Date());
   const [showPicker, setShowPicker] = useState(false);
   const [pickerMode, setPickerMode] = useState<'date' | 'time'>('date');
+
+  // Care Alerts State (DA2)
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertType, setAlertType] = useState<'normal' | 'attention' | 'urgent'>('normal');
+  const [alertReason, setAlertReason] = useState('');
 
   const { i18n } = useTranslation();
   const isVi = i18n.language === 'vi';
@@ -101,10 +106,10 @@ export default function HealthMetricScreen() {
   };
 
   const handleDelete = (id: string) => {
-    Alert.alert('Delete Entry', 'Are you sure you want to delete this entry?', [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('mobile.delete_entry', 'Delete Entry'), t('mobile.confirm_delete', 'Are you sure you want to delete this entry?'), [
+      { text: t('mobile.cancel', 'Cancel'), style: 'cancel' },
       { 
-        text: 'Delete', 
+        text: t('mobile.delete', 'Delete'), 
         style: 'destructive',
         onPress: () => {
           setMetrics(prev => prev.map(m => {
@@ -128,6 +133,35 @@ export default function HealthMetricScreen() {
       return;
     }
 
+    // --- Mock Rule Engine for DA2 ---
+    let newAlertType: 'normal' | 'attention' | 'urgent' = 'normal';
+    let newAlertReason = '';
+
+    if (selectedMetricId === 'blood_pressure') {
+      const parts = formValue.split('/');
+      if (parts.length === 2) {
+        const sys = parseInt(parts[0]);
+        const dia = parseInt(parts[1]);
+        if (sys >= 180 || dia >= 120) {
+          newAlertType = 'urgent';
+          newAlertReason = `BP: ${sys}/${dia} mmHg. ` + t('mobile.reason_bp_urgent', 'Hypertensive crisis. Seek immediate medical attention.');
+        } else if (sys >= 140 || dia >= 90) {
+          newAlertType = 'attention';
+          newAlertReason = `BP: ${sys}/${dia} mmHg. ` + t('mobile.reason_bp_attention', 'High blood pressure. Monitor closely.');
+        }
+      }
+    } else if (selectedMetricId === 'blood_sugar') {
+      const val = parseFloat(formValue);
+      if (val < 70 || val >= 250) {
+        newAlertType = 'urgent';
+        newAlertReason = `BS: ${val} mg/dL. ` + t('mobile.reason_bs_urgent', 'Dangerous blood sugar level. Seek help.');
+      } else if (val < 80 || val > 130) {
+        newAlertType = 'attention';
+        newAlertReason = `BS: ${val} mg/dL. ` + t('mobile.reason_bs_attention', 'Blood sugar out of target range.');
+      }
+    }
+
+    // Save Data
     setMetrics(prev => prev.map(m => {
       if (m.id === selectedMetricId) {
         if (editId) {
@@ -138,7 +172,7 @@ export default function HealthMetricScreen() {
         } else {
           return {
             ...m,
-            entries: [{ id: Date.now().toString(), value: formValue, timestamp: formDateObj.getTime() }, ...m.entries]
+            entries: [{ id: Date.now().toString(), value: formValue, timestamp: formDateObj.getTime() }, ...m.entries].sort((a, b) => b.timestamp - a.timestamp)
           };
         }
       }
@@ -146,11 +180,19 @@ export default function HealthMetricScreen() {
     }));
     
     setModalVisible(false);
-    Toast.show({
-      type: 'success',
-      text1: t('mobile.success', 'Success'),
-      text2: editId ? t('mobile.entry_updated', 'Entry updated successfully') : t('mobile.new_entry_added', 'New entry added')
-    });
+
+    // Trigger Alert if not normal
+    if (newAlertType !== 'normal') {
+      setAlertType(newAlertType);
+      setAlertReason(newAlertReason);
+      setAlertVisible(true);
+    } else {
+      Toast.show({
+        type: 'success',
+        text1: t('mobile.success', 'Success'),
+        text2: editId ? t('mobile.entry_updated', 'Entry updated successfully') : t('mobile.new_entry_added', 'New entry added')
+      });
+    }
   };
 
   const handleAskAI = (entry: MetricEntry) => {
@@ -169,13 +211,13 @@ export default function HealthMetricScreen() {
       <View style={tw('flex-row justify-between items-center px-6 pt-6 pb-4')}>
         <View>
           <Text style={tw('text-2xl font-bold text-slate-900 dark:text-white')}>{t('mobile.health_metrics', `Health Metrics`)}</Text>
-          <Text style={tw('text-slate-500 dark:text-slate-400 dark:text-slate-500 text-sm mt-1')}>{t('mobile.track_your_daily_health_status', `Track your daily health status`)}</Text>
+          <Text style={tw('text-slate-500 dark:text-slate-400 text-sm mt-1')}>{t('mobile.track_your_daily_health_status', `Track your daily health status`)}</Text>
         </View>
         <TouchableOpacity 
           onPress={openAddModal}
-          style={tw('w-12 h-12 bg-brand-light rounded-full items-center justify-center')}
+          style={tw('w-12 h-12 bg-emerald-500 dark:bg-emerald-600 rounded-full items-center justify-center shadow-sm')}
         >
-          <Plus color="#a3e635" size={24} />
+          <Plus color="#ffffff" size={24} />
         </TouchableOpacity>
       </View>
 
@@ -188,12 +230,12 @@ export default function HealthMetricScreen() {
               <TouchableOpacity
                 key={metric.id}
                 onPress={() => setSelectedMetricId(metric.id)}
-                style={tw(`flex-row items-center gap-2 px-4 py-3 rounded-2xl border ${isSelected ? 'border-brand bg-brand-light' : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900'}`)}
+                style={tw(`flex-row items-center gap-2 px-4 py-3 rounded-2xl border ${isSelected ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/30' : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900'}`)}
               >
                 <View style={tw(`w-8 h-8 rounded-full ${metric.bg} items-center justify-center`)}>
                   {metric.icon}
                 </View>
-                <Text style={tw(`font-semibold ${isSelected ? 'text-brand' : 'text-slate-700 dark:text-slate-200'}`)}>
+                <Text style={tw(`font-semibold ${isSelected ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-700 dark:text-slate-200'}`)}>
                   {metric.title}
                 </Text>
               </TouchableOpacity>
@@ -204,7 +246,12 @@ export default function HealthMetricScreen() {
 
       {/* Entries List */}
       <ScrollView contentContainerStyle={tw('px-6 pb-20')} showsVerticalScrollIndicator={false}>
-        <Text style={tw('text-lg font-bold text-slate-900 dark:text-white mb-4')}>{t('mobile.recent_records', `Recent Records`)}</Text>
+        <View style={tw('flex-row justify-between items-end mb-4')}>
+          <Text style={tw('text-lg font-bold text-slate-900 dark:text-white')}>{t('mobile.recent_records', `Recent Records`)}</Text>
+          <TouchableOpacity onPress={() => router.push('/(patient)/reports')}>
+            <Text style={tw('text-sm text-emerald-600 dark:text-emerald-400 font-medium')}>{t('mobile.view_reports', 'View Reports ›')}</Text>
+          </TouchableOpacity>
+        </View>
         
         {selectedMetric.entries.length === 0 ? (
           <View style={tw('items-center justify-center py-12')}>
@@ -225,8 +272,8 @@ export default function HealthMetricScreen() {
                   <Text style={tw('text-xs text-slate-400 dark:text-slate-500 mt-1')}>{formatTime(new Date(entry.timestamp))} • {formatDate(new Date(entry.timestamp))}</Text>
                 </View>
                 <View style={tw('flex-row gap-2')}>
-                  <TouchableOpacity onPress={() => handleDelete(entry.id)} style={tw('w-8 h-8 bg-red-50 rounded-full items-center justify-center')}>
-                    <Trash2 color="#ef4444" size={16} />
+                  <TouchableOpacity onPress={() => handleDelete(entry.id)} style={tw('w-8 h-8 bg-red-50 dark:bg-red-900/30 rounded-full items-center justify-center')}>
+                    <Trash2 color={twInstance.color('text-red-500')} size={16} />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -234,10 +281,10 @@ export default function HealthMetricScreen() {
               {/* Ask AI Button */}
               <TouchableOpacity 
                 onPress={() => handleAskAI(entry)}
-                style={tw('flex-row items-center justify-center gap-2 bg-ai-light py-2 rounded-xl mt-1')}
+                style={tw('flex-row items-center justify-center gap-2 bg-indigo-50 dark:bg-indigo-900/30 py-2.5 rounded-xl mt-1 border border-indigo-100 dark:border-indigo-800/50')}
               >
-                <Bot color="#6366f1" size={18} />
-                <Text style={tw('text-ai font-bold text-sm')}>{t('mobile.ask_ai_about_this', `Ask AI about this`)}</Text>
+                <Bot color={twInstance.color('text-indigo-600 dark:text-indigo-400')} size={18} />
+                <Text style={tw('text-indigo-700 dark:text-indigo-300 font-bold text-sm')}>{t('mobile.ask_ai_about_this', `Ask AI about this`)}</Text>
               </TouchableOpacity>
             </TouchableOpacity>
           ))
@@ -253,15 +300,15 @@ export default function HealthMetricScreen() {
       >
         <KeyboardAvoidingView 
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={tw('flex-1 justify-end bg-black/40')}
+          style={tw('flex-1 justify-end bg-slate-900/40 dark:bg-black/60')}
         >
           <View style={tw('bg-white dark:bg-slate-900 rounded-t-3xl p-6')}>
             <View style={tw('flex-row justify-between items-center mb-6')}>
               <Text style={tw('text-xl font-bold text-slate-900 dark:text-white')}>
                 {editId ? t('mobile.edit_record', 'Edit Record') : t('mobile.add_record', 'Add Record')} - {selectedMetric.title}
               </Text>
-              <TouchableOpacity onPress={() => setModalVisible(false)}>
-                <X color="#64748b" size={24} />
+              <TouchableOpacity onPress={() => setModalVisible(false)} style={tw('p-2 bg-slate-100 dark:bg-slate-800 rounded-full')}>
+                <X color={twInstance.color('text-slate-500 dark:text-slate-400')} size={20} />
               </TouchableOpacity>
             </View>
 
@@ -312,14 +359,70 @@ export default function HealthMetricScreen() {
 
               <TouchableOpacity 
                 onPress={handleSave}
-                style={tw('bg-brand py-4 rounded-xl items-center mt-2')}
+                style={tw('bg-emerald-500 py-4 rounded-xl items-center mt-4')}
               >
-                <Text style={tw('text-slate-900 dark:text-white font-bold text-base')}>{t('mobile.save_record', `Save Record`)}</Text>
+                <Text style={tw('text-white font-bold text-base')}>{t('mobile.save_record', `Save Record`)}</Text>
               </TouchableOpacity>
             </View>
           </View>
         </KeyboardAvoidingView>
       </Modal>
+
+      {/* Care Alert Modal (DA2) */}
+      <Modal
+        visible={alertVisible}
+        animationType="fade"
+        transparent={true}
+        onRequestClose={() => setAlertVisible(false)}
+      >
+        <View style={tw('flex-1 justify-center items-center bg-slate-900/60 dark:bg-black/70 px-6')}>
+          <View style={tw('bg-white dark:bg-slate-900 rounded-3xl w-full overflow-hidden shadow-2xl')}>
+            {/* Header */}
+            <View style={tw(`p-6 items-center ${alertType === 'urgent' ? 'bg-red-50 dark:bg-red-900/30' : 'bg-amber-50 dark:bg-amber-900/30'}`)}>
+              {alertType === 'urgent' ? (
+                <AlertTriangle size={48} color={twInstance.color('text-red-500')} />
+              ) : (
+                <AlertCircle size={48} color={twInstance.color('text-amber-500')} />
+              )}
+              <Text style={tw(`text-xl font-bold mt-4 text-center ${alertType === 'urgent' ? 'text-red-600 dark:text-red-400' : 'text-amber-600 dark:text-amber-400'}`)}>
+                {alertType === 'urgent' ? t('mobile.alert_urgent', 'Khẩn Cấp!') : t('mobile.alert_attention', 'Cần Chú Ý!')}
+              </Text>
+            </View>
+            
+            {/* Content */}
+            <View style={tw('p-6')}>
+              <Text style={tw('text-slate-700 dark:text-slate-300 text-center text-base mb-4')}>
+                {alertReason}
+              </Text>
+
+              {/* Safety Instructions for Urgent */}
+              {alertType === 'urgent' && (
+                <View style={tw('bg-red-50 dark:bg-red-900/20 rounded-2xl p-4 mb-6 border border-red-100 dark:border-red-800/50')}>
+                  <Text style={tw('text-red-800 dark:text-red-300 font-bold mb-2')}>{t('mobile.safety_instructions', 'Hướng dẫn an toàn:')}</Text>
+                  <Text style={tw('text-red-700 dark:text-red-400 text-sm mb-3')}>
+                    {t('mobile.alert_urgent_desc', 'Chỉ số sinh hiệu của bạn ở mức NGUY HIỂM. Vui lòng dừng mọi hoạt động và liên hệ cấp cứu hoặc đến cơ sở y tế gần nhất!')}
+                  </Text>
+                  <TouchableOpacity style={tw('flex-row items-center justify-center bg-red-600 py-3 rounded-xl gap-2')}>
+                    <PhoneCall size={18} color="white" />
+                    <Text style={tw('text-white font-bold')}>{t('mobile.call_emergency', 'Gọi cấp cứu 115')}</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              {/* Acknowledge Button */}
+              <TouchableOpacity 
+                onPress={() => setAlertVisible(false)}
+                style={tw(`py-4 rounded-xl items-center ${alertType === 'urgent' ? 'bg-slate-100 dark:bg-slate-800' : 'bg-amber-500'}`)}
+              >
+                <Text style={tw(`font-bold text-base ${alertType === 'urgent' ? 'text-slate-700 dark:text-slate-300' : 'text-white'}`)}>
+                  {t('mobile.i_understand', 'Tôi đã hiểu')}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
     </SafeAreaView>
   );
 }

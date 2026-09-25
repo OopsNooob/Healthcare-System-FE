@@ -34,6 +34,8 @@
       "premium": "Premium & Thanh toán",
       "appointments": "Lịch hẹn",
       "violationReports": "Báo cáo vi phạm",
+      "careProgram": "Chương trình Chăm sóc",
+      "medicalFacilities": "Cơ sở Y tế",
       "mainMenu": "Menu chính"
     },
     "overview": {
@@ -54,7 +56,16 @@
       "doctors": "Bác sĩ",
       "aiSessions": "Phiên AI",
       "consultations": "Tư vấn",
-      "reports": "Báo cáo"
+      "reports": "Báo cáo",
+      "careProgramKPIs": "KPIs Chương Trình Chăm Sóc",
+      "adherenceRate": "Tỉ lệ Tuân thủ",
+      "adherenceRateDesc": "Tỉ lệ bệnh nhân hoàn thành nhiệm vụ theo lịch",
+      "alertAckTime": "T/g Xác nhận Cảnh báo",
+      "alertAckTimeDesc": "T/g trung bình bác sĩ xác nhận cảnh báo khẩn cấp",
+      "followUpConversion": "Tỉ lệ Tái khám",
+      "followUpConversionDesc": "Tỉ lệ chuyển đổi từ cảnh báo sang khám bệnh",
+      "tierUsage": "Sử dụng Gói dịch vụ",
+      "tierUsageDesc": "Sử dụng AI & Tư vấn theo các Gói Premium"
     },
     "userManagement": {
       "title": "Quản lý Người dùng & Bác sĩ",

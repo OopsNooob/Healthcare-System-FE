@@ -14,6 +14,8 @@ import { AIManagement } from "./features/ai_management/pages/ai_management";
 import { PremiumManagement } from "./features/premium-management/pages/premium-management";
 import { AppointmentManagement } from "./features/appointment-management/pages/appointment-management";
 import { Profile } from "./features/profile/page/profile";
+import { MedicalFacilities } from "./features/medical-facilities/pages/medical-facilities";
+import { CareProgram } from "./features/care-program/pages/care-program";
 import { useAuthStore } from "@repo/ui/store/useAuthStore";
 import { useEffect, useState } from "react";
 import { useLogout } from "./features/auth/hooks/useLogout";
@@ -137,9 +139,8 @@ function App() {
             <Route path="/premium-management" element={<PremiumManagement />} />
             <Route path="/appointments" element={<AppointmentManagement />} />
             <Route path="/violation-reports" element={<ViolationReport />} />
-            <Route path="/premium-management" element={<PremiumManagement />} />
-            <Route path="/appointments" element={<AppointmentManagement />} />
-            <Route path="/violation-reports" element={<ViolationReport />} />
+            <Route path="/medical-facilities" element={<MedicalFacilities />} />
+            <Route path="/care-program" element={<CareProgram />} />
             <Route path="/profile" element={<Profile />} />
           </Route>
           <Route path="/page-not-found" element={<ErrorPage />} />

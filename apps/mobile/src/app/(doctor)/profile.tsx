@@ -200,33 +200,45 @@ export default function DoctorProfileScreen() {
               <View style={tw('flex-row justify-between items-center mb-4')}>
                 <View>
                   <Text style={tw('text-base font-bold text-slate-900 dark:text-white')}>{t('mobile.verification_documents', `Verification Documents`)}</Text>
-                  <Text style={tw('text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500')}>{t('mobile.upload_new_files_or_replace_ex', `Upload new files or replace existing docs.`)}</Text>
+                  <Text style={tw('text-xs text-slate-500 dark:text-slate-400')}>{t('mobile.upload_new_files_or_replace_ex', `Upload new files or replace existing docs.`)}</Text>
                 </View>
-                <TouchableOpacity style={tw('bg-slate-900 px-3 py-2 rounded-xl flex-row items-center')}>
-                  <Plus color="#ffffff" size={14} style={tw('mr-1')} />
-                  <Text style={tw('text-white font-bold text-xs')}>{t('mobile.add_docs', `Add Docs`)}</Text>
+                <TouchableOpacity style={tw('bg-slate-900 dark:bg-white px-3 py-2 rounded-xl flex-row items-center')}>
+                  <Plus color={twInstance.color('text-white dark:text-slate-900')} size={14} style={tw('mr-1')} />
+                  <Text style={tw('text-white dark:text-slate-900 font-bold text-xs')}>{t('mobile.add_docs', `Add Docs`)}</Text>
                 </TouchableOpacity>
               </View>
               
+              {/* Account Warning Banner */}
+              <View style={tw('bg-amber-50 dark:bg-amber-900/30 p-3 rounded-xl mb-4 border border-amber-200 dark:border-amber-800 flex-row items-start')}>
+                <ShieldCheck color={twInstance.color('text-amber-500')} size={18} style={tw('mr-2 mt-0.5')} />
+                <View style={tw('flex-1')}>
+                  <Text style={tw('text-amber-800 dark:text-amber-300 font-bold text-xs mb-0.5')}>{t('mobile.account_warning_title', 'Verification Required')}</Text>
+                  <Text style={tw('text-amber-700 dark:text-amber-400/80 text-xs leading-tight')}>{t('mobile.account_warning_desc', 'Your account will be suspended if mandatory practicing certificates are missing or expired.')}</Text>
+                </View>
+              </View>
+
               <View style={tw('border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 rounded-2xl p-4')}>
-                <View style={tw('flex-row items-center justify-between')}>
+                <View style={tw('flex-row items-center justify-between mb-2')}>
                   <View style={tw('flex-row items-center flex-1 mr-2')}>
-                    <View style={tw('bg-blue-50 w-10 h-10 rounded-xl items-center justify-center mr-3')}>
-                      <FileText color="#3b82f6" size={20} />
+                    <View style={tw('bg-blue-50 dark:bg-blue-900/30 w-10 h-10 rounded-xl items-center justify-center mr-3')}>
+                      <FileText color={twInstance.color('text-blue-500')} size={20} />
                     </View>
                     <View style={tw('flex-1')}>
                       <Text style={tw('font-bold text-slate-800 dark:text-slate-100 text-sm')} numberOfLines={1}>{t('mobile.medicallicense2023pdf', `Medical_License_2023.pdf`)}</Text>
-                      <Text style={tw('text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500')}>{t('mobile.uploaded_oct_12_2023', `Uploaded Oct 12, 2023`)}</Text>
+                      <Text style={tw('text-xs text-slate-500 dark:text-slate-400')}>{t('mobile.uploaded_oct_12_2023', `Uploaded Oct 12, 2023`)}</Text>
                     </View>
                   </View>
                   <View style={tw('flex-row gap-2')}>
                     <TouchableOpacity style={tw('w-8 h-8 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 items-center justify-center')}>
-                      <Pencil color="#64748b" size={14} />
+                      <Pencil color={twInstance.color('text-slate-500')} size={14} />
                     </TouchableOpacity>
-                    <TouchableOpacity style={tw('w-8 h-8 rounded-lg border border-red-200 bg-red-50 items-center justify-center')}>
-                      <Trash2 color="#ef4444" size={14} />
+                    <TouchableOpacity style={tw('w-8 h-8 rounded-lg border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-900/30 items-center justify-center')}>
+                      <Trash2 color={twInstance.color('text-red-500')} size={14} />
                     </TouchableOpacity>
                   </View>
+                </View>
+                <View style={tw('bg-amber-100 dark:bg-amber-900/50 self-start px-2 py-1 rounded')}>
+                  <Text style={tw('text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider')}>{t('mobile.status_pending', 'Status: Pending Approval')}</Text>
                 </View>
               </View>
             </View>

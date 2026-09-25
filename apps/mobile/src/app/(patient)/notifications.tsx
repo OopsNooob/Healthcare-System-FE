@@ -20,20 +20,20 @@ export default function PatientNotificationsScreen() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [notifs, setNotifs] = useState<NotificationItem[]>([]);
-
-  const notifications = [
-    { id: '1', title: t('mobile.notif_consultation_accepted', 'Consultation Accepted'), desc: t('mobile.notif_consultation_accepted_desc', 'Dr. Sarah Connor has accepted your consultation request.'), time: t('mobile.time_5_mins_ago', '5 mins ago'), type: 'appointment', read: false },
-    { id: '2', title: t('mobile.notif_consultation_ended', 'Consultation Ended'), desc: t('mobile.notif_consultation_ended_desc', 'Your consultation with Dr. Michael Chen has ended. Please leave a review.'), time: t('mobile.time_2_hours_ago', '2 hours ago'), type: 'review', read: false },
-    { id: '3', title: t('mobile.notif_new_message', 'New Message'), desc: t('mobile.notif_new_message_desc', 'Dr. Emily Watson replied to your message.'), time: t('mobile.time_1_day_ago', '1 day ago'), type: 'message', read: true },
+  const notificationsData = [
+    { id: '1', titleKey: 'mobile.notif_consultation_accepted', defaultTitle: 'Consultation Accepted', descKey: 'mobile.notif_consultation_accepted_desc', defaultDesc: 'Dr. Sarah Connor has accepted your consultation request.', timeKey: 'mobile.time_5_mins_ago', defaultTime: '5 mins ago', type: 'appointment', read: false },
+    { id: '2', titleKey: 'mobile.notif_consultation_ended', defaultTitle: 'Consultation Ended', descKey: 'mobile.notif_consultation_ended_desc', defaultDesc: 'Your consultation with Dr. Michael Chen has ended. Please leave a review.', timeKey: 'mobile.time_2_hours_ago', defaultTime: '2 hours ago', type: 'review', read: false },
+    { id: '3', titleKey: 'mobile.notif_new_message', defaultTitle: 'New Message', descKey: 'mobile.notif_new_message_desc', defaultDesc: 'Dr. Emily Watson replied to your message.', timeKey: 'mobile.time_1_day_ago', defaultTime: '1 day ago', type: 'message', read: true },
   ];
+
+  const [notifs, setNotifs] = useState(notificationsData);
 
   useEffect(() => {
     // Simulate loading
-    setTimeout(() => {
-      setNotifs(notifications);
+    const timer = setTimeout(() => {
       setLoading(false);
     }, 1200);
+    return () => clearTimeout(timer);
   }, []);
 
   const onRefresh = () => {
@@ -108,11 +108,11 @@ export default function PatientNotificationsScreen() {
               </View>
               <View style={tw('flex-1')}>
                 <View style={tw('flex-row justify-between items-start mb-1')}>
-                  <Text style={tw(`text-base font-bold ${notif.read ? 'text-slate-700 dark:text-slate-200' : 'text-slate-900 dark:text-white'}`)}>{notif.title}</Text>
+                  <Text style={tw(`text-base font-bold ${notif.read ? 'text-slate-700 dark:text-slate-200' : 'text-slate-900 dark:text-white'}`)}>{t(notif.titleKey, notif.defaultTitle)}</Text>
                   {!notif.read && <View style={tw('w-2.5 h-2.5 bg-brand rounded-full mt-1.5')} />}
                 </View>
-                <Text style={tw(`text-sm mb-2 ${notif.read ? 'text-slate-500 dark:text-slate-400 dark:text-slate-500' : 'text-slate-700 dark:text-slate-200'}`)}>{notif.desc}</Text>
-                <Text style={tw('text-xs text-slate-400 dark:text-slate-500 font-medium')}>{notif.time}</Text>
+                <Text style={tw(`text-sm mb-2 ${notif.read ? 'text-slate-500 dark:text-slate-400 dark:text-slate-500' : 'text-slate-700 dark:text-slate-200'}`)}>{t(notif.descKey, notif.defaultDesc)}</Text>
+                <Text style={tw('text-xs text-slate-400 dark:text-slate-500 font-medium')}>{t(notif.timeKey, notif.defaultTime)}</Text>
               </View>
             </TouchableOpacity>
           ))

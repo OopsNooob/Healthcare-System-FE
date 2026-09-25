@@ -20,10 +20,10 @@ export default function DoctorHomeScreen() {
     { title: t('mobile.hours_online', 'Hours Online'), value: '64h', icon: <Clock color="#f59e0b" size={24} />, bg: 'bg-yellow-50', trend: '+2%' },
   ];
 
-  const todayQueue = [
-    { id: 1, name: 'Alex Johnson', time: '10:30 AM', statusKey: 'waiting', type: t('mobile.video_call', 'Video Call') },
-    { id: 2, name: 'Maria Garcia', time: '11:00 AM', statusKey: 'upcoming', type: t('mobile.chat', 'Chat') },
-    { id: 3, name: 'James Smith', time: '02:15 PM', statusKey: 'upcoming', type: t('mobile.video_call', 'Video Call') },
+  const priorityInbox = [
+    { id: 1, name: 'Alex Johnson', time: '10:30 AM', statusKey: 'waiting', type: t('mobile.video_call', 'Video Call'), priority: 'Urgent', alertText: 'High Blood Pressure', value: '165/100', metric: 'mmHg', tag: 'BP Alert' },
+    { id: 2, name: 'Maria Garcia', time: '11:00 AM', statusKey: 'upcoming', type: t('mobile.chat', 'Chat'), priority: 'Attention', alertText: 'Elevated Sugar', value: '140', metric: 'mg/dL', tag: 'Glucose' },
+    { id: 3, name: 'James Smith', time: '02:15 PM', statusKey: 'upcoming', type: t('mobile.video_call', 'Video Call'), priority: 'Normal', alertText: 'Routine Check', value: '120/80', metric: 'mmHg', tag: 'Stable' },
   ];
 
   const [loading, setLoading] = useState(true);
@@ -32,7 +32,7 @@ export default function DoctorHomeScreen() {
 
   useEffect(() => {
     setTimeout(() => {
-      setQueue(todayQueue);
+      setQueue(priorityInbox);
       setLoading(false);
     }, 1200);
   }, []);
@@ -111,99 +111,71 @@ export default function DoctorHomeScreen() {
           </ScrollView>
         </View>
 
-        {/* Consultations Chart */}
-        <View style={tw('px-6 mb-8')}>
-          <Text style={tw('text-lg font-bold text-[#313A34] dark:text-slate-100 mb-4')}>{t('mobile.consultations_over_time', `Consultations Over Time`)}</Text>
-          <View style={tw('bg-white dark:bg-slate-900 p-4 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800')}>
-            <LineChart
-              data={{
-                labels: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
-                datasets: [
-                  {
-                    data: [12, 19, 15, 25, 22, 10, 14]
-                  }
-                ]
-              }}
-              width={Dimensions.get("window").width - 80}
-              height={220}
-              yAxisSuffix=""
-              yAxisInterval={1}
-              chartConfig={{
-                backgroundColor: "#ffffff",
-                backgroundGradientFrom: "#ffffff",
-                backgroundGradientTo: "#ffffff",
-                decimalPlaces: 0,
-                color: (opacity = 1) => `rgba(16, 185, 129, ${opacity})`,
-                labelColor: (opacity = 1) => `rgba(100, 116, 139, ${opacity})`,
-                style: {
-                  borderRadius: 16
-                },
-                propsForDots: {
-                  r: "5",
-                  strokeWidth: "2",
-                  stroke: "#10b981"
-                }
-              }}
-              bezier
-              style={{
-                marginVertical: 8,
-                borderRadius: 16,
-                marginLeft: -10
-              }}
-            />
+        {/* Priority Inbox Header */}
+        <View style={tw('px-6 mb-4 flex-row items-center justify-between')}>
+          <View>
+            <Text style={tw('text-lg font-bold text-[#313A34] dark:text-slate-100')}>{t('mobile.priority_inbox', `Priority Inbox`)}</Text>
+            <Text style={tw('text-sm text-gray-500 dark:text-gray-400')}>{t('mobile.needs_attention', `Requires your attention`)}</Text>
           </View>
+          <TouchableOpacity onPress={() => router.push('/(doctor)/consultations')} style={tw('bg-blue-50 dark:bg-blue-900/30 px-3 py-1.5 rounded-full')}>
+            <Text style={tw('text-xs font-bold text-blue-600 dark:text-blue-400')}>{t('mobile.view_all', `View All`)}</Text>
+          </TouchableOpacity>
         </View>
 
-        {/* Today's Queue */}
-        <View style={tw('px-6')}>
-          <View style={tw('flex-row justify-between items-end mb-4')}>
-            <Text style={tw('text-lg font-bold text-[#313A34] dark:text-slate-100')}>{t('mobile.todays_queue', `Today's Queue`)}</Text>
-            <TouchableOpacity onPress={() => router.push('/(doctor)/consultations')}>
-              <Text style={tw('text-sm font-medium text-blue-500')}>{t('mobile.view_schedule', `View Schedule`)}</Text>
-            </TouchableOpacity>
-          </View>
-
-          <View style={tw('gap-4')}>
-            {loading ? (
-              <>
-                {renderQueueSkeleton()}
-                {renderQueueSkeleton()}
-                {renderQueueSkeleton()}
-              </>
-            ) : queue.length > 0 ? (
-              queue.map((item) => (
-                <View 
-                  key={item.id}
-                  style={tw('flex-row items-center justify-between bg-white dark:bg-slate-900 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800')}
-                >
-                  <View style={tw('flex-1')}>
-                    <Text style={tw('text-base font-bold text-[#313A34] dark:text-slate-100')}>{item.name}</Text>
-                    <Text style={tw('text-sm text-gray-500 mt-0.5')}>{item.type} • {item.time}</Text>
-                  </View>
-                  <View style={tw('items-end')}>
-                    <View style={tw(`px-3 py-1 rounded-full ${item.statusKey === 'waiting' ? 'bg-orange-100' : 'bg-gray-100'}`)}>
-                      <Text style={tw(`text-xs font-bold ${item.statusKey === 'waiting' ? 'text-orange-600' : 'text-gray-600'}`)}>
-                        {item.statusKey === 'waiting' ? t('mobile.waiting', 'Waiting') : t('mobile.upcoming', 'Upcoming')}
-                      </Text>
+        <View style={tw('px-6 gap-4')}>
+          {loading ? (
+            <>
+              {renderQueueSkeleton()}
+              {renderQueueSkeleton()}
+              {renderQueueSkeleton()}
+            </>
+          ) : queue.length > 0 ? (
+            queue.map((item) => (
+              <TouchableOpacity 
+                key={item.id}
+                onPress={() => item.type === t('mobile.video_call', 'Video Call') ? router.push('/(doctor)/video-call') : router.push('/(doctor)/chat/1')}
+                style={tw(`flex-row items-start justify-between bg-white dark:bg-slate-900 p-4 rounded-3xl shadow-sm border ${item.priority === 'Urgent' ? 'border-red-200 dark:border-red-900/50' : item.priority === 'Attention' ? 'border-amber-200 dark:border-amber-900/50' : 'border-gray-100 dark:border-gray-800'}`)}
+              >
+                <View style={tw('flex-1 pr-2')}>
+                  <View style={tw('flex-row items-center mb-1')}>
+                    <Text style={tw('text-base font-bold text-[#313A34] dark:text-slate-100 mr-2')}>{item.name}</Text>
+                    <View style={tw(`px-2 py-0.5 rounded text-[10px] font-bold ${item.priority === 'Urgent' ? 'bg-red-100 text-red-600 dark:bg-red-900/50 dark:text-red-400' : item.priority === 'Attention' ? 'bg-amber-100 text-amber-600 dark:bg-amber-900/50 dark:text-amber-400' : 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/50 dark:text-emerald-400'}`)}>
+                      <Text style={tw(`text-[10px] font-bold uppercase tracking-wider ${item.priority === 'Urgent' ? 'text-red-600 dark:text-red-400' : item.priority === 'Attention' ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'}`)}>{item.priority}</Text>
                     </View>
-                    {item.statusKey === 'waiting' && (
-                      <TouchableOpacity 
-                        style={tw('mt-2 bg-blue-500 px-4 py-1.5 rounded-full')}
-                        onPress={() => router.push('/(doctor)/video-call')}
-                      >
-                        <Text style={tw('text-white text-xs font-bold')}>{t('mobile.start', `Start`)}</Text>
-                      </TouchableOpacity>
-                    )}
+                  </View>
+                  
+                  <Text style={tw('text-sm text-gray-500 dark:text-gray-400 mb-2')}>{item.type} • {item.time}</Text>
+                  
+                  <View style={tw(`p-2 rounded-xl border ${item.priority === 'Urgent' ? 'bg-red-50/50 border-red-100 dark:bg-red-900/10 dark:border-red-900/30' : item.priority === 'Attention' ? 'bg-amber-50/50 border-amber-100 dark:bg-amber-900/10 dark:border-amber-900/30' : 'bg-gray-50 border-gray-100 dark:bg-gray-800 dark:border-gray-700'}`)}>
+                    <Text style={tw('text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1')}>{item.alertText}</Text>
+                    <View style={tw('flex-row items-end')}>
+                      <Text style={tw(`text-lg font-bold leading-none mr-1 ${item.priority === 'Urgent' ? 'text-red-600 dark:text-red-400' : item.priority === 'Attention' ? 'text-amber-600 dark:text-amber-400' : 'text-slate-700 dark:text-slate-300'}`)}>{item.value}</Text>
+                      <Text style={tw('text-xs font-medium text-slate-500 mb-0.5')}>{item.metric}</Text>
+                    </View>
                   </View>
                 </View>
-              ))
-            ) : (
-              <View style={tw('items-center justify-center py-8 bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-gray-800 border-dashed')}>
-                <Users color="#94a3b8" size={32} style={tw('mb-2')} />
-                <Text style={tw('text-gray-500 font-medium')}>{t('mobile.no_patients_in_queue', `No patients in queue`)}</Text>
-              </View>
-            )}
-          </View>
+
+                <View style={tw('items-end justify-between h-full py-1')}>
+                  <View style={tw(`px-2 py-1 rounded-full ${item.statusKey === 'waiting' ? 'bg-blue-50 dark:bg-blue-900/30' : 'bg-slate-100 dark:bg-slate-800'}`)}>
+                    <Text style={tw(`text-[10px] font-bold ${item.statusKey === 'waiting' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-500 dark:text-slate-400'}`)}>
+                      {item.statusKey === 'waiting' ? t('mobile.waiting', 'Waiting') : t('mobile.upcoming', 'Upcoming')}
+                    </Text>
+                  </View>
+                  
+                  {item.statusKey === 'waiting' && (
+                    <View style={tw('mt-6 bg-slate-900 dark:bg-white px-4 py-2 rounded-xl')}>
+                      <Text style={tw('text-white dark:text-slate-900 text-xs font-bold')}>{t('mobile.start', `Start`)}</Text>
+                    </View>
+                  )}
+                </View>
+              </TouchableOpacity>
+            ))
+          ) : (
+            <View style={tw('items-center justify-center py-8 bg-white dark:bg-slate-900 rounded-3xl border border-gray-100 dark:border-gray-800 border-dashed')}>
+              <Users color="#94a3b8" size={32} style={tw('mb-2')} />
+              <Text style={tw('text-gray-500 font-medium')}>{t('mobile.no_patients_in_queue', `No patients in queue`)}</Text>
+            </View>
+          )}
         </View>
 
       </ScrollView>

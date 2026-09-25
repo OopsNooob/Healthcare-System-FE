@@ -57,7 +57,7 @@ export default function ProfileScreen() {
           </View>
 
           {/* Premium Card */}
-          <View style={tw('px-6 mb-8')}>
+          <View style={tw('px-6 mb-4')}>
             <TouchableOpacity 
               onPress={() => router.push('/(patient)/premium')}
               style={tw('bg-slate-900 p-4 rounded-3xl flex-row items-center justify-between shadow-lg')}
@@ -72,6 +72,35 @@ export default function ProfileScreen() {
                 </View>
               </View>
               <ChevronRight color="#94a3b8" size={20} />
+            </TouchableOpacity>
+          </View>
+
+          {/* Quick Links (DA2 Features) */}
+          <View style={tw('px-6 mb-8 gap-3')}>
+            <TouchableOpacity 
+              onPress={() => router.push('/(patient)/family')}
+              style={tw('bg-white dark:bg-slate-900 p-4 rounded-2xl flex-row items-center justify-between shadow-sm border border-slate-100 dark:border-slate-800')}
+            >
+              <View style={tw('flex-row items-center')}>
+                <View style={tw('w-10 h-10 bg-indigo-50 dark:bg-indigo-900/30 rounded-xl items-center justify-center mr-3')}>
+                  <User color={twInstance.color('text-indigo-500')} size={20} />
+                </View>
+                <Text style={tw('text-slate-900 dark:text-white font-bold')}>{t('mobile.family_companion', 'Family Companion')}</Text>
+              </View>
+              <ChevronRight color={twInstance.color('text-slate-400')} size={20} />
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              onPress={() => router.push('/(patient)/facilities')}
+              style={tw('bg-white dark:bg-slate-900 p-4 rounded-2xl flex-row items-center justify-between shadow-sm border border-slate-100 dark:border-slate-800')}
+            >
+              <View style={tw('flex-row items-center')}>
+                <View style={tw('w-10 h-10 bg-rose-50 dark:bg-rose-900/30 rounded-xl items-center justify-center mr-3')}>
+                  <MapPin color={twInstance.color('text-rose-500')} size={20} />
+                </View>
+                <Text style={tw('text-slate-900 dark:text-white font-bold')}>{t('mobile.medical_facilities', 'Medical Facilities')}</Text>
+              </View>
+              <ChevronRight color={twInstance.color('text-slate-400')} size={20} />
             </TouchableOpacity>
           </View>
 
