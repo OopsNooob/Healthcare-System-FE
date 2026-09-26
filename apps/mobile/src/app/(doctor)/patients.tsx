@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { View, Text, TouchableOpacity, ScrollView, SafeAreaView, TextInput, Modal, RefreshControl } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, SafeAreaView, TextInput, Modal, RefreshControl, ActivityIndicator } from 'react-native';
 import { useSafeRouter as useRouter } from '@/utils/useSafeRouter';
-import { Search, UserPlus, FileText, ChevronRight, Activity, CalendarDays, BrainCircuit, Stethoscope } from 'lucide-react-native';
+import { Search, UserPlus, FileText, ChevronRight, Activity, CalendarDays, BrainCircuit, Stethoscope, Settings2, Trash2, CheckCircle, ShieldAlert } from 'lucide-react-native';
 import { tw, twInstance } from '@/tw';
 import { useThemeContext } from '@/context/ThemeContext';
+import Toast from 'react-native-toast-message';
 
 export default function PatientsManagementScreen() {
   const { t } = useTranslation();
@@ -15,6 +16,10 @@ export default function PatientsManagementScreen() {
   const [enrollModalVisible, setEnrollModalVisible] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState<any>(null);
   
+  // Enroll Modal States
+  const [selectedProgram, setSelectedProgram] = useState<string | null>(null);
+  const [eligibilityStatus, setEligibilityStatus] = useState<'idle' | 'checking' | 'passed' | 'failed'>('idle');
+  
   const patients = [
     { id: 1, name: 'Alex Johnson', program: 'Hypertension Management', adherence: 85, trend: 'Stable', baseline: '150/95', current: '135/85' },
     { id: 2, name: 'Maria Garcia', program: 'Diabetes Care', adherence: 60, trend: 'Warning', baseline: '180 mg/dL', current: '210 mg/dL' },
@@ -23,7 +28,25 @@ export default function PatientsManagementScreen() {
 
   const handleEnroll = (patient: any) => {
     setSelectedPatient(patient);
+    setSelectedProgram(null);
+    setEligibilityStatus('idle');
     setEnrollModalVisible(true);
+  };
+
+  const handleCheckEligibility = () => {
+    setEligibilityStatus('checking');
+    setTimeout(() => {
+      setEligibilityStatus('passed');
+    }, 1500);
+  };
+
+  const handleSendConsent = () => {
+    setEnrollModalVisible(false);
+    Toast.show({
+      type: 'success',
+      text1: 'Success',
+      text2: 'Consent request sent to patient',
+    });
   };
 
   const [loading, setLoading] = useState(true);
@@ -140,21 +163,33 @@ export default function PatientsManagementScreen() {
 
                   {/* Actions */}
                   <View style={tw('flex-row gap-2 mt-2 pt-3 border-t border-slate-200 dark:border-slate-800')}>
-                    <TouchableOpacity style={tw('flex-1 bg-white dark:bg-slate-900 flex-row items-center justify-center py-2 rounded-lg border border-slate-200 dark:border-slate-700')}>
+                    <TouchableOpacity onPress={() => Toast.show({ type: 'info', text1: 'Info', text2: 'AI Summary tapped' })} style={tw('flex-1 bg-white dark:bg-slate-900 flex-row items-center justify-center py-2 rounded-lg border border-slate-200 dark:border-slate-700')}>
                       <BrainCircuit color={twInstance.color('text-purple-500')} size={16} />
                       <Text style={tw('text-xs font-bold text-slate-700 dark:text-slate-300 ml-1')}>{t('mobile.ai_summary', 'AI Summary')}</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity style={tw('flex-1 bg-white dark:bg-slate-900 flex-row items-center justify-center py-2 rounded-lg border border-slate-200 dark:border-slate-700')}>
+                    <TouchableOpacity onPress={() => Toast.show({ type: 'info', text1: 'Info', text2: 'Clinical Notes tapped' })} style={tw('flex-1 bg-white dark:bg-slate-900 flex-row items-center justify-center py-2 rounded-lg border border-slate-200 dark:border-slate-700')}>
                       <Stethoscope color={twInstance.color('text-blue-500')} size={16} />
                       <Text style={tw('text-xs font-bold text-slate-700 dark:text-slate-300 ml-1')}>{t('mobile.clinical_notes', 'Clinical Notes')}</Text>
+                    </TouchableOpacity>
+                  </View>
+                  <View style={tw('flex-row gap-2 mt-2')}>
+                    <TouchableOpacity onPress={() => Toast.show({ type: 'info', text1: 'Info', text2: 'Modify Thresholds tapped' })} style={tw('flex-1 bg-white dark:bg-slate-900 flex-row items-center justify-center py-2 rounded-lg border border-slate-200 dark:border-slate-700')}>
+                      <Settings2 color={twInstance.color('text-amber-500')} size={16} />
+                      <Text style={tw('text-xs font-bold text-slate-700 dark:text-slate-300 ml-1')}>{t('mobile.modify_thresholds', 'Modify Thresholds')}</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => {
+                        Toast.show({ type: 'success', text1: 'Success', text2: 'Data voided' });
+                    }} style={tw('flex-1 bg-red-50 dark:bg-red-900/10 flex-row items-center justify-center py-2 rounded-lg border border-red-100 dark:border-red-900/30')}>
+                      <Trash2 color={twInstance.color('text-red-500')} size={16} />
+                      <Text style={tw('text-xs font-bold text-red-500 ml-1')}>{t('mobile.void_data', 'Void Data')}</Text>
                     </TouchableOpacity>
                   </View>
                 </View>
               )}
               
-              <TouchableOpacity style={tw('flex-row justify-between items-center px-2')}>
-                <Text style={tw('text-sm font-bold text-brand-dark')}>{t('mobile.view_full_profile', 'View Full Profile')}</Text>
-                <ChevronRight color={twInstance.color('text-brand-dark')} size={20} />
+              <TouchableOpacity onPress={() => Toast.show({ type: 'info', text1: 'Info', text2: 'View Full Profile tapped' })} style={tw('flex-row justify-between items-center px-2')}>
+                <Text style={tw('text-sm font-bold text-brand-dark dark:text-brand-light')}>{t('mobile.view_full_profile', 'View Full Profile')}</Text>
+                <ChevronRight color={twInstance.color('text-brand-dark dark:text-brand-light')} size={20} />
               </TouchableOpacity>
             </View>
           ))
@@ -170,23 +205,64 @@ export default function PatientsManagementScreen() {
             <Text style={tw('text-xl font-bold text-slate-900 dark:text-white mb-2')}>{t('mobile.enroll_in_program', 'Enroll in Care Program')}</Text>
             <Text style={tw('text-slate-500 mb-6')}>{t('mobile.select_program_for', 'Select a program for')} {selectedPatient?.name}</Text>
             
-            <TouchableOpacity style={tw('bg-slate-50 dark:bg-slate-950 p-4 rounded-2xl mb-3 border border-slate-200 dark:border-slate-700')}>
-              <Text style={tw('font-bold text-slate-900 dark:text-white text-lg')}>Hypertension Management</Text>
+            <TouchableOpacity 
+              onPress={() => setSelectedProgram('hypertension')}
+              style={tw(`p-4 rounded-2xl mb-3 border ${selectedProgram === 'hypertension' ? 'bg-brand/10 border-brand' : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-700'}`)}
+            >
+              <Text style={tw(`font-bold text-lg ${selectedProgram === 'hypertension' ? 'text-brand-dark dark:text-brand-light' : 'text-slate-900 dark:text-white'}`)}>Hypertension Management</Text>
               <Text style={tw('text-sm text-slate-500 mt-1')}>BP tracking, medication reminders, diet tasks.</Text>
             </TouchableOpacity>
             
-            <TouchableOpacity style={tw('bg-slate-50 dark:bg-slate-950 p-4 rounded-2xl mb-6 border border-slate-200 dark:border-slate-700')}>
-              <Text style={tw('font-bold text-slate-900 dark:text-white text-lg')}>Diabetes Care</Text>
+            <TouchableOpacity 
+              onPress={() => setSelectedProgram('diabetes')}
+              style={tw(`p-4 rounded-2xl mb-6 border ${selectedProgram === 'diabetes' ? 'bg-brand/10 border-brand' : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-700'}`)}
+            >
+              <Text style={tw(`font-bold text-lg ${selectedProgram === 'diabetes' ? 'text-brand-dark dark:text-brand-light' : 'text-slate-900 dark:text-white'}`)}>Diabetes Care</Text>
               <Text style={tw('text-sm text-slate-500 mt-1')}>Glucose tracking, insulin reminders, foot checks.</Text>
             </TouchableOpacity>
+
+            {/* Eligibility Status */}
+            {selectedProgram && eligibilityStatus === 'passed' && (
+               <View style={tw('flex-row items-center bg-emerald-50 dark:bg-emerald-900/30 p-3 rounded-xl mb-6')}>
+                 <CheckCircle color="#10b981" size={20} style={tw('mr-2')} />
+                 <Text style={tw('text-emerald-700 dark:text-emerald-400 font-bold')}>{t('mobile.eligibility_passed', 'Eligibility Passed')}</Text>
+               </View>
+            )}
+
+            {selectedProgram && eligibilityStatus === 'failed' && (
+               <View style={tw('flex-row items-center bg-red-50 dark:bg-red-900/30 p-3 rounded-xl mb-6')}>
+                 <ShieldAlert color="#ef4444" size={20} style={tw('mr-2')} />
+                 <Text style={tw('text-red-700 dark:text-red-400 font-bold')}>{t('mobile.eligibility_failed', 'Eligibility Failed')}</Text>
+               </View>
+            )}
 
             <View style={tw('flex-row gap-4')}>
               <TouchableOpacity onPress={() => setEnrollModalVisible(false)} style={tw('flex-1 p-4 items-center bg-slate-100 dark:bg-slate-800 rounded-2xl')}>
                 <Text style={tw('font-bold text-slate-700 dark:text-slate-300')}>{t('mobile.cancel', 'Cancel')}</Text>
               </TouchableOpacity>
-              <TouchableOpacity onPress={() => setEnrollModalVisible(false)} style={tw('flex-1 p-4 items-center bg-brand rounded-2xl')}>
-                <Text style={tw('font-bold text-slate-900')}>{t('mobile.confirm', 'Confirm')}</Text>
-              </TouchableOpacity>
+              
+              {!selectedProgram ? (
+                <TouchableOpacity disabled style={tw('flex-1 p-4 items-center bg-slate-200 dark:bg-slate-700 rounded-2xl opacity-50')}>
+                  <Text style={tw('font-bold text-slate-400 dark:text-slate-500')}>{t('mobile.check_eligibility', 'Check Eligibility')}</Text>
+                </TouchableOpacity>
+              ) : eligibilityStatus === 'idle' ? (
+                <TouchableOpacity onPress={handleCheckEligibility} style={tw('flex-1 p-4 items-center bg-blue-500 rounded-2xl')}>
+                  <Text style={tw('font-bold text-white')}>{t('mobile.check_eligibility', 'Check Eligibility')}</Text>
+                </TouchableOpacity>
+              ) : eligibilityStatus === 'checking' ? (
+                <TouchableOpacity disabled style={tw('flex-1 p-4 items-center bg-blue-500 rounded-2xl opacity-70 flex-row justify-center')}>
+                  <ActivityIndicator color="white" size="small" style={tw('mr-2')} />
+                  <Text style={tw('font-bold text-white')}>{t('mobile.check_eligibility', 'Check Eligibility')}</Text>
+                </TouchableOpacity>
+              ) : eligibilityStatus === 'passed' ? (
+                <TouchableOpacity onPress={handleSendConsent} style={tw('flex-1 p-4 items-center bg-brand rounded-2xl')}>
+                  <Text style={tw('font-bold text-slate-900')}>{t('mobile.send_consent', 'Send Consent Request')}</Text>
+                </TouchableOpacity>
+              ) : (
+                 <TouchableOpacity disabled style={tw('flex-1 p-4 items-center bg-slate-200 dark:bg-slate-700 rounded-2xl opacity-50')}>
+                  <Text style={tw('font-bold text-slate-400 dark:text-slate-500')}>{t('mobile.send_consent', 'Send Consent Request')}</Text>
+                </TouchableOpacity>
+              )}
             </View>
           </View>
         </View>

@@ -81,7 +81,7 @@ export default function PatientHomeScreen() {
         <View style={tw('px-6 mb-6 flex-row gap-3')}>
           <View style={tw('flex-row items-center bg-emerald-50 dark:bg-emerald-900/30 px-3 py-2 rounded-full border border-emerald-100 dark:border-emerald-800/50 flex-1')}>
              <MessageSquare size={16} color={twInstance.color('text-emerald-600 dark:text-emerald-400')} />
-             <Text style={tw('ml-2 text-xs font-medium text-emerald-800 dark:text-emerald-300')}>AI: {quotas.aiRemaining}/{quotas.aiTotal} {t('mobile.chats', 'chats')}</Text>
+             <Text style={tw('ml-2 text-xs font-medium text-emerald-800 dark:text-emerald-300')}>{t('mobile.ai_tokens', 'AI Tokens')}: {quotas.aiRemaining}/{quotas.aiTotal}</Text>
           </View>
           <View style={tw('flex-row items-center bg-blue-50 dark:bg-blue-900/30 px-3 py-2 rounded-full border border-blue-100 dark:border-blue-800/50 flex-1')}>
              <Activity size={16} color={twInstance.color('text-blue-600 dark:text-blue-400')} />
@@ -104,7 +104,7 @@ export default function PatientHomeScreen() {
             </View>
             
             {/* Progress bar */}
-            <View style={tw('mb-2')}>
+            <View style={tw('mb-4')}>
               <View style={tw('flex-row justify-between mb-1')}>
                 <Text style={tw('text-indigo-100 text-xs')}>{t('mobile.adherence', 'Adherence')}</Text>
                 <Text style={tw('text-white font-bold text-xs')}>{careProgram.progress}%</Text>
@@ -113,7 +113,13 @@ export default function PatientHomeScreen() {
                 <View style={[tw('h-full bg-emerald-400 rounded-full'), { width: `${careProgram.progress}%` }]} />
               </View>
             </View>
-            <Text style={tw('text-indigo-200 text-xs text-right')}>{careProgram.daysLeft} {t('mobile.days_remaining', 'days remaining')}</Text>
+
+            <View style={tw('flex-row justify-between items-center')}>
+              <Text style={tw('text-indigo-200 text-xs')}>{careProgram.daysLeft} {t('mobile.days_remaining', 'days remaining')}</Text>
+              <TouchableOpacity style={tw('bg-white/20 px-3 py-1.5 rounded-full')}>
+                <Text style={tw('text-white text-xs font-medium')}>{t('mobile.pause_program', 'Pause Program')}</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
 

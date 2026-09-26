@@ -106,10 +106,10 @@ export default function HealthMetricScreen() {
   };
 
   const handleDelete = (id: string) => {
-    Alert.alert(t('mobile.delete_entry', 'Delete Entry'), t('mobile.confirm_delete', 'Are you sure you want to delete this entry?'), [
+    Alert.alert(t('mobile.void_entry', 'Void Record (Correction)'), t('mobile.confirm_void', 'This will void (delete) the record from your history. This action is tracked.'), [
       { text: t('mobile.cancel', 'Cancel'), style: 'cancel' },
       { 
-        text: t('mobile.delete', 'Delete'), 
+        text: t('mobile.void', 'Void'), 
         style: 'destructive',
         onPress: () => {
           setMetrics(prev => prev.map(m => {
@@ -190,7 +190,7 @@ export default function HealthMetricScreen() {
       Toast.show({
         type: 'success',
         text1: t('mobile.success', 'Success'),
-        text2: editId ? t('mobile.entry_updated', 'Entry updated successfully') : t('mobile.new_entry_added', 'New entry added')
+        text2: editId ? t('mobile.entry_updated', 'Entry replaced (Correction logged)') : t('mobile.new_entry_added', 'New entry added')
       });
     }
   };
@@ -305,7 +305,7 @@ export default function HealthMetricScreen() {
           <View style={tw('bg-white dark:bg-slate-900 rounded-t-3xl p-6')}>
             <View style={tw('flex-row justify-between items-center mb-6')}>
               <Text style={tw('text-xl font-bold text-slate-900 dark:text-white')}>
-                {editId ? t('mobile.edit_record', 'Edit Record') : t('mobile.add_record', 'Add Record')} - {selectedMetric.title}
+                {editId ? t('mobile.edit_record', 'Replace Record (Correction)') : t('mobile.add_record', 'Add Record')} - {selectedMetric.title}
               </Text>
               <TouchableOpacity onPress={() => setModalVisible(false)} style={tw('p-2 bg-slate-100 dark:bg-slate-800 rounded-full')}>
                 <X color={twInstance.color('text-slate-500 dark:text-slate-400')} size={20} />
@@ -385,7 +385,7 @@ export default function HealthMetricScreen() {
                 <AlertCircle size={48} color={twInstance.color('text-amber-500')} />
               )}
               <Text style={tw(`text-xl font-bold mt-4 text-center ${alertType === 'urgent' ? 'text-red-600 dark:text-red-400' : 'text-amber-600 dark:text-amber-400'}`)}>
-                {alertType === 'urgent' ? t('mobile.alert_urgent', 'Khẩn Cấp!') : t('mobile.alert_attention', 'Cần Chú Ý!')}
+                {alertType === 'urgent' ? t('mobile.alert_urgent', 'Urgent!') : t('mobile.alert_attention', 'Attention Needed!')}
               </Text>
             </View>
             
@@ -398,13 +398,13 @@ export default function HealthMetricScreen() {
               {/* Safety Instructions for Urgent */}
               {alertType === 'urgent' && (
                 <View style={tw('bg-red-50 dark:bg-red-900/20 rounded-2xl p-4 mb-6 border border-red-100 dark:border-red-800/50')}>
-                  <Text style={tw('text-red-800 dark:text-red-300 font-bold mb-2')}>{t('mobile.safety_instructions', 'Hướng dẫn an toàn:')}</Text>
+                  <Text style={tw('text-red-800 dark:text-red-300 font-bold mb-2')}>{t('mobile.safety_instructions', 'Safety Instructions:')}</Text>
                   <Text style={tw('text-red-700 dark:text-red-400 text-sm mb-3')}>
-                    {t('mobile.alert_urgent_desc', 'Chỉ số sinh hiệu của bạn ở mức NGUY HIỂM. Vui lòng dừng mọi hoạt động và liên hệ cấp cứu hoặc đến cơ sở y tế gần nhất!')}
+                    {t('mobile.alert_urgent_desc', 'Your vital signs are at a DANGEROUS level. Please stop all activities and contact emergency services or go to the nearest medical facility!')}
                   </Text>
                   <TouchableOpacity style={tw('flex-row items-center justify-center bg-red-600 py-3 rounded-xl gap-2')}>
                     <PhoneCall size={18} color="white" />
-                    <Text style={tw('text-white font-bold')}>{t('mobile.call_emergency', 'Gọi cấp cứu 115')}</Text>
+                    <Text style={tw('text-white font-bold')}>{t('mobile.call_emergency', 'Call Emergency 115')}</Text>
                   </TouchableOpacity>
                 </View>
               )}
@@ -415,7 +415,7 @@ export default function HealthMetricScreen() {
                 style={tw(`py-4 rounded-xl items-center ${alertType === 'urgent' ? 'bg-slate-100 dark:bg-slate-800' : 'bg-amber-500'}`)}
               >
                 <Text style={tw(`font-bold text-base ${alertType === 'urgent' ? 'text-slate-700 dark:text-slate-300' : 'text-white'}`)}>
-                  {t('mobile.i_understand', 'Tôi đã hiểu')}
+                  {t('mobile.i_understand', 'I Understand')}
                 </Text>
               </TouchableOpacity>
             </View>

@@ -125,7 +125,7 @@ export default function DoctorChatSessionScreen() {
           <View style={tw('flex-1 bg-slate-100 dark:bg-slate-800 rounded-3xl px-4 py-2 mr-3 flex-row items-center min-h-[48px]')}>
             <TextInput
               style={tw('flex-1 text-base text-slate-900 dark:text-white h-10')}
-              placeholder="Type a message..."
+              placeholder={t('mobile.type_a_message', 'Type a message...')}
               placeholderTextColor="#94a3b8"
               value={message}
               onChangeText={setMessage}
@@ -223,14 +223,14 @@ export default function DoctorChatSessionScreen() {
               <TextInput
                 value={doctorNote}
                 onChangeText={setDoctorNote}
-                placeholder="Write your diagnostic notes here..."
+                placeholder={t('mobile.write_diagnostic_notes', 'Write your diagnostic notes here...')}
                 style={tw('bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl p-4 text-slate-900 dark:text-white h-32')}
                 multiline
                 textAlignVertical="top"
               />
             </View>
             <TouchableOpacity onPress={() => { setEndModalVisible(false); Toast.show({ type: 'success', text1: 'Success', text2: 'Consultation Ended' }); router.back(); }} style={tw('bg-brand py-4 rounded-xl items-center')}>
-              <Text style={tw('text-slate-900 dark:text-white font-bold text-base')}>{t('mobile.end_consultation', `End Consultation`)}</Text>
+              <Text style={tw('text-slate-900 font-bold text-base')}>{t('mobile.end_consultation', `End Consultation`)}</Text>
             </TouchableOpacity>
           </View>
         </KeyboardAvoidingView>
@@ -249,7 +249,7 @@ export default function DoctorChatSessionScreen() {
               <TextInput
                 value={reportReason}
                 onChangeText={setReportReason}
-                placeholder="Inappropriate behavior, spam..."
+                placeholder={t('mobile.inappropriate_behavior', 'Inappropriate behavior, spam...')}
                 style={tw('bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl p-4 text-slate-900 dark:text-white h-32')}
                 multiline
                 textAlignVertical="top"

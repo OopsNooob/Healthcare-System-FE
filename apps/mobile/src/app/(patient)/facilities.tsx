@@ -168,9 +168,9 @@ export default function MedicalFacilitiesScreen() {
               </View>
 
               <View style={tw('flex-row gap-3')}>
-                <TouchableOpacity style={tw('flex-1 bg-brand/10 py-3 rounded-xl flex-row items-center justify-center')}>
-                  <Navigation color={twInstance.color('text-brand-dark')} size={18} />
-                  <Text style={tw('text-brand-dark font-bold ml-2')}>{t('mobile.directions', 'Directions')}</Text>
+                <TouchableOpacity style={tw('flex-1 bg-brand/10 dark:bg-brand/20 py-3 rounded-xl flex-row items-center justify-center')}>
+                  <Navigation color={twInstance.color('text-brand-dark dark:text-brand-light')} size={18} />
+                  <Text style={tw('text-brand-dark dark:text-brand-light font-bold ml-2')}>{t('mobile.directions', 'Directions')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={tw('flex-1 bg-slate-100 dark:bg-slate-800 py-3 rounded-xl flex-row items-center justify-center')}>
                   <Phone color={twInstance.color('text-slate-700 dark:text-slate-300')} size={18} />

@@ -285,8 +285,8 @@ export default function DoctorProfileScreen() {
             </View>
 
             {/* Save Button */}
-            <TouchableOpacity style={tw('bg-slate-900 h-14 rounded-2xl items-center justify-center shadow-md')}>
-              <Text style={tw('text-white font-bold text-lg')}>{t('mobile.save_changes', `Save Changes`)}</Text>
+            <TouchableOpacity style={tw('bg-slate-900 dark:bg-white h-14 rounded-2xl items-center justify-center shadow-md')}>
+              <Text style={tw('text-white dark:text-slate-900 font-bold text-lg')}>{t('mobile.save_changes', `Save Changes`)}</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>

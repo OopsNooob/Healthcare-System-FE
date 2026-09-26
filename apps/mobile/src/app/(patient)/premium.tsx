@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { View, Text, ScrollView, TouchableOpacity, SafeAreaView, Platform, Alert, Image } from 'react-native';
 import { useSafeRouter as useRouter } from '@/utils/useSafeRouter';
 import Toast from 'react-native-toast-message';
-import { Crown, CheckCircle2, ArrowRight, ShieldCheck, Zap, XCircle, HeartPulse, Sparkles } from 'lucide-react-native';
+import { Crown, CheckCircle2, ArrowRight, ShieldCheck, Zap, XCircle, HeartPulse, Sparkles, AlertCircle } from 'lucide-react-native';
 import { tw, twInstance } from '@/tw';
 import { useThemeContext } from '@/context/ThemeContext';
 
@@ -14,8 +14,9 @@ export default function PremiumScreen() {
   const router = useRouter();
   
   // Mock active plan
-  const [activePlan, setActivePlan] = useState('free');
+  const [activePlan, setActivePlan] = useState('plus');
   const [selectedPlan, setSelectedPlan] = useState('plus');
+  const [isRefundPending, setIsRefundPending] = useState(false);
 
   const handleUpgrade = () => {
     Alert.alert(
@@ -51,9 +52,9 @@ export default function PremiumScreen() {
             Toast.show({
               type: 'info',
               text1: t('mobile.refund_processed', 'Refund Processed'),
-              text2: t('mobile.refund_success_desc', 'Your refund request has been sent to admin.')
+              text2: t('mobile.refund_success_desc', 'Your refund request has been sent to admin. Premium features are paused.')
             });
-            setActivePlan('free');
+            setIsRefundPending(true);
           }
         }
       ]
@@ -71,6 +72,18 @@ export default function PremiumScreen() {
           <Text style={tw('text-3xl font-bold text-slate-900 dark:text-white text-center')}>{t('mobile.upgrade_to_premium', `Upgrade to Premium`)}</Text>
           <Text style={tw('text-slate-500 dark:text-slate-400 text-center mt-2 px-4')}>{t('mobile.unlock_unlimited_ai_consultati', `Unlock unlimited AI consultations and priority booking with top specialists.`)}</Text>
         </View>
+
+        {isRefundPending && (
+          <View style={tw('px-6 mb-4')}>
+            <View style={tw('bg-amber-100 dark:bg-amber-900/30 p-4 rounded-2xl flex-row items-center border border-amber-200 dark:border-amber-800/50')}>
+              <AlertCircle color={twInstance.color('text-amber-600 dark:text-amber-400')} size={24} />
+              <View style={tw('flex-1 ml-3')}>
+                <Text style={tw('text-amber-800 dark:text-amber-300 font-bold')}>{t('mobile.refund_pending_title', 'Refund Request Pending')}</Text>
+                <Text style={tw('text-amber-700/80 dark:text-amber-400/80 text-xs mt-1')}>{t('mobile.refund_pending_desc', 'Premium features are temporarily paused. Free tier and Safety Alerts remain active.')}</Text>
+              </View>
+            </View>
+          </View>
+        )}
 
         {/* Current Plan */}
         <View style={tw('px-6 mb-8')}>
@@ -168,7 +181,7 @@ export default function PremiumScreen() {
           )}
 
           {/* Refund Section (P1) */}
-          {activePlan !== 'free' && (
+          {activePlan !== 'free' && !isRefundPending && (
             <TouchableOpacity 
               onPress={handleRefund}
               style={tw('bg-red-50 dark:bg-red-900/20 p-4 rounded-2xl flex-row items-center justify-between border border-red-100 dark:border-red-800/50')}

@@ -93,10 +93,10 @@ export default function DoctorChatScreen() {
 
         {/* Input Area */}
         <View style={tw('p-4 border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-slate-900 flex-row items-center')}>
-          <TouchableOpacity onPress={() => Toast.show({ type: 'info', text1: 'Info', text2: 'Add Image clicked' })} style={tw('p-3 bg-slate-100 dark:bg-slate-800 rounded-full mr-2')}>
+          <TouchableOpacity onPress={() => Toast.show({ type: 'info', text1: t('mobile.info', 'Info'), text2: t('mobile.add_image_clicked', 'Add Image clicked') })} style={tw('p-3 bg-slate-100 dark:bg-slate-800 rounded-full mr-2')}>
             <ImagePlus color="#64748b" size={20} />
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => Toast.show({ type: 'info', text1: 'Info', text2: 'Add File clicked' })} style={tw('p-3 bg-slate-100 dark:bg-slate-800 rounded-full mr-3')}>
+          <TouchableOpacity onPress={() => Toast.show({ type: 'info', text1: t('mobile.info', 'Info'), text2: t('mobile.add_file_clicked', 'Add File clicked') })} style={tw('p-3 bg-slate-100 dark:bg-slate-800 rounded-full mr-3')}>
             <Paperclip color="#64748b" size={20} />
           </TouchableOpacity>
           <View style={tw('flex-1 bg-gray-100 rounded-3xl px-4 py-2 mr-3 flex-row items-center min-h-[48px]')}>
@@ -152,7 +152,7 @@ export default function DoctorChatScreen() {
                 textAlignVertical="top"
               />
             </View>
-            <TouchableOpacity onPress={() => { setEndModalVisible(false); Toast.show({ type: 'success', text1: 'Success', text2: 'Review Submitted' }); }} style={tw('bg-brand py-4 rounded-xl items-center')}>
+            <TouchableOpacity onPress={() => { setEndModalVisible(false); Toast.show({ type: 'success', text1: t('mobile.success', 'Success'), text2: t('mobile.review_submitted', 'Review Submitted') }); }} style={tw('bg-brand py-4 rounded-xl items-center')}>
               <Text style={tw('text-slate-900 dark:text-white font-bold text-base')}>{t('mobile.submit_review', `Submit Review`)}</Text>
             </TouchableOpacity>
           </View>
@@ -178,7 +178,7 @@ export default function DoctorChatScreen() {
                 textAlignVertical="top"
               />
             </View>
-            <TouchableOpacity onPress={() => { setReportModalVisible(false); Toast.show({ type: 'success', text1: 'Success', text2: 'Report Submitted' }); }} style={tw('bg-red-500 py-4 rounded-xl items-center')}>
+            <TouchableOpacity onPress={() => { setReportModalVisible(false); Toast.show({ type: 'success', text1: t('mobile.success', 'Success'), text2: t('mobile.report_submitted', 'Report Submitted') }); }} style={tw('bg-red-500 py-4 rounded-xl items-center')}>
               <Text style={tw('text-white font-bold text-base')}>{t('mobile.submit_report', `Submit Report`)}</Text>
             </TouchableOpacity>
           </View>

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { View, Text, TouchableOpacity, ScrollView, SafeAreaView, Modal, TextInput, Switch, Image, KeyboardAvoidingView, RefreshControl } from 'react-native';
 import { useSafeRouter as useRouter } from '@/utils/useSafeRouter';
-import { ArrowLeft, Users, Plus, Settings, X, ShieldAlert, CheckCircle2, UserX } from 'lucide-react-native';
+import { ArrowLeft, Users, Plus, Settings, X, ShieldAlert, CheckCircle2, UserX, PauseCircle, PlayCircle } from 'lucide-react-native';
 import { tw, twInstance } from '@/tw';
 import { useThemeContext } from '@/context/ThemeContext';
 import Toast from 'react-native-toast-message';
@@ -97,6 +97,20 @@ export default function FamilyCompanionScreen() {
     });
   };
 
+  const handlePauseResume = () => {
+    const isPausing = selectedMember.status === 'active';
+    const newStatus = isPausing ? 'paused' : 'active';
+    
+    setSelectedMember((prev: any) => ({ ...prev, status: newStatus }));
+    setMembers(prev => prev.map(m => m.id === selectedMember.id ? { ...m, status: newStatus } : m));
+    
+    Toast.show({
+      type: 'success',
+      text1: t('mobile.success', 'Success'),
+      text2: isPausing ? t('mobile.access_paused', 'Access has been paused.') : t('mobile.access_resumed', 'Access has been resumed.')
+    });
+  };
+
   const togglePermission = (key: 'receiveReminders' | 'viewProgress') => {
     setSelectedMember((prev: any) => ({
       ...prev,
@@ -184,6 +198,11 @@ export default function FamilyCompanionScreen() {
                       <CheckCircle2 color="#10b981" size={14} />
                       <Text style={tw('text-emerald-600 dark:text-emerald-400 text-xs font-semibold ml-1')}>{t('mobile.active', 'Active')}</Text>
                     </View>
+                  ) : member.status === 'paused' ? (
+                    <View style={tw('flex-row items-center')}>
+                      <PauseCircle color="#f59e0b" size={14} />
+                      <Text style={tw('text-amber-500 dark:text-amber-400 text-xs font-semibold ml-1')}>{t('mobile.paused', 'Paused')}</Text>
+                    </View>
                   ) : (
                     <View style={tw('flex-row items-center')}>
                       <Text style={tw('text-amber-500 dark:text-amber-400 text-xs font-semibold')}>{t('mobile.pending_invite', 'Pending Invite')}</Text>
@@ -227,6 +246,7 @@ export default function FamilyCompanionScreen() {
                 keyboardType="email-address"
                 autoCapitalize="none"
               />
+              <Text style={tw('text-xs text-slate-500 mt-2')}>{t('mobile.invite_note', 'Note: The invited person must have a regular Patient account registered with this email.')}</Text>
             </View>
             <TouchableOpacity onPress={handleInvite} style={tw('bg-brand py-4 rounded-xl items-center mt-2')}>
               <Text style={tw('text-slate-900 font-bold text-base')}>{t('mobile.send_invite', `Send Invite`)}</Text>
@@ -282,11 +302,31 @@ export default function FamilyCompanionScreen() {
                   </View>
                 </View>
 
-                {/* Revoke Access */}
-                <TouchableOpacity onPress={handleRevoke} style={tw('flex-row items-center justify-center py-4 bg-red-50 dark:bg-red-900/20 rounded-xl')}>
-                  <UserX color={twInstance.color('text-red-500')} size={20} />
-                  <Text style={tw('text-red-600 dark:text-red-400 font-bold ml-2')}>{t('mobile.revoke_access', 'Revoke Access')}</Text>
-                </TouchableOpacity>
+                {/* Action Buttons */}
+                <View style={tw('flex-row gap-3')}>
+                  {selectedMember.status !== 'pending' && (
+                    <TouchableOpacity 
+                      onPress={handlePauseResume} 
+                      style={tw(`flex-1 flex-row items-center justify-center py-4 rounded-xl ${selectedMember.status === 'active' ? 'bg-amber-50 dark:bg-amber-900/20' : 'bg-emerald-50 dark:bg-emerald-900/20'}`)}
+                    >
+                      {selectedMember.status === 'active' ? (
+                        <>
+                          <PauseCircle color={twInstance.color('text-amber-600')} size={20} />
+                          <Text style={tw('text-amber-700 dark:text-amber-500 font-bold ml-2')}>{t('mobile.pause_access', 'Pause Access')}</Text>
+                        </>
+                      ) : (
+                        <>
+                          <PlayCircle color={twInstance.color('text-emerald-600')} size={20} />
+                          <Text style={tw('text-emerald-700 dark:text-emerald-500 font-bold ml-2')}>{t('mobile.resume_access', 'Resume Access')}</Text>
+                        </>
+                      )}
+                    </TouchableOpacity>
+                  )}
+                  <TouchableOpacity onPress={handleRevoke} style={tw('flex-1 flex-row items-center justify-center py-4 bg-red-50 dark:bg-red-900/20 rounded-xl')}>
+                    <UserX color={twInstance.color('text-red-500')} size={20} />
+                    <Text style={tw('text-red-600 dark:text-red-400 font-bold ml-2')}>{t('mobile.revoke_access', 'Revoke Access')}</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
             )}
           </View>

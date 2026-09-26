@@ -111,8 +111,8 @@ export default function MyDoctorsScreen() {
     setTimeout(() => {
       Toast.show({
         type: 'success',
-        text1: 'Request Sent',
-        text2: 'Your consultation request has been sent to the doctor.'
+        text1: t('mobile.request_sent', 'Request Sent'),
+        text2: t('mobile.consultation_request_sent_success', 'Your consultation request has been sent to the doctor.')
       });
     }, 500);
   };
@@ -141,10 +141,10 @@ export default function MyDoctorsScreen() {
         <UserX color="#94a3b8" size={40} />
       </View>
       <Text style={tw('text-xl font-bold text-slate-900 dark:text-white mb-2 text-center')}>{t('mobile.no_doctors_found', `No doctors found`)}</Text>
-      <Text style={tw('text-slate-500 dark:text-slate-400 dark:text-slate-500 text-center mb-8')}>
+      <Text style={tw('text-slate-500 dark:text-slate-400 text-center mb-8')}>
         {searchQuery.length > 0 
-          ? `We couldn't find any doctors matching "${searchQuery}". Try different keywords.`
-          : "You haven't added or connected with any doctors yet."}
+          ? t('mobile.no_doctors_matching_search', 'We couldn\'t find any doctors matching "{{searchQuery}}". Try different keywords.', { searchQuery })
+          : t('mobile.no_doctors_added_yet', 'You haven\'t added or connected with any doctors yet.')}
       </Text>
       {searchQuery.length > 0 && (
         <TouchableOpacity 
@@ -429,7 +429,7 @@ export default function MyDoctorsScreen() {
                 <Text style={tw('text-base font-bold text-slate-900 dark:text-white mb-2')}>{t('mobile.reason_for_consultation', `Reason for consultation`)}</Text>
                 <TextInput
                   style={tw('bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 min-h-[100px] text-base text-slate-800 dark:text-slate-100')}
-                  placeholder="Please describe what you are experiencing..."
+                  placeholder={t('mobile.describe_symptoms_placeholder', 'Please describe what you are experiencing...')}
                   placeholderTextColor="#94a3b8"
                   multiline
                   textAlignVertical="top"

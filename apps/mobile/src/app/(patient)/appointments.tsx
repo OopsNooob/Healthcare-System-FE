@@ -26,7 +26,7 @@ export default function AppointmentsScreen() {
       date: 'Today', 
       time: '11:00 AM', 
       type: 'Video Call',
-      status: 'Queueing',
+      status: 'Waiting',
       queuePosition: 2,
       estimatedWait: '15 mins'
     },
@@ -59,6 +59,15 @@ export default function AppointmentsScreen() {
       time: '04:15 PM', 
       type: 'Chat',
       status: 'Cancelled'
+    },
+    { 
+      id: '5', 
+      doctor: 'Dr. Alan Grant', 
+      specialty: 'Cardiologist', 
+      date: 'Jul 20, 2023', 
+      time: '10:00 AM', 
+      type: 'Video Call',
+      status: 'Interrupted'
     },
   ];
 
@@ -191,7 +200,7 @@ export default function AppointmentsScreen() {
             {activeTab === 'upcoming' && (
               upcomingList.length > 0 ? upcomingList.map((apt) => (
                 <View key={apt.id} style={tw('bg-white dark:bg-slate-900 rounded-3xl p-5 mb-5 border border-slate-200 dark:border-slate-700 shadow-sm')}>
-            {apt.status === 'Queueing' && (
+            {apt.status === 'Waiting' && (
               <View style={tw('bg-amber-50 border border-amber-100 rounded-2xl p-4 mb-4 flex-row items-center justify-between')}>
                 <View style={tw('flex-row items-center')}>
                   <AlertCircle color="#d97706" size={20} />
@@ -211,8 +220,8 @@ export default function AppointmentsScreen() {
                 <Text style={tw('text-lg font-bold text-slate-900 dark:text-white')}>{apt.doctor}</Text>
                 <Text style={tw('text-sm font-medium text-slate-500 dark:text-slate-400 dark:text-slate-500')}>{apt.specialty}</Text>
               </View>
-              <View style={tw(`px-3 py-1 rounded-full ${apt.status === 'Queueing' ? 'bg-amber-100' : 'bg-blue-100'}`)}>
-                <Text style={tw(`text-xs font-bold ${apt.status === 'Queueing' ? 'text-amber-600' : 'text-blue-600'}`)}>
+              <View style={tw(`px-3 py-1 rounded-full ${apt.status === 'Waiting' ? 'bg-amber-100' : 'bg-blue-100'}`)}>
+                <Text style={tw(`text-xs font-bold ${apt.status === 'Waiting' ? 'text-amber-600' : 'text-blue-600'}`)}>
                   {apt.status}
                 </Text>
               </View>
@@ -234,7 +243,7 @@ export default function AppointmentsScreen() {
             </View>
 
             <View style={tw('flex-row gap-3 mt-2')}>
-              {apt.status === 'Queueing' ? (
+              {apt.status === 'Waiting' ? (
                 <TouchableOpacity 
                   onPress={() => router.push('/(patient)/video-call')}
                   style={tw('flex-1 bg-brand py-3.5 rounded-xl flex-row justify-center items-center')}
@@ -261,8 +270,8 @@ export default function AppointmentsScreen() {
                 <Text style={tw('text-lg font-bold text-slate-900 dark:text-white')}>{apt.doctor}</Text>
                 <Text style={tw('text-sm font-medium text-slate-500 dark:text-slate-400 dark:text-slate-500')}>{apt.specialty}</Text>
               </View>
-              <View style={tw(`px-3 py-1 rounded-full ${apt.status === 'Completed' ? 'bg-emerald-100' : 'bg-slate-100 dark:bg-slate-800'}`)}>
-                <Text style={tw(`text-xs font-bold ${apt.status === 'Completed' ? 'text-emerald-600' : 'text-slate-600 dark:text-slate-300'}`)}>
+              <View style={tw(`px-3 py-1 rounded-full ${apt.status === 'Completed' ? 'bg-emerald-100' : apt.status === 'Interrupted' ? 'bg-orange-100' : 'bg-slate-100 dark:bg-slate-800'}`)}>
+                <Text style={tw(`text-xs font-bold ${apt.status === 'Completed' ? 'text-emerald-600' : apt.status === 'Interrupted' ? 'text-orange-600' : 'text-slate-600 dark:text-slate-300'}`)}>
                   {apt.status}
                 </Text>
               </View>
