@@ -14,7 +14,7 @@ interface Transaction {
 
 export function PremiumManagement() {
   const { t } = useTranslation();
-  const [activeTab, setActiveTab] = useState<"transactions" | "config">("transactions");
+  const [activeTab, setActiveTab] = useState<"transactions" | "config" | "refunds">("transactions");
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -90,7 +90,13 @@ export function PremiumManagement() {
               className={`font-medium pb-4 border-b-2 -mb-4 ${activeTab === 'config' ? 'border-brand text-brand' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
               onClick={() => setActiveTab('config')}
             >
-              {t("premiumManagement.tabs.config")}
+              {t("premiumManagement.tabs.config", "Plans Config")}
+            </button>
+            <button
+              className={`font-medium pb-4 border-b-2 -mb-4 ${activeTab === 'refunds' ? 'border-brand text-brand' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
+              onClick={() => setActiveTab('refunds')}
+            >
+              Refund Requests
             </button>
           </div>
 
@@ -165,7 +171,7 @@ export function PremiumManagement() {
                 )}
               </tbody>
             </table>
-          ) : (
+          ) : activeTab === 'config' ? (
             <div className="p-6">
               <div className="max-w-2xl border border-gray-200 dark:border-slate-800 rounded-xl overflow-hidden bg-white dark:bg-slate-900">
                 <div className="bg-amber-50 dark:bg-amber-900/20 p-6 border-b border-gray-200 dark:border-slate-800 flex justify-between items-center">
@@ -190,11 +196,18 @@ export function PremiumManagement() {
                     <div className="col-span-2 text-gray-900 dark:text-gray-100 font-semibold">{t("premiumManagement.config.priceValue")}</div>
                   </div>
                   <div className="grid grid-cols-3 gap-4 border-b border-gray-100 dark:border-slate-800 pb-4">
-                    <div className="text-gray-500 dark:text-gray-400 font-medium">{t("premiumManagement.config.features")}</div>
+                    <div className="text-gray-500 dark:text-gray-400 font-medium">Limits & Quotas</div>
                     <div className="col-span-2 text-gray-600 dark:text-gray-300 space-y-1">
-                      <p>{t("premiumManagement.config.feature1")}</p>
-                      <p>{t("premiumManagement.config.feature2")}</p>
-                      <p>{t("premiumManagement.config.feature3")}</p>
+                      <p>• AI Token Limit: 50,000 / cycle</p>
+                      <p>• Consultations: 2 / cycle</p>
+                      <p>• Family Links: 3 members</p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-4 border-b border-gray-100 dark:border-slate-800 pb-4">
+                    <div className="text-gray-500 dark:text-gray-400 font-medium">Refund Policy</div>
+                    <div className="col-span-2 text-gray-600 dark:text-gray-300 space-y-1">
+                      <p>• Eligible if AI Tokens used &lt; 5,000</p>
+                      <p>• Eligible if 0 Consultations used</p>
                     </div>
                   </div>
                   <div className="grid grid-cols-3 gap-4">
@@ -206,7 +219,43 @@ export function PremiumManagement() {
                 </div>
               </div>
             </div>
-          )}
+          ) : activeTab === 'refunds' ? (
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-gray-50 dark:bg-slate-800 text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wider sticky top-0 z-10 shadow-sm">
+                  <th className="px-6 py-3 font-medium">Request ID</th>
+                  <th className="px-6 py-3 font-medium">User</th>
+                  <th className="px-6 py-3 font-medium">Final Usage Snapshot</th>
+                  <th className="px-6 py-3 font-medium">Eligibility</th>
+                  <th className="px-6 py-3 font-medium text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100 dark:divide-slate-800 text-sm">
+                <tr className="hover:bg-gray-50 dark:hover:bg-slate-800">
+                  <td className="px-6 py-4 font-medium text-gray-900 dark:text-gray-100">REF-001</td>
+                  <td className="px-6 py-4 text-gray-600 dark:text-gray-300">Vu Quoc Huy</td>
+                  <td className="px-6 py-4 text-gray-500 dark:text-gray-400 text-xs">Tokens: 1,200 | Consults: 0</td>
+                  <td className="px-6 py-4">
+                    <Badge className="bg-green-500 text-white">Eligible</Badge>
+                  </td>
+                  <td className="px-6 py-4 text-right">
+                    <button className="text-brand text-xs font-semibold hover:underline">Review</button>
+                  </td>
+                </tr>
+                <tr className="hover:bg-gray-50 dark:hover:bg-slate-800">
+                  <td className="px-6 py-4 font-medium text-gray-900 dark:text-gray-100">REF-002</td>
+                  <td className="px-6 py-4 text-gray-600 dark:text-gray-300">Nguyen Van A</td>
+                  <td className="px-6 py-4 text-gray-500 dark:text-gray-400 text-xs">Tokens: 15,000 | Consults: 1</td>
+                  <td className="px-6 py-4">
+                    <Badge variant="destructive">Ineligible</Badge>
+                  </td>
+                  <td className="px-6 py-4 text-right">
+                    <button className="text-brand text-xs font-semibold hover:underline">Review</button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          ) : null}
         </div>
       </div>
     </div>

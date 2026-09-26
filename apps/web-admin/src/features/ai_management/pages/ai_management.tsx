@@ -44,6 +44,7 @@ import {
   TriangleAlert,
   Upload,
   X,
+  Layers,
 } from "lucide-react";
 import {
   useGetDocumentList,
@@ -383,6 +384,14 @@ export function AIManagement() {
         icon: <CircleSlash className="h-4 w-4" />,
         disabled: !canMutate,
         onHandle: () => handleToggleEnable(doc.id),
+      },
+      {
+        id: `chunks-${doc.id}`,
+        title: "Manage Chunks",
+        icon: <Layers className="h-4 w-4" />,
+        onHandle: () => {
+          showToast.success("Open chunk exclusion modal");
+        },
       },
     ];
   };

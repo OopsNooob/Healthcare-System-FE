@@ -59,10 +59,10 @@ export function MedicalFacilities() {
             />
           </div>
           <select className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-4 py-2.5 text-sm outline-none text-slate-700 dark:text-slate-300">
-            <option value="all">All Status</option>
-            <option value="pending">Pending</option>
-            <option value="verified">Verified</option>
-            <option value="rejected">Rejected</option>
+            <option value="all">{t("medicalFacilities.status.all", "All Status")}</option>
+            <option value="pending">{t("medicalFacilities.status.pending", "Pending")}</option>
+            <option value="verified">{t("medicalFacilities.status.verified", "Verified")}</option>
+            <option value="rejected">{t("medicalFacilities.status.rejected", "Rejected")}</option>
           </select>
         </div>
 
@@ -70,11 +70,11 @@ export function MedicalFacilities() {
           <table className="w-full text-left text-sm text-slate-600 dark:text-slate-400">
             <thead className="bg-slate-50 dark:bg-slate-800/50 text-xs font-semibold uppercase text-slate-500 dark:text-slate-400">
               <tr>
-                <th className="px-6 py-4">FACILITY</th>
-                <th className="px-6 py-4">LOCATION</th>
-                <th className="px-6 py-4">SUBMITTED</th>
-                <th className="px-6 py-4">STATUS</th>
-                <th className="px-6 py-4">ACTIONS</th>
+                <th className="px-6 py-4">{t("medicalFacilities.table.facility", "FACILITY")}</th>
+                <th className="px-6 py-4">{t("medicalFacilities.table.location", "LOCATION")}</th>
+                <th className="px-6 py-4">{t("medicalFacilities.table.submitted", "SUBMITTED")}</th>
+                <th className="px-6 py-4">{t("medicalFacilities.table.status", "STATUS")}</th>
+                <th className="px-6 py-4">{t("medicalFacilities.table.actions", "ACTIONS")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200 dark:divide-slate-700 bg-white dark:bg-slate-900">
@@ -99,22 +99,22 @@ export function MedicalFacilities() {
                   </td>
                   <td className="px-6 py-4">
                     <div>{fac.submittedDate}</div>
-                    <div className="text-xs text-slate-400">By {fac.submittedBy}</div>
+                    <div className="text-xs text-slate-400">{t("medicalFacilities.by", "By")} {fac.submittedBy}</div>
                   </td>
                   <td className="px-6 py-4">
                     {fac.status === "verified" && (
                       <Badge variant="default" className="bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border-none hover:bg-emerald-50">
-                        <CheckCircle2 size={12} className="mr-1" /> Verified
+                        <CheckCircle2 size={12} className="mr-1" /> {t("medicalFacilities.status.verified", "Verified")}
                       </Badge>
                     )}
                     {fac.status === "pending" && (
                       <Badge variant="outline" className="bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border-none hover:bg-amber-50">
-                        <Clock size={12} className="mr-1" /> Pending
+                        <Clock size={12} className="mr-1" /> {t("medicalFacilities.status.pending", "Pending")}
                       </Badge>
                     )}
                     {fac.status === "rejected" && (
                       <Badge variant="destructive" className="bg-rose-50 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400 border-none hover:bg-rose-50">
-                        <XCircle size={12} className="mr-1" /> Rejected
+                        <XCircle size={12} className="mr-1" /> {t("medicalFacilities.status.rejected", "Rejected")}
                       </Badge>
                     )}
                   </td>
@@ -122,15 +122,15 @@ export function MedicalFacilities() {
                     {fac.status === "pending" ? (
                       <div className="flex items-center gap-2">
                         <button className="px-3 py-1.5 text-xs font-semibold text-emerald-600 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-900/30 dark:hover:bg-emerald-900/50 rounded-lg transition-colors">
-                          Approve
+                          {t("medicalFacilities.actions.approve", "Approve")}
                         </button>
                         <button className="px-3 py-1.5 text-xs font-semibold text-rose-600 bg-rose-50 hover:bg-rose-100 dark:bg-rose-900/30 dark:hover:bg-rose-900/50 rounded-lg transition-colors">
-                          Reject
+                          {t("medicalFacilities.actions.reject", "Reject")}
                         </button>
                       </div>
                     ) : (
                       <button className="px-3 py-1.5 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-lg transition-colors">
-                        Edit
+                        {t("medicalFacilities.actions.edit", "Edit")}
                       </button>
                     )}
                   </td>

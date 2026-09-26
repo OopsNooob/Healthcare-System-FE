@@ -58,7 +58,7 @@ type ReportType =
   | "ai_hallucination"
   | "other";
 
-type ReportStatus = "pending" | "resolved";
+type ReportStatus = "pending" | "processing" | "resolved";
 type AccountStatus = "active" | "banned";
 
 type ViolationReportItem = {
@@ -183,12 +183,10 @@ function ReportDetailModal({
         <Badge
           variant="outline"
           className={`mb-5 rounded-full border px-2 py-1 text-xs ${
-            report.status === "resolved"
-              ? "border-emerald-200 dark:border-emerald-900 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400"
-              : "border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400"
+            report.status === "resolved" ? "border-emerald-200 dark:border-emerald-900 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400" : report.status === "processing" ? "border-blue-200 dark:border-blue-900 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400" : "border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400"
           }`}
         >
-          {report.status === "resolved" ? t("violationReport.modal.resolved") : t("violationReport.modal.pending")}
+          {report.status === "resolved" ? t("violationReport.modal.resolved") : report.status === "processing" ? "Processing" : t("violationReport.modal.pending")}
         </Badge>
 
         <div className="mb-4 grid gap-3 md:grid-cols-2">
@@ -229,15 +227,13 @@ function ReportDetailModal({
           <Button
             type="button"
             className={`sm:min-w-36 text-white ${
-              report.status === "pending"
-                ? "bg-lime-500 hover:bg-lime-600 dark:bg-lime-600 dark:hover:bg-lime-700"
-                : "bg-slate-600 hover:bg-slate-700 dark:bg-slate-700 dark:hover:bg-slate-800"
+              report.status === "pending" ? "bg-blue-500 hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700" : report.status === "processing" ? "bg-lime-500 hover:bg-lime-600 dark:bg-lime-600 dark:hover:bg-lime-700" : "bg-slate-600 hover:bg-slate-700 dark:bg-slate-700 dark:hover:bg-slate-800"
             }`}
             onClick={() => onToggleResolved(report.id)}
             disabled={isUpdating}
           >
             <CheckCircle className="mr-2 h-4 w-4" />
-            {report.status === "pending" ? t("violationReport.modal.markResolved") : t("violationReport.modal.unmark")}
+            {report.status === "pending" ? "Start Processing" : report.status === "processing" ? t("violationReport.modal.markResolved") : t("violationReport.modal.unmark")}
           </Button>
           <Button
             type="button"
@@ -378,7 +374,7 @@ export function ViolationReport() {
     }
 
     const nextStatus: ReportStatus =
-      currentReport.status === "pending" ? "resolved" : "pending";
+      currentReport.status === "pending" ? "processing" : currentReport.status === "processing" ? "resolved" : "pending";
 
     try {
       const updated = await changeReportStatus({
@@ -539,6 +535,7 @@ export function ViolationReport() {
                   <ComboboxList>
                     <ComboboxItem value="all">{t("violationReport.filters.allStatus")}</ComboboxItem>
                     <ComboboxItem value="pending">{t("violationReport.filters.pending")}</ComboboxItem>
+                    <ComboboxItem value="processing">Processing</ComboboxItem>
                     <ComboboxItem value="resolved">{t("violationReport.filters.resolved")}</ComboboxItem>
                   </ComboboxList>
                 </ComboboxContent>
@@ -620,12 +617,10 @@ export function ViolationReport() {
                         <Badge
                           variant="outline"
                           className={`h-5 rounded-full border px-2 text-[10px] font-medium ${
-                            report.status === "pending"
-                              ? "border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400"
-                              : "border-emerald-200 dark:border-emerald-900 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400"
+                            report.status === "pending" ? "border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400" : report.status === "processing" ? "border-blue-200 dark:border-blue-900 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400" : "border-emerald-200 dark:border-emerald-900 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400"
                           }`}
                         >
-                          {report.status === "pending" ? t("violationReport.modal.pending") : t("violationReport.modal.resolved")}
+                          {report.status === "pending" ? t("violationReport.modal.pending") : report.status === "processing" ? "Processing" : t("violationReport.modal.resolved")}
                         </Badge>
                       </TableCell>
                       <TableCell className="px-4 text-left">

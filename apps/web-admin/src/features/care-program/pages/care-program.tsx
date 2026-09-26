@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Plus, Search, FileText, Settings, PlayCircle, Clock } from "lucide-react";
+import { Plus, Search, FileText, Settings, PlayCircle, Clock, Activity, CheckCircle2, Play } from "lucide-react";
 import { Badge } from "@repo/ui/components/ui/badge";
 
 export function CareProgram() {
@@ -14,7 +14,10 @@ export function CareProgram() {
       version: "v1.2",
       status: "published",
       patients: 1245,
-      lastUpdated: "2024-05-15"
+      lastUpdated: "2024-05-15",
+      baseline: ["Blood Pressure", "Heart Rate"],
+      tasks: 3,
+      completion: "90 days without critical alert"
     },
     {
       id: 2,
@@ -22,7 +25,10 @@ export function CareProgram() {
       version: "v2.0",
       status: "draft",
       patients: 0,
-      lastUpdated: "2024-05-18"
+      lastUpdated: "2024-05-18",
+      baseline: ["HbA1c", "Fasting Glucose"],
+      tasks: 5,
+      completion: "Maintain Glucose < 130 mg/dL"
     }
   ];
 
@@ -58,10 +64,18 @@ export function CareProgram() {
             <h1 className="text-3xl font-semibold text-slate-900 dark:text-slate-100">{t("sidebar.careProgram", "Care Program & Rules")}</h1>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Manage health tracking programs and threshold rules.</p>
           </div>
-          <button className="flex items-center gap-2 rounded-xl bg-brand px-4 py-2.5 text-sm font-semibold text-slate-900 shadow-sm hover:bg-brand/90 transition-colors">
-            <Plus size={18} />
-            {activeTab === "templates" ? "Create Program" : "Add Rule"}
-          </button>
+          <div className="flex items-center gap-3">
+            {activeTab === "rules" && (
+              <button className="flex items-center gap-2 rounded-xl bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-800 px-4 py-2.5 text-sm font-semibold text-indigo-700 dark:text-indigo-400 shadow-sm hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors">
+                <Play size={18} />
+                Run Simulation
+              </button>
+            )}
+            <button className="flex items-center gap-2 rounded-xl bg-brand px-4 py-2.5 text-sm font-semibold text-slate-900 shadow-sm hover:bg-brand/90 transition-colors">
+              <Plus size={18} />
+              {activeTab === "templates" ? "Create Program" : "Add Rule"}
+            </button>
+          </div>
         </div>
 
         {/* Tabs */}
@@ -117,10 +131,34 @@ export function CareProgram() {
                     )}
                   </div>
                   <h3 className="font-bold text-lg text-slate-900 dark:text-white mb-1">{prog.name}</h3>
-                  <div className="flex items-center gap-2 text-sm text-slate-500 mb-4">
+                  <div className="flex items-center gap-2 text-sm text-slate-500 mb-4 pb-4 border-b border-slate-100 dark:border-slate-800">
                     <span>{prog.version}</span>
                     <span>•</span>
                     <span>{prog.patients.toLocaleString()} enrolled</span>
+                  </div>
+
+                  <div className="space-y-3 mb-4">
+                    <div className="flex items-start gap-2">
+                      <Activity size={16} className="text-slate-400 mt-0.5" />
+                      <div>
+                        <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">Baseline</p>
+                        <p className="text-xs text-slate-500">{prog.baseline.join(', ')}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <FileText size={16} className="text-slate-400 mt-0.5" />
+                      <div>
+                        <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">Task Templates</p>
+                        <p className="text-xs text-slate-500">{prog.tasks} daily tasks configured</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <CheckCircle2 size={16} className="text-slate-400 mt-0.5" />
+                      <div>
+                        <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">Completion</p>
+                        <p className="text-xs text-slate-500">{prog.completion}</p>
+                      </div>
+                    </div>
                   </div>
                   
                   <div className="flex items-center justify-between border-t border-slate-100 dark:border-slate-800 pt-4 mt-2">
@@ -159,9 +197,14 @@ export function CareProgram() {
                     </td>
                     <td className="px-6 py-4">{rule.action}</td>
                     <td className="px-6 py-4">
-                      <button className="text-slate-400 hover:text-brand-dark transition-colors">
-                        <Settings size={18} />
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded transition-colors" title="Simulate">
+                          <Play size={16} />
+                        </button>
+                        <button className="p-1.5 text-slate-400 hover:text-brand-dark hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-colors" title="Settings">
+                          <Settings size={16} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
