@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { View, Text, ScrollView, TouchableOpacity, Image, TextInput, SafeAreaView, RefreshControl, Dimensions } from 'react-native';
 import { useSafeRouter as useRouter } from '@/utils/useSafeRouter';
-import { Search, Bell, Calendar, ChevronRight, Star, Heart, Activity, Crown, MessageSquare, Droplet, Flame, CheckCircle2, Circle } from 'lucide-react-native';
+import { Search, Bell, Calendar, ChevronRight, Star, Heart, Activity, Crown, MessageSquare, Droplet, Flame, CheckCircle2, Circle, XCircle } from 'lucide-react-native';
 import { tw, twInstance } from '@/tw';
 import { useThemeContext } from '@/context/ThemeContext';
 
@@ -23,9 +23,10 @@ export default function PatientHomeScreen() {
   };
 
   const todayTasks = [
-    { id: 1, type: 'metric', title: t('mobile.measure_bp', 'Measure Blood Pressure'), time: '08:00 AM', completed: true, icon: Activity, color: twInstance.color('text-rose-500'), bg: 'bg-rose-100 dark:bg-rose-900/30' },
-    { id: 2, type: 'metric', title: t('mobile.measure_bg', 'Measure Blood Sugar'), time: '01:00 PM', completed: false, icon: Droplet, color: twInstance.color('text-blue-500'), bg: 'bg-blue-100 dark:bg-blue-900/30' },
-    { id: 3, type: 'education', title: t('mobile.read_diet', 'Diet for Hypertension'), time: t('mobile.anytime', 'Anytime'), completed: false, icon: Flame, color: twInstance.color('text-amber-500'), bg: 'bg-amber-100 dark:bg-amber-900/30' },
+    { id: 1, type: 'metric', title: t('mobile.measure_bp', 'Measure Blood Pressure'), time: '08:00 AM', status: 'missed', icon: Activity, color: twInstance.color('text-rose-500'), bg: 'bg-rose-100 dark:bg-rose-900/30' },
+    { id: 2, type: 'metric', title: t('mobile.measure_bg', 'Measure Blood Sugar'), time: '01:00 PM', status: 'completed', icon: Droplet, color: twInstance.color('text-emerald-500'), bg: 'bg-emerald-100 dark:bg-emerald-900/30' },
+    { id: 3, type: 'education', title: t('mobile.read_diet', 'Diet for Hypertension'), time: t('mobile.anytime', 'Anytime'), status: 'due', icon: Flame, color: twInstance.color('text-amber-500'), bg: 'bg-amber-100 dark:bg-amber-900/30' },
+    { id: 4, type: 'metric', title: t('mobile.measure_bp', 'Measure Blood Pressure'), time: '08:00 PM', status: 'scheduled', icon: Activity, color: twInstance.color('text-blue-500'), bg: 'bg-blue-100 dark:bg-blue-900/30' },
   ];
 
   const quotas = {
@@ -133,22 +134,46 @@ export default function PatientHomeScreen() {
           <View style={tw('gap-3')}>
             {todayTasks.map((task) => {
               const Icon = task.icon;
+              const isTerminal = task.status === 'completed' || task.status === 'missed' || task.status === 'cancelled';
+              const isDisabled = isTerminal || task.status === 'scheduled';
+              
               return (
                 <TouchableOpacity 
                   key={task.id} 
-                  style={tw(`flex-row items-center bg-white dark:bg-slate-900 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-800 ${task.completed ? 'opacity-60' : ''}`)}
+                  disabled={isDisabled}
+                  style={tw(`flex-row items-center rounded-2xl p-4 shadow-sm border ${isTerminal ? 'opacity-60' : ''} ${task.status === 'due' ? 'bg-indigo-50 dark:bg-indigo-900/20 border-indigo-200 dark:border-indigo-800/50' : 'bg-white dark:bg-slate-900 border-gray-100 dark:border-gray-800'}`)}
                   onPress={() => router.push('/(patient)/health-metric')}
                 >
                   <View style={tw(`w-12 h-12 rounded-xl items-center justify-center mr-4 ${task.bg}`)}>
                     <Icon size={24} color={task.color as string} />
                   </View>
                   <View style={tw('flex-1')}>
-                    <Text style={tw(`text-base font-bold dark:text-slate-100 ${task.completed ? 'text-gray-400 line-through' : 'text-[#313A34]'}`)}>{task.title}</Text>
-                    <Text style={tw('text-sm text-gray-500 dark:text-gray-400')}>{task.time}</Text>
+                    <Text style={tw(`text-base font-bold dark:text-slate-100 ${isTerminal ? 'text-gray-400 dark:text-gray-500 line-through' : 'text-[#313A34]'}`)}>{task.title}</Text>
+                    {task.status === 'scheduled' && (
+                      <Text style={tw('text-sm text-indigo-500 dark:text-indigo-400 font-medium mt-0.5')}>{t('mobile.task_scheduled', 'Scheduled for')} {task.time}</Text>
+                    )}
+                    {task.status === 'due' && (
+                      <Text style={tw('text-sm text-amber-500 dark:text-amber-400 font-medium mt-0.5')}>{t('mobile.task_due', 'Due now')} • {task.time}</Text>
+                    )}
+                    {task.status === 'missed' && (
+                      <Text style={tw('text-sm text-rose-500 dark:text-rose-400 font-medium mt-0.5')}>{t('mobile.task_missed', 'Missed')}</Text>
+                    )}
+                    {task.status === 'cancelled' && (
+                      <Text style={tw('text-sm text-gray-500 dark:text-gray-400 mt-0.5')}>{t('mobile.task_cancelled', 'Cancelled')}</Text>
+                    )}
+                    {task.status === 'completed' && (
+                      <Text style={tw('text-sm text-emerald-500 dark:text-emerald-400 font-medium mt-0.5')}>{t('mobile.task_completed', 'Completed')}</Text>
+                    )}
                   </View>
-                  <View>
-                    {task.completed ? (
+                  <View style={tw('ml-2')}>
+                    {task.status === 'completed' ? (
                       <CheckCircle2 size={24} color={twInstance.color('text-emerald-500')} />
+                    ) : task.status === 'missed' ? (
+                      <XCircle size={24} color={twInstance.color('text-rose-500')} />
+                    ) : task.status === 'due' ? (
+                      <View style={tw('bg-indigo-600 px-4 py-1.5 rounded-full')}>
+                        <Text style={tw('text-white text-xs font-bold')}>{t('mobile.start', 'Start')}</Text>
+                      </View>
                     ) : (
                       <Circle size={24} color={twInstance.color('text-gray-300 dark:text-gray-600')} />
                     )}

@@ -2,9 +2,44 @@ import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { View, Text, ScrollView, TouchableOpacity, SafeAreaView, ActivityIndicator, RefreshControl } from 'react-native';
 import { useSafeRouter as useRouter } from '@/utils/useSafeRouter';
-import { ArrowLeft, LineChart, Sparkles, Activity, FileText } from 'lucide-react-native';
+import { ArrowLeft, LineChart, Sparkles, Activity, FileText, ChevronDown, ChevronUp, AlertTriangle } from 'lucide-react-native';
 import { tw, twInstance } from '@/tw';
 import { useThemeContext } from '@/context/ThemeContext';
+
+const AiSummaryAccordion = ({ title, content, isEmpty }: { title: string, content: string, isEmpty?: boolean }) => {
+  const [expanded, setExpanded] = useState(false);
+  const { t } = useTranslation();
+  
+  if (isEmpty) {
+    return (
+      <View style={tw('bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-200 dark:border-slate-800 mb-3 opacity-60 flex-row justify-between items-center')}>
+        <Text style={tw('font-semibold text-slate-500 dark:text-slate-400')}>{title}</Text>
+        <Text style={tw('text-slate-400 dark:text-slate-500 text-sm')}>{t('mobile.ai_no_data', 'No Data')}</Text>
+      </View>
+    );
+  }
+
+  return (
+    <View style={tw('bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 mb-3 overflow-hidden')}>
+      <TouchableOpacity 
+        style={tw('p-4 flex-row justify-between items-center')} 
+        onPress={() => setExpanded(!expanded)}
+      >
+        <Text style={tw('font-semibold text-slate-800 dark:text-slate-200')}>{title}</Text>
+        {expanded ? (
+          <ChevronUp color={twInstance.color('text-slate-400')} size={20} />
+        ) : (
+          <ChevronDown color={twInstance.color('text-slate-400')} size={20} />
+        )}
+      </TouchableOpacity>
+      {expanded && (
+        <View style={tw('px-4 pb-4')}>
+          <Text style={tw('text-slate-600 dark:text-slate-300 leading-5')}>{content}</Text>
+        </View>
+      )}
+    </View>
+  );
+};
 
 export default function ReportsScreen() {
   const { t } = useTranslation();
@@ -92,7 +127,8 @@ export default function ReportsScreen() {
             </View>
           ) : (
             <View>
-              <Text style={tw('text-slate-700 dark:text-slate-300 leading-6 mb-4')}>
+              {/* Fallback condition can be simulated by changing a state, here we assume it's generated */}
+              <Text style={tw('text-slate-700 dark:text-slate-300 leading-6 mb-5')}>
                 {timeRange === '7d' 
                   ? t('mobile.report_7d_summary', 'In the past 7 days, your blood pressure has been quite stable at an average of 120/80 mmHg. Blood sugar exceeded the threshold slightly on the morning of day 3. It is recommended to maintain a low-sodium diet and continue monitoring.')
                   : timeRange === '30d' 
@@ -100,8 +136,33 @@ export default function ReportsScreen() {
                   : t('mobile.report_90d_summary', 'The 90-day data shows significant improvement. Emergency hypertensive episodes have decreased by 80%. The current Care Plan is working effectively.')}
               </Text>
               
-              <TouchableOpacity style={tw('flex-row items-center gap-2 bg-indigo-100 dark:bg-indigo-800/50 px-4 py-2.5 rounded-xl self-start')}>
-                <FileText color={twInstance.color('text-indigo-600 dark:text-indigo-300')} size={16} />
+              <AiSummaryAccordion 
+                title={t('mobile.ai_observations', 'Observations')} 
+                content="Blood pressure peak observed at 8 AM consistently." 
+              />
+              <AiSummaryAccordion 
+                title={t('mobile.ai_missing_data', 'Missing Data')} 
+                content="" 
+                isEmpty={true}
+              />
+              <AiSummaryAccordion 
+                title={t('mobile.ai_alerts_to_mention', 'Alerts to Mention')} 
+                content="1 attention alert regarding high blood sugar on Tuesday." 
+              />
+              <AiSummaryAccordion 
+                title={t('mobile.ai_questions_for_doctor', 'Questions for Doctor')} 
+                content="Is it normal to feel dizzy after taking the new medication?" 
+              />
+              
+              <View style={tw('bg-amber-50 dark:bg-amber-900/20 p-4 rounded-xl border border-amber-200 dark:border-amber-800/50 flex-row mt-2 mb-5')}>
+                <AlertTriangle color={twInstance.color('text-amber-500')} size={20} style={tw('mr-3 mt-0.5')} />
+                <Text style={tw('text-amber-800 dark:text-amber-200 text-sm flex-1 leading-5')}>
+                  {t('mobile.ai_disclaimer', 'Disclaimer: This is AI-generated analysis and does not replace professional medical advice.')}
+                </Text>
+              </View>
+
+              <TouchableOpacity style={tw('flex-row items-center justify-center gap-2 bg-indigo-100 dark:bg-indigo-800/50 px-4 py-3 rounded-xl')}>
+                <FileText color={twInstance.color('text-indigo-600 dark:text-indigo-300')} size={18} />
                 <Text style={tw('text-indigo-700 dark:text-indigo-200 font-semibold')}>
                   {t('mobile.download_pdf', 'Download PDF Report')}
                 </Text>

@@ -96,7 +96,7 @@ export function PremiumManagement() {
               className={`font-medium pb-4 border-b-2 -mb-4 ${activeTab === 'refunds' ? 'border-brand text-brand' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
               onClick={() => setActiveTab('refunds')}
             >
-              Refund Requests
+              {t("premiumManagement.tabs.refunds", "Refund Requests")}
             </button>
           </div>
 
@@ -196,18 +196,18 @@ export function PremiumManagement() {
                     <div className="col-span-2 text-gray-900 dark:text-gray-100 font-semibold">{t("premiumManagement.config.priceValue")}</div>
                   </div>
                   <div className="grid grid-cols-3 gap-4 border-b border-gray-100 dark:border-slate-800 pb-4">
-                    <div className="text-gray-500 dark:text-gray-400 font-medium">Limits & Quotas</div>
+                    <div className="text-gray-500 dark:text-gray-400 font-medium">{t("premiumManagement.config.limits", "Limits & Quotas")}</div>
                     <div className="col-span-2 text-gray-600 dark:text-gray-300 space-y-1">
-                      <p>• AI Token Limit: 50,000 / cycle</p>
-                      <p>• Consultations: 2 / cycle</p>
-                      <p>• Family Links: 3 members</p>
+                      <p>• {t("premiumManagement.config.aiLimit", "AI Token Limit: 50,000 / cycle")}</p>
+                      <p>• {t("premiumManagement.config.consultsLimit", "Consultations: 2 / cycle")}</p>
+                      <p>• {t("premiumManagement.config.familyLimit", "Family Links: 3 members")}</p>
                     </div>
                   </div>
                   <div className="grid grid-cols-3 gap-4 border-b border-gray-100 dark:border-slate-800 pb-4">
-                    <div className="text-gray-500 dark:text-gray-400 font-medium">Refund Policy</div>
+                    <div className="text-gray-500 dark:text-gray-400 font-medium">{t("premiumManagement.config.refundPolicy", "Refund Policy")}</div>
                     <div className="col-span-2 text-gray-600 dark:text-gray-300 space-y-1">
-                      <p>• Eligible if AI Tokens used &lt; 5,000</p>
-                      <p>• Eligible if 0 Consultations used</p>
+                      <p>• {t("premiumManagement.config.refundToken", "Eligible if AI Tokens used < 5,000")}</p>
+                      <p>• {t("premiumManagement.config.refundConsult", "Eligible if 0 Consultations used")}</p>
                     </div>
                   </div>
                   <div className="grid grid-cols-3 gap-4">
@@ -223,11 +223,11 @@ export function PremiumManagement() {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-gray-50 dark:bg-slate-800 text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wider sticky top-0 z-10 shadow-sm">
-                  <th className="px-6 py-3 font-medium">Request ID</th>
-                  <th className="px-6 py-3 font-medium">User</th>
-                  <th className="px-6 py-3 font-medium">Final Usage Snapshot</th>
-                  <th className="px-6 py-3 font-medium">Eligibility</th>
-                  <th className="px-6 py-3 font-medium text-right">Actions</th>
+                  <th className="px-6 py-3 font-medium">{t("premiumManagement.table.requestId", "Request ID")}</th>
+                  <th className="px-6 py-3 font-medium">{t("premiumManagement.table.user", "User")}</th>
+                  <th className="px-6 py-3 font-medium">{t("premiumManagement.table.usageSnapshot", "Final Usage Snapshot")}</th>
+                  <th className="px-6 py-3 font-medium">{t("premiumManagement.table.eligibility", "Eligibility")}</th>
+                  <th className="px-6 py-3 font-medium text-right">{t("premiumManagement.table.actions", "Actions")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-slate-800 text-sm">
@@ -236,10 +236,10 @@ export function PremiumManagement() {
                   <td className="px-6 py-4 text-gray-600 dark:text-gray-300">Vu Quoc Huy</td>
                   <td className="px-6 py-4 text-gray-500 dark:text-gray-400 text-xs">Tokens: 1,200 | Consults: 0</td>
                   <td className="px-6 py-4">
-                    <Badge className="bg-green-500 text-white">Eligible</Badge>
+                    <Badge className="bg-green-500 text-white">{t("premiumManagement.status.eligible", "Eligible")}</Badge>
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <button className="text-brand text-xs font-semibold hover:underline">Review</button>
+                    <button className="text-brand text-xs font-semibold hover:underline">{t("premiumManagement.actions.review", "Review")}</button>
                   </td>
                 </tr>
                 <tr className="hover:bg-gray-50 dark:hover:bg-slate-800">
@@ -247,10 +247,10 @@ export function PremiumManagement() {
                   <td className="px-6 py-4 text-gray-600 dark:text-gray-300">Nguyen Van A</td>
                   <td className="px-6 py-4 text-gray-500 dark:text-gray-400 text-xs">Tokens: 15,000 | Consults: 1</td>
                   <td className="px-6 py-4">
-                    <Badge variant="destructive">Ineligible</Badge>
+                    <Badge variant="destructive">{t("premiumManagement.status.ineligible", "Ineligible")}</Badge>
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <button className="text-brand text-xs font-semibold hover:underline">Review</button>
+                    <button className="text-brand text-xs font-semibold hover:underline">{t("premiumManagement.actions.review", "Review")}</button>
                   </td>
                 </tr>
               </tbody>

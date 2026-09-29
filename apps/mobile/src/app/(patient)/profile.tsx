@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { View, Text, ScrollView, TouchableOpacity, SafeAreaView, Image, TextInput, KeyboardAvoidingView, Platform, useColorScheme as useRNColorScheme } from 'react-native';
 import { useSafeRouter as useRouter } from '@/utils/useSafeRouter';
-import { Camera, Mail, Phone, MapPin, User, LogOut, Crown, ChevronRight } from 'lucide-react-native';
+import { Camera, Mail, Phone, MapPin, User, LogOut, Crown, ChevronRight, CheckCircle2, Circle } from 'lucide-react-native';
 import { useAppColorScheme } from 'twrnc';
 import { tw, twInstance } from '@/tw';
 
@@ -73,6 +73,60 @@ export default function ProfileScreen() {
               </View>
               <ChevronRight color="#94a3b8" size={20} />
             </TouchableOpacity>
+          </View>
+
+          {/* Enrollment Status (DA2) */}
+          <View style={tw('px-6 mb-8')}>
+            <View style={tw('bg-indigo-50 dark:bg-indigo-900/20 p-5 rounded-3xl border border-indigo-100 dark:border-indigo-800/50 shadow-sm')}>
+              <View style={tw('mb-4')}>
+                <Text style={tw('font-bold text-indigo-900 dark:text-indigo-100 text-lg mb-2')}>Care Program Enrollment</Text>
+                <View style={tw('bg-amber-100 dark:bg-amber-900/30 px-3 py-1.5 rounded-full self-start')}>
+                  <Text style={tw('text-amber-700 dark:text-amber-400 text-xs font-bold')}>{t('mobile.enroll_status_pending', 'Pending Activation')}</Text>
+                </View>
+              </View>
+
+              <View style={tw('gap-4')}>
+                {/* 1. Account Active */}
+                <View style={tw('flex-row items-center gap-3')}>
+                  <CheckCircle2 color={twInstance.color('text-emerald-500')} size={20} />
+                  <Text style={tw('text-slate-700 dark:text-slate-300 font-medium flex-1')}>{t('mobile.enroll_condition_patient_active', 'Account Active')}</Text>
+                </View>
+                {/* 2. Valid Subscription */}
+                <View style={tw('flex-row items-center gap-3')}>
+                  <CheckCircle2 color={twInstance.color('text-emerald-500')} size={20} />
+                  <Text style={tw('text-slate-700 dark:text-slate-300 font-medium flex-1')}>{t('mobile.enroll_condition_entitlement', 'Valid Subscription')}</Text>
+                </View>
+                {/* 3. Program Published */}
+                <View style={tw('flex-row items-center gap-3')}>
+                  <CheckCircle2 color={twInstance.color('text-emerald-500')} size={20} />
+                  <Text style={tw('text-slate-700 dark:text-slate-300 font-medium flex-1')}>{t('mobile.enroll_condition_program_active', 'Program Published')}</Text>
+                </View>
+                {/* 4. Doctor Approved */}
+                <View style={tw('flex-row items-start gap-3')}>
+                  <Circle color={twInstance.color('text-slate-300 dark:text-slate-600')} size={20} style={tw('mt-0.5')} />
+                  <View style={tw('flex-1')}>
+                    <Text style={tw('text-slate-500 dark:text-slate-400 font-medium')}>{t('mobile.enroll_condition_doctor_active', 'Doctor Approved')}</Text>
+                    <Text style={tw('text-xs text-indigo-500 dark:text-indigo-400 mt-0.5')}>{t('mobile.waiting_for_doctor', 'Waiting for Doctor/System')}</Text>
+                  </View>
+                </View>
+                {/* 5. Consent Signed */}
+                <View style={tw('flex-row items-center gap-3')}>
+                  <Circle color={twInstance.color('text-slate-300 dark:text-slate-600')} size={20} />
+                  <Text style={tw('text-slate-500 dark:text-slate-400 font-medium flex-1')}>{t('mobile.enroll_condition_consent', 'Consent Signed')}</Text>
+                  <TouchableOpacity style={tw('bg-indigo-600 px-3 py-1.5 rounded-lg shrink-0')}>
+                    <Text style={tw('text-white text-xs font-bold')}>{t('mobile.sign_consent', 'Sign Consent')}</Text>
+                  </TouchableOpacity>
+                </View>
+                {/* 6. Baseline Completed */}
+                <View style={tw('flex-row items-center gap-3')}>
+                  <Circle color={twInstance.color('text-slate-300 dark:text-slate-600')} size={20} />
+                  <Text style={tw('text-slate-500 dark:text-slate-400 font-medium flex-1')}>{t('mobile.enroll_condition_baseline', 'Baseline Completed')}</Text>
+                  <TouchableOpacity style={tw('bg-indigo-600 px-3 py-1.5 rounded-lg shrink-0')}>
+                    <Text style={tw('text-white text-xs font-bold')}>{t('mobile.complete_baseline', 'Complete Baseline')}</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
           </View>
 
           {/* Quick Links (DA2 Features) */}

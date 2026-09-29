@@ -38,6 +38,7 @@ export function CareProgram() {
       program: "Hypertension Management",
       condition: "Systolic > 140 OR Diastolic > 90",
       severity: "Attention",
+      status: "active",
       action: "Send Doctor Alert"
     },
     {
@@ -45,6 +46,7 @@ export function CareProgram() {
       program: "Hypertension Management",
       condition: "Systolic > 180 OR Diastolic > 120",
       severity: "Urgent",
+      status: "retired",
       action: "Emergency Protocol"
     },
     {
@@ -52,6 +54,7 @@ export function CareProgram() {
       program: "Diabetes Care",
       condition: "Glucose > 200 mg/dL",
       severity: "Attention",
+      status: "draft",
       action: "Task: Retest in 2 hours"
     }
   ];
@@ -61,19 +64,19 @@ export function CareProgram() {
       <div className="rounded-3xl border border-slate-200/70 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm min-h-[80vh]">
         <div className="mb-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-semibold text-slate-900 dark:text-slate-100">{t("sidebar.careProgram", "Care Program & Rules")}</h1>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Manage health tracking programs and threshold rules.</p>
+            <h1 className="text-3xl font-semibold text-slate-900 dark:text-slate-100">{t("careProgram.title", "Care Program & Rules")}</h1>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{t("careProgram.subtitle")}</p>
           </div>
           <div className="flex items-center gap-3">
             {activeTab === "rules" && (
               <button className="flex items-center gap-2 rounded-xl bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-800 px-4 py-2.5 text-sm font-semibold text-indigo-700 dark:text-indigo-400 shadow-sm hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors">
                 <Play size={18} />
-                Run Simulation
+                {t("careProgram.actions.runSimulation")}
               </button>
             )}
             <button className="flex items-center gap-2 rounded-xl bg-brand px-4 py-2.5 text-sm font-semibold text-slate-900 shadow-sm hover:bg-brand/90 transition-colors">
               <Plus size={18} />
-              {activeTab === "templates" ? "Create Program" : "Add Rule"}
+              {activeTab === "templates" ? t("careProgram.actions.createProgram") : t("careProgram.actions.addRule")}
             </button>
           </div>
         </div>
@@ -88,7 +91,7 @@ export function CareProgram() {
                 : "border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300"
             }`}
           >
-            Program Templates
+            {t("careProgram.tabs.templates")}
           </button>
           <button
             onClick={() => setActiveTab("rules")}
@@ -98,7 +101,7 @@ export function CareProgram() {
                 : "border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300"
             }`}
           >
-            Rule Engine Builder
+            {t("careProgram.tabs.rules")}
           </button>
         </div>
 
@@ -176,11 +179,12 @@ export function CareProgram() {
             <table className="w-full text-left text-sm text-slate-600 dark:text-slate-400">
               <thead className="bg-slate-50 dark:bg-slate-800/50 text-xs font-semibold uppercase text-slate-500 dark:text-slate-400">
                 <tr>
-                  <th className="px-6 py-4">PROGRAM</th>
-                  <th className="px-6 py-4">CONDITION</th>
-                  <th className="px-6 py-4">SEVERITY</th>
-                  <th className="px-6 py-4">ACTION</th>
-                  <th className="px-6 py-4">EDIT</th>
+                  <th className="px-6 py-4">{t("careProgram.rules.program")}</th>
+                  <th className="px-6 py-4">{t("careProgram.rules.condition")}</th>
+                  <th className="px-6 py-4">{t("careProgram.rules.severity")}</th>
+                  <th className="px-6 py-4">{t("careProgram.rules.status")}</th>
+                  <th className="px-6 py-4">{t("careProgram.rules.action")}</th>
+                  <th className="px-6 py-4 text-right">{t("careProgram.rules.edit")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200 dark:divide-slate-700 bg-white dark:bg-slate-900">
@@ -195,9 +199,28 @@ export function CareProgram() {
                         <span className="text-amber-600 font-bold bg-amber-50 px-2 py-1 rounded dark:bg-amber-900/30 dark:text-amber-400">{rule.severity}</span>
                       )}
                     </td>
-                    <td className="px-6 py-4">{rule.action}</td>
                     <td className="px-6 py-4">
-                      <div className="flex items-center gap-2">
+                      {rule.status === "active" ? (
+                        <Badge variant="default" className="bg-emerald-50 text-emerald-700 border-none dark:bg-emerald-900/30 dark:text-emerald-400 hover:bg-emerald-50">{t("careProgram.rules.active")}</Badge>
+                      ) : rule.status === "retired" ? (
+                        <Badge variant="outline" className="bg-slate-100 text-slate-600 border-none dark:bg-slate-800 dark:text-slate-400 hover:bg-slate-100">{t("careProgram.rules.retired")}</Badge>
+                      ) : (
+                        <Badge variant="outline" className="bg-amber-50 text-amber-600 border-none dark:bg-amber-900/30 dark:text-amber-400 hover:bg-amber-50">{t("careProgram.rules.draft")}</Badge>
+                      )}
+                    </td>
+                    <td className="px-6 py-4">{rule.action}</td>
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        {rule.status !== "active" && (
+                          <button className="px-3 py-1 text-xs font-semibold rounded-md bg-brand text-slate-900 hover:bg-brand/90 transition-colors">
+                            {t("careProgram.rules.activate")}
+                          </button>
+                        )}
+                        {rule.status === "active" && (
+                          <button className="px-3 py-1 text-xs font-semibold rounded-md bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400 hover:bg-rose-200 dark:hover:bg-rose-900/50 transition-colors">
+                            {t("careProgram.rules.retire")}
+                          </button>
+                        )}
                         <button className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded transition-colors" title="Simulate">
                           <Play size={16} />
                         </button>

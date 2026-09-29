@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { View, Text, ScrollView, TouchableOpacity, SafeAreaView, Image, TextInput, KeyboardAvoidingView, Platform, useColorScheme as useRNColorScheme } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, SafeAreaView, Image, TextInput, KeyboardAvoidingView, Platform, useColorScheme as useRNColorScheme, Switch } from 'react-native';
 import { useSafeRouter as useRouter } from '@/utils/useSafeRouter';
 import { Camera, Mail, Phone, MapPin, Stethoscope, LogOut, FileText, Pencil, Trash2, Plus, Radical, Building, ShieldCheck } from 'lucide-react-native';
 import { useAppColorScheme } from 'twrnc';
@@ -240,6 +240,53 @@ export default function DoctorProfileScreen() {
                 <View style={tw('bg-amber-100 dark:bg-amber-900/50 self-start px-2 py-1 rounded')}>
                   <Text style={tw('text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider')}>{t('mobile.status_pending', 'Status: Pending Approval')}</Text>
                 </View>
+              </View>
+            </View>
+
+            {/* Booking Settings */}
+            <Text style={tw('text-xs font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-4 mt-4')}>{t('mobile.booking_settings', `Booking Settings`)}</Text>
+            
+            <View style={tw('bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-100 dark:border-slate-800 shadow-sm mb-4')}>
+              <View style={tw('mb-4')}>
+                <Text style={tw('text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2')}>{t('mobile.default_duration', `Default Duration (min)`)}</Text>
+                <View style={tw('bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl px-4 h-12 justify-center')}>
+                  <TextInput style={tw('text-slate-900 dark:text-white font-medium')} keyboardType="numeric" value="30" />
+                </View>
+              </View>
+              <View style={tw('mb-4 flex-row gap-3')}>
+                <View style={tw('flex-1')}>
+                  <Text style={tw('text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2')} numberOfLines={1}>{t('mobile.buffer_time', `Buffer (min)`)}</Text>
+                  <View style={tw('bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl px-4 h-12 justify-center')}>
+                    <TextInput style={tw('text-slate-900 dark:text-white font-medium')} keyboardType="numeric" value="10" />
+                  </View>
+                </View>
+                <View style={tw('flex-1')}>
+                  <Text style={tw('text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2')} numberOfLines={1}>{t('mobile.min_notice', `Min Notice (min)`)}</Text>
+                  <View style={tw('bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl px-4 h-12 justify-center')}>
+                    <TextInput style={tw('text-slate-900 dark:text-white font-medium')} keyboardType="numeric" value="60" />
+                  </View>
+                </View>
+              </View>
+              <View style={tw('mb-4 flex-row gap-3')}>
+                <View style={tw('flex-1')}>
+                  <Text style={tw('text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2')} numberOfLines={1}>{t('mobile.max_advance', `Max Advance (days)`)}</Text>
+                  <View style={tw('bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl px-4 h-12 justify-center')}>
+                    <TextInput style={tw('text-slate-900 dark:text-white font-medium')} keyboardType="numeric" value="30" />
+                  </View>
+                </View>
+                <View style={tw('flex-1')}>
+                  <Text style={tw('text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2')} numberOfLines={1}>{t('mobile.cancel_deadline', `Cancel Deadline (min)`)}</Text>
+                  <View style={tw('bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl px-4 h-12 justify-center')}>
+                    <TextInput style={tw('text-slate-900 dark:text-white font-medium')} keyboardType="numeric" value="120" />
+                  </View>
+                </View>
+              </View>
+              <View style={tw('flex-row justify-between items-center')}>
+                <View>
+                  <Text style={tw('text-sm font-bold text-slate-700 dark:text-slate-200')}>{t('mobile.require_approval', `Require Approval`)}</Text>
+                  <Text style={tw('text-xs text-slate-500')}>{t('mobile.booking_policy', 'For new appointments')}</Text>
+                </View>
+                <Switch value={true} trackColor={{ false: '#cbd5e1', true: '#34d399' }} />
               </View>
             </View>
 

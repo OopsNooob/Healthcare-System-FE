@@ -311,7 +311,12 @@
         "banUser": "Khoá Người dùng",
         "banned": "Đã khoá",
         "pending": "Chờ xử lý",
-        "resolved": "Đã xử lý"
+        "resolved": "Đã xử lý",
+        "aiClassification": "Phân loại AI",
+        "aiCategory": "Hạng mục",
+        "aiSeverity": "Mức độ nghiêm trọng & Độ tự tin",
+        "aiRationale": "Lý do",
+        "aiRationaleValue": "Dựa trên phân tích lịch sử tin nhắn, tin nhắn chứa ngôn từ hung hăng nhắm vào một người dùng khác."
       },
       "table": {
         "type": "LOẠI",
@@ -385,6 +390,32 @@
         "noDocs": "Chưa tải lên tài liệu xác thực nào.",
         "profileUpdated": "Cập nhật hồ sơ thành công",
         "failedToSave": "Lưu hồ sơ thất bại"
+      }
+    },
+    "careProgram": {
+      "title": "Chương trình Chăm sóc & Quy tắc",
+      "subtitle": "Quản lý các chương trình theo dõi sức khoẻ và hệ thống cảnh báo (Rule Engine).",
+      "tabs": {
+        "templates": "Mẫu Chương trình",
+        "rules": "Hệ thống Quy tắc"
+      },
+      "actions": {
+        "createProgram": "Tạo Chương trình",
+        "addRule": "Thêm Quy tắc",
+        "runSimulation": "Chạy Mô phỏng"
+      },
+      "rules": {
+        "program": "CHƯƠNG TRÌNH",
+        "condition": "ĐIỀU KIỆN",
+        "severity": "MỨC ĐỘ",
+        "status": "TRẠNG THÁI",
+        "action": "HÀNH ĐỘNG",
+        "edit": "CHỈNH SỬA",
+        "active": "Hoạt động",
+        "retired": "Đã huỷ",
+        "draft": "Bản nháp",
+        "activate": "Kích hoạt",
+        "retire": "Tạm ngưng"
       }
     }
   }

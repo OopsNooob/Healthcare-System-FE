@@ -311,7 +311,12 @@
         "banUser": "Ban User",
         "banned": "Banned",
         "pending": "Pending",
-        "resolved": "Resolved"
+        "resolved": "Resolved",
+        "aiClassification": "AI Classification",
+        "aiCategory": "Category",
+        "aiSeverity": "Severity & Confidence",
+        "aiRationale": "Rationale",
+        "aiRationaleValue": "Based on chat history analysis, the message contains aggressive language targeted at another user."
       },
       "table": {
         "type": "TYPE",
@@ -385,6 +390,32 @@
         "noDocs": "No verification documents uploaded yet.",
         "profileUpdated": "Profile updated successfully",
         "failedToSave": "Failed to save profile"
+      }
+    },
+    "careProgram": {
+      "title": "Care Program & Rules",
+      "subtitle": "Manage health tracking programs and threshold rules.",
+      "tabs": {
+        "templates": "Program Templates",
+        "rules": "Rule Engine Builder"
+      },
+      "actions": {
+        "createProgram": "Create Program",
+        "addRule": "Add Rule",
+        "runSimulation": "Run Simulation"
+      },
+      "rules": {
+        "program": "PROGRAM",
+        "condition": "CONDITION",
+        "severity": "SEVERITY",
+        "status": "STATUS",
+        "action": "ACTION",
+        "edit": "EDIT",
+        "active": "Active",
+        "retired": "Retired",
+        "draft": "Draft",
+        "activate": "Activate",
+        "retire": "Retire"
       }
     }
   }
