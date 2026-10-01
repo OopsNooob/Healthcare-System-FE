@@ -34,6 +34,41 @@ export function useLogin() {
       }
 
       try {
+        if (import.meta.env.VITE_MOCK_AUTH === 'true') {
+          // Simulate network delay
+          await new Promise((resolve) => setTimeout(resolve, 800));
+          
+          const mockToken = "mock_access_token";
+          const mockUser: User = {
+            id: "mock-admin-id",
+            email: payload.email,
+            name: "Mock Admin User",
+            role: "admin",
+            avatar: "https://i.pravatar.cc/150?img=11",
+            adminRole: "super_admin",
+          };
+          
+          localStorage.setItem("accessToken", mockToken);
+          localStorage.setItem("refreshToken", "mock_refresh_token");
+          
+          setUser(mockUser, mockToken, "mock_refresh_token");
+          
+          const mockResponse: ApiLoginResponse = {
+            user: {
+              id: mockUser.id,
+              email: mockUser.email,
+              fullName: mockUser.name,
+              role: mockUser.role,
+              avatarUrl: mockUser.avatar || "",
+            },
+            accessToken: mockToken,
+            refreshToken: "mock_refresh_token",
+          };
+          
+          setData(mockResponse);
+          return mockResponse;
+        }
+
         const res = await submitLogin(payload);
 
         if (res.user.role !== "admin") {

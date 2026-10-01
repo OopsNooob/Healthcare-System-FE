@@ -3,6 +3,7 @@ import { CreditCard, Eye, TrendingUp, Users, Search, Database } from 'lucide-rea
 import { Badge } from "@repo/ui/components/ui/badge";
 import { Skeleton } from "@repo/ui/components/ui/skeleton";
 import { useTranslation } from "react-i18next";
+import { toast } from "react-toastify";
 
 interface Transaction {
   id: string;
@@ -96,7 +97,7 @@ export function PremiumManagement() {
               className={`font-medium pb-4 border-b-2 -mb-4 ${activeTab === 'refunds' ? 'border-brand text-brand' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
               onClick={() => setActiveTab('refunds')}
             >
-              {t("premiumManagement.tabs.refunds", "Refund Requests")}
+              {t("premiumManagement.tabs.refunds")}
             </button>
           </div>
 
@@ -223,11 +224,11 @@ export function PremiumManagement() {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-gray-50 dark:bg-slate-800 text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wider sticky top-0 z-10 shadow-sm">
-                  <th className="px-6 py-3 font-medium">{t("premiumManagement.table.requestId", "Request ID")}</th>
-                  <th className="px-6 py-3 font-medium">{t("premiumManagement.table.user", "User")}</th>
-                  <th className="px-6 py-3 font-medium">{t("premiumManagement.table.usageSnapshot", "Final Usage Snapshot")}</th>
-                  <th className="px-6 py-3 font-medium">{t("premiumManagement.table.eligibility", "Eligibility")}</th>
-                  <th className="px-6 py-3 font-medium text-right">{t("premiumManagement.table.actions", "Actions")}</th>
+                  <th className="px-6 py-3 font-medium">{t("premiumManagement.table.requestId")}</th>
+                  <th className="px-6 py-3 font-medium">{t("premiumManagement.table.user")}</th>
+                  <th className="px-6 py-3 font-medium">{t("premiumManagement.table.usageSnapshot")}</th>
+                  <th className="px-6 py-3 font-medium">{t("premiumManagement.table.eligibility")}</th>
+                  <th className="px-6 py-3 font-medium text-right">{t("premiumManagement.table.actions")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-slate-800 text-sm">
@@ -236,10 +237,15 @@ export function PremiumManagement() {
                   <td className="px-6 py-4 text-gray-600 dark:text-gray-300">Vu Quoc Huy</td>
                   <td className="px-6 py-4 text-gray-500 dark:text-gray-400 text-xs">Tokens: 1,200 | Consults: 0</td>
                   <td className="px-6 py-4">
-                    <Badge className="bg-green-500 text-white">{t("premiumManagement.status.eligible", "Eligible")}</Badge>
+                    <Badge className="bg-green-500 text-white">{t("premiumManagement.status.eligible")}</Badge>
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <button className="text-brand text-xs font-semibold hover:underline">{t("premiumManagement.actions.review", "Review")}</button>
+                    <button 
+                      className="text-brand text-xs font-semibold hover:underline"
+                      onClick={() => toast.info(t("premiumManagement.actions.review") + ": REF-001 (Vu Quoc Huy)")}
+                    >
+                      {t("premiumManagement.actions.review")}
+                    </button>
                   </td>
                 </tr>
                 <tr className="hover:bg-gray-50 dark:hover:bg-slate-800">
@@ -247,10 +253,15 @@ export function PremiumManagement() {
                   <td className="px-6 py-4 text-gray-600 dark:text-gray-300">Nguyen Van A</td>
                   <td className="px-6 py-4 text-gray-500 dark:text-gray-400 text-xs">Tokens: 15,000 | Consults: 1</td>
                   <td className="px-6 py-4">
-                    <Badge variant="destructive">{t("premiumManagement.status.ineligible", "Ineligible")}</Badge>
+                    <Badge variant="destructive">{t("premiumManagement.status.ineligible")}</Badge>
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <button className="text-brand text-xs font-semibold hover:underline">{t("premiumManagement.actions.review", "Review")}</button>
+                    <button 
+                      className="text-brand text-xs font-semibold hover:underline"
+                      onClick={() => toast.info(t("premiumManagement.actions.review") + ": REF-002 (Nguyen Van A)")}
+                    >
+                      {t("premiumManagement.actions.review")}
+                    </button>
                   </td>
                 </tr>
               </tbody>

@@ -38,6 +38,14 @@
       "medicalFacilities": "Cơ sở Y tế",
       "mainMenu": "Menu chính"
     },
+    "topHeader": {
+      "searchPlaceholder": "Tìm kiếm...",
+      "notifications": "Thông báo",
+      "markAsRead": "Đánh dấu đã đọc",
+      "loadingNotifications": "Đang tải thông báo...",
+      "showLess": "Thu gọn",
+      "viewAllNotifications": "Xem tất cả thông báo"
+    },
     "overview": {
       "title": "Tổng quan",
       "totalUsers": "Tổng người dùng",
@@ -115,6 +123,28 @@
         "aiAdmin": "Quản trị AI"
       }
     },
+    "medicalFacilities": {
+      "description": "Xem xét và quản lý các cơ sở y tế trên bản đồ.",
+      "by": "Bởi",
+      "status": {
+        "all": "Tất cả trạng thái",
+        "pending": "Chờ duyệt",
+        "verified": "Đã duyệt",
+        "rejected": "Bị từ chối"
+      },
+      "table": {
+        "facility": "CƠ SỞ Y TẾ",
+        "location": "VỊ TRÍ",
+        "submitted": "NGÀY GỬI",
+        "status": "TRẠNG THÁI",
+        "actions": "HÀNH ĐỘNG"
+      },
+      "actions": {
+        "approve": "Phê duyệt",
+        "reject": "Từ chối",
+        "edit": "Chỉnh sửa"
+      }
+    },
     "docVerification": {
       "title": "Xác thực Tài liệu",
       "subtitle": "Xem xét và xác thực chứng chỉ của bác sĩ.",
@@ -185,7 +215,8 @@
       },
       "tabs": {
         "transactions": "Giao dịch VNPAY",
-        "config": "Cấu hình Gói"
+        "config": "Cấu hình Gói",
+        "refunds": "Yêu cầu Hoàn tiền"
       },
       "searchPlaceholder": "Tìm giao dịch...",
       "table": {
@@ -196,12 +227,22 @@
         "status": "Trạng thái",
         "actions": "Hành động",
         "noTransactions": "Không tìm thấy giao dịch",
-        "tryAdjusting": "Thử điều chỉnh bộ lọc tìm kiếm"
+        "tryAdjusting": "Thử điều chỉnh bộ lọc tìm kiếm",
+        "requestId": "Mã Yêu cầu",
+        "usageSnapshot": "Ảnh chụp sử dụng (Cuối)",
+        "eligibility": "Điều kiện"
       },
       "status": {
         "success": "Thành công",
         "pending": "Chờ xử lý",
-        "failed": "Thất bại"
+        "failed": "Thất bại",
+        "eligible": "Đủ điều kiện",
+        "ineligible": "Không đủ đ.kiện"
+      },
+      "actions": {
+        "review": "Xem xét",
+        "approve": "Phê duyệt Hoàn tiền",
+        "reject": "Từ chối Hoàn tiền"
       },
       "config": {
         "title": "Gói Premium",
@@ -269,6 +310,25 @@
         "allStatus": "Tất cả",
         "searchWord": "Tìm từ khoá...",
         "enterWord": "Nhập từ hoặc cụm từ"
+      },
+      "combobox": {
+        "noType": "Không tìm thấy loại.",
+        "noStatus": "Không tìm thấy trạng thái."
+      },
+      "pagination": {
+        "showing": "Đang hiển thị",
+        "of": "trên",
+        "documents": "tài liệu"
+      },
+      "blacklistTab": {
+        "title": "Quản lý Từ Cấm",
+        "subtitle": "Quản lý các từ bị chặn trong phản hồi của AI",
+        "wordsCount": "từ",
+        "searchPlaceholder": "Tìm kiếm từ cấm...",
+        "inputPlaceholder": "Nhập từ mới để đưa vào danh sách đen...",
+        "addWord": "+ Thêm Từ",
+        "allWords": "TẤT CẢ TỪ CẤM",
+        "noWordsFound": "Không tìm thấy từ cấm nào phù hợp."
       },
       "actions": {
         "upload": "Tải Tài liệu Mới",

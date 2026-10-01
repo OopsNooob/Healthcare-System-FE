@@ -2,10 +2,12 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Search, Building2, MapPin, CheckCircle2, XCircle, Clock } from "lucide-react";
 import { Badge } from "@repo/ui/components/ui/badge";
+import { toast } from "react-toastify";
 
 export function MedicalFacilities() {
   const { t } = useTranslation();
   const [search, setSearch] = useState("");
+  const [filterStatus, setFilterStatus] = useState("all");
 
   const facilities = [
     {
@@ -37,13 +39,24 @@ export function MedicalFacilities() {
     }
   ];
 
+  const filteredFacilities = facilities.filter(fac => {
+    const matchSearch = fac.name.toLowerCase().includes(search.toLowerCase()) || 
+                        fac.address.toLowerCase().includes(search.toLowerCase());
+    const matchStatus = filterStatus === "all" || fac.status === filterStatus;
+    return matchSearch && matchStatus;
+  });
+
+  const handleAction = (action: string, name: string) => {
+    toast.success(`${action} ${name} successfully! (Mock)`);
+  };
+
   return (
     <div className="w-full p-6">
       <div className="rounded-3xl border border-slate-200/70 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm">
         <div className="mb-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div>
             <h1 className="text-3xl font-semibold text-slate-900 dark:text-slate-100">{t("sidebar.medicalFacilities", "Medical Facilities")}</h1>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Review and manage medical facilities on the map.</p>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{t("medicalFacilities.description", "Review and manage medical facilities on the map.")}</p>
           </div>
         </div>
 
@@ -58,7 +71,11 @@ export function MedicalFacilities() {
               className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 py-2.5 pl-10 pr-4 text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-brand dark:focus:border-brand"
             />
           </div>
-          <select className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-4 py-2.5 text-sm outline-none text-slate-700 dark:text-slate-300">
+          <select 
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value)}
+            className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-4 py-2.5 text-sm outline-none text-slate-700 dark:text-slate-300"
+          >
             <option value="all">{t("medicalFacilities.status.all", "All Status")}</option>
             <option value="pending">{t("medicalFacilities.status.pending", "Pending")}</option>
             <option value="verified">{t("medicalFacilities.status.verified", "Verified")}</option>
@@ -78,7 +95,7 @@ export function MedicalFacilities() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200 dark:divide-slate-700 bg-white dark:bg-slate-900">
-              {facilities.map((fac) => (
+              {filteredFacilities.map((fac) => (
                 <tr key={fac.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
@@ -121,15 +138,24 @@ export function MedicalFacilities() {
                   <td className="px-6 py-4">
                     {fac.status === "pending" ? (
                       <div className="flex items-center gap-2">
-                        <button className="px-3 py-1.5 text-xs font-semibold text-emerald-600 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-900/30 dark:hover:bg-emerald-900/50 rounded-lg transition-colors">
+                        <button 
+                          onClick={() => handleAction("Approved", fac.name)}
+                          className="px-3 py-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-900/30 dark:hover:bg-emerald-900/50 rounded-lg transition-colors"
+                        >
                           {t("medicalFacilities.actions.approve", "Approve")}
                         </button>
-                        <button className="px-3 py-1.5 text-xs font-semibold text-rose-600 bg-rose-50 hover:bg-rose-100 dark:bg-rose-900/30 dark:hover:bg-rose-900/50 rounded-lg transition-colors">
+                        <button 
+                          onClick={() => handleAction("Rejected", fac.name)}
+                          className="px-3 py-1.5 text-xs font-semibold text-rose-600 dark:text-rose-400 bg-rose-50 hover:bg-rose-100 dark:bg-rose-900/30 dark:hover:bg-rose-900/50 rounded-lg transition-colors"
+                        >
                           {t("medicalFacilities.actions.reject", "Reject")}
                         </button>
                       </div>
                     ) : (
-                      <button className="px-3 py-1.5 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-lg transition-colors">
+                      <button 
+                        onClick={() => handleAction("Edited", fac.name)}
+                        className="px-3 py-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-lg transition-colors"
+                      >
                         {t("medicalFacilities.actions.edit", "Edit")}
                       </button>
                     )}

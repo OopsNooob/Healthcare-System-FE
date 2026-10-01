@@ -38,6 +38,14 @@
       "medicalFacilities": "Medical Facilities",
       "mainMenu": "Main Menu"
     },
+    "topHeader": {
+      "searchPlaceholder": "Search...",
+      "notifications": "Notifications",
+      "markAsRead": "Mark as read",
+      "loadingNotifications": "Loading notifications...",
+      "showLess": "Show less",
+      "viewAllNotifications": "View all notifications"
+    },
     "overview": {
       "title": "Overview",
       "totalUsers": "Total Users",
@@ -115,6 +123,28 @@
         "aiAdmin": "AI admin"
       }
     },
+    "medicalFacilities": {
+      "description": "Review and manage medical facilities on the map.",
+      "by": "By",
+      "status": {
+        "all": "All Status",
+        "pending": "Pending",
+        "verified": "Verified",
+        "rejected": "Rejected"
+      },
+      "table": {
+        "facility": "FACILITY",
+        "location": "LOCATION",
+        "submitted": "SUBMITTED",
+        "status": "STATUS",
+        "actions": "ACTIONS"
+      },
+      "actions": {
+        "approve": "Approve",
+        "reject": "Reject",
+        "edit": "Edit"
+      }
+    },
     "docVerification": {
       "title": "Document Verification",
       "subtitle": "Review and verify doctor certificates and credentials.",
@@ -185,7 +215,8 @@
       },
       "tabs": {
         "transactions": "VNPAY Transactions",
-        "config": "Package Configuration"
+        "config": "Package Configuration",
+        "refunds": "Refund Requests"
       },
       "searchPlaceholder": "Search transaction...",
       "table": {
@@ -196,12 +227,22 @@
         "status": "Status",
         "actions": "Actions",
         "noTransactions": "No transactions found",
-        "tryAdjusting": "Try adjusting your search criteria"
+        "tryAdjusting": "Try adjusting your search criteria",
+        "requestId": "Request ID",
+        "usageSnapshot": "Final Usage Snapshot",
+        "eligibility": "Eligibility"
       },
       "status": {
         "success": "Success",
         "pending": "Pending",
-        "failed": "Failed"
+        "failed": "Failed",
+        "eligible": "Eligible",
+        "ineligible": "Ineligible"
+      },
+      "actions": {
+        "review": "Review",
+        "approve": "Approve Refund",
+        "reject": "Reject Refund"
       },
       "config": {
         "title": "Premium Subscription",
@@ -269,6 +310,25 @@
         "allStatus": "All status",
         "searchWord": "Search words...",
         "enterWord": "Enter word or phrase"
+      },
+      "combobox": {
+        "noType": "No type found.",
+        "noStatus": "No status found."
+      },
+      "pagination": {
+        "showing": "Showing",
+        "of": "of",
+        "documents": "documents"
+      },
+      "blacklistTab": {
+        "title": "Restricted Words Manager",
+        "subtitle": "Manage words blocked from AI-generated responses",
+        "wordsCount": "words",
+        "searchPlaceholder": "Search restricted words...",
+        "inputPlaceholder": "Type a new word to blacklist...",
+        "addWord": "+ Add Word",
+        "allWords": "ALL RESTRICTED WORDS",
+        "noWordsFound": "No matching restricted words found."
       },
       "actions": {
         "upload": "Upload New Document",

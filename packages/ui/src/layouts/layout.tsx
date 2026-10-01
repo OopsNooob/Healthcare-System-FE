@@ -41,7 +41,7 @@ export function Layout({
   }, [pathname, search]);
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex h-screen bg-gray-50 dark:bg-[#020817]">
       <Sidebar userRole={userRole} adminRole={adminRole} onLogout={onLogout} />
       <div className="flex-1 flex flex-col overflow-hidden">
         <TopHeader

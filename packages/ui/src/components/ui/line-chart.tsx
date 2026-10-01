@@ -132,15 +132,15 @@ export function LineChart({
 
   return (
     <div
-      className={`flex flex-col rounded-2xl border border-slate-200 bg-white p-4 shadow-sm ${className ?? ""}`}
+      className={`flex flex-col rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-sm ${className ?? ""}`}
       style={{ height }}
     >
       {(title || subtitle) && (
         <div className="mb-3 shrink-0">
           {title && (
-            <h3 className="text-sm font-semibold text-slate-900">{title}</h3>
+            <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">{title}</h3>
           )}
-          {subtitle && <p className="text-xs text-slate-500">{subtitle}</p>}
+          {subtitle && <p className="text-xs text-slate-500 dark:text-slate-400">{subtitle}</p>}
         </div>
       )}
       <div className="min-h-0 flex-1 pb-1">

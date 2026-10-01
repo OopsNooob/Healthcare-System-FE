@@ -18,8 +18,9 @@ export default function PatientLayout() {
       <Tabs.Screen name="appointments" options={{ title: t('mobile.appointments', "Appointments"), tabBarIcon: ({ color }) => <Calendar color={color} size={24} /> }} />
       <Tabs.Screen name="health-metric" options={{ title: t('mobile.health_metrics', "Metrics"), tabBarIcon: ({ color }) => <Activity color={color} size={24} /> }} />
       <Tabs.Screen name="chat-hub" options={{ title: t('mobile.messages', "Chat"), tabBarIcon: ({ color }) => <MessageCircle color={color} size={24} /> }} />
-      <Tabs.Screen name="family" options={{ title: t('mobile.family', "Family"), tabBarIcon: ({ color }) => <HeartPulse color={color} size={24} /> }} />
-      <Tabs.Screen name="facilities" options={{ title: t('mobile.facilities', "Facilities"), tabBarIcon: ({ color }) => <Building2 color={color} size={24} /> }} />
+      {/* Hidden from tab bar */}
+      <Tabs.Screen name="family" options={{ href: null, headerShown: false }} />
+      <Tabs.Screen name="facilities" options={{ href: null, headerShown: false }} />
       <Tabs.Screen name="profile" options={{ title: t('mobile.profile', "Profile"), tabBarIcon: ({ color }) => <User color={color} size={24} /> }} />
       
       {/* Hide these from tab bar, but keep them in the layout for routing */}

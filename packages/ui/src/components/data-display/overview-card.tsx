@@ -25,7 +25,7 @@ export function OverviewCard({
   const isPositive = comparedStats ? comparedStats >= 0 : null;
 
   return (
-    <li className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+    <li className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-sm">
       <div className="mb-4 flex items-center justify-between gap-3">
         <div
           className={`inline-flex h-9 w-9 items-center justify-center rounded-lg ${iconClassName}`}
@@ -35,8 +35,8 @@ export function OverviewCard({
         <div
           className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ${
             isPositive
-              ? "bg-emerald-50 text-emerald-600"
-              : "bg-red-50 text-red-600"
+              ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400"
+              : "bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400"
           }`}
         >
           {isPositive ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
@@ -47,11 +47,11 @@ export function OverviewCard({
         </div>
       </div>
 
-      <p className="text-2xl font-bold leading-none text-slate-900">
+      <p className="text-2xl font-bold leading-none text-slate-900 dark:text-slate-100">
         {typeof stats === "number" ? formatNumber(stats) : stats}
       </p>
-      <p className="mt-2 text-sm font-medium text-slate-700">{title}</p>
-      <p className="mt-1 text-xs text-slate-500">{subText}</p>
+      <p className="mt-2 text-sm font-medium text-slate-700 dark:text-slate-300">{title}</p>
+      <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{subText}</p>
     </li>
   );
 }

@@ -1,5 +1,6 @@
 import { Bell, CheckCheck, Search } from "lucide-react";
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { ThemeLanguageToggle } from "../components/ThemeLanguageToggle";
 import {
   NotificationDetailCard,
@@ -46,6 +47,7 @@ export function TopHeader({
   onDelete,
   onPrimaryAction,
 }: TopHeaderProps) {
+  const { t } = useTranslation();
   const [notificationOpen, setNotificationOpen] = useState(false);
 
   const [showAllNoti, setShowAllNoti] = useState(false);
@@ -85,7 +87,7 @@ export function TopHeader({
   };
 
   return (
-    <header className="h-16 bg-white shadow-sm flex items-center justify-between px-6">
+    <header className="h-16 bg-white dark:bg-slate-900 shadow-sm border-b border-transparent dark:border-slate-800 flex items-center justify-between px-6">
       <div className="flex items-center gap-4">
         <h3 className="text-xlg font-semibold text-gray-800">
           {/* {roleNames[role as keyof typeof roleNames]} */}
@@ -95,11 +97,11 @@ export function TopHeader({
       <div className="flex items-center gap-4">
         {/* Search */}
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-slate-400" />
           <input
             type="text"
-            placeholder="Tìm kiếm..."
-            className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#84cc16] w-64"
+            placeholder={t('topHeader.searchPlaceholder', 'Tìm kiếm...')}
+            className="pl-10 pr-4 py-2 border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder:text-gray-400 dark:placeholder:text-slate-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#84cc16] w-64"
           />
         </div>
 
@@ -111,7 +113,7 @@ export function TopHeader({
           <button
             type="button"
             onClick={handleToggleNotificationDropdown}
-            className="relative flex items-center justify-center text-[#6B7280] hover:bg-gray-50 p-2 rounded-lg transition-colors"
+            className="relative flex items-center justify-center text-[#6B7280] dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-800 p-2 rounded-lg transition-colors"
             aria-label="Notifications"
           >
             <Bell className="w-5 h-5" />
@@ -123,10 +125,10 @@ export function TopHeader({
           </button>
 
           {notificationOpen && (
-            <div className="absolute right-0 top-12 w-80 rounded-xl border border-gray-200 bg-white shadow-xl z-50">
-              <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-                <p className="text-sm font-semibold text-gray-900">
-                  Notifications
+            <div className="absolute right-0 top-12 w-80 rounded-xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xl z-50">
+              <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-slate-800">
+                <p className="text-sm font-semibold text-gray-900 dark:text-slate-100">
+                  {t("topHeader.notifications")}
                 </p>
                 <button
                   type="button"
@@ -134,7 +136,7 @@ export function TopHeader({
                   className="inline-flex items-center gap-1 text-sm text-[#3B7BF8] hover:opacity-80"
                 >
                   <CheckCheck className="w-3.5 h-3.5" />
-                  Mark as read
+                  {t("topHeader.markAsRead")}
                 </button>
               </div>
 
@@ -144,7 +146,7 @@ export function TopHeader({
 
               {isLoading && (
                 <div className="px-4 py-2 text-xs text-slate-500">
-                  Loading notifications...
+                  {t("topHeader.loadingNotifications")}
                 </div>
               )}
 
@@ -163,7 +165,7 @@ export function TopHeader({
                         <button
                           type="button"
                           onClick={() => handleOpenNotificationDetail(item.id)}
-                          className={`w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors ${item.read ? "bg-white" : "bg-[#F9FAFB]"}`}
+                          className={`w-full text-left px-4 py-3 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors ${item.read ? "bg-white dark:bg-slate-900" : "bg-[#F9FAFB] dark:bg-slate-800/50"}`}
                         >
                           <div className="flex items-start gap-3">
                             <div className="relative mt-0.5">
@@ -180,10 +182,10 @@ export function TopHeader({
                             </div>
 
                             <div className="min-w-0">
-                              <p className="text-sm font-medium text-gray-900 truncate">
+                              <p className="text-sm font-medium text-gray-900 dark:text-slate-100 truncate">
                                 {item.title}
                               </p>
-                              <p className="text-xs text-gray-500 mt-1 line-clamp-2">
+                              <p className="text-xs text-gray-500 dark:text-slate-400 mt-1 line-clamp-2">
                                 {item.message}
                               </p>
                               {displayTime && (
@@ -200,13 +202,13 @@ export function TopHeader({
                 )}
               </ul>
 
-              <div className="border-t">
+              <div className="border-t dark:border-slate-800">
                 <button
                   type="button"
                   onClick={handleShowAllNoti}
-                  className="w-full py-3 text-sm text-center text-[#3B7BF8] font-medium hover:bg-gray-50 transition-colors rounded-b-xl"
+                  className="w-full py-3 text-sm text-center text-[#3B7BF8] font-medium hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors rounded-b-xl"
                 >
-                  {showAllNoti ? "Show less" : "View all notifications"}
+                  {showAllNoti ? t("topHeader.showLess") : t("topHeader.viewAllNotifications")}
                 </button>
               </div>
             </div>

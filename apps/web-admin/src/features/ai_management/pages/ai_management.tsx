@@ -606,7 +606,7 @@ export function AIManagement() {
                       className="w-full md:w-44 bg-white dark:bg-slate-900 dark:border-slate-700"
                     />
                     <ComboboxContent className="dark:bg-slate-900">
-                      <ComboboxEmpty>No type found.</ComboboxEmpty>
+                      <ComboboxEmpty>{t("aiManagement.combobox.noType")}</ComboboxEmpty>
                       <ComboboxList>
                         <ComboboxItem value="all">{t("aiManagement.filters.allTypes")}</ComboboxItem>
                         <ComboboxItem value="pdf">PDF</ComboboxItem>
@@ -629,7 +629,7 @@ export function AIManagement() {
                       className="w-full md:w-44 bg-white dark:bg-slate-900 dark:border-slate-700"
                     />
                     <ComboboxContent className="dark:bg-slate-900">
-                      <ComboboxEmpty>No status found.</ComboboxEmpty>
+                      <ComboboxEmpty>{t("aiManagement.combobox.noStatus")}</ComboboxEmpty>
                       <ComboboxList>
                         <ComboboxItem value="all">{t("aiManagement.filters.allStatus")}</ComboboxItem>
                         <ComboboxItem value="active">Active</ComboboxItem>
@@ -757,17 +757,17 @@ export function AIManagement() {
                         colSpan={5}
                         className="px-3 py-10 text-center text-sm text-slate-500"
                       >
-                        No documents found with your current filters.
+                        {t("aiManagement.table.noDocs")}
                       </TableCell>
                     </TableRow>
                   )}
                 </TableBody>
               </Table>
 
-              <div className="flex flex-col gap-3 border-t border-slate-200 px-3 py-2 text-xs text-slate-400 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-col gap-3 border-t border-slate-200 dark:border-slate-800 px-3 py-2 text-xs text-slate-400 sm:flex-row sm:items-center sm:justify-between">
                 <p>
-                  Showing {paginatedDocs.length} of {filteredDocs.length}{" "}
-                  documents
+                  {t("aiManagement.pagination.showing")} {paginatedDocs.length} {t("aiManagement.pagination.of")} {filteredDocs.length}{" "}
+                  {t("aiManagement.pagination.documents")}
                 </p>
 
                 {totalPages > 1 ? (
@@ -832,26 +832,26 @@ export function AIManagement() {
             </div>
           </div>
         ) : (
-          <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
-            <div className="flex items-center justify-between border-b border-slate-200 p-5">
+          <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 p-5">
               <div className="flex items-center gap-3">
-                <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-red-50 text-red-500">
+                <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-red-50 dark:bg-red-900/30 text-red-500">
                   <Ban className="h-5 w-5" />
                 </span>
                 <div>
                   <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-                    Restricted Words Manager
+                    {t("aiManagement.blacklistTab.title")}
                   </h3>
-                  <p className="text-sm text-slate-500">
-                    Manage words blocked from AI-generated responses
+                  <p className="text-sm text-slate-500 dark:text-slate-400">
+                    {t("aiManagement.blacklistTab.subtitle")}
                   </p>
                 </div>
               </div>
               <Badge
                 variant="outline"
-                className="rounded-full border-red-200 bg-red-50 px-3 py-1 text-sm text-red-500"
+                className="rounded-full border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-900/20 px-3 py-1 text-sm text-red-500 dark:text-red-400"
               >
-                {blacklistWords.length} words
+                {blacklistWords.length} {t("aiManagement.blacklistTab.wordsCount")}
               </Badge>
             </div>
 
@@ -863,8 +863,8 @@ export function AIManagement() {
                     type="text"
                     value={searchWord}
                     onChange={(e) => setSearchWord(e.target.value)}
-                    placeholder="Search restricted words..."
-                    className="h-10 w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 text-sm text-slate-700 outline-none transition focus:ring-2 focus:ring-red-100"
+                    placeholder={t("aiManagement.blacklistTab.searchPlaceholder")}
+                    className="h-10 w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 pl-9 pr-3 text-sm text-slate-700 dark:text-slate-200 outline-none transition focus:ring-2 focus:ring-red-100 dark:focus:ring-red-900/30"
                   />
                 </div>
 
@@ -872,25 +872,25 @@ export function AIManagement() {
                   type="text"
                   value={newWord}
                   onChange={(e) => setNewWord(e.target.value)}
-                  placeholder="Type a new word to blacklist..."
-                  className="h-10 w-full rounded-lg border border-slate-200 px-3 text-sm text-slate-700 outline-none transition focus:ring-2 focus:ring-red-100"
+                  placeholder={t("aiManagement.blacklistTab.inputPlaceholder")}
+                  className="h-10 w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 text-sm text-slate-700 dark:text-slate-200 outline-none transition focus:ring-2 focus:ring-red-100 dark:focus:ring-red-900/30"
                 />
 
                 <Button
                   type="button"
-                  className="h-10 rounded-lg bg-red-300 px-5 text-white hover:bg-red-400 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="h-10 rounded-lg bg-red-300 dark:bg-red-500/80 px-5 text-white hover:bg-red-400 dark:hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-50"
                   onClick={addBlacklistWord}
                   disabled={
                     !newWord.trim() ||
                     blacklistWords.includes(newWord.trim().toLowerCase())
                   }
                 >
-                  + Add Word
+                  {t("aiManagement.blacklistTab.addWord")}
                 </Button>
               </div>
 
               <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400">
-                All Restricted Words
+                {t("aiManagement.blacklistTab.allWords")}
               </p>
 
               <div className="flex flex-wrap gap-2">
@@ -898,13 +898,13 @@ export function AIManagement() {
                   filteredWords.map((item) => (
                     <span
                       key={item.id}
-                      className="inline-flex items-center gap-2 rounded-full border border-red-200 bg-red-50 px-3 py-1 text-sm font-medium text-red-500"
+                      className="inline-flex items-center gap-2 rounded-full border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-900/20 px-3 py-1 text-sm font-medium text-red-500 dark:text-red-400"
                     >
                       <Ban className="h-3.5 w-3.5" />
                       {item.keyword}
                       <button
                         type="button"
-                        className="rounded p-0.5 text-red-300 transition hover:bg-red-100 hover:text-red-500"
+                        className="rounded p-0.5 text-red-300 dark:text-red-500/70 transition hover:bg-red-100 dark:hover:bg-red-900/50 hover:text-red-500 dark:hover:text-red-400"
                         onClick={() => removeBlacklistWord(item.id)}
                       >
                         <X className="h-3.5 w-3.5" />
@@ -913,7 +913,7 @@ export function AIManagement() {
                   ))
                 ) : (
                   <p className="text-sm text-slate-500">
-                    No matching restricted words found.
+                    {t("aiManagement.blacklistTab.noWordsFound")}
                   </p>
                 )}
               </div>
