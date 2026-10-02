@@ -19,7 +19,12 @@
       "passwordPlaceholder": "Enter your password",
       "rememberMe": "Remember me",
       "forgetPassword": "Forget your password?",
-      "logIn": "Log in"
+      "logIn": "Log in",
+      "enterYourEmailTitle": "Enter your email",
+      "enterYourEmailDesc": "Enter your email to receive OTP.",
+      "emailAccountPlaceholder": "Re-enter your email account",
+      "verifyEmail": "Verify email",
+      "tryAgainIn": "Try again in {{seconds}}s"
     },
     "sidebar": {
       "overview": "Overview",
@@ -37,6 +42,11 @@
       "careProgram": "Care Program",
       "medicalFacilities": "Medical Facilities",
       "mainMenu": "Main Menu"
+    },
+    "authHeader": {
+      "services": "Services",
+      "aboutUs": "About us",
+      "contact": "Contact"
     },
     "topHeader": {
       "searchPlaceholder": "Search...",
@@ -476,6 +486,128 @@
         "draft": "Draft",
         "activate": "Activate",
         "retire": "Retire"
+      }
+    },
+    "sharedPages": {
+      "back": "Back",
+      "services": {
+        "title": "Admin Services",
+        "subtitle": "Comprehensive tools for healthcare platform management",
+        "howToUseTitle": "📖 How to Use Admin Dashboard",
+        "cards": {
+          "docManagement": {
+            "title": "Doctor Management",
+            "desc": "Verify credentials and manage healthcare providers",
+            "features": [
+              "Credential verification system",
+              "Doctor performance tracking",
+              "License management",
+              "Review moderation"
+            ]
+          },
+          "patientManagement": {
+            "title": "Patient Management",
+            "desc": "Oversee patient accounts and health compliance",
+            "features": [
+              "User account management",
+              "Health metrics monitoring",
+              "Violation reporting",
+              "Account status control"
+            ]
+          },
+          "systemAnalytics": {
+            "title": "System Analytics",
+            "desc": "Monitor platform performance and usage",
+            "features": [
+              "Real-time dashboard",
+              "Session tracking",
+              "User statistics",
+              "System health monitoring"
+            ]
+          },
+          "complianceSafety": {
+            "title": "Compliance & Safety",
+            "desc": "Ensure healthcare standards and data security",
+            "features": [
+              "Violation detection",
+              "Content moderation",
+              "Compliance reporting",
+              "Data security management"
+            ]
+          }
+        },
+        "howToUse": {
+          "step1": {
+            "title": "1. User Management",
+            "desc": "Manage doctors and patient accounts. Verify credentials and handle account issues."
+          },
+          "step2": {
+            "title": "2. Document Verification",
+            "desc": "Review and verify doctor credentials, licenses, and certifications."
+          },
+          "step3": {
+            "title": "3. Violation Reports",
+            "desc": "Monitor and handle user violations and compliance issues."
+          },
+          "step4": {
+            "title": "4. Overview Dashboard",
+            "desc": "View real-time statistics and platform health metrics."
+          }
+        }
+      },
+      "aboutUs": {
+        "title": "About Healthcare System",
+        "missionTitle": "🎯 Our Mission",
+        "missionDesc": "We empower healthcare administrators with tools to manage doctor networks, verify credentials, monitor patient health metrics, and ensure compliance with healthcare standards. Our platform bridges the gap between doctors, patients, and administrators.",
+        "valuesTitle": "💎 Core Values",
+        "values": [
+          { "title": "Integrity", "desc": "Upholding the highest standards of healthcare management" },
+          { "title": "Innovation", "desc": "Leveraging technology to improve healthcare delivery" },
+          { "title": "Transparency", "desc": "Clear communication and data accessibility" },
+          { "title": "Excellence", "desc": "Consistent quality in all operations" }
+        ],
+        "statsTitle": "📊 Platform Statistics",
+        "stats": [
+          { "label": "Total Users", "value": "10K+" },
+          { "label": "Active Doctors", "value": "500+" },
+          { "label": "Patients", "value": "1000+" },
+          { "label": "Consultations", "value": "10K+" }
+        ],
+        "adminFeaturesTitle": "🛠️ Admin Capabilities",
+        "adminFeatures": [
+          "Verify and manage doctor credentials",
+          "Monitor healthcare provider performance",
+          "Track patient health metrics and compliance",
+          "Generate system analytics and reports",
+          "Manage user accounts and permissions",
+          "Enforce healthcare compliance standards"
+        ]
+      },
+      "contact": {
+        "title": "Contact Support",
+        "emailSupport": "Email Support",
+        "phoneSupport": "Phone Support",
+        "officeLocation": "Office Location",
+        "officeAddress1": "123 Healthcare Street",
+        "officeAddress2": "Ho Chi Minh City, Vietnam",
+        "categoriesTitle": "📞 Support Categories",
+        "categories": [
+          { "category": "System Issues", "desc": "Report bugs or technical problems" },
+          { "category": "Account Management", "desc": "Help with admin account issues" },
+          { "category": "Feature Requests", "desc": "Suggest new features or improvements" },
+          { "category": "Security Concerns", "desc": "Report security vulnerabilities" },
+          { "category": "Compliance Questions", "desc": "Healthcare compliance inquiries" },
+          { "category": "General Inquiries", "desc": "Any other questions" }
+        ],
+        "faqTitle": "❓ Frequently Asked Questions",
+        "faq": [
+          { "q": "How do I verify a doctor's credentials?", "a": "Go to Document Verification section, upload required documents and follow the verification workflow." },
+          { "q": "How do I handle user violations?", "a": "Navigate to Violation Reports, review violations and take appropriate action." },
+          { "q": "Can I export system reports?", "a": "Yes, all reports can be downloaded from the Overview dashboard." },
+          { "q": "How is patient data secured?", "a": "All data is encrypted and stored securely following healthcare compliance standards." }
+        ],
+        "responseTimeTitle": "⏱️ Response Time",
+        "responseTimeDesc": "We strive to respond to all support inquiries within 24 hours. For urgent security issues, please call our hotline immediately."
       }
     }
   }

@@ -15,6 +15,7 @@ import { Mail } from "lucide-react";
 import { Spinner } from "@repo/ui/components/ui/spinner";
 import { showToast } from "@repo/ui/components/ui/toasts";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useForgotPassword } from "../hooks/useForgotPassword";
 
 interface ForgetPasswordProps {
@@ -32,9 +33,10 @@ export function ForgetPassword({
   onSubmit,
   isLoading: propIsLoading = false,
   error: propError,
-  submitLabel = "Verify email",
 }: ForgetPasswordProps) {
   const navigate = useNavigate();
+  const { t } = useTranslation();
+  const submitLabel = t("auth.verifyEmail");
   const { sendOtp, isLoading, error } = useForgotPassword();
 
   const [email, setEmail] = useState("");
@@ -105,7 +107,7 @@ export function ForgetPassword({
   const displayError = error || propError;
 
   const isButtonDisabled = submitting || cooldown > 0;
-  const buttonLabel = cooldown > 0 ? `Try again in ${cooldown}s` : submitLabel;
+  const buttonLabel = cooldown > 0 ? t("auth.tryAgainIn", { seconds: cooldown }) : submitLabel;
 
   return (
     <div className="min-h-screen min-w-screen flex flex-col bg-white dark:bg-slate-900">
@@ -113,11 +115,11 @@ export function ForgetPassword({
       <div className="flex flex-1 items-center justify-center px-4 py-10">
         <form onSubmit={handleSubmit} className="w-full max-w-md space-y-6">
           <p className="text-center text-5xl font-bold text-[#313A34] dark:text-slate-100 mb-2">
-            Enter your email
+            {t("auth.enterYourEmailTitle")}
           </p>
 
           <p className="text-center text-lg text-black dark:text-white font-light ">
-            Enter your email to receive OTP.
+            {t("auth.enterYourEmailDesc")}
           </p>
 
           {displayError && (
@@ -133,7 +135,7 @@ export function ForgetPassword({
                   htmlFor="email"
                   className="text-lg font-medium text-[#1E1E1E] dark:text-slate-200"
                 >
-                  Email
+                  {t("auth.email")}
                 </FieldLabel>
                 <FieldControl invalid={Boolean(emailError)}>
                   <Mail className="h-5 w-5 shrink-0 text-muted-foreground" />
@@ -144,7 +146,7 @@ export function ForgetPassword({
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     onBlur={handleBlur}
-                    placeholder="Re-enter your email account"
+                    placeholder={t("auth.emailAccountPlaceholder")}
                     disabled={submitting}
                     className="h-auto border-0 bg-transparent px-0 py-0 shadow-none focus-visible:border-0 focus-visible:ring-0"
                   />

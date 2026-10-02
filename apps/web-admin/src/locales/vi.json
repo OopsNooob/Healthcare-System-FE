@@ -19,7 +19,12 @@
       "passwordPlaceholder": "Nhập mật khẩu của bạn",
       "rememberMe": "Ghi nhớ đăng nhập",
       "forgetPassword": "Quên mật khẩu?",
-      "logIn": "Đăng nhập"
+      "logIn": "Đăng nhập",
+      "enterYourEmailTitle": "Nhập email của bạn",
+      "enterYourEmailDesc": "Nhập email của bạn để nhận mã OTP.",
+      "emailAccountPlaceholder": "Nhập lại tài khoản email",
+      "verifyEmail": "Xác nhận email",
+      "tryAgainIn": "Thử lại sau {{seconds}}s"
     },
     "sidebar": {
       "overview": "Tổng quan",
@@ -37,6 +42,11 @@
       "careProgram": "Chương trình Chăm sóc",
       "medicalFacilities": "Cơ sở Y tế",
       "mainMenu": "Menu chính"
+    },
+    "authHeader": {
+      "services": "Dịch vụ",
+      "aboutUs": "Về chúng tôi",
+      "contact": "Liên hệ"
     },
     "topHeader": {
       "searchPlaceholder": "Tìm kiếm...",
@@ -476,6 +486,128 @@
         "draft": "Bản nháp",
         "activate": "Kích hoạt",
         "retire": "Tạm ngưng"
+      }
+    },
+    "sharedPages": {
+      "back": "Quay lại",
+      "services": {
+        "title": "Dịch vụ Quản trị",
+        "subtitle": "Công cụ toàn diện để quản lý nền tảng chăm sóc sức khỏe",
+        "howToUseTitle": "📖 Hướng dẫn sử dụng Bảng điều khiển Quản trị",
+        "cards": {
+          "docManagement": {
+            "title": "Quản lý Bác sĩ",
+            "desc": "Xác minh thông tin và quản lý các nhà cung cấp dịch vụ y tế",
+            "features": [
+              "Hệ thống xác minh chứng chỉ",
+              "Theo dõi hiệu suất bác sĩ",
+              "Quản lý giấy phép",
+              "Kiểm duyệt đánh giá"
+            ]
+          },
+          "patientManagement": {
+            "title": "Quản lý Bệnh nhân",
+            "desc": "Giám sát tài khoản bệnh nhân và tuân thủ y tế",
+            "features": [
+              "Quản lý tài khoản người dùng",
+              "Theo dõi các chỉ số sức khỏe",
+              "Báo cáo vi phạm",
+              "Kiểm soát trạng thái tài khoản"
+            ]
+          },
+          "systemAnalytics": {
+            "title": "Phân tích Hệ thống",
+            "desc": "Giám sát hiệu suất và tình trạng sử dụng nền tảng",
+            "features": [
+              "Bảng điều khiển thời gian thực",
+              "Theo dõi phiên hoạt động",
+              "Thống kê người dùng",
+              "Giám sát tình trạng hệ thống"
+            ]
+          },
+          "complianceSafety": {
+            "title": "Tuân thủ & An toàn",
+            "desc": "Đảm bảo tiêu chuẩn y tế và bảo mật dữ liệu",
+            "features": [
+              "Phát hiện vi phạm",
+              "Kiểm duyệt nội dung",
+              "Báo cáo tuân thủ",
+              "Quản lý bảo mật dữ liệu"
+            ]
+          }
+        },
+        "howToUse": {
+          "step1": {
+            "title": "1. Quản lý Người dùng",
+            "desc": "Quản lý bác sĩ và tài khoản bệnh nhân. Xác minh thông tin và xử lý các vấn đề tài khoản."
+          },
+          "step2": {
+            "title": "2. Xác minh Tài liệu",
+            "desc": "Xem xét và xác minh chứng chỉ, giấy phép và các chứng nhận của bác sĩ."
+          },
+          "step3": {
+            "title": "3. Báo cáo Vi phạm",
+            "desc": "Giám sát và xử lý vi phạm người dùng cũng như các vấn đề tuân thủ."
+          },
+          "step4": {
+            "title": "4. Bảng điều khiển Tổng quan",
+            "desc": "Xem các thống kê thời gian thực và số liệu về tình trạng nền tảng."
+          }
+        }
+      },
+      "aboutUs": {
+        "title": "Về Hệ thống Chăm sóc sức khỏe",
+        "missionTitle": "🎯 Sứ mệnh của chúng tôi",
+        "missionDesc": "Chúng tôi trao quyền cho các nhà quản trị y tế với các công cụ để quản lý mạng lưới bác sĩ, xác minh chứng chỉ, giám sát chỉ số sức khỏe bệnh nhân và đảm bảo tuân thủ tiêu chuẩn y tế. Nền tảng của chúng tôi làm cầu nối giữa bác sĩ, bệnh nhân và nhà quản trị.",
+        "valuesTitle": "💎 Giá trị cốt lõi",
+        "values": [
+          { "title": "Chính trực", "desc": "Bảo vệ các tiêu chuẩn cao nhất trong quản lý y tế" },
+          { "title": "Đổi mới", "desc": "Tận dụng công nghệ để cải thiện việc cung cấp dịch vụ y tế" },
+          { "title": "Minh bạch", "desc": "Giao tiếp rõ ràng và khả năng tiếp cận dữ liệu" },
+          { "title": "Xuất sắc", "desc": "Chất lượng ổn định trong mọi hoạt động" }
+        ],
+        "statsTitle": "📊 Thống kê Nền tảng",
+        "stats": [
+          { "label": "Tổng Người dùng", "value": "10K+" },
+          { "label": "Bác sĩ Hoạt động", "value": "500+" },
+          { "label": "Bệnh nhân", "value": "1000+" },
+          { "label": "Cuộc tư vấn", "value": "10K+" }
+        ],
+        "adminFeaturesTitle": "🛠️ Khả năng Quản trị",
+        "adminFeatures": [
+          "Xác minh và quản lý chứng chỉ bác sĩ",
+          "Giám sát hiệu suất nhà cung cấp dịch vụ y tế",
+          "Theo dõi chỉ số sức khỏe bệnh nhân và sự tuân thủ",
+          "Tạo các phân tích và báo cáo hệ thống",
+          "Quản lý tài khoản người dùng và quyền truy cập",
+          "Thực thi các tiêu chuẩn tuân thủ y tế"
+        ]
+      },
+      "contact": {
+        "title": "Liên hệ Hỗ trợ",
+        "emailSupport": "Hỗ trợ qua Email",
+        "phoneSupport": "Hỗ trợ qua Điện thoại",
+        "officeLocation": "Địa điểm Văn phòng",
+        "officeAddress1": "123 Đường Y tế",
+        "officeAddress2": "TP. Hồ Chí Minh, Việt Nam",
+        "categoriesTitle": "📞 Các hạng mục Hỗ trợ",
+        "categories": [
+          { "category": "Vấn đề Hệ thống", "desc": "Báo cáo lỗi hoặc vấn đề kỹ thuật" },
+          { "category": "Quản lý Tài khoản", "desc": "Trợ giúp các vấn đề tài khoản quản trị" },
+          { "category": "Yêu cầu Tính năng", "desc": "Đề xuất tính năng mới hoặc cải tiến" },
+          { "category": "Lo ngại Bảo mật", "desc": "Báo cáo các lỗ hổng bảo mật" },
+          { "category": "Câu hỏi Tuân thủ", "desc": "Thắc mắc về tuân thủ y tế" },
+          { "category": "Thắc mắc Chung", "desc": "Bất kỳ câu hỏi nào khác" }
+        ],
+        "faqTitle": "❓ Các câu hỏi Thường gặp",
+        "faq": [
+          { "q": "Làm thế nào để tôi xác minh chứng chỉ của một bác sĩ?", "a": "Đi tới phần Xác minh Tài liệu, tải lên các tài liệu được yêu cầu và theo dõi quy trình xác minh." },
+          { "q": "Tôi xử lý vi phạm của người dùng thế nào?", "a": "Điều hướng đến Báo cáo Vi phạm, xem xét vi phạm và thực hiện các hành động phù hợp." },
+          { "q": "Tôi có thể xuất các báo cáo hệ thống không?", "a": "Có, tất cả các báo cáo đều có thể được tải xuống từ Bảng điều khiển Tổng quan." },
+          { "q": "Dữ liệu bệnh nhân được bảo mật ra sao?", "a": "Tất cả dữ liệu đều được mã hóa và lưu trữ an toàn theo tiêu chuẩn tuân thủ y tế." }
+        ],
+        "responseTimeTitle": "⏱️ Thời gian Phản hồi",
+        "responseTimeDesc": "Chúng tôi cố gắng trả lời mọi yêu cầu hỗ trợ trong vòng 24 giờ. Đối với các vấn đề bảo mật cấp bách, vui lòng gọi ngay cho đường dây nóng của chúng tôi."
       }
     }
   }

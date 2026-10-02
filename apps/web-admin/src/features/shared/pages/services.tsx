@@ -1,44 +1,28 @@
+import { useTranslation } from "react-i18next";
+
 export function Services() {
+  const { t } = useTranslation();
+
   const services = [
     {
-      title: "Doctor Management",
-      description: "Verify credentials and manage healthcare providers",
-      features: [
-        "Credential verification system",
-        "Doctor performance tracking",
-        "License management",
-        "Review moderation",
-      ],
+      title: t("sharedPages.services.cards.docManagement.title"),
+      description: t("sharedPages.services.cards.docManagement.desc"),
+      features: t("sharedPages.services.cards.docManagement.features", { returnObjects: true }) as string[],
     },
     {
-      title: "Patient Management",
-      description: "Oversee patient accounts and health compliance",
-      features: [
-        "User account management",
-        "Health metrics monitoring",
-        "Violation reporting",
-        "Account status control",
-      ],
+      title: t("sharedPages.services.cards.patientManagement.title"),
+      description: t("sharedPages.services.cards.patientManagement.desc"),
+      features: t("sharedPages.services.cards.patientManagement.features", { returnObjects: true }) as string[],
     },
     {
-      title: "System Analytics",
-      description: "Monitor platform performance and usage",
-      features: [
-        "Real-time dashboard",
-        "Session tracking",
-        "User statistics",
-        "System health monitoring",
-      ],
+      title: t("sharedPages.services.cards.systemAnalytics.title"),
+      description: t("sharedPages.services.cards.systemAnalytics.desc"),
+      features: t("sharedPages.services.cards.systemAnalytics.features", { returnObjects: true }) as string[],
     },
     {
-      title: "Compliance & Safety",
-      description: "Ensure healthcare standards and data security",
-      features: [
-        "Violation detection",
-        "Content moderation",
-        "Compliance reporting",
-        "Data security management",
-      ],
+      title: t("sharedPages.services.cards.complianceSafety.title"),
+      description: t("sharedPages.services.cards.complianceSafety.desc"),
+      features: t("sharedPages.services.cards.complianceSafety.features", { returnObjects: true }) as string[],
     },
   ];
 
@@ -47,21 +31,21 @@ export function Services() {
       <div className="max-w-6xl mx-auto">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-semibold text-gray-900 dark:text-gray-100 mb-2">Admin Services</h1>
-            <p className="text-gray-600">Comprehensive tools for healthcare platform management</p>
+            <h1 className="text-3xl font-semibold text-gray-900 dark:text-gray-100 mb-2">{t("sharedPages.services.title")}</h1>
+            <p className="text-gray-600 dark:text-gray-400">{t("sharedPages.services.subtitle")}</p>
           </div>
           <a href="/" className="px-6 py-2 bg-brand text-white font-semibold rounded-lg hover:bg-blue-700 transition whitespace-nowrap">
-            ← Back
+            ← {t("sharedPages.back")}
           </a>
         </div>        {/* Services Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           {services.map((service) => (
-            <div key={service.title} className="bg-white dark:bg-slate-900 rounded-lg border border-gray-200 p-6 hover:shadow-md transition">
+            <div key={service.title} className="bg-white dark:bg-slate-900 rounded-lg border border-gray-200 dark:border-slate-800 p-6 hover:shadow-md transition">
               <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">{service.title}</h3>
-              <p className="text-gray-600 mb-4">{service.description}</p>
+              <p className="text-gray-600 dark:text-gray-400 mb-4">{service.description}</p>
               <ul className="space-y-2">
                 {service.features.map((feature) => (
-                  <li key={feature} className="flex items-center gap-2 text-gray-700">
+                  <li key={feature} className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
                     <span className="text-blue-500 font-bold">•</span>
                     {feature}
                   </li>
@@ -72,24 +56,24 @@ export function Services() {
         </div>
 
         {/* How to Use */}
-        <section className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-8">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">📖 How to Use Admin Dashboard</h2>
+        <section className="bg-blue-50 dark:bg-slate-900/50 border border-blue-200 dark:border-slate-800 rounded-lg p-6 mb-8">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">{t("sharedPages.services.howToUseTitle")}</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">1. User Management</h3>
-              <p className="text-gray-700">Manage doctors and patient accounts. Verify credentials and handle account issues.</p>
+              <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">{t("sharedPages.services.howToUse.step1.title")}</h3>
+              <p className="text-gray-700 dark:text-gray-400">{t("sharedPages.services.howToUse.step1.desc")}</p>
             </div>
             <div>
-              <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">2. Document Verification</h3>
-              <p className="text-gray-700">Review and verify doctor credentials, licenses, and certifications.</p>
+              <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">{t("sharedPages.services.howToUse.step2.title")}</h3>
+              <p className="text-gray-700 dark:text-gray-400">{t("sharedPages.services.howToUse.step2.desc")}</p>
             </div>
             <div>
-              <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">3. Violation Reports</h3>
-              <p className="text-gray-700">Monitor and handle user violations and compliance issues.</p>
+              <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">{t("sharedPages.services.howToUse.step3.title")}</h3>
+              <p className="text-gray-700 dark:text-gray-400">{t("sharedPages.services.howToUse.step3.desc")}</p>
             </div>
             <div>
-              <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">4. Overview Dashboard</h3>
-              <p className="text-gray-700">View real-time statistics and platform health metrics.</p>
+              <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">{t("sharedPages.services.howToUse.step4.title")}</h3>
+              <p className="text-gray-700 dark:text-gray-400">{t("sharedPages.services.howToUse.step4.desc")}</p>
             </div>
           </div>
         </section>
