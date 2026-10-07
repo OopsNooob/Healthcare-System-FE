@@ -52,9 +52,9 @@ export default function ConfirmOTPScreen() {
           <View style={tw('gap-4')}>
             {/* OTP Field */}
             <View style={tw('gap-1.5')}>
-              <View style={tw('flex-row items-center bg-gray-50 rounded-2xl px-4 py-3 border border-gray-200')}>
+              <View style={tw('flex-row items-center bg-gray-50 dark:bg-slate-800 rounded-2xl px-4 py-3 border border-gray-200 dark:border-slate-700')}>
                 <TextInput
-                  style={tw('flex-1 text-center text-2xl tracking-widest text-gray-900 dark:text-gray-100')}
+                  style={tw('flex-1 text-center text-2xl tracking-widest text-gray-900 dark:text-gray-100 bg-transparent dark:bg-transparent')}
                   placeholder="------"
                   placeholderTextColor="#9ca3af"
                   value={otp}

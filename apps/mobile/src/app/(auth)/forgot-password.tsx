@@ -60,10 +60,10 @@ export default function ForgotPasswordScreen() {
             {/* Email Field */}
             <View style={tw('gap-1.5')}>
               <Text style={tw('text-sm font-medium text-[#1E1E1E] dark:text-slate-200')}>{t('mobile.email', `Email`)}</Text>
-              <View style={tw('flex-row items-center bg-gray-50 rounded-2xl px-4 py-3 border border-gray-200')}>
+              <View style={tw('flex-row items-center bg-gray-50 dark:bg-slate-800 rounded-2xl px-4 py-3 border border-gray-200 dark:border-slate-700')}>
                 <Mail color="#9ca3af" size={20} />
                 <TextInput
-                  style={tw('flex-1 ml-3 text-base text-gray-900 dark:text-gray-100')}
+                  style={tw('flex-1 ml-3 text-base text-gray-900 dark:text-gray-100 bg-transparent dark:bg-transparent')}
                   placeholder={t('mobile.enter_your_email', 'Enter your email account')}
                   placeholderTextColor="#9ca3af"
                   value={email}

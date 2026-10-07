@@ -95,7 +95,7 @@ export default function MedicalFacilitiesScreen() {
           <TouchableOpacity onPress={() => router.back()} style={tw('p-2 -ml-2 mr-2')}>
             <ArrowLeft color={twInstance.color('text-slate-900 dark:text-white')} size={24} />
           </TouchableOpacity>
-          <Text style={tw('text-xl font-bold text-slate-900 dark:text-white')}>{t('mobile.medical_facilities', 'Medical Facilities')}</Text>
+          <Text style={tw('flex-1 text-xl font-bold text-slate-900 dark:text-white')} numberOfLines={1}>{t('mobile.medical_facilities', 'Medical Facilities')}</Text>
         </View>
 
         <View style={tw('flex-row items-center bg-slate-100 dark:bg-slate-800 px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm')}>

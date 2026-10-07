@@ -90,10 +90,10 @@ export default function RegisterScreen() {
             {/* Email Field - Both */}
             <View style={tw('gap-1.5')}>
               <Text style={tw('text-sm font-medium text-[#1E1E1E] dark:text-slate-200')}>{t('mobile.email', `Email`)}</Text>
-              <View style={tw('flex-row items-center bg-gray-50 rounded-2xl px-4 py-3 border border-gray-200')}>
+              <View style={tw('flex-row items-center bg-gray-50 dark:bg-slate-800 rounded-2xl px-4 py-3 border border-gray-200 dark:border-slate-700')}>
                 <Mail color="#9ca3af" size={20} />
                 <TextInput
-                  style={tw('flex-1 ml-3 text-base text-gray-900 dark:text-gray-100')}
+                  style={tw('flex-1 ml-3 text-base text-gray-900 dark:text-gray-100 bg-transparent dark:bg-transparent')}
                   placeholder={t('mobile.enter_your_email', 'Enter your email account')}
                   placeholderTextColor="#9ca3af"
                   value={email}
@@ -115,10 +115,10 @@ export default function RegisterScreen() {
             {role === 'doctor' && (
               <View style={tw('gap-1.5')}>
                 <Text style={tw('text-sm font-medium text-[#1E1E1E] dark:text-slate-200')}>{t('mobile.phone_number', `Phone number`)}</Text>
-                <View style={tw('flex-row items-center bg-gray-50 rounded-2xl px-4 py-3 border border-gray-200')}>
+                <View style={tw('flex-row items-center bg-gray-50 dark:bg-slate-800 rounded-2xl px-4 py-3 border border-gray-200 dark:border-slate-700')}>
                   <Phone color="#9ca3af" size={20} />
                   <TextInput
-                    style={tw('flex-1 ml-3 text-base text-gray-900 dark:text-gray-100')}
+                    style={tw('flex-1 ml-3 text-base text-gray-900 dark:text-gray-100 bg-transparent dark:bg-transparent')}
                     placeholder={t('mobile.enter_your_phone', 'Enter your phone number')}
                     placeholderTextColor="#9ca3af"
                     value={phone}
@@ -132,10 +132,10 @@ export default function RegisterScreen() {
             {/* Full Name Field - Both */}
             <View style={tw('gap-1.5 mt-2')}>
               <Text style={tw('text-sm font-medium text-[#1E1E1E] dark:text-slate-200')}>{t('mobile.full_name', `Full Name`)}</Text>
-              <View style={tw('flex-row items-center bg-gray-50 rounded-2xl px-4 py-3 border border-gray-200')}>
+              <View style={tw('flex-row items-center bg-gray-50 dark:bg-slate-800 rounded-2xl px-4 py-3 border border-gray-200 dark:border-slate-700')}>
                 <User color="#9ca3af" size={20} />
                 <TextInput
-                  style={tw('flex-1 ml-3 text-base text-gray-900 dark:text-gray-100')}
+                  style={tw('flex-1 ml-3 text-base text-gray-900 dark:text-gray-100 bg-transparent dark:bg-transparent')}
                   placeholder={t('mobile.enter_full_name', 'John Doe')}
                   placeholderTextColor="#9ca3af"
                   value={fullName}
@@ -148,10 +148,10 @@ export default function RegisterScreen() {
             {role === 'patient' && (
               <View style={tw('gap-1.5 mt-2')}>
                 <Text style={tw('text-sm font-medium text-[#1E1E1E] dark:text-slate-200')}>{t('mobile.phone_number', `Phone number`)}</Text>
-                <View style={tw('flex-row items-center bg-gray-50 rounded-2xl px-4 py-3 border border-gray-200')}>
+                <View style={tw('flex-row items-center bg-gray-50 dark:bg-slate-800 rounded-2xl px-4 py-3 border border-gray-200 dark:border-slate-700')}>
                   <Phone color="#9ca3af" size={20} />
                   <TextInput
-                    style={tw('flex-1 ml-3 text-base text-gray-900 dark:text-gray-100')}
+                    style={tw('flex-1 ml-3 text-base text-gray-900 dark:text-gray-100 bg-transparent dark:bg-transparent')}
                     placeholder={t('mobile.enter_your_phone', 'Enter your phone number')}
                     placeholderTextColor="#9ca3af"
                     value={phone}
@@ -165,10 +165,10 @@ export default function RegisterScreen() {
             {/* Password Field - Both */}
             <View style={tw('gap-1.5 mt-2')}>
               <Text style={tw('text-sm font-medium text-[#1E1E1E] dark:text-slate-200')}>{t('mobile.password', `Password`)}</Text>
-              <View style={tw('flex-row items-center bg-gray-50 rounded-2xl px-4 py-3 border border-gray-200')}>
+              <View style={tw('flex-row items-center bg-gray-50 dark:bg-slate-800 rounded-2xl px-4 py-3 border border-gray-200 dark:border-slate-700')}>
                 <Lock color="#9ca3af" size={20} />
                 <TextInput
-                  style={tw('flex-1 ml-3 text-base text-gray-900 dark:text-gray-100')}
+                  style={tw('flex-1 ml-3 text-base text-gray-900 dark:text-gray-100 bg-transparent dark:bg-transparent')}
                   placeholder={t('mobile.create_password_hint', 'Create a password')}
                   placeholderTextColor="#9ca3af"
                   value={password}
@@ -181,10 +181,10 @@ export default function RegisterScreen() {
             {/* Confirm Password Field - Both */}
             <View style={tw('gap-1.5 mt-2')}>
               <Text style={tw('text-sm font-medium text-[#1E1E1E] dark:text-slate-200')}>{t('mobile.confirm_password', `Confirm Password`)}</Text>
-              <View style={tw('flex-row items-center bg-gray-50 rounded-2xl px-4 py-3 border border-gray-200')}>
+              <View style={tw('flex-row items-center bg-gray-50 dark:bg-slate-800 rounded-2xl px-4 py-3 border border-gray-200 dark:border-slate-700')}>
                 <Lock color="#9ca3af" size={20} />
                 <TextInput
-                  style={tw('flex-1 ml-3 text-base text-gray-900 dark:text-gray-100')}
+                  style={tw('flex-1 ml-3 text-base text-gray-900 dark:text-gray-100 bg-transparent dark:bg-transparent')}
                   placeholder={t('mobile.reenter_password_hint', 'Re-enter your password')}
                   placeholderTextColor="#9ca3af"
                   value={confirmPassword}
@@ -199,10 +199,10 @@ export default function RegisterScreen() {
                 {/* Specialty */}
                 <View style={tw('gap-1.5 mt-2')}>
                   <Text style={tw('text-sm font-medium text-[#1E1E1E] dark:text-slate-200')}>{t('mobile.specialty', `Specialty`)}</Text>
-                  <View style={tw('flex-row items-center bg-gray-50 rounded-2xl px-4 py-3 border border-gray-200')}>
+                  <View style={tw('flex-row items-center bg-gray-50 dark:bg-slate-800 rounded-2xl px-4 py-3 border border-gray-200 dark:border-slate-700')}>
                     <Stethoscope color="#9ca3af" size={20} />
                     <TextInput
-                      style={tw('flex-1 ml-3 text-base text-gray-900 dark:text-gray-100')}
+                      style={tw('flex-1 ml-3 text-base text-gray-900 dark:text-gray-100 bg-transparent dark:bg-transparent')}
                       placeholder={t('mobile.specialty_hint', 'e.g. Cardiology')}
                       placeholderTextColor="#9ca3af"
                       value={specialty}
@@ -214,10 +214,10 @@ export default function RegisterScreen() {
                 {/* Experience */}
                 <View style={tw('gap-1.5 mt-2')}>
                   <Text style={tw('text-sm font-medium text-[#1E1E1E] dark:text-slate-200')}>{t('mobile.years_of_experience', `Years of Experience`)}</Text>
-                  <View style={tw('flex-row items-center bg-gray-50 rounded-2xl px-4 py-3 border border-gray-200')}>
+                  <View style={tw('flex-row items-center bg-gray-50 dark:bg-slate-800 rounded-2xl px-4 py-3 border border-gray-200 dark:border-slate-700')}>
                     <Clock color="#9ca3af" size={20} />
                     <TextInput
-                      style={tw('flex-1 ml-3 text-base text-gray-900 dark:text-gray-100')}
+                      style={tw('flex-1 ml-3 text-base text-gray-900 dark:text-gray-100 bg-transparent dark:bg-transparent')}
                       placeholder={t('mobile.experience_hint', 'e.g. 5')}
                       placeholderTextColor="#9ca3af"
                       value={experience}
@@ -230,10 +230,10 @@ export default function RegisterScreen() {
                 {/* Workplace */}
                 <View style={tw('gap-1.5 mt-2')}>
                   <Text style={tw('text-sm font-medium text-[#1E1E1E] dark:text-slate-200')}>{t('mobile.current_workplace_hospital', `Current workplace / Hospital`)}</Text>
-                  <View style={tw('flex-row items-center bg-gray-50 rounded-2xl px-4 py-3 border border-gray-200')}>
+                  <View style={tw('flex-row items-center bg-gray-50 dark:bg-slate-800 rounded-2xl px-4 py-3 border border-gray-200 dark:border-slate-700')}>
                     <Briefcase color="#9ca3af" size={20} />
                     <TextInput
-                      style={tw('flex-1 ml-3 text-base text-gray-900 dark:text-gray-100')}
+                      style={tw('flex-1 ml-3 text-base text-gray-900 dark:text-gray-100 bg-transparent dark:bg-transparent')}
                       placeholder={t('mobile.workplace_hint', 'e.g. City Hospital')}
                       placeholderTextColor="#9ca3af"
                       value={workplace}
@@ -252,10 +252,10 @@ export default function RegisterScreen() {
                   
                   <TouchableOpacity 
                     onPress={() => Toast.show({ type: 'info', text1: 'Info', text2: 'Select verification documents to upload' })} 
-                    style={tw('border border-dashed border-gray-300 rounded-2xl bg-gray-50 py-6 items-center')}
+                    style={tw('border border-dashed border-gray-300 dark:border-slate-600 rounded-2xl bg-gray-50 dark:bg-slate-800/50 py-6 items-center')}
                     disabled={isLoading}
                   >
-                    <View style={tw('bg-gray-200 p-3 rounded-full mb-2')}>
+                    <View style={tw('bg-gray-200 dark:bg-slate-700 p-3 rounded-full mb-2')}>
                       <UploadCloud color="#9ca3af" size={24} />
                     </View>
                     <Text style={tw('text-sm font-semibold text-gray-700')}>{t('mobile.tap_to_select_documents', `Tap to select documents`)}</Text>
