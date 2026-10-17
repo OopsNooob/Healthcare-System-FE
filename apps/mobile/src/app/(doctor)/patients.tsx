@@ -6,6 +6,13 @@ import { Search, UserPlus, FileText, ChevronRight, Activity, CalendarDays, Brain
 import { tw, twInstance } from '@/tw';
 import { useThemeContext } from '@/context/ThemeContext';
 import Toast from 'react-native-toast-message';
+import {
+  AiSummaryModal,
+  ClinicalNotesModal,
+  ModifyThresholdsModal,
+  VoidDataModal,
+  PatientProfileModal,
+} from '@/components/modals';
 
 export default function PatientsManagementScreen() {
   const { t } = useTranslation();
@@ -15,7 +22,15 @@ export default function PatientsManagementScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [enrollModalVisible, setEnrollModalVisible] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState<any>(null);
-  
+
+  // Clinical Modals States
+  const [aiSummaryVisible, setAiSummaryVisible] = useState(false);
+  const [clinicalNotesVisible, setClinicalNotesVisible] = useState(false);
+  const [modifyThresholdsVisible, setModifyThresholdsVisible] = useState(false);
+  const [voidDataVisible, setVoidDataVisible] = useState(false);
+  const [patientProfileVisible, setPatientProfileVisible] = useState(false);
+  const [activePatientData, setActivePatientData] = useState<any>(null);
+
   // Enroll Modal States
   const [selectedProgram, setSelectedProgram] = useState<string | null>(null);
   const [eligibilityStatus, setEligibilityStatus] = useState<'idle' | 'checking' | 'passed' | 'failed'>('idle');
@@ -163,23 +178,45 @@ export default function PatientsManagementScreen() {
 
                   {/* Actions */}
                   <View style={tw('flex-row gap-2 mt-2 pt-3 border-t border-slate-200 dark:border-slate-800')}>
-                    <TouchableOpacity onPress={() => Toast.show({ type: 'info', text1: 'Info', text2: 'AI Summary tapped' })} style={tw('flex-1 bg-white dark:bg-slate-900 flex-row items-center justify-center py-2 rounded-lg border border-slate-200 dark:border-slate-700')}>
+                    <TouchableOpacity 
+                      onPress={() => {
+                        setActivePatientData(patient);
+                        setAiSummaryVisible(true);
+                      }} 
+                      style={tw('flex-1 bg-white dark:bg-slate-900 flex-row items-center justify-center py-2 rounded-lg border border-slate-200 dark:border-slate-700')}
+                    >
                       <BrainCircuit color={twInstance.color('text-purple-500')} size={16} />
                       <Text style={tw('text-xs font-bold text-slate-700 dark:text-slate-300 ml-1')}>{t('mobile.ai_summary', 'AI Summary')}</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity onPress={() => Toast.show({ type: 'info', text1: 'Info', text2: 'Clinical Notes tapped' })} style={tw('flex-1 bg-white dark:bg-slate-900 flex-row items-center justify-center py-2 rounded-lg border border-slate-200 dark:border-slate-700')}>
+                    <TouchableOpacity 
+                      onPress={() => {
+                        setActivePatientData(patient);
+                        setClinicalNotesVisible(true);
+                      }} 
+                      style={tw('flex-1 bg-white dark:bg-slate-900 flex-row items-center justify-center py-2 rounded-lg border border-slate-200 dark:border-slate-700')}
+                    >
                       <Stethoscope color={twInstance.color('text-blue-500')} size={16} />
                       <Text style={tw('text-xs font-bold text-slate-700 dark:text-slate-300 ml-1')}>{t('mobile.clinical_notes', 'Clinical Notes')}</Text>
                     </TouchableOpacity>
                   </View>
                   <View style={tw('flex-row gap-2 mt-2')}>
-                    <TouchableOpacity onPress={() => Toast.show({ type: 'info', text1: 'Info', text2: 'Modify Thresholds tapped' })} style={tw('flex-1 bg-white dark:bg-slate-900 flex-row items-center justify-center py-2 rounded-lg border border-slate-200 dark:border-slate-700')}>
+                    <TouchableOpacity 
+                      onPress={() => {
+                        setActivePatientData(patient);
+                        setModifyThresholdsVisible(true);
+                      }} 
+                      style={tw('flex-1 bg-white dark:bg-slate-900 flex-row items-center justify-center py-2 rounded-lg border border-slate-200 dark:border-slate-700')}
+                    >
                       <Settings2 color={twInstance.color('text-amber-500')} size={16} />
                       <Text style={tw('text-xs font-bold text-slate-700 dark:text-slate-300 ml-1')}>{t('mobile.modify_thresholds', 'Modify Thresholds')}</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity onPress={() => {
-                        Toast.show({ type: 'success', text1: 'Success', text2: 'Data voided' });
-                    }} style={tw('flex-1 bg-red-50 dark:bg-red-900/10 flex-row items-center justify-center py-2 rounded-lg border border-red-100 dark:border-red-900/30')}>
+                    <TouchableOpacity 
+                      onPress={() => {
+                        setActivePatientData(patient);
+                        setVoidDataVisible(true);
+                      }} 
+                      style={tw('flex-1 bg-red-50 dark:bg-red-900/10 flex-row items-center justify-center py-2 rounded-lg border border-red-100 dark:border-red-900/30')}
+                    >
                       <Trash2 color={twInstance.color('text-red-500')} size={16} />
                       <Text style={tw('text-xs font-bold text-red-500 ml-1')}>{t('mobile.void_data', 'Void Data')}</Text>
                     </TouchableOpacity>
@@ -187,7 +224,13 @@ export default function PatientsManagementScreen() {
                 </View>
               )}
               
-              <TouchableOpacity onPress={() => Toast.show({ type: 'info', text1: 'Info', text2: 'View Full Profile tapped' })} style={tw('flex-row justify-between items-center px-2')}>
+              <TouchableOpacity 
+                onPress={() => {
+                  setActivePatientData(patient);
+                  setPatientProfileVisible(true);
+                }} 
+                style={tw('flex-row justify-between items-center px-2')}
+              >
                 <Text style={tw('text-sm font-bold text-brand-dark dark:text-brand-light')}>{t('mobile.view_full_profile', 'View Full Profile')}</Text>
                 <ChevronRight color={twInstance.color('text-brand-dark dark:text-brand-light')} size={20} />
               </TouchableOpacity>
@@ -267,6 +310,46 @@ export default function PatientsManagementScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* 1. AI Summary Modal */}
+      <AiSummaryModal
+        visible={aiSummaryVisible}
+        onClose={() => setAiSummaryVisible(false)}
+        patientName={activePatientData?.name}
+        programName={activePatientData?.program || undefined}
+        baseline={activePatientData?.baseline || undefined}
+        current={activePatientData?.current || undefined}
+        adherence={activePatientData?.adherence || undefined}
+      />
+
+      {/* 2. Clinical Notes Modal */}
+      <ClinicalNotesModal
+        visible={clinicalNotesVisible}
+        onClose={() => setClinicalNotesVisible(false)}
+        patientName={activePatientData?.name}
+      />
+
+      {/* 3. Modify Thresholds Modal */}
+      <ModifyThresholdsModal
+        visible={modifyThresholdsVisible}
+        onClose={() => setModifyThresholdsVisible(false)}
+        patientName={activePatientData?.name}
+      />
+
+      {/* 4. Void Data Modal */}
+      <VoidDataModal
+        visible={voidDataVisible}
+        onClose={() => setVoidDataVisible(false)}
+        patientName={activePatientData?.name}
+        metricLabel={activePatientData ? `Current: ${activePatientData.current}` : undefined}
+      />
+
+      {/* 5. Patient Profile Modal */}
+      <PatientProfileModal
+        visible={patientProfileVisible}
+        onClose={() => setPatientProfileVisible(false)}
+        patient={activePatientData}
+      />
     </SafeAreaView>
   );
 }

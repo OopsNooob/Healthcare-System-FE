@@ -32,6 +32,7 @@ export default function PatientLayout() {
       <Tabs.Screen name="notifications" options={{ href: null, headerShown: false }} />
       <Tabs.Screen name="video-call" options={{ href: null, headerShown: false }} />
       <Tabs.Screen name="incoming-call" options={{ href: null, headerShown: false }} />
+      <Tabs.Screen name="baseline-assessment" options={{ href: null, headerShown: false }} />
     </Tabs>
   );
 }

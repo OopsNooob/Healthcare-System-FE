@@ -5,6 +5,7 @@ import { useSafeRouter as useRouter } from '@/utils/useSafeRouter';
 import { ArrowLeft, MapPin, Search, ShieldCheck, Navigation, Phone, HeartPulse, Building2 } from 'lucide-react-native';
 import { tw, twInstance } from '@/tw';
 import { useThemeContext } from '@/context/ThemeContext';
+import { FacilityDetailModal } from '@/components/modals';
 
 export default function MedicalFacilitiesScreen() {
   const { t } = useTranslation();
@@ -15,6 +16,8 @@ export default function MedicalFacilitiesScreen() {
   const [activeFilter, setActiveFilter] = useState('All');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [selectedFacility, setSelectedFacility] = useState<any>(null);
+  const [facilityModalVisible, setFacilityModalVisible] = useState(false);
 
   useEffect(() => {
     setTimeout(() => setLoading(false), 1200);
@@ -140,7 +143,15 @@ export default function MedicalFacilitiesScreen() {
           </>
         ) : filteredFacilities.length > 0 ? (
           filteredFacilities.map((facility) => (
-            <View key={facility.id} style={tw('bg-white dark:bg-slate-900 rounded-3xl p-5 mb-4 shadow-sm border border-slate-200 dark:border-slate-800')}>
+            <TouchableOpacity 
+              key={facility.id} 
+              activeOpacity={0.9}
+              onPress={() => {
+                setSelectedFacility(facility);
+                setFacilityModalVisible(true);
+              }}
+              style={tw('bg-white dark:bg-slate-900 rounded-3xl p-5 mb-4 shadow-sm border border-slate-200 dark:border-slate-800')}
+            >
               <View style={tw('flex-row justify-between items-start mb-3')}>
                 <View style={tw('flex-row items-center flex-1 pr-4')}>
                   <View style={tw('w-12 h-12 bg-indigo-50 dark:bg-indigo-900/30 rounded-2xl items-center justify-center mr-3')}>
@@ -168,21 +179,50 @@ export default function MedicalFacilitiesScreen() {
               </View>
 
               <View style={tw('flex-row gap-3')}>
-                <TouchableOpacity style={tw('flex-1 bg-brand/10 dark:bg-brand/20 py-3 rounded-xl flex-row items-center justify-center')}>
+                <TouchableOpacity 
+                  onPress={() => {
+                    setSelectedFacility(facility);
+                    setFacilityModalVisible(true);
+                  }}
+                  style={tw('flex-1 bg-brand/10 dark:bg-brand/20 py-3 rounded-xl flex-row items-center justify-center active:opacity-80')}
+                >
                   <Navigation color={twInstance.color('text-brand-dark dark:text-brand-light')} size={18} />
                   <Text style={tw('text-brand-dark dark:text-brand-light font-bold ml-2')}>{t('mobile.directions', 'Directions')}</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={tw('flex-1 bg-slate-100 dark:bg-slate-800 py-3 rounded-xl flex-row items-center justify-center')}>
+                <TouchableOpacity 
+                  onPress={() => {
+                    setSelectedFacility(facility);
+                    setFacilityModalVisible(true);
+                  }}
+                  style={tw('flex-1 bg-slate-100 dark:bg-slate-800 py-3 rounded-xl flex-row items-center justify-center active:opacity-80')}
+                >
                   <Phone color={twInstance.color('text-slate-700 dark:text-slate-300')} size={18} />
                   <Text style={tw('text-slate-700 dark:text-slate-300 font-bold ml-2')}>{t('mobile.call', 'Call')}</Text>
                 </TouchableOpacity>
               </View>
-            </View>
+            </TouchableOpacity>
           ))
         ) : (
           renderEmptyState()
         )}
       </ScrollView>
+
+      <FacilityDetailModal
+        visible={facilityModalVisible}
+        onClose={() => setFacilityModalVisible(false)}
+        facility={
+          selectedFacility
+            ? {
+                id: String(selectedFacility.id),
+                name: selectedFacility.name,
+                specialty: selectedFacility.specialty,
+                address: selectedFacility.address,
+                distance: selectedFacility.distance,
+                verified: selectedFacility.verified,
+              }
+            : undefined
+        }
+      />
     </SafeAreaView>
   );
 }

@@ -1,14 +1,28 @@
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { View, Text, TextInput, TouchableOpacity, SafeAreaView, KeyboardAvoidingView, Platform, ScrollView, Image, Modal } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { useSafeRouter as useRouter } from '@/utils/useSafeRouter';
 import Toast from 'react-native-toast-message';
-import { ArrowLeft, Send, Activity, X, Info, ImagePlus, Paperclip, AlertTriangle, CheckCircle, Phone, Video } from 'lucide-react-native';
+import { ArrowLeft, Send, Activity, X, Info, ImagePlus, Paperclip, AlertTriangle, CheckCircle, Phone, Video, FileText, ZoomIn, Eye } from 'lucide-react-native';
 import { tw, twInstance } from '@/tw';
+import { AttachmentPickerModal, ImageViewerModal, DocViewerModal } from '@/components/modals';
+
+interface ChatMessage {
+  id: string;
+  text: string;
+  sender: 'doctor' | 'user';
+  time: string;
+  hasAttachment?: boolean;
+  attachmentType?: 'image' | 'file';
+  attachmentName?: string;
+  attachmentSize?: string;
+  attachmentUri?: string;
+}
 
 export default function DoctorChatSessionScreen() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isVi = i18n.language === 'vi';
 
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -22,10 +36,39 @@ export default function DoctorChatSessionScreen() {
   const [doctorNote, setDoctorNote] = useState('');
   const [isSummarizing, setIsSummarizing] = useState(false);
   const [summary, setSummary] = useState('');
+  const [attachmentModalVisible, setAttachmentModalVisible] = useState(false);
+  const [attachmentMode, setAttachmentMode] = useState<'image' | 'file'>('image');
+
+  // Preview Modals
+  const [selectedImagePreview, setSelectedImagePreview] = useState<{ uri: string; name: string; size: string } | null>(null);
+  const [selectedDocPreview, setSelectedDocPreview] = useState<{ name: string; size: string; uri?: string } | null>(null);
+
+  const initialMessages: ChatMessage[] = [
+    {
+      id: '1',
+      text: isVi ? "Bác sĩ ơi, tôi gửi kèm kết quả xét nghiệm máu mới nhận sáng nay:" : "Doctor, here is my recent blood test panel from this morning:",
+      sender: 'user',
+      time: '10:31 AM',
+      hasAttachment: true,
+      attachmentType: 'image',
+      attachmentName: 'Blood_Test_Panel_Oct2026.jpg',
+      attachmentSize: '2.4 MB',
+      attachmentUri: 'https://images.unsplash.com/photo-1579684385127-1ef15d508118?q=80&w=600&auto=format&fit=crop',
+    },
+    {
+      id: '2',
+      text: isVi ? "Bác sĩ đã xem phiếu xét nghiệm. Các chỉ số đều rất tốt. Tôi gửi đơn thuốc và hướng dẫn theo dõi bên dưới nhé:" : "I reviewed your blood panel. Results look great. I have attached the updated care directives below:",
+      sender: 'doctor',
+      time: '10:33 AM',
+      hasAttachment: true,
+      attachmentType: 'file',
+      attachmentName: 'Cardiology_Telemetry_Report_Q3.pdf',
+      attachmentSize: '1.2 MB',
+      attachmentUri: '',
+    },
+  ];
   
-  const [messages, setMessages] = useState([
-    { id: '1', text: "I still feel a bit dizzy after taking the medicine.", sender: 'user', time: '10:31 AM', hasAttachment: false },
-  ]);
+  const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
 
   const handleSummarize = () => {
     setIsSummarizing(true);
@@ -35,14 +78,39 @@ export default function DoctorChatSessionScreen() {
     }, 1500);
   };
 
-  const handleSend = (isAttachment = false) => {
-    if (!message.trim() && !isAttachment) return;
+  const handleSend = () => {
+    if (!message.trim()) return;
     
     setMessages(prev => [
       ...prev, 
-      { id: Date.now().toString(), text: isAttachment ? '[Attachment]' : message, sender: 'doctor', time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), hasAttachment: isAttachment }
+      {
+        id: Date.now().toString(),
+        text: message.trim(),
+        sender: 'doctor',
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        hasAttachment: false,
+      }
     ]);
     setMessage('');
+  };
+
+  const handleSendAttachment = (item: { name: string; uri: string; type: 'image' | 'file'; size: string }) => {
+    setMessages(prev => [
+      ...prev,
+      {
+        id: Date.now().toString(),
+        text: item.type === 'image'
+          ? (isVi ? 'Đã gửi hình ảnh y tế đính kèm.' : 'Medical image attachment sent.')
+          : (isVi ? 'Đã gửi tài liệu y khoa đính kèm.' : 'Medical document attachment sent.'),
+        sender: 'doctor',
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        hasAttachment: true,
+        attachmentType: item.type,
+        attachmentName: item.name,
+        attachmentSize: item.size,
+        attachmentUri: item.uri,
+      }
+    ]);
   };
 
   return (
@@ -53,7 +121,7 @@ export default function DoctorChatSessionScreen() {
         keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
       >
         {/* Header */}
-        <View style={tw('flex-row items-center justify-between px-4 py-4 border-b border-slate-100 dark:border-slate-800')}>
+        <View style={tw('flex-row items-center justify-between px-4 py-4 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900')}>
           <View style={tw('flex-row items-center')}>
             <TouchableOpacity 
               style={tw('p-2')}
@@ -61,24 +129,24 @@ export default function DoctorChatSessionScreen() {
             >
               <ArrowLeft color={twInstance.color('text-slate-900 dark:text-slate-100')} size={24} />
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => setShowProfile(true)} style={tw('flex-row items-center ml-2')}>
+            <View style={tw('flex-row items-center ml-2')}>
               <Image 
-                source={{ uri: 'https://i.pravatar.cc/150?img=12' }} 
-                style={tw('w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-700 mr-3')} 
+                source={{ uri: 'https://i.pravatar.cc/150?img=11' }} 
+                style={tw('w-10 h-10 rounded-full bg-slate-200 mr-3')} 
               />
               <View>
-                <Text style={tw('text-lg font-bold text-slate-900 dark:text-white')}>{t('mobile.alex_johnson', `Alex Johnson`)}</Text>
-                <Text style={tw('text-brand text-xs font-medium')}>{t('mobile.online', `Online`)}</Text>
+                <Text style={tw('text-lg font-bold text-slate-900 dark:text-white')}>Alex Johnson</Text>
+                <Text style={tw('text-brand text-xs font-medium')}>{t('mobile.patient', `Patient`)} • 45 {t('mobile.years_old', `y.o`)}</Text>
               </View>
-            </TouchableOpacity>
+            </View>
           </View>
           
           <View style={tw('flex-row gap-1')}>
-            <TouchableOpacity style={tw('p-2')}>
-              <Phone color={twInstance.color('text-slate-900 dark:text-slate-100')} size={20} />
-            </TouchableOpacity>
-            <TouchableOpacity style={tw('p-2')} onPress={() => router.push('/(doctor)/video-call')}>
-              <Video color={twInstance.color('text-slate-900 dark:text-slate-100')} size={20} />
+            <TouchableOpacity 
+              style={tw('p-2')}
+              onPress={() => setShowProfile(!showProfile)}
+            >
+              <Info color="#64748b" size={20} />
             </TouchableOpacity>
             <TouchableOpacity 
               style={tw('p-2')}
@@ -96,18 +164,83 @@ export default function DoctorChatSessionScreen() {
         </View>
 
         {/* Chat Area */}
-        <ScrollView contentContainerStyle={tw('p-4')} showsVerticalScrollIndicator={false}>
+        <ScrollView contentContainerStyle={tw('p-4 pb-16')} showsVerticalScrollIndicator={false}>
           {messages.map((msg) => (
             <View 
               key={msg.id} 
-              style={tw(`mb-4 max-w-[80%] ${msg.sender === 'doctor' ? 'self-end' : 'self-start'}`)}
+              style={tw(`mb-4 max-w-[85%] ${msg.sender === 'doctor' ? 'self-end' : 'self-start'}`)}
             >
-              <View style={tw(`p-4 rounded-2xl ${msg.sender === 'doctor' ? 'bg-brand rounded-tr-sm' : 'bg-slate-100 dark:bg-slate-800 rounded-tl-sm'}`)}>
-                <Text style={tw(`text-base ${msg.sender === 'doctor' ? 'text-slate-900 dark:text-white font-medium' : 'text-slate-800 dark:text-slate-100'} ${msg.hasAttachment ? 'italic' : ''}`)}>
+              <View style={tw(`p-3.5 rounded-2xl ${msg.sender === 'doctor' ? 'bg-brand rounded-tr-sm' : 'bg-slate-100 dark:bg-slate-800 rounded-tl-sm'}`)}>
+                {/* 1. Image Attachment Preview */}
+                {msg.attachmentType === 'image' && msg.attachmentUri && (
+                  <TouchableOpacity
+                    activeOpacity={0.88}
+                    onPress={() => setSelectedImagePreview({
+                      uri: msg.attachmentUri!,
+                      name: msg.attachmentName || 'Photo.jpg',
+                      size: msg.attachmentSize || '2.1 MB',
+                    })}
+                    style={tw('mb-2.5 rounded-xl overflow-hidden border border-black/10 dark:border-white/10 bg-slate-200 dark:bg-slate-700 relative')}
+                  >
+                    <Image
+                      source={{ uri: msg.attachmentUri }}
+                      style={tw('w-60 h-44 rounded-xl')}
+                      resizeMode="cover"
+                    />
+                    <View style={tw('absolute bottom-2 right-2 bg-black/70 px-2 py-1 rounded-md flex-row items-center')}>
+                      <ZoomIn color="#ffffff" size={12} style={tw('mr-1')} />
+                      <Text style={tw('text-[10px] text-white font-medium')}>
+                        {msg.attachmentSize || 'Photo'}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                )}
+
+                {/* 2. PDF Document Attachment Card */}
+                {msg.attachmentType === 'file' && (
+                  <TouchableOpacity
+                    activeOpacity={0.85}
+                    onPress={() => setSelectedDocPreview({
+                      name: msg.attachmentName || 'Medical_Record.pdf',
+                      size: msg.attachmentSize || '1.2 MB',
+                      uri: msg.attachmentUri,
+                    })}
+                    style={tw(
+                      `mb-2.5 p-3 rounded-xl border flex-row items-center gap-3 ${
+                        msg.sender === 'doctor'
+                          ? 'bg-slate-900/10 border-slate-900/20'
+                          : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700'
+                      }`
+                    )}
+                  >
+                    <View style={tw('w-10 h-10 rounded-lg bg-red-100 dark:bg-red-900/30 items-center justify-center')}>
+                      <FileText color="#ef4444" size={22} />
+                    </View>
+                    <View style={tw('flex-1 mr-1')}>
+                      <Text
+                        numberOfLines={1}
+                        style={tw(
+                          `text-xs font-bold ${
+                            msg.sender === 'doctor' ? 'text-slate-900' : 'text-slate-900 dark:text-white'
+                          }`
+                        )}
+                      >
+                        {msg.attachmentName || 'Document.pdf'}
+                      </Text>
+                      <Text style={tw('text-[10px] text-slate-500 dark:text-slate-400 mt-0.5')}>
+                        {msg.attachmentSize || 'PDF Document'} • {isVi ? 'Nhấn để xem' : 'Tap to view'}
+                      </Text>
+                    </View>
+                    <Eye color={msg.sender === 'doctor' ? '#0f172a' : '#64748b'} size={18} />
+                  </TouchableOpacity>
+                )}
+
+                {/* Text Message */}
+                <Text style={tw(`text-sm leading-5 ${msg.sender === 'doctor' ? 'text-slate-900 font-medium' : 'text-slate-800 dark:text-slate-100'}`)}>
                   {msg.text}
                 </Text>
               </View>
-              <Text style={tw(`text-xs text-slate-400 dark:text-slate-500 mt-1 ${msg.sender === 'doctor' ? 'text-right' : 'text-left'}`)}>
+              <Text style={tw(`text-[11px] text-slate-400 mt-1 ${msg.sender === 'doctor' ? 'text-right' : 'text-left'}`)}>
                 {msg.time}
               </Text>
             </View>
@@ -115,11 +248,23 @@ export default function DoctorChatSessionScreen() {
         </ScrollView>
 
         {/* Input Area */}
-        <View style={tw('p-4 border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-slate-900 flex-row items-center')}>
-          <TouchableOpacity onPress={() => Toast.show({ type: 'info', text1: 'Info', text2: 'Add Image clicked' })} style={tw('p-3 bg-slate-100 dark:bg-slate-800 rounded-full mr-2')}>
+        <View style={tw('p-4 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 flex-row items-center')}>
+          <TouchableOpacity 
+            onPress={() => {
+              setAttachmentMode('image');
+              setAttachmentModalVisible(true);
+            }} 
+            style={tw('p-3 bg-slate-100 dark:bg-slate-800 rounded-full mr-2 active:opacity-80')}
+          >
             <ImagePlus color="#64748b" size={20} />
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => Toast.show({ type: 'info', text1: 'Info', text2: 'Add File clicked' })} style={tw('p-3 bg-slate-100 dark:bg-slate-800 rounded-full mr-3')}>
+          <TouchableOpacity 
+            onPress={() => {
+              setAttachmentMode('file');
+              setAttachmentModalVisible(true);
+            }} 
+            style={tw('p-3 bg-slate-100 dark:bg-slate-800 rounded-full mr-3 active:opacity-80')}
+          >
             <Paperclip color="#64748b" size={20} />
           </TouchableOpacity>
           <View style={tw('flex-1 bg-slate-100 dark:bg-slate-800 rounded-3xl px-4 py-2 mr-3 flex-row items-center min-h-[48px]')}>
@@ -133,7 +278,7 @@ export default function DoctorChatSessionScreen() {
             />
           </View>
           <TouchableOpacity 
-            onPress={() => handleSend(false)}
+            onPress={handleSend}
             style={tw(`w-12 h-12 rounded-full items-center justify-center ${message.trim() ? 'bg-brand' : 'bg-slate-200 dark:bg-slate-700'}`)}
             disabled={!message.trim()}
           >
@@ -142,95 +287,64 @@ export default function DoctorChatSessionScreen() {
         </View>
       </KeyboardAvoidingView>
 
-      {/* Health Profile Modal */}
-      <Modal
-        visible={showProfile}
-        animationType="slide"
-        presentationStyle="formSheet"
-        onRequestClose={() => setShowProfile(false)}
-      >
-        <SafeAreaView style={tw('flex-1 bg-slate-50 dark:bg-slate-950')}>
-          <View style={tw('flex-row items-center justify-between p-4 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800')}>
-            <Text style={tw('text-xl font-bold text-slate-900 dark:text-white')}>{t('mobile.health_profile', `Health Profile`)}</Text>
-            <TouchableOpacity onPress={() => setShowProfile(false)} style={tw('p-2')}>
-              <X color="#64748b" size={24} />
+      {/* Patient Profile / Vitals Peek Sheet */}
+      <Modal visible={showProfile} animationType="slide" transparent onRequestClose={() => setShowProfile(false)}>
+        <View style={tw('flex-1 justify-end bg-black/40')}>
+          <View style={tw('bg-white dark:bg-slate-900 rounded-t-3xl p-6')}>
+            <View style={tw('flex-row justify-between items-center mb-4')}>
+              <Text style={tw('text-xl font-bold text-slate-900 dark:text-white')}>{t('mobile.patient_vitals', `Patient Vitals & Info`)}</Text>
+              <TouchableOpacity onPress={() => setShowProfile(false)}><X color="#64748b" size={24} /></TouchableOpacity>
+            </View>
+            <View style={tw('bg-slate-50 dark:bg-slate-800 p-4 rounded-xl mb-4')}>
+              <Text style={tw('text-slate-500 dark:text-slate-400 text-xs mb-1')}>{t('mobile.recent_bp', `Recent Blood Pressure`)}</Text>
+              <Text style={tw('text-xl font-bold text-slate-900 dark:text-white')}>120/80 mmHg</Text>
+              <Text style={tw('text-emerald-500 text-xs font-semibold mt-1')}>{t('mobile.normal', `Normal`)} • {t('mobile.measured_1h_ago', `Measured 1h ago`)}</Text>
+            </View>
+            <View style={tw('bg-slate-50 dark:bg-slate-800 p-4 rounded-xl mb-6')}>
+              <Text style={tw('text-slate-500 dark:text-slate-400 text-xs mb-1')}>{t('mobile.heart_rate', `Heart Rate`)}</Text>
+              <Text style={tw('text-xl font-bold text-slate-900 dark:text-white')}>82 bpm</Text>
+              <Text style={tw('text-amber-500 text-xs font-semibold mt-1')}>{t('mobile.slightly_elevated', `Slightly Elevated`)}</Text>
+            </View>
+            <TouchableOpacity onPress={() => setShowProfile(false)} style={tw('bg-brand py-4 rounded-xl items-center')}>
+              <Text style={tw('text-slate-900 font-bold text-base')}>{t('mobile.close', `Close`)}</Text>
             </TouchableOpacity>
           </View>
-
-          <ScrollView contentContainerStyle={tw('p-6 gap-4')} showsVerticalScrollIndicator={false}>
-            {/* Patient Info */}
-            <View style={tw('bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm')}>
-              <Text style={tw('text-lg font-bold text-slate-900 dark:text-white mb-2')}>{t('mobile.alex_johnson', `Alex Johnson`)}</Text>
-              <Text style={tw('text-sm text-slate-600 dark:text-slate-300 mb-1')}>{t('mobile.birthday_oct_12_1990', `Birthday: Oct 12, 1990`)}</Text>
-              <Text style={tw('text-sm text-slate-600 dark:text-slate-300 mb-1')}>{t('mobile.gender_male', `Gender: Male`)}</Text>
-              <Text style={tw('text-sm text-slate-600 dark:text-slate-300')}>{t('mobile.patients_note_feeling_dizzy_oc', `Patient's note: Feeling dizzy occasionally.`)}</Text>
-            </View>
-
-            {/* AI Summary */}
-            <View style={tw('bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm')}>
-              <View style={tw('flex-row justify-between items-center mb-3')}>
-                <Text style={tw('text-xs font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500')}>{t('mobile.ai_summary', `AI Summary`)}</Text>
-                <TouchableOpacity 
-                  onPress={handleSummarize}
-                  disabled={isSummarizing || summary.length > 0}
-                  style={tw(`px-3 py-1 rounded-full border ${summary ? 'border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950' : 'border-ai bg-ai-light'}`)}
-                >
-                  <Text style={tw(`text-xs font-bold ${summary ? 'text-slate-400 dark:text-slate-500' : 'text-ai'}`)}>
-                    {isSummarizing ? 'Summarizing...' : 'Summarize'}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-              
-              <Text style={tw('text-sm text-slate-600 dark:text-slate-300 leading-5')}>
-                {summary ? summary : "Click summarize to generate an AI assessment of the patient's recent health metrics."}
-              </Text>
-            </View>
-
-            {/* Vitals */}
-            <View>
-              <Text style={tw('text-xs font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-3')}>{t('mobile.current_vitals', `Current Vitals`)}</Text>
-              
-              <View style={tw('bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm mb-3')}>
-                <View style={tw('flex-row justify-between mb-2')}>
-                  <Text style={tw('text-slate-500 dark:text-slate-400 dark:text-slate-500 font-medium')}>{t('mobile.heart_rate', `Heart Rate`)}</Text>
-                  <Activity color="#ef4444" size={20} />
-                </View>
-                <Text style={tw('text-2xl font-bold text-slate-900 dark:text-white')}>82 <Text style={tw('text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500')}>{t('mobile.bpm', `bpm`)}</Text></Text>
-              </View>
-
-              <View style={tw('bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm mb-3')}>
-                <View style={tw('flex-row justify-between mb-2')}>
-                  <Text style={tw('text-slate-500 dark:text-slate-400 dark:text-slate-500 font-medium')}>{t('mobile.blood_pressure', `Blood Pressure`)}</Text>
-                  <Activity color="#3b82f6" size={20} />
-                </View>
-                <Text style={tw('text-2xl font-bold text-slate-900 dark:text-white')}>120/80 <Text style={tw('text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500')}>{t('mobile.mmhg', `mmHg`)}</Text></Text>
-              </View>
-            </View>
-          </ScrollView>
-        </SafeAreaView>
+        </View>
       </Modal>
 
       {/* End Consultation Modal */}
-      <Modal visible={endModalVisible} transparent animationType="slide" onRequestClose={() => setEndModalVisible(false)}>
+      <Modal visible={endModalVisible} animationType="slide" transparent onRequestClose={() => setEndModalVisible(false)}>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={tw('flex-1 justify-end bg-black/40')}>
           <View style={tw('bg-white dark:bg-slate-900 rounded-t-3xl p-6')}>
             <View style={tw('flex-row justify-between items-center mb-6')}>
               <Text style={tw('text-xl font-bold text-slate-900 dark:text-white')}>{t('mobile.end_consultation', `End Consultation`)}</Text>
               <TouchableOpacity onPress={() => setEndModalVisible(false)}><X color="#64748b" size={24} /></TouchableOpacity>
             </View>
+            
             <View style={tw('mb-4')}>
-              <Text style={tw('text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2')}>{t('mobile.doctors_note', `Doctor's Note`)}</Text>
+              <View style={tw('flex-row justify-between items-center mb-2')}>
+                <Text style={tw('text-sm font-semibold text-slate-700 dark:text-slate-200')}>{t('mobile.clinical_summary', `Clinical Summary`)}</Text>
+                <TouchableOpacity onPress={handleSummarize} disabled={isSummarizing}>
+                  <Text style={tw('text-brand text-xs font-bold')}>{isSummarizing ? t('mobile.generating', 'Generating...') : t('mobile.ai_summarize', '✨ AI Summarize')}</Text>
+                </TouchableOpacity>
+              </View>
+              {summary ? (
+                <View style={tw('bg-slate-50 dark:bg-slate-800 p-3 rounded-xl mb-2')}>
+                  <Text style={tw('text-slate-700 dark:text-slate-300 text-xs')}>{summary}</Text>
+                </View>
+              ) : null}
               <TextInput
                 value={doctorNote}
                 onChangeText={setDoctorNote}
-                placeholder={t('mobile.write_diagnostic_notes', 'Write your diagnostic notes here...')}
-                style={tw('bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl p-4 text-slate-900 dark:text-white h-32')}
+                placeholder={t('mobile.enter_doctor_notes', "Enter diagnosis, prescription, or doctor's note...")}
+                style={tw('bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl p-4 text-slate-900 dark:text-white h-24')}
                 multiline
                 textAlignVertical="top"
               />
             </View>
+            
             <TouchableOpacity onPress={() => { setEndModalVisible(false); Toast.show({ type: 'success', text1: 'Success', text2: 'Consultation Ended' }); router.back(); }} style={tw('bg-brand py-4 rounded-xl items-center')}>
-              <Text style={tw('text-slate-900 font-bold text-base')}>{t('mobile.end_consultation', `End Consultation`)}</Text>
+              <Text style={tw('text-slate-900 font-bold text-base')}>{t('mobile.complete_and_close', `Complete & Close`)}</Text>
             </TouchableOpacity>
           </View>
         </KeyboardAvoidingView>
@@ -261,6 +375,32 @@ export default function DoctorChatSessionScreen() {
           </View>
         </KeyboardAvoidingView>
       </Modal>
+
+      {/* Attachment Picker Modal */}
+      <AttachmentPickerModal
+        visible={attachmentModalVisible}
+        onClose={() => setAttachmentModalVisible(false)}
+        initialMode={attachmentMode}
+        onSendAttachment={handleSendAttachment}
+      />
+
+      {/* Lightbox Image Preview Modal */}
+      <ImageViewerModal
+        visible={!!selectedImagePreview}
+        onClose={() => setSelectedImagePreview(null)}
+        imageUri={selectedImagePreview?.uri}
+        imageName={selectedImagePreview?.name}
+        imageSize={selectedImagePreview?.size}
+      />
+
+      {/* PDF Document Viewer Modal */}
+      <DocViewerModal
+        visible={!!selectedDocPreview}
+        onClose={() => setSelectedDocPreview(null)}
+        fileName={selectedDocPreview?.name}
+        fileSize={selectedDocPreview?.size}
+        fileUri={selectedDocPreview?.uri}
+      />
     </SafeAreaView>
   );
 }

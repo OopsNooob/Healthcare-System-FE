@@ -1,8 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
-import notificationSoundURL from "../../assets/sounds/notification_sound.wav";
-import { useHealthAlertStore } from "../store/useHealthAlertStore";
 import { useAuthStore } from "@repo/ui/store/useAuthStore";
-import { notificationsSocket } from "@/lib/api";
+import { connectNotificationsSocket, notificationsSocket } from "@/lib/api";
 import {
   deleteNotification,
   getNotifications,
@@ -11,6 +9,8 @@ import {
   type NotificationItem,
   type NotificationType,
 } from "../services/notifications.service";
+
+export { useNotificationSync } from "./useNotificationSync";
 
 type SocketNotificationPayload = {
   userId?: string;
@@ -27,156 +27,54 @@ type SocketNotificationPayload = {
 
 const SOCKET_NOTIFICATION_EVENT = "notifications";
 
-let notificationAudio: HTMLAudioElement | null = null;
-let isAudioUnlocked = false;
+function playNotificationSound() {
+  if (typeof window === "undefined") return;
 
-function ensureNotificationAudio() {
-  if (!notificationAudio) {
-    notificationAudio = new Audio(notificationSoundURL);
-    notificationAudio.preload = "auto";
-    notificationAudio.volume = 0.6;
+  try {
+    const AudioContextClass =
+      window.AudioContext ||
+      (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    if (!AudioContextClass) return;
+
+    const ctx = new AudioContextClass();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(587.33, ctx.currentTime);
+    osc.frequency.setValueAtTime(880, ctx.currentTime + 0.1);
+
+    gain.gain.setValueAtTime(0.08, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.start();
+    osc.stop(ctx.currentTime + 0.35);
+  } catch {
+    // Autoplay restrictions or audio disabled
   }
-
-  return notificationAudio;
 }
 
 export async function unlockNotificationSound() {
-  if (typeof window === "undefined" || isAudioUnlocked) {
-    return;
-  }
-
+  if (typeof window === "undefined") return;
   try {
-    const audio = ensureNotificationAudio();
-    const previousVolume = audio.volume;
-    audio.volume = 0;
-    await audio.play();
-    audio.pause();
-    audio.currentTime = 0;
-    audio.volume = previousVolume;
-    isAudioUnlocked = true;
-    console.log("✅ Notification sound unlocked by user interaction.");
-  } catch (error) {
-    isAudioUnlocked = false;
-    console.warn("Notification sound unlock failed", error);
-  }
-}
-
-function playNotificationSound() {
-  if (typeof window === "undefined" || !isAudioUnlocked) {
-    console.warn(
-      "🔊 Notification sound skipped: Audio has not been unlocked by user interaction yet.",
-    );
-    return;
-  }
-
-  try {
-    const audio = ensureNotificationAudio();
-    audio.currentTime = 0;
-    void audio.play();
-  } catch (error) {
-    console.warn("Notification sound unavailable", error);
-  }
-}
-
-/**
- * Hook để đồng bộ notifications theo realtime websocket.
- * Vẫn có 1 lần fetch ban đầu để không bỏ sót alert trước thời điểm socket kết nối.
- */
-export function useNotificationSync(userId: string | null) {
-  const { setCurrentAlert, hasBeenDisplayed } = useHealthAlertStore();
-
-  useEffect(() => {
-    if (!userId) return;
-
-    const token = localStorage.getItem("accessToken");
-    if (!token) return;
-
-    if (!connectNotificationsSocket(token)) {
-      return;
+    const AudioContextClass =
+      window.AudioContext ||
+      (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    if (AudioContextClass) {
+      const ctx = new AudioContextClass();
+      if (ctx.state === "suspended") {
+        await ctx.resume();
+      }
     }
-
-    // DEBUG: Kiểm tra giá trị của token
-    console.log("Attempting to connect notification socket with token:", token);
-
-    const pushIfNewCritical = (alert: {
-      id?: string;
-      type?: NotificationType;
-      isRead?: boolean;
-      title?: string;
-      message?: string;
-      createdAt?: string;
-    }) => {
-      const alertId = alert.id;
-      if (!alertId || alert.type !== "critical" || alert.isRead) {
-        return;
-      }
-
-      if (hasBeenDisplayed(alertId)) {
-        return;
-      }
-
-      setCurrentAlert({
-        id: alertId,
-        title: alert.title || "Critical health alert",
-        message: alert.message || "A critical alert has been triggered.",
-        createdAt: alert.createdAt || new Date().toISOString(),
-      });
-    };
-
-    const bootstrapNotifications = async () => {
-      try {
-        const notifications = await getNotifications();
-
-        const criticalAlerts = notifications
-          .filter((noti) => noti.type === "critical" && !noti.isRead)
-          .sort(
-            (a, b) =>
-              new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-          );
-
-        for (const alert of criticalAlerts) {
-          pushIfNewCritical(alert);
-          break;
-        }
-      } catch (error) {
-        console.error("Error bootstrapping notifications:", error);
-      }
-    };
-
-    const handleNotificationSync = (payload: SocketNotificationPayload) => {
-      const notification = payload.notification;
-      if (!notification) return;
-
-      console.log("📬 Received new notification via socket:", payload);
-      pushIfNewCritical(notification);
-    };
-
-    const handleAccountBanned = () => {
-      window.dispatchEvent(
-        new CustomEvent("auth:account-banned", {
-          detail: {
-            message: "Your account is banned",
-          },
-        }),
-      );
-    };
-
-    notificationsSocket.on(SOCKET_NOTIFICATION_EVENT, handleNotificationSync);
-    notificationsSocket.on("account_banned", handleAccountBanned);
-
-    bootstrapNotifications();
-
-    return () => {
-      notificationsSocket.off(
-        SOCKET_NOTIFICATION_EVENT,
-        handleNotificationSync,
-      );
-      notificationsSocket.off("account_banned", handleAccountBanned);
-    };
-  }, [userId, setCurrentAlert, hasBeenDisplayed]);
+  } catch {
+    // ignore
+  }
 }
 
-type UseNotificationsOptions = {
+export type UseNotificationsOptions = {
   enabled?: boolean;
 };
 
@@ -197,7 +95,7 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
     try {
       const items = await getNotifications();
       const sorted = items.sort(
-        (a, b) =>
+        (a: NotificationItem, b: NotificationItem) =>
           new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
       );
       setNotifications(sorted);
@@ -211,9 +109,30 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
   }, [enabled]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    void fetchNotifications();
-  }, [fetchNotifications]);
+    let isMounted = true;
+    if (!enabled) return;
+
+    void (async () => {
+      try {
+        const items = await getNotifications();
+        if (!isMounted) return;
+        const sorted = items.sort(
+          (a: NotificationItem, b: NotificationItem) =>
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+        );
+        setNotifications(sorted);
+      } catch (err) {
+        if (!isMounted) return;
+        setError(
+          err instanceof Error ? err.message : "Failed to load notifications",
+        );
+      }
+    })();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [enabled]);
 
   useEffect(() => {
     if (!enabled || !currentUserId) return;
@@ -239,8 +158,7 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
       }
 
       if (!notification?.id) {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-    void fetchNotifications();
+        void fetchNotifications();
         return;
       }
 

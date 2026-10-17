@@ -153,11 +153,38 @@
         "superAdmin": "Super admin",
         "userAdmin": "User admin",
         "aiAdmin": "AI admin"
+      },
+      "addAdminModal": {
+        "title": "Create admin account",
+        "fullName": "Full Name",
+        "fullNamePlaceholder": "e.g. Alex Rivera",
+        "email": "Email Address",
+        "emailPlaceholder": "admin@healthcare.com",
+        "tempPassword": "Temporary Password",
+        "tempPasswordPlaceholder": "Minimum 8 characters",
+        "tempPasswordHint": "The admin will be prompted to change this on first login.",
+        "selectRole": "Select Role",
+        "roles": {
+          "superAdmin": "Super Admin - Full Access",
+          "userAdmin": "User Manager - User & Doctor Verification",
+          "aiAdmin": "AI Manager - AI Knowledge Base"
+        },
+        "cancel": "Cancel",
+        "createAdmin": "Create Admin"
       }
     },
     "medicalFacilities": {
       "description": "Review and manage medical facilities on the map.",
       "by": "By",
+      "addFacility": "Add Facility",
+      "specialties": {
+        "general": "General",
+        "cardiology": "Cardiology",
+        "endocrinology": "Endocrinology",
+        "pediatrics": "Pediatrics",
+        "dermatology": "Dermatology",
+        "emergency": "Emergency 24/7"
+      },
       "status": {
         "all": "All Status",
         "pending": "Pending",
@@ -175,6 +202,46 @@
         "approve": "Approve",
         "reject": "Reject",
         "edit": "Edit"
+      },
+      "formModal": {
+        "createTitle": "Add New Medical Facility",
+        "editTitle": "Edit Medical Facility",
+        "desc": "Configure facility name, address, specialty and contact details.",
+        "name": "Facility Name",
+        "namePlaceholder": "e.g. Cho Ray Hospital",
+        "address": "Detailed Address",
+        "addressPlaceholder": "Street, ward, district, city...",
+        "specialty": "Primary Specialty",
+        "contactPhone": "Hotline Phone",
+        "phone": "Hotline Phone",
+        "phonePlaceholder": "e.g. +84 28 3855 4137",
+        "operatingHours": "Operating Hours",
+        "status": "Initial Status",
+        "cancel": "Cancel",
+        "save": "Save Facility"
+      },
+      "decisionModal": {
+        "approveTitle": "Approve Medical Facility",
+        "approveDesc": "Are you sure you want to approve this medical facility to the official directory on the map?",
+        "rejectTitle": "Reject Medical Facility",
+        "rejectDesc": "Please provide a rejection reason to inform the submitter.",
+        "submittedBy": "Submitted By",
+        "reasonLabel": "Rejection Reason (Required)",
+        "reasonPlaceholder": "e.g. Missing operating license, inaccurate address...",
+        "notes": "Internal Admin Notes",
+        "notesPlaceholder": "Optional administrative audit notes...",
+        "confirmApprove": "Confirm Approval",
+        "confirmReject": "Confirm Rejection",
+        "cancel": "Cancel"
+      },
+      "toasts": {
+        "createSuccess": "Facility created successfully",
+        "editSuccess": "Facility updated successfully",
+        "approveSuccess": "Facility approved successfully",
+        "rejectSuccess": "Facility rejected successfully",
+        "reasonRequired": "Please enter a rejection reason",
+        "addressRequired": "Please enter facility address",
+        "nameRequired": "Please enter facility name"
       }
     },
     "docVerification": {
@@ -209,6 +276,7 @@
         "documents": "Documents",
         "noDocsUploaded": "No documents uploaded",
         "noFileSelected": "No file selected",
+        "openInNewTab": "Open in new tab",
         "professionalInfo": "Professional Information",
         "fullName": "Full Name",
         "email": "Email",
@@ -268,8 +336,13 @@
         "success": "Success",
         "pending": "Pending",
         "failed": "Failed",
+        "refunded": "Refunded",
         "eligible": "Eligible",
         "ineligible": "Ineligible"
+      },
+      "planTypes": {
+        "monthly": "Monthly Plan",
+        "yearly": "Yearly Plan"
       },
       "actions": {
         "review": "Review",
@@ -290,16 +363,100 @@
         "feature3": "• Advanced health metrics insights",
         "status": "Status",
         "active": "Active"
+      },
+      "refundModal": {
+        "title": "Review Refund Request",
+        "desc": "Verify actual usage snapshot details and decide on refund approval.",
+        "requestId": "Request ID",
+        "user": "User",
+        "amount": "Refund Amount",
+        "requestedAt": "Requested Date",
+        "reason": "User Stated Reason",
+        "usageSnapshot": "Final Usage Snapshot",
+        "aiTokensUsed": "AI Tokens Used",
+        "consultationsUsed": "Consultations Used",
+        "daysActive": "Days Active",
+        "maxTokens": "Max: 5,000",
+        "maxConsults": "Max: 0",
+        "maxDays": "Max: 7 days",
+        "daysCount": "{{days}} days",
+        "eligibility": "Eligibility Evaluation",
+        "eligible": "Eligible for Refund",
+        "ineligible": "Ineligible (Exceeded Policy)",
+        "adminOverride": "Admin Override Approval",
+        "overrideNotice": "Policy limits were exceeded. To approve this refund, an administrator override justification is mandatory for auditing purposes.",
+        "overrideReason": "Override Justification",
+        "overrideReasonPlaceholder": "Required: Enter justification approved by supervisor/management...",
+        "adminNotes": "Resolution Notes / User Feedback",
+        "adminNotesPlaceholder": "Enter resolution notes or explanation for patient...",
+        "approveBtn": "Approve & Process Refund",
+        "rejectBtn": "Reject Request",
+        "close": "Close",
+        "overrideRequired": "Please enter an override justification before proceeding."
+      },
+      "editPlanModal": {
+        "title": "Edit Premium Plan Configuration",
+        "desc": "Update pricing, billing cycle, and resource limits for this subscription plan.",
+        "planName": "Plan Name",
+        "price": "Price (VND)",
+        "billingCycle": "Billing Cycle",
+        "monthly": "Monthly",
+        "yearly": "Yearly",
+        "aiTokenLimit": "AI Tokens Quota / Cycle",
+        "consultsLimit": "Consultations Quota / Cycle",
+        "familyLimit": "Linked Family Members",
+        "features": "Displayed Features (one per line)",
+        "status": "Plan Status",
+        "active": "Active",
+        "inactive": "Inactive",
+        "cancel": "Cancel",
+        "save": "Save Changes"
+      },
+      "transactionModal": {
+        "title": "Payment Transaction Details",
+        "desc": "Detailed safe transaction and reconciliation information from gateway.",
+        "transactionId": "Transaction ID",
+        "customer": "Customer / User",
+        "user": "Customer",
+        "plan": "Subscription Plan",
+        "amount": "Payment Amount (VND)",
+        "paymentMethod": "Payment Gateway",
+        "referenceCode": "Bank Reference Code",
+        "date": "Transaction Time",
+        "createdAt": "Transaction Time",
+        "status": "Status",
+        "invoice": "E-Invoice",
+        "invoiceNotice": "Transaction digitally signed and recorded in the system ledger.",
+        "invoiceStatus": "Electronic Invoice",
+        "invoiceRequested": "Requested",
+        "invoiceNotRequested": "Not requested",
+        "copyId": "Copy ID",
+        "securityAuditNote": "In accordance with security standards, customer bank credentials and private tokens are masked. All transactions are logged with idempotent payment webhooks.",
+        "close": "Close"
+      },
+      "toasts": {
+        "overrideRequired": "Ineligible requests require checking Admin Override.",
+        "reasonRequired": "Please provide an override reason for audit logging.",
+        "planNameRequired": "Please enter a valid plan name.",
+        "copied": "Copied to clipboard!"
       }
     },
     "appointmentManagement": {
       "title": "Appointments & Queue",
       "subtitle": "Monitor all appointments, wait times, and system queue",
+      "types": {
+        "videoCall": "Video Call",
+        "chat": "Chat"
+      },
       "stats": {
         "totalToday": "Total Today",
         "completed": "Completed",
         "canceled": "Canceled / No-show",
-        "avgWaitTime": "Avg Wait Time"
+        "avgWaitTime": "Avg Wait Time",
+        "fromYesterday": "+12% from yesterday",
+        "completionRate": "Completion Rate",
+        "cancelationRate": "Cancellation Rate",
+        "thanAverage": "than average"
       },
       "queue": {
         "title": "Today's Queue & Appointments",
@@ -312,6 +469,8 @@
         "doctor": "Doctor",
         "type": "Type",
         "status": "Status",
+        "actions": "Actions",
+        "viewDetails": "Details",
         "noAppointments": "No appointments found",
         "tryAdjusting": "Try adjusting your search filters"
       },
@@ -321,6 +480,27 @@
         "waiting": "Waiting",
         "scheduled": "Scheduled",
         "canceled": "Canceled"
+      },
+      "detailModal": {
+        "title": "Consultation Session Details",
+        "desc": "Details of clinical session, room logs, and doctor clinical notes.",
+        "sessionInfo": "Session Information",
+        "patient": "Patient",
+        "doctor": "Assigned Doctor",
+        "providerType": "Telemedicine Provider",
+        "type": "Consultation Type",
+        "time": "Time",
+        "status": "Status",
+        "symptoms": "Symptoms & Chief Complaint",
+        "defaultSymptoms": "Mild hypertension symptoms with headache and dizziness reported during pre-call intake survey.",
+        "clinicalNotes": "Doctor Clinical Notes",
+        "notes": "Clinical Summary Notes",
+        "defaultNotes": "Advised patient to maintain low-sodium diet, track systolic/diastolic blood pressure twice daily, and prescribed follow-up teleconsultation.",
+        "callLog": "Video Call Room Log",
+        "duration": "Duration",
+        "quality": "Connection Quality",
+        "encryptedWebRTC": "End-to-End Encrypted WebRTC",
+        "close": "Close"
       }
     },
     "aiManagement": {
@@ -377,6 +557,37 @@
         "addedBy": "ADDED BY",
         "addedDate": "ADDED DATE",
         "noWords": "No blacklist words found."
+      },
+      "previewModal": {
+        "previewDesc": "document preview",
+        "notSupported": "Preview is not supported for this file type.",
+        "downloadPrompt": "Please download the file to view full content.",
+        "downloadBtn": "Download file"
+      },
+      "chunksModal": {
+        "title": "Document Chunks Management",
+        "desc": "View document extracted chunks and exclude inaccurate chunks from the RAG knowledge retrieval index.",
+        "docTitle": "Document",
+        "totalChunks": "Total Chunks",
+        "activeChunks": "Active Chunks",
+        "excludedChunks": "Excluded Chunks",
+        "chunkIndex": "Chunk #",
+        "tokenCount": "tokens",
+        "status": "Status",
+        "active": "Active",
+        "excluded": "Excluded",
+        "content": "Extracted Content",
+        "excludeBtn": "Exclude Chunk",
+        "restoreBtn": "Restore Chunk",
+        "exclusionReasonTitle": "Reason for Excluding Chunk",
+        "exclusionReasonPlaceholder": "Enter reason (e.g. outdated clinical reference, sentence truncation...)",
+        "confirmExclude": "Confirm Exclusion",
+        "cancel": "Cancel",
+        "close": "Close",
+        "reasonRequired": "Please provide an exclusion reason",
+        "exclusionNotice": "* Chunk exclusion disables RAG retrieval on this fragment without changing document publishing status.",
+        "successExclude": "Chunk excluded from RAG retrieval",
+        "successRestore": "Chunk restored to RAG retrieval"
       }
     },
     "violationReport": {
@@ -407,8 +618,20 @@
         "aiClassification": "AI Classification",
         "aiCategory": "Category",
         "aiSeverity": "Severity & Confidence",
+        "aiSeverityHighValue": "High (94%)",
         "aiRationale": "Rationale",
-        "aiRationaleValue": "Based on chat history analysis, the message contains aggressive language targeted at another user."
+        "aiRationaleValue": "Based on chat history analysis, the message contains aggressive language targeted at another user.",
+        "resolutionAction": "Resolution Action",
+        "actionWarning": "Issue User Warning",
+        "actionSuspend": "Temporary Suspension (7 days)",
+        "actionBan": "Permanent Account Ban",
+        "actionNone": "No Penalty Applied",
+        "resolutionNotes": "Resolution Notes",
+        "resolutionNotesPlaceholder": "Enter resolution justification or notes...",
+        "dismissReport": "Dismiss Report",
+        "applyResolution": "Apply Resolution",
+        "dismissed": "Dismissed",
+        "notesRequired": "Please enter resolution notes/justification before applying action."
       },
       "table": {
         "type": "TYPE",
@@ -429,7 +652,14 @@
         "allTypes": "All types",
         "allStatus": "All status",
         "pending": "Pending",
-        "resolved": "Resolved"
+        "resolved": "Resolved",
+        "dismissed": "Dismissed",
+        "noTypeFound": "No type found.",
+        "noStatusFound": "No status found."
+      },
+      "loading": "Loading violation reports...",
+      "pagination": {
+        "showing": "Showing {{count}} of {{total}} results"
       }
     },
     "profile": {
@@ -494,7 +724,20 @@
       "actions": {
         "createProgram": "Create Program",
         "addRule": "Add Rule",
-        "runSimulation": "Run Simulation"
+        "runSimulation": "Run Simulation",
+        "searchPlaceholder": "Search programs..."
+      },
+      "cards": {
+        "published": "Published",
+        "draft": "Draft",
+        "enrolled": "{{count}} enrolled",
+        "baselineMetrics": "Baseline Metrics",
+        "taskTemplates": "Task Templates",
+        "tasksConfigured": "{{count}} daily tasks configured",
+        "completionCriteria": "Completion Criteria",
+        "updated": "Updated",
+        "editProgram": "Edit Program",
+        "noPrograms": "No matching care programs found"
       },
       "rules": {
         "program": "PROGRAM",
@@ -508,6 +751,108 @@
         "draft": "Draft",
         "activate": "Activate",
         "retire": "Retire"
+      },
+      "baseline": {
+        "bloodPressure": "Blood Pressure",
+        "heartRate": "Heart Rate",
+        "fastingGlucose": "Fasting Glucose",
+        "hba1c": "HbA1c",
+        "weight": "Weight",
+        "medications": "Current Medications",
+        "quietHours": "Quiet Hours"
+      },
+      "metrics": {
+        "systolic": "Systolic (mmHg)",
+        "diastolic": "Diastolic (mmHg)",
+        "glucose": "Glucose (mg/dL)",
+        "heartRate": "Heart Rate (bpm)"
+      },
+      "operators": {
+        "greaterThan": "Greater than",
+        "greaterOrEqual": "Greater or equal",
+        "lessThan": "Less than",
+        "lessOrEqual": "Less or equal",
+        "equals": "Equals"
+      },
+      "modals": {
+        "createTitle": "Create Care Program Template",
+        "createDesc": "Configure a chronic care program with baseline assessments and monitoring task templates.",
+        "progName": "Program Name",
+        "progNamePlaceholder": "e.g. Hypertension Management...",
+        "progCode": "Program Code",
+        "version": "Version",
+        "diseaseKey": "Disease Specialty",
+        "duration": "Target Duration",
+        "days": "days",
+        "description": "Description",
+        "descriptionPlaceholder": "Monitoring goals and target patient cohort...",
+        "baselineQuestions": "Baseline Form & Assessment",
+        "baselineDesc": "Select vital metrics required upon patient enrollment:",
+        "taskTemplates": "Embedded Task Templates",
+        "completionCriteria": "Completion Criteria",
+        "completionCriteriaPlaceholder": "80% adherence over 90 days",
+        "saveDraft": "Save as Draft",
+        "publish": "Publish Program",
+        "ruleTitle": "Add Alert Rule (Rule Builder)",
+        "ruleDesc": "Configure declarative filters to automatically trigger clinical alerts.",
+        "targetProgram": "Apply to Program",
+        "selectRule": "Select Rule to Test",
+        "metric": "Target Metric",
+        "operator": "Condition Operator",
+        "threshold": "Threshold Value",
+        "severity": "Severity Level",
+        "action": "Triggered Action",
+        "declarativeCondition": "Declarative Condition",
+        "conditionPreview": "Condition Preview",
+        "cancel": "Cancel",
+        "createRule": "Create Rule",
+        "severityAttention": "Attention (Moderate Alert)",
+        "severityUrgent": "Urgent (Critical Alert)",
+        "actionDoctorAlert": "Send Doctor Alert",
+        "actionPatientTask": "Assign Patient Task",
+        "actionEmergency": "Trigger Emergency Protocol",
+        "simTitle": "Rule Dry-Run Simulation",
+        "simDesc": "Test rules against synthetic patient telemetry before enabling in production.",
+        "simScanned": "Records Evaluated",
+        "simAlerts": "Alerts Generated",
+        "simFalsePos": "False Positive Rate",
+        "simStatus": "Safety Validation Passed",
+        "simTelemetryInputs": "Synthetic Telemetry Inputs",
+        "simViolated": "VIOLATED / TRIGGERED",
+        "simSafe": "NORMAL / SAFE",
+        "simMatched": "Condition Matched (Triggered)",
+        "simNoTrigger": "No Trigger (Condition Not Met)",
+        "actionFired": "Action Fired",
+        "run": "Run Dry-Run",
+        "activateRule": "Activate Rule",
+        "close": "Close"
+      },
+      "editModal": {
+        "title": "Edit Care Program Template",
+        "desc": "Update program details, monitoring metrics and operational status.",
+        "progName": "Program Name",
+        "progNamePlaceholder": "Enter program name...",
+        "version": "Version",
+        "status": "Operational Status",
+        "published": "Published",
+        "draft": "Draft",
+        "enrolledPatients": "Active Enrolled Patients",
+        "enrolledCount": "{{count}} patients",
+        "baselineRequirements": "Baseline Survey Requirements",
+        "baselineDesc": "Select vital metrics required upon patient enrollment:",
+        "taskTemplates": "Daily Tasks Templates Count",
+        "completionCriteria": "Completion Criteria",
+        "completionCriteriaPlaceholder": "e.g. 80% adherence over 90 days",
+        "cancel": "Cancel",
+        "save": "Save Changes"
+      },
+      "toasts": {
+        "nameRequired": "Please enter a program name",
+        "thresholdRequired": "Please enter a valid threshold",
+        "ruleCreated": "Alert rule created successfully",
+        "ruleActivated": "Rule activated",
+        "ruleRetired": "Rule retired",
+        "updateSuccess": "Care program updated successfully"
       }
     },
     "sharedPages": {

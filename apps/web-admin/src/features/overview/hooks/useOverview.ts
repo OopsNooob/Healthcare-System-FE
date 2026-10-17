@@ -16,7 +16,6 @@ const initialSummary: OverviewSummary = {
     totalUsers: Array.from({ length: 8 }, () => 0),
     activeDoctors: Array.from({ length: 8 }, () => 0),
     aiChatSessions: Array.from({ length: 8 }, () => 0),
-    pendingVerifications: Array.from({ length: 8 }, () => 0),
   },
   weekly: {
     labels: Array.from({ length: 7 }, () => ""),

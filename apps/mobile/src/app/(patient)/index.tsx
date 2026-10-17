@@ -2,9 +2,10 @@ import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { View, Text, ScrollView, TouchableOpacity, Image, TextInput, SafeAreaView, RefreshControl, Dimensions } from 'react-native';
 import { useSafeRouter as useRouter } from '@/utils/useSafeRouter';
-import { Search, Bell, Calendar, ChevronRight, Star, Heart, Activity, Crown, MessageSquare, Droplet, Flame, CheckCircle2, Circle, XCircle } from 'lucide-react-native';
+import { Search, Bell, Calendar, ChevronRight, Star, Heart, Activity, Crown, MessageSquare, Droplet, Flame, CheckCircle2, Circle, XCircle, ClipboardList, Sparkles } from 'lucide-react-native';
 import { tw, twInstance } from '@/tw';
 import { useThemeContext } from '@/context/ThemeContext';
+import { PauseProgramModal } from '@/components/modals';
 
 export default function PatientHomeScreen() {
   const { t } = useTranslation();
@@ -13,6 +14,9 @@ export default function PatientHomeScreen() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [hasPendingProgram, setHasPendingProgram] = useState(true);
+  const [pauseModalVisible, setPauseModalVisible] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
 
   // --- NEW DA2 MOCK DATA ---
   const careProgram = {
@@ -90,6 +94,51 @@ export default function PatientHomeScreen() {
           </View>
         </View>
 
+        {/* Pending Care Program Assessment Banner (DA2) */}
+        {hasPendingProgram && (
+          <View style={tw('px-6 mb-6')}>
+            <View style={tw('bg-amber-500 dark:bg-amber-600 rounded-3xl p-5 shadow-sm border border-amber-400 dark:border-amber-500')}>
+              <View style={tw('flex-row items-center justify-between mb-2.5')}>
+                <View style={tw('flex-row items-center gap-2')}>
+                  <View style={tw('w-7 h-7 rounded-full bg-white/20 items-center justify-center')}>
+                    <ClipboardList size={16} color="#ffffff" />
+                  </View>
+                  <View style={tw('bg-white/20 px-2.5 py-0.5 rounded-full')}>
+                    <Text style={tw('text-white text-[10px] font-bold uppercase tracking-wider')}>
+                      {t('mobile.enroll_status_pending', 'Pending Activation')}
+                    </Text>
+                  </View>
+                </View>
+                <TouchableOpacity
+                  onPress={() => setHasPendingProgram(false)}
+                  style={tw('w-6 h-6 rounded-full bg-white/20 items-center justify-center')}
+                >
+                  <Text style={tw('text-white text-xs font-bold leading-none')}>✕</Text>
+                </TouchableOpacity>
+              </View>
+
+              <Text style={tw('text-white font-bold text-lg mb-1 leading-snug')}>
+                {t('mobile.pending_program_banner_title', 'Care Program Pending Activation')}
+              </Text>
+              <Text style={tw('text-amber-100 text-xs leading-relaxed mb-4')}>
+                {t('mobile.pending_program_banner_desc', 'Please complete your baseline assessment survey to start receiving scheduled monitoring tasks.')}
+              </Text>
+
+              <TouchableOpacity
+                activeOpacity={0.85}
+                onPress={() => router.push('/(patient)/baseline-assessment')}
+                style={tw('bg-white dark:bg-slate-900 py-3 px-4 rounded-2xl flex-row items-center justify-center shadow-sm')}
+              >
+                <Sparkles size={16} color={twInstance.color('text-amber-600 dark:text-amber-400')} style={tw('mr-2')} />
+                <Text style={tw('text-amber-700 dark:text-amber-300 font-bold text-sm')}>
+                  {t('mobile.complete_assessment_now', 'Complete Survey')}
+                </Text>
+                <ChevronRight size={16} color={twInstance.color('text-amber-700 dark:text-amber-300')} style={tw('ml-1')} />
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+
         {/* Care Program Banner (DA2) */}
         <View style={tw('px-6 mb-6')}>
           <View style={tw('bg-indigo-600 dark:bg-indigo-700 rounded-3xl p-5 shadow-sm')}>
@@ -117,8 +166,13 @@ export default function PatientHomeScreen() {
 
             <View style={tw('flex-row justify-between items-center')}>
               <Text style={tw('text-indigo-200 text-xs')}>{careProgram.daysLeft} {t('mobile.days_remaining', 'days remaining')}</Text>
-              <TouchableOpacity style={tw('bg-white/20 px-3 py-1.5 rounded-full')}>
-                <Text style={tw('text-white text-xs font-medium')}>{t('mobile.pause_program', 'Pause Program')}</Text>
+              <TouchableOpacity 
+                onPress={() => setPauseModalVisible(true)}
+                style={tw('bg-white/20 px-3 py-1.5 rounded-full active:opacity-80')}
+              >
+                <Text style={tw('text-white text-xs font-medium')}>
+                  {isPaused ? t('mobile.resume_program', 'Resume Program') : t('mobile.pause_program', 'Pause Program')}
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -243,6 +297,14 @@ export default function PatientHomeScreen() {
         </View>
 
       </ScrollView>
+      <PauseProgramModal
+        visible={pauseModalVisible}
+        onClose={() => setPauseModalVisible(false)}
+        programName={careProgram.name}
+        onConfirmPause={(reason, durationDays) => {
+          setIsPaused(true);
+        }}
+      />
     </SafeAreaView>
   );
 }

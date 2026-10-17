@@ -2,17 +2,54 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { View, Text, ScrollView, TouchableOpacity, SafeAreaView, Image, TextInput, KeyboardAvoidingView, Platform, useColorScheme as useRNColorScheme, Switch } from 'react-native';
 import { useSafeRouter as useRouter } from '@/utils/useSafeRouter';
-import { Camera, Mail, Phone, MapPin, Stethoscope, LogOut, FileText, Pencil, Trash2, Plus, Radical, Building, ShieldCheck } from 'lucide-react-native';
+import { Camera, Mail, Phone, MapPin, Stethoscope, LogOut, FileText, Pencil, Trash2, Plus, Radical, Building, ShieldCheck, Eye, CheckCircle2, Clock } from 'lucide-react-native';
 import { useAppColorScheme } from 'twrnc';
 import { tw, twInstance } from '@/tw';
+import Toast from 'react-native-toast-message';
+import { AvatarPickerModal, DocUploadModal, DocViewerModal, ImageViewerModal } from '@/components/modals';
+import type { VerificationDocument } from '@/components/modals/DocUploadModal';
+import { pickNativePdfDocument, pickNativeImage } from '@/services/nativeMedia';
 
 export default function DoctorProfileScreen() {
   const { t, i18n } = useTranslation();
+  const isVi = i18n.language?.startsWith('vi');
   const [colorScheme, toggleColorScheme, setColorScheme] = useAppColorScheme(twInstance);
   const rnColorScheme = useRNColorScheme();
   const activeScheme = colorScheme || rnColorScheme || 'light';
 
   const router = useRouter();
+
+  const [avatarUri, setAvatarUri] = useState('https://i.pravatar.cc/150?img=1');
+  const [avatarModalVisible, setAvatarModalVisible] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const defaultDocs: VerificationDocument[] = [
+    {
+      id: 'doc-1',
+      type: 'license',
+      title: isVi ? 'Chứng chỉ hành nghề Y khoa' : 'Medical Practice License',
+      fileName: 'Medical_License_2023.pdf',
+      fileSize: '2.4 MB',
+      status: 'pending',
+      uploadDate: '2023-10-12',
+      uri: '',
+    },
+    {
+      id: 'doc-2',
+      type: 'degree',
+      title: isVi ? 'Bằng Bác sĩ Chuyên khoa Tim mạch' : 'Doctor of Medicine - Cardiology Board',
+      fileName: 'Cardiology_Board_Diploma_2018.pdf',
+      fileSize: '3.8 MB',
+      status: 'verified',
+      uploadDate: '2023-09-15',
+      uri: '',
+    },
+  ];
+
+  const [documents, setDocuments] = useState<VerificationDocument[]>(defaultDocs);
+  const [docUploadModalVisible, setDocUploadModalVisible] = useState(false);
+  const [selectedDocPreview, setSelectedDocPreview] = useState<{ name: string; size: string; uri?: string; uploadDate?: string } | null>(null);
+  const [selectedImagePreview, setSelectedImagePreview] = useState<{ uri: string; name: string; size: string } | null>(null);
 
   const [form, setForm] = useState({
     fullName: 'Dr. Sarah Connor',
@@ -27,6 +64,69 @@ export default function DoctorProfileScreen() {
     specialty: 'Cardiologist',
     workplace: 'Central Heart Hospital'
   });
+
+  const handleSaveProfile = () => {
+    setIsSaving(true);
+    setTimeout(() => {
+      setIsSaving(false);
+      Toast.show({
+        type: 'success',
+        text1: t('mobile.success', 'Success'),
+        text2: t('mobile.profile_updated_success', 'Doctor profile information saved successfully'),
+      });
+    }, 600);
+  };
+
+  const handleReplaceDoc = async (id: string) => {
+    const result = await pickNativePdfDocument();
+    if (result) {
+      setDocuments((prev) =>
+        prev.map((d) =>
+          d.id === id
+            ? {
+                ...d,
+                fileName: result.name,
+                fileSize: result.size,
+                uri: result.uri,
+                status: 'pending',
+                uploadDate: new Date().toISOString().split('T')[0],
+              }
+            : d
+        )
+      );
+      Toast.show({
+        type: 'success',
+        text1: t('mobile.success', 'Success'),
+        text2: t('mobile.doc_replaced_success', 'Document replaced successfully'),
+      });
+    }
+  };
+
+  const handleDeleteDoc = (id: string, name: string) => {
+    setDocuments((prev) => prev.filter((d) => d.id !== id));
+    Toast.show({
+      type: 'info',
+      text1: t('mobile.document_removed', 'Document Removed'),
+      text2: name,
+    });
+  };
+
+  const handleViewDoc = (doc: VerificationDocument) => {
+    if (doc.uri && (doc.uri.endsWith('.jpg') || doc.uri.endsWith('.png') || doc.uri.endsWith('.jpeg'))) {
+      setSelectedImagePreview({
+        uri: doc.uri,
+        name: doc.fileName,
+        size: doc.fileSize,
+      });
+    } else {
+      setSelectedDocPreview({
+        name: doc.fileName,
+        size: doc.fileSize,
+        uri: doc.uri,
+        uploadDate: doc.uploadDate,
+      });
+    }
+  };
 
   return (
     <SafeAreaView style={tw('flex-1 bg-slate-50 dark:bg-slate-950')}>
@@ -47,10 +147,13 @@ export default function DoctorProfileScreen() {
           <View style={tw('items-center mb-8 mt-2')}>
             <View style={tw('relative')}>
               <Image 
-                source={{ uri: 'https://i.pravatar.cc/150?img=1' }} 
+                source={{ uri: avatarUri }} 
                 style={tw('w-32 h-32 rounded-full bg-slate-200 dark:bg-slate-700 border-4 border-white shadow-sm')} 
               />
-              <TouchableOpacity style={tw('absolute bottom-0 right-2 w-10 h-10 bg-slate-900 rounded-full items-center justify-center border-4 border-white shadow-sm')}>
+              <TouchableOpacity 
+                onPress={() => setAvatarModalVisible(true)}
+                style={tw('absolute bottom-0 right-2 w-10 h-10 bg-slate-900 rounded-full items-center justify-center border-4 border-white shadow-sm')}
+              >
                 <Camera color="#ffffff" size={16} />
               </TouchableOpacity>
             </View>
@@ -198,12 +301,15 @@ export default function DoctorProfileScreen() {
             {/* Verification Documents */}
             <View style={tw('bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-100 dark:border-slate-800 shadow-sm mb-8')}>
               <View style={tw('flex-row justify-between items-center mb-4')}>
-                <View>
+                <View style={tw('flex-1 mr-3')}>
                   <Text style={tw('text-base font-bold text-slate-900 dark:text-white')}>{t('mobile.verification_documents', `Verification Documents`)}</Text>
                   <Text style={tw('text-xs text-slate-500 dark:text-slate-400')}>{t('mobile.upload_new_files_or_replace_ex', `Upload new files or replace existing docs.`)}</Text>
                 </View>
-                <TouchableOpacity style={tw('bg-slate-900 dark:bg-white px-3 py-2 rounded-xl flex-row items-center')}>
-                  <Plus color={twInstance.color('text-white dark:text-slate-900')} size={14} style={tw('mr-1')} />
+                <TouchableOpacity 
+                  onPress={() => setDocUploadModalVisible(true)}
+                  style={tw('bg-slate-900 dark:bg-white px-3.5 py-2.5 rounded-xl flex-row items-center active:opacity-80 shadow-sm')}
+                >
+                  <Plus color={twInstance.color('text-white dark:text-slate-900')} size={14} style={tw('mr-1.5')} />
                   <Text style={tw('text-white dark:text-slate-900 font-bold text-xs')}>{t('mobile.add_docs', `Add Docs`)}</Text>
                 </TouchableOpacity>
               </View>
@@ -217,30 +323,99 @@ export default function DoctorProfileScreen() {
                 </View>
               </View>
 
-              <View style={tw('border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 rounded-2xl p-4')}>
-                <View style={tw('flex-row items-center justify-between mb-2')}>
-                  <View style={tw('flex-row items-center flex-1 mr-2')}>
-                    <View style={tw('bg-blue-50 dark:bg-blue-900/30 w-10 h-10 rounded-xl items-center justify-center mr-3')}>
-                      <FileText color={twInstance.color('text-blue-500')} size={20} />
-                    </View>
-                    <View style={tw('flex-1')}>
-                      <Text style={tw('font-bold text-slate-800 dark:text-slate-100 text-sm')} numberOfLines={1}>{t('mobile.medicallicense2023pdf', `Medical_License_2023.pdf`)}</Text>
-                      <Text style={tw('text-xs text-slate-500 dark:text-slate-400')}>{t('mobile.uploaded_oct_12_2023', `Uploaded Oct 12, 2023`)}</Text>
-                    </View>
-                  </View>
-                  <View style={tw('flex-row gap-2')}>
-                    <TouchableOpacity style={tw('w-8 h-8 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 items-center justify-center')}>
-                      <Pencil color={twInstance.color('text-slate-500')} size={14} />
-                    </TouchableOpacity>
-                    <TouchableOpacity style={tw('w-8 h-8 rounded-lg border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-900/30 items-center justify-center')}>
-                      <Trash2 color={twInstance.color('text-red-500')} size={14} />
-                    </TouchableOpacity>
-                  </View>
+              {/* Dynamic Document List */}
+              {documents.length === 0 ? (
+                <View style={tw('p-6 items-center justify-center border border-dashed border-slate-300 dark:border-slate-700 rounded-2xl bg-slate-50 dark:bg-slate-950')}>
+                  <FileText color={twInstance.color('text-slate-400')} size={32} style={tw('mb-2')} />
+                  <Text style={tw('text-xs font-bold text-slate-700 dark:text-slate-300 mb-1')}>
+                    {t('mobile.no_docs_uploaded', 'Chưa có tài liệu xác thực nào')}
+                  </Text>
+                  <Text style={tw('text-[11px] text-slate-500 dark:text-slate-400 text-center')}>
+                    {t('mobile.upload_first_doc_prompt', 'Nhấn + Thêm tài liệu để tải lên chứng chỉ hành nghề và bằng cấp y khoa.')}
+                  </Text>
                 </View>
-                <View style={tw('bg-amber-100 dark:bg-amber-900/50 self-start px-2 py-1 rounded')}>
-                  <Text style={tw('text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider')}>{t('mobile.status_pending', 'Status: Pending Approval')}</Text>
+              ) : (
+                <View style={tw('gap-3')}>
+                  {documents.map((doc) => (
+                    <TouchableOpacity
+                      key={doc.id}
+                      activeOpacity={0.88}
+                      onPress={() => handleViewDoc(doc)}
+                      style={tw('border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 rounded-2xl p-4 active:border-emerald-500/50')}
+                    >
+                      <View style={tw('flex-row items-center justify-between mb-2')}>
+                        <View style={tw('flex-row items-center flex-1 mr-2')}>
+                          <View
+                            style={tw(
+                              `w-10 h-10 rounded-xl items-center justify-center mr-3 ${
+                                doc.status === 'verified'
+                                  ? 'bg-emerald-100 dark:bg-emerald-900/30'
+                                  : 'bg-blue-100 dark:bg-blue-900/30'
+                              }`
+                            )}
+                          >
+                            <FileText
+                              color={doc.status === 'verified' ? '#10b981' : '#3b82f6'}
+                              size={20}
+                            />
+                          </View>
+                          <View style={tw('flex-1')}>
+                            <Text
+                              style={tw('font-bold text-slate-800 dark:text-slate-100 text-sm')}
+                              numberOfLines={1}
+                            >
+                              {doc.fileName}
+                            </Text>
+                            <Text style={tw('text-xs text-slate-500 dark:text-slate-400 mt-0.5')}>
+                              {doc.fileSize} • {doc.uploadDate}
+                            </Text>
+                          </View>
+                        </View>
+                        <View style={tw('flex-row gap-2')}>
+                          <TouchableOpacity
+                            onPress={() => handleViewDoc(doc)}
+                            style={tw('w-8 h-8 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 items-center justify-center active:opacity-70')}
+                          >
+                            <Eye color={twInstance.color('text-slate-600 dark:text-slate-300')} size={14} />
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            onPress={() => handleReplaceDoc(doc.id)}
+                            style={tw('w-8 h-8 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 items-center justify-center active:opacity-70')}
+                          >
+                            <Pencil color={twInstance.color('text-slate-600 dark:text-slate-300')} size={14} />
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            onPress={() => handleDeleteDoc(doc.id, doc.fileName)}
+                            style={tw('w-8 h-8 rounded-lg border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-900/30 items-center justify-center active:opacity-70')}
+                          >
+                            <Trash2 color={twInstance.color('text-red-500')} size={14} />
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                      <View style={tw('flex-row items-center justify-between mt-1')}>
+                        {doc.status === 'verified' ? (
+                          <View style={tw('bg-emerald-100 dark:bg-emerald-900/40 px-2.5 py-1 rounded-md flex-row items-center')}>
+                            <CheckCircle2 color="#10b981" size={11} style={tw('mr-1')} />
+                            <Text style={tw('text-[10px] font-bold text-emerald-700 dark:text-emerald-300 uppercase tracking-wider')}>
+                              {t('mobile.status_verified', 'Verified')}
+                            </Text>
+                          </View>
+                        ) : (
+                          <View style={tw('bg-amber-100 dark:bg-amber-900/40 px-2.5 py-1 rounded-md flex-row items-center')}>
+                            <Clock color="#d97706" size={11} style={tw('mr-1')} />
+                            <Text style={tw('text-[10px] font-bold text-amber-700 dark:text-amber-300 uppercase tracking-wider')}>
+                              {t('mobile.status_pending', 'Status: Pending Approval')}
+                            </Text>
+                          </View>
+                        )}
+                        <Text style={tw('text-[10px] text-slate-400 dark:text-slate-500 italic')}>
+                          {t('mobile.tap_to_inspect_cert', 'Nhấn để xem chứng thực')}
+                        </Text>
+                      </View>
+                    </TouchableOpacity>
+                  ))}
                 </View>
-              </View>
+              )}
             </View>
 
             {/* Booking Settings */}
@@ -332,12 +507,54 @@ export default function DoctorProfileScreen() {
             </View>
 
             {/* Save Button */}
-            <TouchableOpacity style={tw('bg-slate-900 dark:bg-white h-14 rounded-2xl items-center justify-center shadow-md')}>
-              <Text style={tw('text-white dark:text-slate-900 font-bold text-lg')}>{t('mobile.save_changes', `Save Changes`)}</Text>
+            <TouchableOpacity 
+              onPress={handleSaveProfile}
+              disabled={isSaving}
+              style={tw('bg-slate-900 dark:bg-white h-14 rounded-2xl items-center justify-center shadow-md')}
+            >
+              <Text style={tw('text-white dark:text-slate-900 font-bold text-lg')}>
+                {isSaving ? t('mobile.saving', 'Saving...') : t('mobile.save_changes', `Save Changes`)}
+              </Text>
             </TouchableOpacity>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Avatar Picker Modal */}
+      <AvatarPickerModal
+        visible={avatarModalVisible}
+        onClose={() => setAvatarModalVisible(false)}
+        currentAvatarUri={avatarUri}
+        onSelectAvatar={(uri) => setAvatarUri(uri)}
+      />
+
+      {/* Doc Upload Modal (Native PDF Picker & Camera Scanner) */}
+      <DocUploadModal
+        visible={docUploadModalVisible}
+        onClose={() => setDocUploadModalVisible(false)}
+        initialDocuments={documents}
+        onConfirm={(updatedDocs) => setDocuments(updatedDocs)}
+      />
+
+      {/* PDF Document Viewer (Certified MOH Preview & Native Share) */}
+      <DocViewerModal
+        visible={!!selectedDocPreview}
+        fileName={selectedDocPreview?.name}
+        fileSize={selectedDocPreview?.size}
+        fileUri={selectedDocPreview?.uri}
+        uploadDate={selectedDocPreview?.uploadDate}
+        summary={isVi ? 'Chứng nhận chuyên môn y khoa hợp lệ đã được Bộ Y Tế và Hội đồng Y khoa xác thực.' : 'Official medical qualification verified by the Ministry of Health and Medical Board.'}
+        onClose={() => setSelectedDocPreview(null)}
+      />
+
+      {/* Scanned Image / Lightbox Viewer */}
+      <ImageViewerModal
+        visible={!!selectedImagePreview}
+        imageUri={selectedImagePreview?.uri}
+        imageName={selectedImagePreview?.name}
+        imageSize={selectedImagePreview?.size}
+        onClose={() => setSelectedImagePreview(null)}
+      />
     </SafeAreaView>
   );
 }

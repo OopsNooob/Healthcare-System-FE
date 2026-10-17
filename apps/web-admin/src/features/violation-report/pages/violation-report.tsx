@@ -26,256 +26,21 @@ import {
   TableHeader,
   TableRow,
 } from "@repo/ui/components/ui/table";
-import {
-  Bot,
-  CheckCircle,
-  CircleAlert,
-  Flag,
-  MessageSquareX,
-  Search,
-  ShieldAlert,
-  TriangleAlert,
-  User,
-  UserX,
-  X,
-  Database
-} from "lucide-react";
+import { Search, Database } from "lucide-react";
 import { useTranslation, Trans } from "react-i18next";
 
 import { useReportList } from "../hooks/useReportManagement";
 import { useChangeReportStatus } from "../hooks/useChangeReportStatus";
-import { useViewProfile } from "@/features/shared/hooks/useProfile";
 import { useBanUser } from "@/features/user-management/hooks/useUserManagement";
 import { showToast } from "@repo/ui/components/ui/toasts";
-
-type ReportType =
-  | "harassment"
-  | "spam"
-  | "misinformation"
-  | "inappropriate_content"
-  | "impersonation"
-  | "fraud"
-  | "ai_hallucination"
-  | "other";
-
-type ReportStatus = "pending" | "resolved";
-type AccountStatus = "active" | "banned";
-
-type ViolationReportItem = {
-  id: string;
-  reportedUserId: string;
-  reporterName: string;
-  reportedAccount: string;
-  reportType: ReportType;
-  reason: string;
-  status: ReportStatus;
-  accountStatus: AccountStatus;
-  createdAt: string;
-};
-
-const REPORT_TYPE_META: Record<
+import { ReportDetailModal } from "../components/report-detail-modal";
+import { REPORT_TYPE_META } from "../types";
+import type {
   ReportType,
-  {
-    label: string;
-    icon: typeof MessageSquareX;
-    iconClassName: string;
-    badgeClassName: string;
-  }
-> = {
-  harassment: {
-    label: "Harassment",
-    icon: MessageSquareX,
-    iconClassName: "text-red-600",
-    badgeClassName: "bg-red-50 text-red-600 border-red-200",
-  },
-  spam: {
-    label: "Spam",
-    icon: ShieldAlert,
-    iconClassName: "text-amber-600",
-    badgeClassName: "bg-amber-50 text-amber-700 border-amber-200",
-  },
-  misinformation: {
-    label: "Misinformation",
-    icon: TriangleAlert,
-    iconClassName: "text-violet-600",
-    badgeClassName: "bg-violet-50 text-violet-600 border-violet-200",
-  },
-  inappropriate_content: {
-    label: "Inappropriate",
-    icon: Flag,
-    iconClassName: "text-pink-600",
-    badgeClassName: "bg-pink-50 text-pink-600 border-pink-200",
-  },
-  impersonation: {
-    label: "Impersonation",
-    icon: User,
-    iconClassName: "text-blue-600",
-    badgeClassName: "bg-blue-50 text-blue-600 border-blue-200",
-  },
-  fraud: {
-    label: "Fraud",
-    icon: TriangleAlert,
-    iconClassName: "text-rose-600",
-    badgeClassName: "bg-rose-50 text-rose-600 border-rose-200",
-  },
-  ai_hallucination: {
-    label: "AI Hallucination",
-    icon: Bot,
-    iconClassName: "text-orange-600",
-    badgeClassName: "bg-orange-50 text-orange-600 border-orange-200",
-  },
-  other: {
-    label: "Other",
-    icon: CircleAlert,
-    iconClassName: "text-rose-600",
-    badgeClassName: "bg-rose-50 text-rose-600 border-rose-200",
-  },
-};
-
-type ReportDetailModalProps = {
-  report: ViolationReportItem | null;
-  isOpen: boolean;
-  canBan: boolean;
-  onClose: () => void;
-  onToggleResolved: (id: string) => void;
-  onBanUser: (id: string) => void;
-  isUpdating: boolean;
-};
-
-function ReportDetailModal({
-  report,
-  isOpen,
-  canBan,
-  onClose,
-  onToggleResolved,
-  onBanUser,
-  isUpdating,
-}: ReportDetailModalProps) {
-  const { t } = useTranslation();
-  if (!isOpen || !report) return null;
-
-  const typeMeta = REPORT_TYPE_META[report.reportType];
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-[880px] rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-2xl">
-        <div className="mb-4 flex items-start justify-between">
-          <div className="flex items-start gap-3">
-            <div className="rounded-full bg-blue-50 dark:bg-blue-900/20 p-2">
-              <typeMeta.icon className={`h-5 w-5 ${typeMeta.iconClassName}`} />
-            </div>
-            <div>
-              <p className="text-3xl font-semibold text-slate-900 dark:text-gray-100">
-                {t(`violationReport.types.${report.reportType}`)}
-              </p>
-              <p className="text-sm text-slate-500 dark:text-gray-400">{report.createdAt}</p>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-md p-2 text-slate-500 dark:text-gray-400 transition hover:bg-slate-100 dark:hover:bg-slate-800"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-
-        <Badge
-          variant="outline"
-          className={`mb-5 rounded-full border px-2 py-1 text-xs ${
-            report.status === "resolved" ? "border-emerald-200 dark:border-emerald-900 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400" : "border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400"
-          }`}
-        >
-          {report.status === "resolved" ? t("violationReport.modal.resolved") : t("violationReport.modal.pending")}
-        </Badge>
-
-        <div className="mb-4 grid gap-3 md:grid-cols-2">
-          <div className="rounded-2xl bg-[#F7F8FA] dark:bg-slate-800 p-4">
-            <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-slate-400 dark:text-gray-500">
-              {t("violationReport.modal.reportedBy")}
-            </p>
-            <p className="text-base font-semibold text-slate-900 dark:text-gray-100">
-              {report.reporterName}
-            </p>
-          </div>
-          <div className="rounded-2xl bg-[#FEF2F2] dark:bg-red-900/20 p-4">
-            <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-slate-400 dark:text-gray-500">
-              {t("violationReport.modal.reportedAccount")}
-            </p>
-            <p className="text-base font-semibold text-slate-900 dark:text-gray-100">
-              {report.reportedAccount}
-            </p>
-          </div>
-        </div>
-
-        <div className="mb-4 rounded-2xl border border-purple-100 bg-purple-50/50 p-4 dark:border-purple-900/30 dark:bg-purple-900/10">
-          <div className="mb-3 flex items-center gap-2">
-            <Bot className="h-4 w-4 text-purple-600 dark:text-purple-400" />
-            <p className="text-[11px] font-bold uppercase tracking-wide text-purple-600 dark:text-purple-400">
-              {t("violationReport.modal.aiClassification")}
-            </p>
-          </div>
-          <div className="grid grid-cols-2 gap-4 mb-3">
-            <div>
-              <p className="text-[10px] text-slate-500 uppercase dark:text-slate-400">{t("violationReport.modal.aiCategory")}</p>
-              <p className="text-sm font-semibold text-slate-900 dark:text-white">{t(`violationReport.types.${report.reportType}`)}</p>
-            </div>
-            <div>
-              <p className="text-[10px] text-slate-500 uppercase dark:text-slate-400">{t("violationReport.modal.aiSeverity")}</p>
-              <p className="text-sm font-semibold text-slate-900 dark:text-white">High (94%)</p>
-            </div>
-          </div>
-          <div>
-            <p className="text-[10px] text-slate-500 uppercase dark:text-slate-400">{t("violationReport.modal.aiRationale")}</p>
-            <p className="text-xs text-slate-700 dark:text-slate-300">{t("violationReport.modal.aiRationaleValue")}</p>
-          </div>
-        </div>
-
-        <div className="mb-6 rounded-2xl bg-slate-50 dark:bg-slate-800 p-4">
-          <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-400 dark:text-gray-500">
-            {t("violationReport.modal.details")}
-          </p>
-          <p className="text-base text-slate-700 dark:text-gray-300">{report.reason}</p>
-        </div>
-
-        <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
-          <Button
-            type="button"
-            variant="outline"
-            className="sm:min-w-36 dark:border-slate-700 dark:text-gray-300 dark:hover:bg-slate-800"
-            onClick={onClose}
-          >
-            {t("violationReport.modal.close")}
-          </Button>
-          <Button
-            type="button"
-            className={`sm:min-w-36 text-white ${
-              report.status === "pending" ? "bg-blue-500 hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700" : "bg-slate-600 hover:bg-slate-700 dark:bg-slate-700 dark:hover:bg-slate-800"
-            }`}
-            onClick={() => onToggleResolved(report.id)}
-            disabled={isUpdating}
-          >
-            <CheckCircle className="mr-2 h-4 w-4" />
-            {report.status === "pending" ? t("violationReport.modal.markResolved") : t("violationReport.modal.unmark")}
-          </Button>
-          <Button
-            type="button"
-            className={`sm:min-w-36 text-white ${
-              canBan
-                ? "bg-red-500 hover:bg-red-600 dark:bg-red-600 dark:hover:bg-red-700"
-                : "cursor-not-allowed bg-slate-300 dark:bg-slate-700 text-slate-100 dark:text-slate-400 dark:text-slate-500"
-            }`}
-            onClick={() => onBanUser(report.id)}
-            disabled={!canBan || isUpdating}
-          >
-            <UserX className="mr-2 h-4 w-4" />
-            {canBan ? t("violationReport.modal.banUser") : t("violationReport.modal.banned")}
-          </Button>
-        </div>
-      </div>
-    </div>
-  );
-}
+  ReportStatus,
+  ResolutionAction,
+  ViolationReportItem,
+} from "../types";
 
 export function ViolationReport() {
   const { t } = useTranslation();
@@ -291,7 +56,6 @@ export function ViolationReport() {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isSubmittingBan, setIsSubmittingBan] = useState(false);
   const itemsPerPage = 8;
   const {
     response: reportListResponse,
@@ -300,7 +64,6 @@ export function ViolationReport() {
     loadReportList,
   } = useReportList();
   const {
-    changeReportStatus,
     isLoading: isChangingReportStatus,
     error: changeReportStatusError,
   } = useChangeReportStatus();
@@ -310,8 +73,7 @@ export function ViolationReport() {
     error: banUserError,
   } = useBanUser();
 
-  const modalLoading =
-    isChangingReportStatus || isBanningUser || isSubmittingBan;
+  const modalLoading = isChangingReportStatus || isBanningUser;
 
   useEffect(() => {
     const fetchReports = async () => {
@@ -348,14 +110,6 @@ export function ViolationReport() {
     [reportList, selectedReportId],
   );
 
-  const {
-    data: selectedReportedUserProfile,
-    isLoading: isLoadingSelectedReportedUser,
-  } = useViewProfile(
-    selectedReport?.reportedUserId ?? null,
-    isModalOpen && Boolean(selectedReport?.reportedUserId),
-  );
-
   const filteredReports = useMemo(() => {
     return reportList.filter((report) => {
       const query = searchQuery.trim().toLowerCase();
@@ -390,84 +144,62 @@ export function ViolationReport() {
     setIsModalOpen(true);
   };
 
-  const handleToggleResolved = async (id: string) => {
-    const currentReport = reportList.find((item) => item.id === id);
-    if (!currentReport) {
-      return;
-    }
-
-    const nextStatus: ReportStatus =
-      currentReport.status === "pending" ? "resolved" : "pending";
-
-    try {
-      const updated = await changeReportStatus({
-        id,
-        status: nextStatus,
-      });
-
-      if (!updated) {
-        showToast.error("Failed to update report status");
-        return;
-      }
-
-      setReportOverrides((prev) => ({
-        ...prev,
-        [id]: {
-          ...prev[id],
-          status: nextStatus,
-        },
-      }));
-    } catch {
-      showToast.error("Failed to update report status");
-    }
-  };
-
   const handleBanUser = async (id: string) => {
-    if (isSubmittingBan || isBanningUser) {
-      return;
-    }
-
-    if (selectedReportedUserProfile?.account_status === "banned") {
-      return;
-    }
-
     const targetReport = reportList.find((item) => item.id === id);
-    if (!targetReport?.reportedUserId) {
-      return;
-    }
-
-    setIsSubmittingBan(true);
+    if (!targetReport?.reportedUserId) return;
     try {
-      const response = await submitBanUser({
+      await submitBanUser({
         id: targetReport.reportedUserId,
         reason: `Violation report ${id}`,
       });
-
-      if (!response) {
-        showToast.error(banUserError || "Cannot ban this user!");
-        return;
-      }
-
       setReportOverrides((prev) => ({
         ...prev,
         [id]: {
           ...prev[id],
           accountStatus: "banned",
-          status: "resolved",
         },
       }));
-      showToast.success("User banned successfully!");
     } catch {
       showToast.error("Cannot ban this user!");
-    } finally {
-      setIsSubmittingBan(false);
     }
   };
 
-  const canBanSelectedUser =
-    selectedReport?.accountStatus === "active" &&
-    selectedReportedUserProfile?.account_status !== "banned" &&
-    !isLoadingSelectedReportedUser;
+  const handleApplyResolution = async (
+    id: string,
+    action: ResolutionAction,
+    notes: string
+  ) => {
+    const targetReport = reportList.find((item) => item.id === id);
+    if (!targetReport) return;
+
+    if (action === "ban" && targetReport.reportedUserId) {
+      await handleBanUser(id);
+    }
+
+    setReportOverrides((prev) => ({
+      ...prev,
+      [id]: {
+        ...prev[id],
+        status: "resolved",
+      },
+    }));
+
+    showToast.success(`Resolution applied (${action})${notes ? `: ${notes}` : ""}!`);
+    setIsModalOpen(false);
+  };
+
+  const handleDismissReport = (id: string) => {
+    setReportOverrides((prev) => ({
+      ...prev,
+      [id]: {
+        ...prev[id],
+        status: "dismissed",
+      },
+    }));
+
+    showToast.success("Report dismissed.");
+    setIsModalOpen(false);
+  };
 
   return (
     <div className="w-full p-6">
@@ -491,7 +223,7 @@ export function ViolationReport() {
         {/* Loading */}
         {isReportListLoading ? (
           <div className="mb-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 px-4 py-3 text-sm text-slate-500 dark:text-gray-400">
-            Loading violation reports...
+            {t("violationReport.loading", "Loading violation reports...")}
           </div>
         ) : null}
 
@@ -530,7 +262,7 @@ export function ViolationReport() {
                   className="w-full md:w-52 bg-white dark:bg-slate-900 dark:border-slate-700"
                 />
                 <ComboboxContent className="dark:bg-slate-900">
-                  <ComboboxEmpty>No type found.</ComboboxEmpty>
+                  <ComboboxEmpty>{t("violationReport.filters.noTypeFound", "No type found.")}</ComboboxEmpty>
                   <ComboboxList>
                     <ComboboxItem value="all">{t("violationReport.filters.allTypes")}</ComboboxItem>
                     {Object.keys(REPORT_TYPE_META).map((value) => (
@@ -554,12 +286,12 @@ export function ViolationReport() {
                   className="w-full md:w-44 bg-white dark:bg-slate-900 dark:border-slate-700"
                 />
                 <ComboboxContent className="dark:bg-slate-900">
-                  <ComboboxEmpty>No status found.</ComboboxEmpty>
+                  <ComboboxEmpty>{t("violationReport.filters.noStatusFound", "No status found.")}</ComboboxEmpty>
                   <ComboboxList>
                     <ComboboxItem value="all">{t("violationReport.filters.allStatus")}</ComboboxItem>
                     <ComboboxItem value="pending">{t("violationReport.filters.pending")}</ComboboxItem>
-                    <ComboboxItem value="processing">Processing</ComboboxItem>
                     <ComboboxItem value="resolved">{t("violationReport.filters.resolved")}</ComboboxItem>
+                    <ComboboxItem value="dismissed">{t("violationReport.filters.dismissed", "Dismissed")}</ComboboxItem>
                   </ComboboxList>
                 </ComboboxContent>
               </Combobox>
@@ -640,10 +372,18 @@ export function ViolationReport() {
                         <Badge
                           variant="outline"
                           className={`h-5 rounded-full border px-2 text-[10px] font-medium ${
-                            report.status === "pending" ? "border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400" : "border-emerald-200 dark:border-emerald-900 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400"
+                            report.status === "pending"
+                              ? "border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400"
+                              : report.status === "dismissed"
+                              ? "border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
+                              : "border-emerald-200 dark:border-emerald-900 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400"
                           }`}
                         >
-                          {report.status === "pending" ? t("violationReport.modal.pending") : t("violationReport.modal.resolved")}
+                          {report.status === "pending"
+                            ? t("violationReport.modal.pending")
+                            : report.status === "dismissed"
+                            ? t("violationReport.modal.dismissed", "Dismissed")
+                            : t("violationReport.modal.resolved")}
                         </Badge>
                       </TableCell>
                       <TableCell className="px-4 text-left">
@@ -683,8 +423,11 @@ export function ViolationReport() {
 
           <div className="flex flex-col gap-3 border-t border-slate-200 dark:border-slate-800 px-3 py-2 text-xs text-slate-400 dark:text-slate-500 sm:flex-row sm:items-center sm:justify-between">
             <p>
-              Showing {paginatedReports.length} of {filteredReports.length}{" "}
-              results
+              {t("violationReport.pagination.showing", {
+                count: paginatedReports.length,
+                total: filteredReports.length,
+                defaultValue: `Showing ${paginatedReports.length} of ${filteredReports.length} results`,
+              })}
             </p>
 
             {totalPages > 1 && (
@@ -751,15 +494,15 @@ export function ViolationReport() {
         </div>
 
         <ReportDetailModal
+          key={selectedReport?.id}
           report={selectedReport}
           isOpen={isModalOpen}
-          canBan={canBanSelectedUser}
           onClose={() => {
             setIsModalOpen(false);
             setSelectedReportId(null);
           }}
-          onToggleResolved={handleToggleResolved}
-          onBanUser={handleBanUser}
+          onApplyResolution={handleApplyResolution}
+          onDismissReport={handleDismissReport}
           isUpdating={modalLoading}
         />
       </div>

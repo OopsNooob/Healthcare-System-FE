@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { View, Text, ScrollView, TouchableOpacity, SafeAreaView, Switch, RefreshControl } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, SafeAreaView, Switch, RefreshControl, Alert } from 'react-native';
 import { useSafeRouter as useRouter } from '@/utils/useSafeRouter';
 import Toast from 'react-native-toast-message';
 import { Calendar, Plus, Clock, Copy, Trash2 } from 'lucide-react-native';
 import { tw } from '@/tw';
+import { AddSlotModal, CopyScheduleModal } from '@/components/modals';
 
 export default function DoctorScheduleScreen() {
   const { t } = useTranslation();
@@ -12,6 +13,8 @@ export default function DoctorScheduleScreen() {
   const router = useRouter();
   const [selectedDate, setSelectedDate] = useState('2023-10-25');
   const [isAcceptingAppts, setIsAcceptingAppts] = useState(true);
+  const [addSlotModalVisible, setAddSlotModalVisible] = useState(false);
+  const [copyScheduleModalVisible, setCopyScheduleModalVisible] = useState(false);
 
   const dates = [
     { date: '2023-10-25', dayName: 'Mon', dayNum: '25' },
@@ -58,11 +61,37 @@ export default function DoctorScheduleScreen() {
   );
 
   const handleAddSlot = () => {
-    Toast.show({
-      type: 'info',
-      text1: 'Info',
-      text2: 'Open Time picker to add new slot',
-    });
+    setAddSlotModalVisible(true);
+  };
+
+  const handleCreateSlot = (newSlot: { time: string; type: string }) => {
+    const newId = (slots.length + 1).toString();
+    setSlots((prev) => [
+      ...prev,
+      { id: newId, time: newSlot.time, status: 'Available' },
+    ]);
+  };
+
+  const handleDeleteSlot = (slotId: string) => {
+    Alert.alert(
+      t('mobile.delete_slot_title', 'Delete Slot'),
+      t('mobile.delete_slot_confirm', 'Are you sure you want to remove this available time slot?'),
+      [
+        { text: t('mobile.cancel', 'Cancel'), style: 'cancel' },
+        {
+          text: t('mobile.delete', 'Delete'),
+          style: 'destructive',
+          onPress: () => {
+            setSlots((prev) => prev.filter((s) => s.id !== slotId));
+            Toast.show({
+              type: 'success',
+              text1: t('mobile.success', 'Success'),
+              text2: t('mobile.slot_deleted', 'Slot removed from schedule'),
+            });
+          },
+        },
+      ]
+    );
   };
 
   return (
@@ -146,7 +175,7 @@ export default function DoctorScheduleScreen() {
                     </View>
                   </View>
                   {slot.status === 'Available' && (
-                    <TouchableOpacity style={tw('p-2')}>
+                    <TouchableOpacity onPress={() => handleDeleteSlot(slot.id)} style={tw('p-2')}>
                       <Trash2 color="#ef4444" size={20} />
                     </TouchableOpacity>
                   )}
@@ -160,12 +189,30 @@ export default function DoctorScheduleScreen() {
             )}
           </View>
 
-          <TouchableOpacity style={tw('mt-8 py-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl flex-row items-center justify-center border-dashed')}>
+          <TouchableOpacity 
+            onPress={() => setCopyScheduleModalVisible(true)}
+            style={tw('mt-8 py-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl flex-row items-center justify-center border-dashed')}
+          >
             <Copy color="#64748b" size={18} style={tw('mr-2')} />
             <Text style={tw('text-slate-600 dark:text-slate-300 font-bold')}>{t('mobile.copy_schedule_to_next_week', `Copy schedule to next week`)}</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      {/* Add Slot Modal */}
+      <AddSlotModal
+        visible={addSlotModalVisible}
+        onClose={() => setAddSlotModalVisible(false)}
+        selectedDate={selectedDate}
+        onAddSlot={handleCreateSlot}
+      />
+
+      {/* Copy Schedule Modal */}
+      <CopyScheduleModal
+        visible={copyScheduleModalVisible}
+        onClose={() => setCopyScheduleModalVisible(false)}
+        slotCount={slots.filter((s) => s.status === 'Available').length || 4}
+      />
     </SafeAreaView>
   );
 }

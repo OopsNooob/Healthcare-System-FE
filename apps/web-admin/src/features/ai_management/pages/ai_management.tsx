@@ -61,20 +61,15 @@ import { showToast } from "@repo/ui/components/ui/toasts";
 import { Spinner } from "@repo/ui/components/ui/spinner";
 import { useTranslation } from "react-i18next";
 
-type TabSwitch = "doc" | "words";
-type DocumentStatus = "processing" | "error" | "active" | "inactive";
-type DocumentType = "pdf" | "doc" | "docx" | "txt";
+import { DocumentPreviewModal } from "../components/document-preview-modal";
+import type {
+  DocumentItem,
+  DocumentType,
+  DocumentStatus,
+} from "../components/document-preview-modal";
+import { DocumentChunksModal } from "../components/document-chunks-modal";
 
-type DocumentItem = {
-  id: string;
-  title: string;
-  fileUrl: string;
-  fileType: DocumentType;
-  status: DocumentStatus;
-  uploadedBy: string;
-  createdAt: string;
-  isEnabled: boolean;
-};
+type TabSwitch = "doc" | "words";
 
 function getStatusClassName(status: DocumentStatus) {
   if (status === "active") {
@@ -96,72 +91,6 @@ function getStatusLabel(status: DocumentStatus) {
   return "Error";
 }
 
-function DocumentPreviewModal({
-  document,
-  isOpen,
-  onClose,
-}: {
-  document: DocumentItem | null;
-  isOpen: boolean;
-  onClose: () => void;
-}) {
-  if (!isOpen || !document) return null;
-
-  const isPdf = document.fileType === "pdf";
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-      <div className="relative flex h-[88vh] w-full max-w-6xl flex-col rounded-2xl bg-white shadow-2xl">
-        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
-          <div>
-            <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-              {document.title}
-            </h3>
-            <p className="text-sm text-slate-500">
-              {document.fileType.toUpperCase()} document preview
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-md p-2 text-slate-500 transition hover:bg-slate-100"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-
-        <div className="flex-1 overflow-hidden p-4">
-          {isPdf ? (
-            <iframe
-              src={document.fileUrl}
-              title={document.title}
-              className="h-full w-full rounded-lg border border-slate-200"
-            />
-          ) : (
-            <div className="flex h-full flex-col items-center justify-center rounded-lg border border-dashed border-slate-300 bg-slate-50 p-6 text-center">
-              <FileText className="mb-3 h-10 w-10 text-slate-500" />
-              <p className="text-base font-semibold text-slate-700">
-                Preview is not supported for this file type.
-              </p>
-              <p className="mt-1 text-sm text-slate-500">
-                Please download the file to view full content.
-              </p>
-              <a
-                href={document.fileUrl}
-                download={document.title}
-                className="mt-4 inline-flex items-center rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700"
-              >
-                <Download className="mr-2 h-4 w-4" />
-                Download file
-              </a>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export function AIManagement() {
   const { t } = useTranslation();
   const [tab, setTab] = useState<TabSwitch>("doc");
@@ -175,6 +104,8 @@ export function AIManagement() {
   const [openActionRect, setOpenActionRect] = useState<DOMRect | null>(null);
   const [previewDoc, setPreviewDoc] = useState<DocumentItem | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [chunksDoc, setChunksDoc] = useState<DocumentItem | null>(null);
+  const [isChunksModalOpen, setIsChunksModalOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
 
   const [searchWord, setSearchWord] = useState("");
@@ -390,7 +321,9 @@ export function AIManagement() {
         title: "Manage Chunks",
         icon: <Layers className="h-4 w-4" />,
         onHandle: () => {
-          showToast.success("Open chunk exclusion modal");
+          setChunksDoc(doc);
+          setIsChunksModalOpen(true);
+          setOpenActionFor(null);
         },
       },
     ];
@@ -927,6 +860,16 @@ export function AIManagement() {
           onClose={() => {
             setIsPreviewOpen(false);
             setPreviewDoc(null);
+          }}
+        />
+
+        <DocumentChunksModal
+          key={chunksDoc?.id || "chunks-modal"}
+          document={chunksDoc}
+          isOpen={isChunksModalOpen}
+          onClose={() => {
+            setIsChunksModalOpen(false);
+            setChunksDoc(null);
           }}
         />
       </div>

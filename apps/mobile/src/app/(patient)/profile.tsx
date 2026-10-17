@@ -2,9 +2,11 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { View, Text, ScrollView, TouchableOpacity, SafeAreaView, Image, TextInput, KeyboardAvoidingView, Platform, useColorScheme as useRNColorScheme } from 'react-native';
 import { useSafeRouter as useRouter } from '@/utils/useSafeRouter';
-import { Camera, Mail, Phone, MapPin, User, LogOut, Crown, ChevronRight, CheckCircle2, Circle } from 'lucide-react-native';
+import { Camera, Mail, Phone, MapPin, User, LogOut, Crown, ChevronRight, CheckCircle2, Circle, Sparkles } from 'lucide-react-native';
 import { useAppColorScheme } from 'twrnc';
 import { tw, twInstance } from '@/tw';
+import Toast from 'react-native-toast-message';
+import { AvatarPickerModal } from '@/components/modals';
 
 export default function ProfileScreen() {
   const { t, i18n } = useTranslation();
@@ -12,6 +14,10 @@ export default function ProfileScreen() {
   const rnColorScheme = useRNColorScheme();
   const activeScheme = colorScheme || rnColorScheme || 'light';
   const router = useRouter();
+
+  const [avatarUri, setAvatarUri] = useState('https://i.pravatar.cc/150?img=12');
+  const [avatarModalVisible, setAvatarModalVisible] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   const [form, setForm] = useState({
     fullName: 'Alex Johnson',
@@ -23,6 +29,18 @@ export default function ProfileScreen() {
     district: 'District 1',
     city: 'Metropolis',
   });
+
+  const handleSaveProfile = () => {
+    setIsSaving(true);
+    setTimeout(() => {
+      setIsSaving(false);
+      Toast.show({
+        type: 'success',
+        text1: t('mobile.success', 'Success'),
+        text2: t('mobile.profile_updated_success', 'Profile information saved successfully'),
+      });
+    }, 600);
+  };
 
   return (
     <SafeAreaView style={tw('flex-1 bg-slate-50 dark:bg-slate-950')}>
@@ -43,10 +61,13 @@ export default function ProfileScreen() {
           <View style={tw('items-center mb-8 mt-2')}>
             <View style={tw('relative')}>
               <Image 
-                source={{ uri: 'https://i.pravatar.cc/150?img=12' }} 
+                source={{ uri: avatarUri }} 
                 style={tw('w-32 h-32 rounded-full bg-slate-200 dark:bg-slate-700 border-4 border-white shadow-sm')} 
               />
-              <TouchableOpacity style={tw('absolute bottom-0 right-2 w-10 h-10 bg-slate-900 rounded-full items-center justify-center border-4 border-white shadow-sm')}>
+              <TouchableOpacity 
+                onPress={() => setAvatarModalVisible(true)}
+                style={tw('absolute bottom-0 right-2 w-10 h-10 bg-slate-900 rounded-full items-center justify-center border-4 border-white shadow-sm')}
+              >
                 <Camera color="#ffffff" size={16} />
               </TouchableOpacity>
             </View>
@@ -113,19 +134,27 @@ export default function ProfileScreen() {
                 <View style={tw('flex-row items-center gap-3')}>
                   <Circle color={twInstance.color('text-slate-300 dark:text-slate-600')} size={20} />
                   <Text style={tw('text-slate-500 dark:text-slate-400 font-medium flex-1')}>{t('mobile.enroll_condition_consent', 'Consent Signed')}</Text>
-                  <TouchableOpacity style={tw('bg-indigo-600 px-3 py-1.5 rounded-lg shrink-0')}>
-                    <Text style={tw('text-white text-xs font-bold')}>{t('mobile.sign_consent', 'Sign Consent')}</Text>
-                  </TouchableOpacity>
+                  <Text style={tw('text-xs text-amber-500 font-medium')}>{t('mobile.waiting', 'Pending')}</Text>
                 </View>
                 {/* 6. Baseline Completed */}
                 <View style={tw('flex-row items-center gap-3')}>
                   <Circle color={twInstance.color('text-slate-300 dark:text-slate-600')} size={20} />
                   <Text style={tw('text-slate-500 dark:text-slate-400 font-medium flex-1')}>{t('mobile.enroll_condition_baseline', 'Baseline Completed')}</Text>
-                  <TouchableOpacity style={tw('bg-indigo-600 px-3 py-1.5 rounded-lg shrink-0')}>
-                    <Text style={tw('text-white text-xs font-bold')}>{t('mobile.complete_baseline', 'Complete Baseline')}</Text>
-                  </TouchableOpacity>
+                  <Text style={tw('text-xs text-amber-500 font-medium')}>{t('mobile.waiting', 'Pending')}</Text>
                 </View>
               </View>
+
+              {/* Single Unified CTA to complete assessment */}
+              <TouchableOpacity
+                onPress={() => router.push('/(patient)/baseline-assessment')}
+                style={tw('mt-4 bg-indigo-600 dark:bg-indigo-600 py-3 px-4 rounded-2xl flex-row items-center justify-center shadow-sm')}
+              >
+                <Sparkles size={16} color="#ffffff" style={tw('mr-2')} />
+                <Text style={tw('text-white text-xs sm:text-sm font-bold')}>
+                  {t('mobile.complete_assessment_now', 'Complete Survey')}
+                </Text>
+                <ChevronRight size={16} color="#ffffff" style={tw('ml-1')} />
+              </TouchableOpacity>
             </View>
           </View>
 
@@ -293,12 +322,26 @@ export default function ProfileScreen() {
             </View>
 
             {/* Save Button */}
-            <TouchableOpacity style={tw('bg-slate-900 h-14 rounded-2xl items-center justify-center shadow-md')}>
-              <Text style={tw('text-white font-bold text-lg')}>{t('mobile.save_changes', `Save Changes`)}</Text>
+            <TouchableOpacity 
+              onPress={handleSaveProfile}
+              disabled={isSaving}
+              style={tw('bg-slate-900 dark:bg-white h-14 rounded-2xl items-center justify-center shadow-md')}
+            >
+              <Text style={tw('text-white dark:text-slate-900 font-bold text-lg')}>
+                {isSaving ? t('mobile.saving', 'Saving...') : t('mobile.save_changes', `Save Changes`)}
+              </Text>
             </TouchableOpacity>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Avatar Picker Modal */}
+      <AvatarPickerModal
+        visible={avatarModalVisible}
+        onClose={() => setAvatarModalVisible(false)}
+        currentAvatarUri={avatarUri}
+        onSelectAvatar={(uri) => setAvatarUri(uri)}
+      />
     </SafeAreaView>
   );
 }

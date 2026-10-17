@@ -1,15 +1,26 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Search, Building2, MapPin, CheckCircle2, XCircle, Clock } from "lucide-react";
+import {
+  Search,
+  Building2,
+  MapPin,
+  CheckCircle2,
+  XCircle,
+  Clock,
+  Plus,
+} from "lucide-react";
 import { Badge } from "@repo/ui/components/ui/badge";
 import { toast } from "react-toastify";
+import { FacilityFormModal } from "../components/facility-form-modal";
+import type { MedicalFacilityItem } from "../components/facility-form-modal";
+import { FacilityDecisionModal } from "../components/facility-decision-modal";
 
 export function MedicalFacilities() {
   const { t } = useTranslation();
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
 
-  const facilities = [
+  const [facilities, setFacilities] = useState<MedicalFacilityItem[]>([
     {
       id: 1,
       name: "Central Heart Hospital",
@@ -17,7 +28,9 @@ export function MedicalFacilities() {
       specialty: "Cardiology",
       status: "verified",
       submittedBy: "API_Maps",
-      submittedDate: "2024-05-12"
+      submittedDate: "2024-05-12",
+      phone: "028 3822 1234",
+      operatingHours: "24/7 Emergency",
     },
     {
       id: 2,
@@ -26,7 +39,9 @@ export function MedicalFacilities() {
       specialty: "General",
       status: "pending",
       submittedBy: "User_Suggest",
-      submittedDate: "2024-05-14"
+      submittedDate: "2024-05-14",
+      phone: "028 3930 5678",
+      operatingHours: "07:30 - 19:30",
     },
     {
       id: 3,
@@ -35,34 +50,139 @@ export function MedicalFacilities() {
       specialty: "Endocrinology",
       status: "rejected",
       submittedBy: "User_Suggest",
-      submittedDate: "2024-05-10"
-    }
-  ];
+      submittedDate: "2024-05-10",
+      phone: "028 3855 9012",
+      operatingHours: "08:00 - 17:00",
+    },
+  ]);
 
-  const filteredFacilities = facilities.filter(fac => {
-    const matchSearch = fac.name.toLowerCase().includes(search.toLowerCase()) || 
-                        fac.address.toLowerCase().includes(search.toLowerCase());
+  // Modal States
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingFacility, setEditingFacility] = useState<MedicalFacilityItem | null>(null);
+
+  const [isDecisionOpen, setIsDecisionOpen] = useState(false);
+  const [decisionFacility, setDecisionFacility] = useState<MedicalFacilityItem | null>(null);
+  const [decisionMode, setDecisionMode] = useState<"verify" | "reject">("verify");
+
+  const filteredFacilities = facilities.filter((fac) => {
+    const matchSearch =
+      fac.name.toLowerCase().includes(search.toLowerCase()) ||
+      fac.address.toLowerCase().includes(search.toLowerCase());
     const matchStatus = filterStatus === "all" || fac.status === filterStatus;
     return matchSearch && matchStatus;
   });
 
-  const handleAction = (action: string, name: string) => {
-    toast.success(`${action} ${name} successfully! (Mock)`);
+  const handleOpenAdd = () => {
+    setEditingFacility(null);
+    setIsFormOpen(true);
+  };
+
+  const handleOpenEdit = (fac: MedicalFacilityItem) => {
+    setEditingFacility(fac);
+    setIsFormOpen(true);
+  };
+
+  const handleOpenDecision = (fac: MedicalFacilityItem, mode: "verify" | "reject") => {
+    setDecisionFacility(fac);
+    setDecisionMode(mode);
+    setIsDecisionOpen(true);
+  };
+
+  const handleSaveFacility = (
+    data: Omit<MedicalFacilityItem, "id" | "status" | "submittedBy" | "submittedDate">
+  ) => {
+    if (editingFacility) {
+      setFacilities((prev) =>
+        prev.map((f) => (f.id === editingFacility.id ? { ...f, ...data } : f))
+      );
+      toast.success(
+        t("medicalFacilities.toasts.updated", "Facility updated successfully")
+      );
+    } else {
+      const newFacility: MedicalFacilityItem = {
+        id: Date.now(),
+        ...data,
+        status: "verified",
+        submittedBy: "Admin",
+        submittedDate: new Date().toISOString().split("T")[0] || "",
+      };
+      setFacilities((prev) => [newFacility, ...prev]);
+      toast.success(
+        t("medicalFacilities.toasts.added", "Facility added successfully")
+      );
+    }
+    setIsFormOpen(false);
+  };
+
+  const handleConfirmDecision = (
+    facilityId: number,
+    rejectionReason?: string,
+    notes?: string
+  ) => {
+    setFacilities((prev) =>
+      prev.map((f) =>
+        f.id === facilityId
+          ? {
+              ...f,
+              status: decisionMode === "verify" ? "verified" : "rejected",
+            }
+          : f
+      )
+    );
+
+    if (decisionMode === "verify") {
+      toast.success(
+        t(
+          "medicalFacilities.toasts.verified",
+          "Facility verified and published to map"
+        )
+      );
+    } else {
+      toast.info(
+        t(
+          "medicalFacilities.toasts.rejected",
+          "Facility submission rejected"
+        ) + (rejectionReason ? `: ${rejectionReason}` : "")
+      );
+    }
+    if (notes) {
+      // Internal audit note logged
+    }
+    setIsDecisionOpen(false);
   };
 
   return (
     <div className="w-full p-6">
       <div className="rounded-3xl border border-slate-200/70 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm">
+        {/* Top Header */}
         <div className="mb-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-semibold text-slate-900 dark:text-slate-100">{t("sidebar.medicalFacilities", "Medical Facilities")}</h1>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{t("medicalFacilities.description", "Review and manage medical facilities on the map.")}</p>
+            <h1 className="text-3xl font-semibold text-slate-900 dark:text-slate-100">
+              {t("sidebar.medicalFacilities", "Medical Facilities")}
+            </h1>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+              {t(
+                "medicalFacilities.description",
+                "Review and manage medical facilities on the map."
+              )}
+            </p>
           </div>
+          <button
+            onClick={handleOpenAdd}
+            className="flex items-center gap-2 rounded-xl bg-brand px-4 py-2.5 font-bold text-slate-900 transition-colors hover:bg-brand/90 shadow-sm"
+          >
+            <Plus size={18} />
+            <span>{t("medicalFacilities.formModal.addTitle", "Add Medical Facility")}</span>
+          </button>
         </div>
 
+        {/* Filter bar */}
         <div className="mb-6 flex flex-col md:flex-row gap-4">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+            <Search
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+              size={20}
+            />
             <input
               type="text"
               placeholder={t("docVerification.searchPlaceholder", "Search facility name...")}
@@ -71,7 +191,7 @@ export function MedicalFacilities() {
               className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 py-2.5 pl-10 pr-4 text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-brand dark:focus:border-brand"
             />
           </div>
-          <select 
+          <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
             className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-4 py-2.5 text-sm outline-none text-slate-700 dark:text-slate-300"
@@ -83,6 +203,7 @@ export function MedicalFacilities() {
           </select>
         </div>
 
+        {/* Table */}
         <div className="rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
           <table className="w-full text-left text-sm text-slate-600 dark:text-slate-400">
             <thead className="bg-slate-50 dark:bg-slate-800/50 text-xs font-semibold uppercase text-slate-500 dark:text-slate-400">
@@ -91,69 +212,88 @@ export function MedicalFacilities() {
                 <th className="px-6 py-4">{t("medicalFacilities.table.location", "LOCATION")}</th>
                 <th className="px-6 py-4">{t("medicalFacilities.table.submitted", "SUBMITTED")}</th>
                 <th className="px-6 py-4">{t("medicalFacilities.table.status", "STATUS")}</th>
-                <th className="px-6 py-4">{t("medicalFacilities.table.actions", "ACTIONS")}</th>
+                <th className="px-6 py-4 text-right">{t("medicalFacilities.table.actions", "ACTIONS")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200 dark:divide-slate-700 bg-white dark:bg-slate-900">
               {filteredFacilities.map((fac) => (
-                <tr key={fac.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                <tr
+                  key={fac.id}
+                  className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+                >
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center">
                         <Building2 className="text-indigo-600 dark:text-indigo-400" size={20} />
                       </div>
                       <div>
-                        <div className="font-semibold text-slate-900 dark:text-slate-100">{fac.name}</div>
+                        <div className="font-semibold text-slate-900 dark:text-slate-100">
+                          {fac.name}
+                        </div>
                         <div className="text-xs text-slate-500">{fac.specialty}</div>
                       </div>
                     </div>
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-1.5">
-                      <MapPin size={14} className="text-slate-400" />
+                      <MapPin size={14} className="text-slate-400 shrink-0" />
                       <span className="truncate max-w-[200px]">{fac.address}</span>
                     </div>
                   </td>
                   <td className="px-6 py-4">
                     <div>{fac.submittedDate}</div>
-                    <div className="text-xs text-slate-400">{t("medicalFacilities.by", "By")} {fac.submittedBy}</div>
+                    <div className="text-xs text-slate-400">
+                      {t("medicalFacilities.by", "By")} {fac.submittedBy}
+                    </div>
                   </td>
                   <td className="px-6 py-4">
                     {fac.status === "verified" && (
-                      <Badge variant="default" className="bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border-none hover:bg-emerald-50">
-                        <CheckCircle2 size={12} className="mr-1" /> {t("medicalFacilities.status.verified", "Verified")}
+                      <Badge
+                        variant="default"
+                        className="bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border-none hover:bg-emerald-50"
+                      >
+                        <CheckCircle2 size={12} className="mr-1" />{" "}
+                        {t("medicalFacilities.status.verified", "Verified")}
                       </Badge>
                     )}
                     {fac.status === "pending" && (
-                      <Badge variant="outline" className="bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border-none hover:bg-amber-50">
-                        <Clock size={12} className="mr-1" /> {t("medicalFacilities.status.pending", "Pending")}
+                      <Badge
+                        variant="outline"
+                        className="bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border-none hover:bg-amber-50"
+                      >
+                        <Clock size={12} className="mr-1" />{" "}
+                        {t("medicalFacilities.status.pending", "Pending")}
                       </Badge>
                     )}
                     {fac.status === "rejected" && (
-                      <Badge variant="destructive" className="bg-rose-50 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400 border-none hover:bg-rose-50">
-                        <XCircle size={12} className="mr-1" /> {t("medicalFacilities.status.rejected", "Rejected")}
+                      <Badge
+                        variant="destructive"
+                        className="bg-rose-50 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400 border-none hover:bg-rose-50"
+                      >
+                        <XCircle size={12} className="mr-1" />{" "}
+                        {t("medicalFacilities.status.rejected", "Rejected")}
                       </Badge>
                     )}
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-6 py-4 text-right">
                     {fac.status === "pending" ? (
-                      <div className="flex items-center gap-2">
-                        <button 
-                          onClick={() => handleAction("Approved", fac.name)}
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => handleOpenDecision(fac, "verify")}
                           className="px-3 py-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-900/30 dark:hover:bg-emerald-900/50 rounded-lg transition-colors"
                         >
                           {t("medicalFacilities.actions.approve", "Approve")}
                         </button>
-                        <button 
-                          onClick={() => handleAction("Rejected", fac.name)}
+                        <button
+                          onClick={() => handleOpenDecision(fac, "reject")}
                           className="px-3 py-1.5 text-xs font-semibold text-rose-600 dark:text-rose-400 bg-rose-50 hover:bg-rose-100 dark:bg-rose-900/30 dark:hover:bg-rose-900/50 rounded-lg transition-colors"
                         >
                           {t("medicalFacilities.actions.reject", "Reject")}
                         </button>
                       </div>
                     ) : (
-                      <button 
-                        onClick={() => handleAction("Edited", fac.name)}
+                      <button
+                        onClick={() => handleOpenEdit(fac)}
                         className="px-3 py-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-lg transition-colors"
                       >
                         {t("medicalFacilities.actions.edit", "Edit")}
@@ -166,6 +306,24 @@ export function MedicalFacilities() {
           </table>
         </div>
       </div>
+
+      {/* Modals */}
+      <FacilityFormModal
+        key={editingFacility?.id || "add-facility"}
+        isOpen={isFormOpen}
+        onClose={() => setIsFormOpen(false)}
+        facility={editingFacility}
+        onSave={handleSaveFacility}
+      />
+
+      <FacilityDecisionModal
+        key={decisionFacility?.id ? `${decisionFacility.id}-${decisionMode}` : "decision"}
+        isOpen={isDecisionOpen}
+        onClose={() => setIsDecisionOpen(false)}
+        facility={decisionFacility}
+        mode={decisionMode}
+        onConfirm={handleConfirmDecision}
+      />
     </div>
   );
 }

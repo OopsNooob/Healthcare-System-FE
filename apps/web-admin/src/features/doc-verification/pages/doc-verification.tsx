@@ -57,6 +57,7 @@ function getAvatarColor(seed: string) {
 
 // Modal Components
 function FilePreviewComponent({ file }: { file: VerificationFile }) {
+  const { t } = useTranslation();
   const isImage = ["jpg", "jpeg", "png"].includes(file.type);
 
   if (isImage) {
@@ -77,7 +78,7 @@ function FilePreviewComponent({ file }: { file: VerificationFile }) {
             rel="noopener noreferrer"
             className="shrink-0 rounded-lg bg-brand px-3 py-1.5 text-xs text-white transition hover:bg-brand-dark"
           >
-            Open in new tab
+            {t("docVerification.modal.openInNewTab", "Open in new tab")}
           </a>
         </div>
       </div>
@@ -98,7 +99,7 @@ function FilePreviewComponent({ file }: { file: VerificationFile }) {
             rel="noopener noreferrer"
             className="shrink-0 rounded-lg bg-brand px-3 py-1.5 text-xs text-white transition hover:bg-brand-dark"
           >
-            Open in new tab
+            {t("docVerification.modal.openInNewTab", "Open in new tab")}
           </a>
         </div>
       </div>

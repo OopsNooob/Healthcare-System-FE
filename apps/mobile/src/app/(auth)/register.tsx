@@ -5,6 +5,7 @@ import { useSafeRouter as useRouter } from '@/utils/useSafeRouter';
 import Toast from 'react-native-toast-message';
 import { Mail, Lock, Cross, User, Phone, Briefcase, Stethoscope, Clock, UploadCloud } from 'lucide-react-native';
 import { tw } from '@/tw';
+import { RestoreDraftModal, DocUploadModal } from '@/components/modals';
 
 export default function RegisterScreen() {
   const { t } = useTranslation();
@@ -25,6 +26,9 @@ export default function RegisterScreen() {
   const [experience, setExperience] = useState('');
   
   const [isLoading, setIsLoading] = useState(false);
+  const [restoreDraftModalVisible, setRestoreDraftModalVisible] = useState(false);
+  const [docUploadModalVisible, setDocUploadModalVisible] = useState(false);
+  const [uploadedDocsCount, setUploadedDocsCount] = useState(2);
 
   const handleRegister = () => {
     if (isLoading) return;
@@ -106,7 +110,10 @@ export default function RegisterScreen() {
 
             {/* Doctor Load Previous Registration Data */}
             {role === 'doctor' && (
-              <TouchableOpacity onPress={() => Toast.show({ type: 'info', text1: 'Info', text2: 'Load previous registration data' })} style={tw('flex-row items-center justify-end -mt-2 mb-2')}>
+              <TouchableOpacity 
+                onPress={() => setRestoreDraftModalVisible(true)} 
+                style={tw('flex-row items-center justify-end -mt-2 mb-2 active:opacity-80')}
+              >
                 <Text style={tw('text-sm text-emerald-600 font-medium')}>{t('mobile.load_previous_registration_dat', `Load previous registration data?`)}</Text>
               </TouchableOpacity>
             )}
@@ -251,14 +258,16 @@ export default function RegisterScreen() {
                   <Text style={tw('text-xs text-gray-500 mb-2')}>{t('mobile.required_to_activate_your_acco', `Required to activate your account`)}</Text>
                   
                   <TouchableOpacity 
-                    onPress={() => Toast.show({ type: 'info', text1: 'Info', text2: 'Select verification documents to upload' })} 
-                    style={tw('border border-dashed border-gray-300 dark:border-slate-600 rounded-2xl bg-gray-50 dark:bg-slate-800/50 py-6 items-center')}
+                    onPress={() => setDocUploadModalVisible(true)} 
+                    style={tw('border border-dashed border-gray-300 dark:border-slate-600 rounded-2xl bg-gray-50 dark:bg-slate-800/50 py-6 items-center active:opacity-80')}
                     disabled={isLoading}
                   >
                     <View style={tw('bg-gray-200 dark:bg-slate-700 p-3 rounded-full mb-2')}>
                       <UploadCloud color="#9ca3af" size={24} />
                     </View>
-                    <Text style={tw('text-sm font-semibold text-gray-700')}>{t('mobile.tap_to_select_documents', `Tap to select documents`)}</Text>
+                    <Text style={tw('text-sm font-semibold text-gray-700 dark:text-slate-300')}>
+                      {uploadedDocsCount > 0 ? `${uploadedDocsCount} ${t('mobile.docs_uploaded', 'documents uploaded')}` : t('mobile.tap_to_select_documents', `Tap to select documents`)}
+                    </Text>
                     <Text style={tw('text-xs text-gray-500 mt-1')}>{t('mobile.upload_medical_degree_and_prac', `Upload Medical Degree and Practice License`)}</Text>
                     <Text style={tw('text-xs text-gray-500')}>{t('mobile.pdf_jpg_png_max_10_mb', `PDF, JPG, PNG, MAX 10 MB`)}</Text>
                   </TouchableOpacity>
@@ -287,6 +296,29 @@ export default function RegisterScreen() {
           </View>
         </View>
       </ScrollView>
+
+      {/* Restore Draft Modal */}
+      <RestoreDraftModal
+        visible={restoreDraftModalVisible}
+        onClose={() => setRestoreDraftModalVisible(false)}
+        onRestore={(draft) => {
+          setFullName(draft.fullName);
+          setEmail(draft.email);
+          setPhone(draft.phone);
+          setSpecialty(draft.specialty);
+          setWorkplace(draft.workplace);
+          setExperience(draft.experience);
+        }}
+      />
+
+      {/* Verification Documents Upload Modal */}
+      <DocUploadModal
+        visible={docUploadModalVisible}
+        onClose={() => setDocUploadModalVisible(false)}
+        onConfirm={(docs) => {
+          setUploadedDocsCount(docs.length);
+        }}
+      />
     </KeyboardAvoidingView>
   );
 }

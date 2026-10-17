@@ -153,11 +153,38 @@
         "superAdmin": "Quản trị cấp cao",
         "userAdmin": "Quản trị người dùng",
         "aiAdmin": "Quản trị AI"
+      },
+      "addAdminModal": {
+        "title": "Tạo tài khoản Quản trị viên",
+        "fullName": "Họ và tên",
+        "fullNamePlaceholder": "Ví dụ: Nguyễn Văn A",
+        "email": "Địa chỉ Email",
+        "emailPlaceholder": "admin@healthcare.com",
+        "tempPassword": "Mật khẩu Tạm thời",
+        "tempPasswordPlaceholder": "Tối thiểu 8 ký tự",
+        "tempPasswordHint": "Quản trị viên sẽ được yêu cầu đổi mật khẩu trong lần đăng nhập đầu tiên.",
+        "selectRole": "Chọn Vai trò",
+        "roles": {
+          "superAdmin": "Quản trị cấp cao - Toàn quyền truy cập",
+          "userAdmin": "Quản trị người dùng - Quản lý Bệnh nhân & Bác sĩ",
+          "aiAdmin": "Quản trị AI - Cơ sở dữ liệu Tri thức RAG"
+        },
+        "cancel": "Hủy",
+        "createAdmin": "Tạo Quản trị viên"
       }
     },
     "medicalFacilities": {
       "description": "Xem xét và quản lý các cơ sở y tế trên bản đồ.",
       "by": "Bởi",
+      "addFacility": "Thêm Cơ sở y tế",
+      "specialties": {
+        "general": "Đa khoa",
+        "cardiology": "Tim mạch",
+        "endocrinology": "Nội tiết",
+        "pediatrics": "Nhi khoa",
+        "dermatology": "Da liễu",
+        "emergency": "Cấp cứu 24/7"
+      },
       "status": {
         "all": "Tất cả trạng thái",
         "pending": "Chờ duyệt",
@@ -175,6 +202,46 @@
         "approve": "Phê duyệt",
         "reject": "Từ chối",
         "edit": "Chỉnh sửa"
+      },
+      "formModal": {
+        "createTitle": "Thêm Cơ sở Y tế Mới",
+        "editTitle": "Chỉnh sửa Cơ sở Y tế",
+        "desc": "Cấu hình tên cơ sở y tế, địa chỉ, chuyên khoa và hotline liên hệ.",
+        "name": "Tên cơ sở y tế",
+        "namePlaceholder": "Ví dụ: Bệnh viện Chợ Rẫy",
+        "address": "Địa chỉ chi tiết",
+        "addressPlaceholder": "Số nhà, đường, phường/xã, quận/huyện, tỉnh/thành...",
+        "specialty": "Chuyên khoa chính",
+        "contactPhone": "Số điện thoại hotline",
+        "phone": "Số điện thoại hotline",
+        "phonePlaceholder": "Ví dụ: 028 3855 4137",
+        "operatingHours": "Khung giờ làm việc",
+        "status": "Trạng thái ban đầu",
+        "cancel": "Hủy",
+        "save": "Lưu thông tin"
+      },
+      "decisionModal": {
+        "approveTitle": "Xác nhận Phê duyệt Cơ sở Y tế",
+        "approveDesc": "Bạn có chắc chắn muốn phê duyệt cơ sở y tế này vào danh mục chính thức trên bản đồ?",
+        "rejectTitle": "Từ chối Đăng ký Cơ sở Y tế",
+        "rejectDesc": "Vui lòng nhập lý do từ chối để thông báo cho người gửi đề xuất.",
+        "submittedBy": "Đề xuất bởi",
+        "reasonLabel": "Lý do từ chối (Bắt buộc)",
+        "reasonPlaceholder": "Ví dụ: Thiếu giấy phép hoạt động, thông tin địa chỉ không chính xác...",
+        "notes": "Ghi chú nội bộ của Quản trị viên",
+        "notesPlaceholder": "Ghi chú kiểm duyệt hành chính (tùy chọn)...",
+        "confirmApprove": "Xác nhận Phê duyệt",
+        "confirmReject": "Xác nhận Từ chối",
+        "cancel": "Hủy"
+      },
+      "toasts": {
+        "createSuccess": "Thêm cơ sở y tế thành công",
+        "editSuccess": "Cập nhật cơ sở y tế thành công",
+        "approveSuccess": "Phê duyệt cơ sở y tế thành công",
+        "rejectSuccess": "Đã từ chối cơ sở y tế",
+        "reasonRequired": "Vui lòng nhập lý do từ chối",
+        "addressRequired": "Vui lòng nhập địa chỉ cơ sở y tế",
+        "nameRequired": "Vui lòng nhập tên cơ sở y tế"
       }
     },
     "docVerification": {
@@ -209,6 +276,7 @@
         "documents": "Tài liệu",
         "noDocsUploaded": "Không có tài liệu nào",
         "noFileSelected": "Chưa chọn file",
+        "openInNewTab": "Mở trong tab mới",
         "professionalInfo": "Thông tin chuyên môn",
         "fullName": "Họ và tên",
         "email": "Email",
@@ -268,8 +336,13 @@
         "success": "Thành công",
         "pending": "Chờ xử lý",
         "failed": "Thất bại",
+        "refunded": "Đã hoàn tiền",
         "eligible": "Đủ điều kiện",
         "ineligible": "Không đủ đ.kiện"
+      },
+      "planTypes": {
+        "monthly": "Gói Hàng tháng",
+        "yearly": "Gói Hàng năm"
       },
       "actions": {
         "review": "Xem xét",
@@ -290,16 +363,100 @@
         "feature3": "• Phân tích chỉ số sức khoẻ nâng cao",
         "status": "Trạng thái",
         "active": "Hoạt động"
+      },
+      "refundModal": {
+        "title": "Xem xét Phê duyệt Hoàn tiền",
+        "desc": "Kiểm tra chi tiết mức sử dụng thực tế và quyết định hoàn tiền cho người dùng.",
+        "requestId": "Mã yêu cầu",
+        "user": "Người dùng",
+        "amount": "Số tiền hoàn",
+        "requestedAt": "Ngày yêu cầu",
+        "reason": "Lý do của người dùng",
+        "usageSnapshot": "Ảnh chụp sử dụng thực tế (Final Usage Snapshot)",
+        "aiTokensUsed": "AI Tokens đã dùng",
+        "consultationsUsed": "Buổi tư vấn đã dùng",
+        "daysActive": "Số ngày kích hoạt",
+        "maxTokens": "Tối đa: 5.000",
+        "maxConsults": "Tối đa: 0",
+        "maxDays": "Tối đa: 7 ngày",
+        "daysCount": "{{days}} ngày",
+        "eligibility": "Điều kiện hoàn tiền",
+        "eligible": "Đủ điều kiện",
+        "ineligible": "Không đủ điều kiện (Vượt chính sách)",
+        "adminOverride": "Ghi đè bởi Quản trị viên (Admin Override)",
+        "overrideNotice": "Vượt quá giới hạn chính sách hoàn tiền. Để phê duyệt, bắt buộc phải có giải trình ghi đè quản trị để lưu vết kiểm toán hệ thống.",
+        "overrideReason": "Lý do ghi đè ngoại lệ",
+        "overrideReasonPlaceholder": "Bắt buộc: Nhập lý do ngoại lệ được cấp quản lý phê duyệt...",
+        "adminNotes": "Ghi chú xử lý / Phản hồi",
+        "adminNotesPlaceholder": "Nhập thông tin phản hồi cho bệnh nhân...",
+        "approveBtn": "Phê duyệt Hoàn tiền",
+        "rejectBtn": "Từ chối Yêu cầu",
+        "close": "Đóng",
+        "overrideRequired": "Vui lòng nhập lý do ghi đè phê duyệt trước khi tiếp tục."
+      },
+      "editPlanModal": {
+        "title": "Chỉnh sửa Cấu hình Gói Premium",
+        "desc": "Cập nhật giá, chu kỳ thanh toán và các hạn mức tài nguyên cho gói.",
+        "planName": "Tên gói",
+        "price": "Giá (VND)",
+        "billingCycle": "Chu kỳ thanh toán",
+        "monthly": "Hàng tháng",
+        "yearly": "Hàng năm",
+        "aiTokenLimit": "Hạn mức AI Tokens / chu kỳ",
+        "consultsLimit": "Số buổi tư vấn / chu kỳ",
+        "familyLimit": "Số thành viên gia đình liên kết",
+        "features": "Tính năng hiển thị (mỗi dòng một tính năng)",
+        "status": "Trạng thái gói",
+        "active": "Hoạt động",
+        "inactive": "Tạm dừng",
+        "cancel": "Huỷ",
+        "save": "Lưu thay đổi"
+      },
+      "transactionModal": {
+        "title": "Chi tiết Giao dịch Thanh toán",
+        "desc": "Thông tin chi tiết và đối soát giao dịch an toàn từ cổng thanh toán.",
+        "transactionId": "Mã Giao dịch",
+        "customer": "Khách hàng / Người nộp",
+        "user": "Người nộp tiền",
+        "plan": "Gói Dịch vụ",
+        "amount": "Số tiền (VND)",
+        "paymentMethod": "Cổng thanh toán",
+        "referenceCode": "Mã tham chiếu ngân hàng",
+        "date": "Thời gian giao dịch",
+        "createdAt": "Thời gian giao dịch",
+        "status": "Trạng thái",
+        "invoice": "Hóa đơn điện tử",
+        "invoiceNotice": "Giao dịch đã được ký số và ghi nhận vào sổ cái doanh thu hệ thống.",
+        "invoiceStatus": "Hóa đơn điện tử",
+        "invoiceRequested": "Đã yêu cầu xuất",
+        "invoiceNotRequested": "Không yêu cầu",
+        "copyId": "Sao chép mã",
+        "securityAuditNote": "Theo quy chuẩn bảo mật an toàn thông tin thanh toán, thông tin tài khoản ngân hàng và thẻ được mã hóa che dấu. Toàn bộ giao dịch đều được ghi nhận nhật ký với cơ chế idempotent webhook chống trùng lặp.",
+        "close": "Đóng"
+      },
+      "toasts": {
+        "overrideRequired": "Yêu cầu không đủ điều kiện cần chọn Ghi đè bởi Quản trị viên.",
+        "reasonRequired": "Vui lòng nhập lý do ghi đè để lưu vết kiểm toán.",
+        "planNameRequired": "Vui lòng nhập tên gói hợp lệ.",
+        "copied": "Đã sao chép vào bộ nhớ tạm!"
       }
     },
     "appointmentManagement": {
       "title": "Lịch hẹn & Hàng chờ",
       "subtitle": "Theo dõi lịch hẹn, thời gian chờ và hàng chờ hệ thống",
+      "types": {
+        "videoCall": "Cuộc gọi Video",
+        "chat": "Nhắn tin Chat"
+      },
       "stats": {
         "totalToday": "Tổng hôm nay",
         "completed": "Đã hoàn thành",
         "canceled": "Đã huỷ / Vắng",
-        "avgWaitTime": "T/g Chờ TB"
+        "avgWaitTime": "T/g Chờ TB",
+        "fromYesterday": "+12% so với hôm qua",
+        "completionRate": "Tỷ lệ hoàn thành",
+        "cancelationRate": "Tỷ lệ huỷ hẹn",
+        "thanAverage": "so với mức trung bình"
       },
       "queue": {
         "title": "Hàng chờ & Lịch hẹn hôm nay",
@@ -312,6 +469,8 @@
         "doctor": "Bác sĩ",
         "type": "Loại",
         "status": "Trạng thái",
+        "actions": "Hành động",
+        "viewDetails": "Chi tiết",
         "noAppointments": "Không tìm thấy lịch hẹn",
         "tryAdjusting": "Thử điều chỉnh bộ lọc"
       },
@@ -321,6 +480,27 @@
         "waiting": "Đang chờ",
         "scheduled": "Đã lên lịch",
         "canceled": "Đã huỷ"
+      },
+      "detailModal": {
+        "title": "Hồ sơ Chi tiết Ca Khám",
+        "desc": "Chi tiết phiên khám bệnh, nhật ký phòng gọi và ghi chú lâm sàng của bác sĩ.",
+        "sessionInfo": "Thông tin phiên khám",
+        "patient": "Bệnh nhân",
+        "doctor": "Bác sĩ phụ trách",
+        "providerType": "Nhà cung cấp Y tế Từ xa",
+        "type": "Hình thức tư vấn",
+        "time": "Thời gian khám",
+        "status": "Trạng thái",
+        "symptoms": "Triệu chứng ban đầu & Lý do khám",
+        "defaultSymptoms": "Triệu chứng tăng huyết áp nhẹ kèm đau đầu và chóng mặt được ghi nhận trong bảng khảo sát trước cuộc gọi.",
+        "clinicalNotes": "Ghi chú chẩn đoán lâm sàng",
+        "notes": "Ghi chú Tóm tắt Lâm sàng",
+        "defaultNotes": "Khuyên bệnh nhân duy trì chế độ ăn giảm muối, theo dõi huyết áp tâm thu/tâm trương hai lần mỗi ngày và lên lịch tái khám từ xa.",
+        "callLog": "Nhật ký cuộc gọi video",
+        "duration": "Thời lượng",
+        "quality": "Chất lượng kết nối",
+        "encryptedWebRTC": "Mã hóa Đầu-Cuối WebRTC",
+        "close": "Đóng"
       }
     },
     "aiManagement": {
@@ -377,6 +557,37 @@
         "addedBy": "NGƯỜI THÊM",
         "addedDate": "NGÀY THÊM",
         "noWords": "Không có từ cấm nào."
+      },
+      "previewModal": {
+        "previewDesc": "xem trước tài liệu",
+        "notSupported": "Định dạng này chưa hỗ trợ xem trước trực tiếp.",
+        "downloadPrompt": "Vui lòng tải tệp tin về máy để xem nội dung đầy đủ.",
+        "downloadBtn": "Tải tệp tin"
+      },
+      "chunksModal": {
+        "title": "Quản lý Phân mảnh Tài liệu (Document Chunks)",
+        "desc": "Xem danh sách các đoạn trích xuất (chunks) và loại trừ (exclude) các chunk có nội dung sai sót khỏi cơ sở dữ liệu RAG.",
+        "docTitle": "Tài liệu",
+        "totalChunks": "Tổng số đoạn",
+        "activeChunks": "Đang hoạt động",
+        "excludedChunks": "Đã loại trừ",
+        "chunkIndex": "Đoạn #",
+        "tokenCount": "token",
+        "status": "Trạng thái",
+        "active": "Khả dụng",
+        "excluded": "Đã loại trừ",
+        "content": "Nội dung trích xuất",
+        "excludeBtn": "Loại trừ Đoạn",
+        "restoreBtn": "Khôi phục",
+        "exclusionReasonTitle": "Lý do loại trừ đoạn này",
+        "exclusionReasonPlaceholder": "Nhập lý do loại trừ (ví dụ: thông tin lâm sàng cũ, câu không hoàn chỉnh...)",
+        "confirmExclude": "Xác nhận Loại trừ",
+        "cancel": "Huỷ",
+        "close": "Đóng",
+        "reasonRequired": "Vui lòng nhập lý do loại trừ đoạn này",
+        "exclusionNotice": "* Loại trừ đoạn (chunk exclusion) sẽ vô hiệu hóa việc truy xuất RAG đối với phân đoạn này mà không làm thay đổi trạng thái xuất bản của tài liệu gốc.",
+        "successExclude": "Đã loại trừ đoạn này khỏi truy xuất RAG",
+        "successRestore": "Đã khôi phục đoạn này vào truy xuất RAG"
       }
     },
     "violationReport": {
@@ -407,8 +618,20 @@
         "aiClassification": "Phân loại AI",
         "aiCategory": "Hạng mục",
         "aiSeverity": "Mức độ nghiêm trọng & Độ tự tin",
+        "aiSeverityHighValue": "Cao (94%)",
         "aiRationale": "Lý do",
-        "aiRationaleValue": "Dựa trên phân tích lịch sử tin nhắn, tin nhắn chứa ngôn từ hung hăng nhắm vào một người dùng khác."
+        "aiRationaleValue": "Dựa trên phân tích lịch sử tin nhắn, tin nhắn chứa ngôn từ hung hăng nhắm vào một người dùng khác.",
+        "resolutionAction": "Biện pháp Xử lý",
+        "actionWarning": "Gửi Cảnh cáo người dùng (Warning)",
+        "actionSuspend": "Đình chỉ tạm thời (7 ngày)",
+        "actionBan": "Khoá tài khoản vĩnh viễn (Permanent Ban)",
+        "actionNone": "Không áp dụng chế tài (No penalty)",
+        "resolutionNotes": "Ghi chú kết luận xử lý",
+        "resolutionNotesPlaceholder": "Nhập ghi chú xử lý vi phạm...",
+        "dismissReport": "Bác bỏ / Huỷ báo cáo",
+        "applyResolution": "Áp dụng Xử lý",
+        "dismissed": "Đã bác bỏ",
+        "notesRequired": "Vui lòng nhập lý do / ghi chú xử lý trước khi tiếp tục."
       },
       "table": {
         "type": "LOẠI",
@@ -429,7 +652,14 @@
         "allTypes": "Tất cả",
         "allStatus": "Tất cả",
         "pending": "Chờ xử lý",
-        "resolved": "Đã xử lý"
+        "resolved": "Đã xử lý",
+        "dismissed": "Đã bác bỏ",
+        "noTypeFound": "Không tìm thấy loại vi phạm",
+        "noStatusFound": "Không tìm thấy trạng thái"
+      },
+      "loading": "Đang tải danh sách báo cáo vi phạm...",
+      "pagination": {
+        "showing": "Hiển thị {{count}} trên {{total}} kết quả"
       }
     },
     "profile": {
@@ -494,7 +724,20 @@
       "actions": {
         "createProgram": "Tạo Chương trình",
         "addRule": "Thêm Quy tắc",
-        "runSimulation": "Chạy Mô phỏng"
+        "runSimulation": "Chạy Mô phỏng",
+        "searchPlaceholder": "Tìm kiếm chương trình..."
+      },
+      "cards": {
+        "published": "Đã phát hành",
+        "draft": "Bản nháp",
+        "enrolled": "{{count}} đã tham gia",
+        "baselineMetrics": "Chỉ số Ban đầu",
+        "taskTemplates": "Mẫu Nhiệm vụ",
+        "tasksConfigured": "{{count}} nhiệm vụ hằng ngày",
+        "completionCriteria": "Tiêu chí Hoàn thành",
+        "updated": "Cập nhật",
+        "editProgram": "Chỉnh sửa Chương trình",
+        "noPrograms": "Không tìm thấy chương trình nào phù hợp"
       },
       "rules": {
         "program": "CHƯƠNG TRÌNH",
@@ -508,6 +751,108 @@
         "draft": "Bản nháp",
         "activate": "Kích hoạt",
         "retire": "Tạm ngưng"
+      },
+      "baseline": {
+        "bloodPressure": "Huyết áp (Blood Pressure)",
+        "heartRate": "Nhịp tim (Heart Rate)",
+        "fastingGlucose": "Đường huyết lúc đói (Fasting Glucose)",
+        "hba1c": "Chỉ số HbA1c",
+        "weight": "Cân nặng (Weight)",
+        "medications": "Thuốc đang sử dụng (Current Medications)",
+        "quietHours": "Khung giờ nghỉ ngơi (Quiet Hours)"
+      },
+      "metrics": {
+        "systolic": "Huyết áp tâm thu (Systolic mmHg)",
+        "diastolic": "Huyết áp tâm trương (Diastolic mmHg)",
+        "glucose": "Đường huyết (Glucose mg/dL)",
+        "heartRate": "Nhịp tim (Heart Rate bpm)"
+      },
+      "operators": {
+        "greaterThan": "Lớn hơn",
+        "greaterOrEqual": "Lớn hơn hoặc bằng",
+        "lessThan": "Nhỏ hơn",
+        "lessOrEqual": "Nhỏ hơn hoặc bằng",
+        "equals": "Bằng"
+      },
+      "modals": {
+        "createTitle": "Tạo Mẫu Chương trình Chăm sóc mới",
+        "createDesc": "Thiết lập chương trình theo dõi bệnh mạn tính với câu hỏi nền tảng và nhiệm vụ mẫu.",
+        "progName": "Tên Chương trình",
+        "progNamePlaceholder": "Ví dụ: Quản lý Bệnh Tăng huyết áp...",
+        "progCode": "Mã Định danh (Code)",
+        "version": "Phiên bản (Version)",
+        "diseaseKey": "Loại Bệnh lý",
+        "duration": "Thời lượng Chương trình",
+        "days": "ngày",
+        "description": "Mô tả Chi tiết",
+        "descriptionPlaceholder": "Mục tiêu theo dõi và nhóm bệnh nhân chỉ định...",
+        "baselineQuestions": "Chỉ số & Khảo sát Ban đầu (Baseline Form)",
+        "baselineDesc": "Chọn các chỉ số sức khoẻ bắt buộc khi bệnh nhân tham gia:",
+        "taskTemplates": "Nhiệm vụ Theo dõi Mẫu (Task Templates)",
+        "completionCriteria": "Tiêu chí Hoàn thành",
+        "completionCriteriaPlaceholder": "80% tuân thủ trong 90 ngày",
+        "saveDraft": "Lưu Bản nháp (Draft)",
+        "publish": "Phát hành (Publish)",
+        "ruleTitle": "Thêm Quy tắc Cảnh báo (Rule Builder)",
+        "ruleDesc": "Cấu hình điều kiện cảnh báo rủi ro dựa trên chỉ số đo của bệnh nhân.",
+        "targetProgram": "Áp dụng cho Chương trình",
+        "selectRule": "Chọn Quy tắc cần Kiểm tra",
+        "metric": "Chỉ số Đánh giá",
+        "operator": "Toán tử Điều kiện",
+        "threshold": "Ngưỡng Giá trị",
+        "severity": "Mức độ Cảnh báo",
+        "action": "Hành động Kích hoạt",
+        "declarativeCondition": "Điều kiện Khai báo (Declarative Condition)",
+        "conditionPreview": "Xem trước Điều kiện",
+        "cancel": "Hủy",
+        "createRule": "Tạo Quy tắc",
+        "severityAttention": "Attention (Cảnh báo vừa)",
+        "severityUrgent": "Urgent (Khẩn cấp)",
+        "actionDoctorAlert": "Gửi cảnh báo Bác sĩ phụ trách",
+        "actionPatientTask": "Giao nhiệm vụ Bệnh nhân",
+        "actionEmergency": "Kích hoạt Quy trình Khẩn cấp",
+        "simTitle": "Mô phỏng Đánh giá Quy tắc (Rule Simulation)",
+        "simDesc": "Chạy thử nghiệm bộ quy tắc trên 500 hồ sơ bệnh nhân giả lập để kiểm tra độ chính xác.",
+        "simScanned": "Hồ sơ đã quét",
+        "simAlerts": "Cảnh báo Sinh ra",
+        "simFalsePos": "Tỷ lệ Dương tính Giả",
+        "simStatus": "Mô phỏng Đạt Chuẩn An toàn Y tế",
+        "simTelemetryInputs": "Chỉ số Đo Giả lập (Synthetic Telemetry Inputs)",
+        "simViolated": "VI PHẠM / KÍCH HOẠT CẢNH BÁO",
+        "simSafe": "BÌNH THƯỜNG / AN TOÀN",
+        "simMatched": "Điều kiện Thoả mãn (Đã kích hoạt)",
+        "simNoTrigger": "Không kích hoạt (Không vi phạm ngưỡng)",
+        "actionFired": "Hành động Kích hoạt",
+        "run": "Chạy Mô phỏng",
+        "activateRule": "Kích hoạt Quy tắc này",
+        "close": "Đóng"
+      },
+      "editModal": {
+        "title": "Chỉnh sửa Mẫu Chương trình",
+        "desc": "Cập nhật thông tin chương trình, chỉ số theo dõi và trạng thái hoạt động.",
+        "progName": "Tên Chương trình",
+        "progNamePlaceholder": "Nhập tên chương trình...",
+        "version": "Phiên bản (Version)",
+        "status": "Trạng thái Hoạt động",
+        "published": "Phát hành (Published)",
+        "draft": "Bản nháp (Draft)",
+        "enrolledPatients": "Bệnh nhân đang tham gia",
+        "enrolledCount": "{{count}} bệnh nhân",
+        "baselineRequirements": "Chỉ số & Khảo sát Ban đầu (Baseline Form)",
+        "baselineDesc": "Chọn các chỉ số sức khoẻ bắt buộc khi bệnh nhân tham gia:",
+        "taskTemplates": "Số lượng Nhiệm vụ Hằng ngày",
+        "completionCriteria": "Tiêu chí Hoàn thành",
+        "completionCriteriaPlaceholder": "Ví dụ: 80% tuân thủ trong 90 ngày",
+        "cancel": "Hủy",
+        "save": "Lưu Thay đổi"
+      },
+      "toasts": {
+        "nameRequired": "Vui lòng nhập tên chương trình",
+        "thresholdRequired": "Vui lòng nhập ngưỡng giá trị hợp lệ",
+        "ruleCreated": "Tạo quy tắc cảnh báo thành công",
+        "ruleActivated": "Quy tắc đã được kích hoạt",
+        "ruleRetired": "Quy tắc đã ngưng áp dụng",
+        "updateSuccess": "Cập nhật chương trình chăm sóc thành công"
       }
     },
     "sharedPages": {

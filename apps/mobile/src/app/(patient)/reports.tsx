@@ -5,6 +5,7 @@ import { useSafeRouter as useRouter } from '@/utils/useSafeRouter';
 import { ArrowLeft, LineChart, Sparkles, Activity, FileText, ChevronDown, ChevronUp, AlertTriangle } from 'lucide-react-native';
 import { tw, twInstance } from '@/tw';
 import { useThemeContext } from '@/context/ThemeContext';
+import { ReportExportModal } from '@/components/modals';
 
 const AiSummaryAccordion = ({ title, content, isEmpty }: { title: string, content: string, isEmpty?: boolean }) => {
   const [expanded, setExpanded] = useState(false);
@@ -49,6 +50,7 @@ export default function ReportsScreen() {
   const [timeRange, setTimeRange] = useState<'7d' | '30d' | '90d'>('7d');
   const [aiLoading, setAiLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [exportModalVisible, setExportModalVisible] = useState(false);
 
   useEffect(() => {
     setAiLoading(true);
@@ -161,7 +163,10 @@ export default function ReportsScreen() {
                 </Text>
               </View>
 
-              <TouchableOpacity style={tw('flex-row items-center justify-center gap-2 bg-indigo-100 dark:bg-indigo-800/50 px-4 py-3 rounded-xl')}>
+              <TouchableOpacity 
+                onPress={() => setExportModalVisible(true)}
+                style={tw('flex-row items-center justify-center gap-2 bg-indigo-100 dark:bg-indigo-800/50 px-4 py-3 rounded-xl active:opacity-80')}
+              >
                 <FileText color={twInstance.color('text-indigo-600 dark:text-indigo-300')} size={18} />
                 <Text style={tw('text-indigo-700 dark:text-indigo-200 font-semibold')}>
                   {t('mobile.download_pdf', 'Download PDF Report')}
@@ -172,6 +177,12 @@ export default function ReportsScreen() {
         </View>
 
       </ScrollView>
+
+      <ReportExportModal
+        visible={exportModalVisible}
+        onClose={() => setExportModalVisible(false)}
+        defaultTimeRange={timeRange}
+      />
     </SafeAreaView>
   );
 }

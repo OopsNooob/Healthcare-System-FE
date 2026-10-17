@@ -1,55 +1,118 @@
 import { useState, useEffect } from "react";
-import { Calendar, Clock, Video, XCircle, Search, Filter, Database } from "lucide-react";
+import {
+  Calendar,
+  Clock,
+  Video,
+  XCircle,
+  Search,
+  Filter,
+  Database,
+  Eye,
+} from "lucide-react";
 import { Badge } from "@repo/ui/components/ui/badge";
 import { Skeleton } from "@repo/ui/components/ui/skeleton";
 import { useTranslation } from "react-i18next";
-
-interface Appointment {
-  time: string;
-  patient: string;
-  doctor: string;
-  type: string;
-  status: string;
-}
+import { AppointmentDetailModal } from "../components/appointment-detail-modal";
+import type { Appointment } from "../components/appointment-detail-modal";
 
 export function AppointmentManagement() {
   const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
 
   useEffect(() => {
     // Simulate loading data
     const timer = setTimeout(() => {
       setAppointments([
-        { time: "09:00 AM", patient: "Vu Quoc Huy", doctor: "Dr. Sarah Connor", type: "Video Call", status: "Completed" },
-        { time: "In Session", patient: "Do Dinh Khang", doctor: "Dr. John Doe", type: "Video Call", status: "In Progress" },
-        { time: "Queue #1", patient: "Nguyen Van A", doctor: "Dr. John Doe", type: "Chat", status: "Waiting" },
-        { time: "11:30 AM", patient: "Tran Thi B", doctor: "Dr. Sarah Connor", type: "Video Call", status: "Scheduled" },
-        { time: "10:00 AM", patient: "Le Van C", doctor: "Dr. Emily Chen", type: "Chat", status: "Canceled" },
+        {
+          id: "APT-101",
+          time: "09:00 AM",
+          patient: "Vu Quoc Huy",
+          doctor: "Dr. Sarah Connor",
+          type: "Video Call",
+          status: "Completed",
+          symptoms: "Persistent elevated systolic pressure (145 mmHg) accompanied by lightheadedness.",
+          clinicalNotes: "Patient prescribed dietary adjustments, low-sodium protocol, and a follow-up appointment in 14 days.",
+          duration: "18 mins",
+        },
+        {
+          id: "APT-102",
+          time: "In Session",
+          patient: "Do Dinh Khang",
+          doctor: "Dr. John Doe",
+          type: "Video Call",
+          status: "In Progress",
+          symptoms: "Fasting glucose spikes above 160 mg/dL after carbohydrate intake.",
+          clinicalNotes: "Reviewing continuous glucose logs and insulin sensitivity ratios.",
+          duration: "Active (12m)",
+        },
+        {
+          id: "APT-103",
+          time: "Queue #1",
+          patient: "Nguyen Van A",
+          doctor: "Dr. John Doe",
+          type: "Chat",
+          status: "Waiting",
+          symptoms: "Seasonal allergy flare-up and persistent coughing at night.",
+          clinicalNotes: "Awaiting consultation intake room start.",
+          duration: "Queued (4m)",
+        },
+        {
+          id: "APT-104",
+          time: "11:30 AM",
+          patient: "Tran Thi B",
+          doctor: "Dr. Sarah Connor",
+          type: "Video Call",
+          status: "Scheduled",
+          symptoms: "Routine quarterly chronic hypertension maintenance review.",
+          clinicalNotes: "Scheduled routine session.",
+          duration: "Estimated 15 mins",
+        },
+        {
+          id: "APT-105",
+          time: "10:00 AM",
+          patient: "Le Van C",
+          doctor: "Dr. Emily Chen",
+          type: "Chat",
+          status: "Canceled",
+          symptoms: "Mild fever resolved before appointment time.",
+          clinicalNotes: "Patient canceled 30 minutes prior to scheduled session.",
+          duration: "0 mins",
+        },
       ]);
       setLoading(false);
     }, 1200);
     return () => clearTimeout(timer);
   }, []);
 
-  const filteredAppointments = appointments.filter(apt =>
-    apt.patient.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    apt.doctor.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredAppointments = appointments.filter(
+    (apt) =>
+      apt.patient.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      apt.doctor.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
   return (
     <div className="p-6 max-w-7xl mx-auto">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t("appointmentManagement.title")}</h1>
-          <p className="text-gray-500 dark:text-gray-400 mt-1">{t("appointmentManagement.subtitle")}</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+            {t("appointmentManagement.title")}
+          </h1>
+          <p className="text-gray-500 dark:text-gray-400 mt-1">
+            {t("appointmentManagement.subtitle")}
+          </p>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
         <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-gray-100 dark:border-slate-800 p-5">
           <div className="flex justify-between items-start mb-2">
-            <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{t("appointmentManagement.stats.totalToday")}</p>
+            <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
+              {t("appointmentManagement.stats.totalToday")}
+            </p>
             <div className="w-8 h-8 rounded-full bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center">
               <Calendar className="w-4 h-4 text-blue-500" />
             </div>
@@ -60,7 +123,9 @@ export function AppointmentManagement() {
 
         <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-gray-100 dark:border-slate-800 p-5">
           <div className="flex justify-between items-start mb-2">
-            <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{t("appointmentManagement.stats.completed")}</p>
+            <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
+              {t("appointmentManagement.stats.completed")}
+            </p>
             <div className="w-8 h-8 rounded-full bg-green-50 dark:bg-green-900/20 flex items-center justify-center">
               <Video className="w-4 h-4 text-green-500" />
             </div>
@@ -71,7 +136,9 @@ export function AppointmentManagement() {
 
         <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-gray-100 dark:border-slate-800 p-5">
           <div className="flex justify-between items-start mb-2">
-            <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{t("appointmentManagement.stats.canceled")}</p>
+            <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
+              {t("appointmentManagement.stats.canceled")}
+            </p>
             <div className="w-8 h-8 rounded-full bg-red-50 dark:bg-red-900/20 flex items-center justify-center">
               <XCircle className="w-4 h-4 text-red-500" />
             </div>
@@ -82,7 +149,9 @@ export function AppointmentManagement() {
 
         <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-gray-100 dark:border-slate-800 p-5">
           <div className="flex justify-between items-start mb-2">
-            <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{t("appointmentManagement.stats.avgWaitTime")}</p>
+            <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
+              {t("appointmentManagement.stats.avgWaitTime")}
+            </p>
             <div className="w-8 h-8 rounded-full bg-amber-50 dark:bg-amber-900/20 flex items-center justify-center">
               <Clock className="w-4 h-4 text-amber-500" />
             </div>
@@ -94,7 +163,9 @@ export function AppointmentManagement() {
 
       <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-gray-100 dark:border-slate-800 overflow-hidden">
         <div className="border-b border-gray-100 dark:border-slate-800 px-6 py-4 flex flex-col sm:flex-row justify-between items-start sm:items-center">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 sm:mb-0">{t("appointmentManagement.queue.title")}</h2>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 sm:mb-0">
+            {t("appointmentManagement.queue.title")}
+          </h2>
 
           <div className="flex space-x-3">
             <div className="relative">
@@ -123,6 +194,7 @@ export function AppointmentManagement() {
                 <th className="px-6 py-3 font-medium">{t("appointmentManagement.table.doctor")}</th>
                 <th className="px-6 py-3 font-medium">{t("appointmentManagement.table.type")}</th>
                 <th className="px-6 py-3 font-medium">{t("appointmentManagement.table.status")}</th>
+                <th className="px-6 py-3 font-medium text-right">{t("appointmentManagement.table.actions", "Actions")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-slate-800 text-sm">
@@ -134,45 +206,82 @@ export function AppointmentManagement() {
                     <td className="px-6 py-4"><Skeleton className="h-5 w-32" /></td>
                     <td className="px-6 py-4"><Skeleton className="h-5 w-20" /></td>
                     <td className="px-6 py-4"><Skeleton className="h-6 w-24 rounded-full" /></td>
+                    <td className="px-6 py-4 text-right"><Skeleton className="h-6 w-8 rounded ml-auto" /></td>
                   </tr>
                 ))
-              ) : filteredAppointments.length > 0 ? filteredAppointments.map((apt, idx) => (
-                <tr key={idx} className="hover:bg-gray-50 dark:hover:bg-slate-800">
-                  <td className="px-6 py-4 font-medium text-gray-900 dark:text-gray-100">{apt.time}</td>
-                  <td className="px-6 py-4">
-                    <div className="font-medium text-gray-900 dark:text-gray-100">{apt.patient}</div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="text-gray-600 dark:text-gray-300">{apt.doctor}</div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className="inline-flex items-center text-gray-600 dark:text-gray-300">
-                      {apt.type === 'Video Call' ? <Video className="w-3 h-3 mr-1 text-gray-400" /> : null}
-                      {apt.type}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <Badge variant={
-                      apt.status === 'Completed' ? 'default' :
-                        apt.status === 'In Progress' ? 'default' :
-                          apt.status === 'Waiting' || apt.status === 'Scheduled' ? 'secondary' : 'destructive'
-                    } className={
-                      apt.status === 'Completed' ? 'bg-green-500 hover:bg-green-600 dark:bg-green-600 dark:hover:bg-green-700' :
-                        apt.status === 'Waiting' || apt.status === 'Scheduled' ? 'bg-amber-500 hover:bg-amber-600 dark:bg-amber-600 dark:hover:bg-amber-700 text-white' : ''
-                    }>
-                      {apt.status === "Completed" ? t("appointmentManagement.status.completed") : apt.status === "In Progress" ? t("appointmentManagement.status.inProgress") : apt.status === "Waiting" ? t("appointmentManagement.status.waiting") : apt.status === "Scheduled" ? t("appointmentManagement.status.scheduled") : t("appointmentManagement.status.canceled")}
-                    </Badge>
-                  </td>
-                </tr>
-              )) : (
+              ) : filteredAppointments.length > 0 ? (
+                filteredAppointments.map((apt) => (
+                  <tr key={apt.id} className="hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors">
+                    <td className="px-6 py-4 font-medium text-gray-900 dark:text-gray-100">{apt.time}</td>
+                    <td className="px-6 py-4">
+                      <div className="font-medium text-gray-900 dark:text-gray-100">{apt.patient}</div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="text-gray-600 dark:text-gray-300">{apt.doctor}</div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="inline-flex items-center text-gray-600 dark:text-gray-300">
+                        {apt.type === "Video Call" ? <Video className="w-3 h-3 mr-1 text-gray-400" /> : null}
+                        {apt.type}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <Badge
+                        variant={
+                          apt.status === "Completed"
+                            ? "default"
+                            : apt.status === "In Progress"
+                            ? "default"
+                            : apt.status === "Waiting" || apt.status === "Scheduled"
+                            ? "secondary"
+                            : "destructive"
+                        }
+                        className={
+                          apt.status === "Completed"
+                            ? "bg-green-500 hover:bg-green-600 dark:bg-green-600 dark:hover:bg-green-700"
+                            : apt.status === "Waiting" || apt.status === "Scheduled"
+                            ? "bg-amber-500 hover:bg-amber-600 dark:bg-amber-600 dark:hover:bg-amber-700 text-white"
+                            : ""
+                        }
+                      >
+                        {apt.status === "Completed"
+                          ? t("appointmentManagement.status.completed")
+                          : apt.status === "In Progress"
+                          ? t("appointmentManagement.status.inProgress")
+                          : apt.status === "Waiting"
+                          ? t("appointmentManagement.status.waiting")
+                          : apt.status === "Scheduled"
+                          ? t("appointmentManagement.status.scheduled")
+                          : t("appointmentManagement.status.canceled")}
+                      </Badge>
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <button
+                        onClick={() => {
+                          setSelectedAppointment(apt);
+                          setIsDetailOpen(true);
+                        }}
+                        className="p-1.5 text-gray-400 hover:text-brand hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                        title="View Details"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              ) : (
                 <tr>
-                  <td colSpan={5} className="px-6 py-16 text-center">
+                  <td colSpan={6} className="px-6 py-16 text-center">
                     <div className="flex flex-col items-center justify-center">
                       <div className="w-16 h-16 bg-gray-50 dark:bg-slate-800 rounded-full flex items-center justify-center mb-4">
                         <Database className="w-8 h-8 text-gray-400" />
                       </div>
-                      <h3 className="text-gray-900 dark:text-gray-100 font-medium mb-1">{t("appointmentManagement.table.noAppointments")}</h3>
-                      <p className="text-gray-500 dark:text-gray-400 text-sm">{t("appointmentManagement.table.tryAdjusting")}</p>
+                      <h3 className="text-gray-900 dark:text-gray-100 font-medium mb-1">
+                        {t("appointmentManagement.table.noAppointments")}
+                      </h3>
+                      <p className="text-gray-500 dark:text-gray-400 text-sm">
+                        {t("appointmentManagement.table.tryAdjusting")}
+                      </p>
                     </div>
                   </td>
                 </tr>
@@ -181,6 +290,13 @@ export function AppointmentManagement() {
           </table>
         </div>
       </div>
+
+      {/* Appointment Detail Modal */}
+      <AppointmentDetailModal
+        isOpen={isDetailOpen}
+        onClose={() => setIsDetailOpen(false)}
+        appointment={selectedAppointment}
+      />
     </div>
   );
 }

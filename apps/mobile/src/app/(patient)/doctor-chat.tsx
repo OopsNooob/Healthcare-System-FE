@@ -1,13 +1,27 @@
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { View, Text, TouchableOpacity, ScrollView, TextInput, Image, KeyboardAvoidingView, Platform, Modal, SafeAreaView } from 'react-native';
 import { useSafeRouter as useRouter } from '@/utils/useSafeRouter';
 import Toast from 'react-native-toast-message';
-import { ArrowLeft, Send, Video, Phone, ImagePlus, Paperclip, AlertTriangle, CheckCircle, X, Star } from 'lucide-react-native';
+import { ArrowLeft, Send, Video, Phone, ImagePlus, Paperclip, AlertTriangle, CheckCircle, X, Star, FileText, ZoomIn, Eye, ShieldCheck } from 'lucide-react-native';
 import { tw, twInstance } from '@/tw';
+import { AttachmentPickerModal, ImageViewerModal, DocViewerModal } from '@/components/modals';
+
+interface ChatMessage {
+  id: string;
+  text: string;
+  sender: 'doctor' | 'user';
+  time: string;
+  hasAttachment?: boolean;
+  attachmentType?: 'image' | 'file';
+  attachmentName?: string;
+  attachmentSize?: string;
+  attachmentUri?: string;
+}
 
 export default function DoctorChatScreen() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isVi = i18n.language === 'vi';
 
   const router = useRouter();
   const [message, setMessage] = useState('');
@@ -17,21 +31,96 @@ export default function DoctorChatScreen() {
   const [reportReason, setReportReason] = useState('');
   const [rating, setRating] = useState(0);
   const [review, setReview] = useState('');
+  const [attachmentModalVisible, setAttachmentModalVisible] = useState(false);
+  const [attachmentMode, setAttachmentMode] = useState<'image' | 'file'>('image');
 
-  const [messages, setMessages] = useState([
-    { id: '1', text: "Hello Alex, how are you feeling today?", sender: 'doctor', time: '10:30 AM', hasAttachment: false },
-    { id: '2', text: "The medicine you prescribed is working well, but I still feel a bit dizzy.", sender: 'user', time: '10:31 AM', hasAttachment: false },
-    { id: '3', text: "Your test results look perfectly fine. No need to worry. The dizziness is a common side effect and should subside in a day or two.", sender: 'doctor', time: '10:32 AM', hasAttachment: false },
-  ]);
+  // Preview Modals
+  const [selectedImagePreview, setSelectedImagePreview] = useState<{ uri: string; name: string; size: string } | null>(null);
+  const [selectedDocPreview, setSelectedDocPreview] = useState<{ name: string; size: string; uri?: string } | null>(null);
 
-  const handleSend = (isAttachment = false) => {
-    if (!message.trim() && !isAttachment) return;
+  const initialMessages: ChatMessage[] = [
+    {
+      id: '1',
+      text: isVi ? "Chào Alex, tôi là Bác sĩ Sarah Connor. Tình hình huyết áp và sức khỏe của bạn hôm nay thế nào?" : "Hello Alex, Dr. Sarah Connor here. How are you feeling and how are your vital readings today?",
+      sender: 'doctor',
+      time: '10:30 AM',
+      hasAttachment: false,
+    },
+    {
+      id: '2',
+      text: isVi ? "Chào bác sĩ, thuốc dùng rất êm. Tôi gửi kèm hình ảnh chụp phiếu kết quả xét nghiệm máu gần nhất để bác sĩ xem giúp:" : "Hello Doctor, the medication is working well. I took a photo of my recent blood panel for your review:",
+      sender: 'user',
+      time: '10:31 AM',
+      hasAttachment: true,
+      attachmentType: 'image',
+      attachmentName: 'Blood_Test_Panel_Oct2026.jpg',
+      attachmentSize: '2.4 MB',
+      attachmentUri: 'https://images.unsplash.com/photo-1579684385127-1ef15d508118?q=80&w=600&auto=format&fit=crop',
+    },
+    {
+      id: '3',
+      text: isVi ? "Bác sĩ đã xem xét nghiệm. Các chỉ số đều ổn định. Bác sĩ gửi bản Báo cáo đánh giá lâm sàng 30 ngày định kỳ (PDF) dưới đây nhé:" : "I reviewed your blood panel. Everything looks stable. I have attached your certified 30-Day Care Directives report (PDF) below:",
+      sender: 'doctor',
+      time: '10:33 AM',
+      hasAttachment: true,
+      attachmentType: 'file',
+      attachmentName: 'Cardiology_Telemetry_Report_Q3.pdf',
+      attachmentSize: '1.2 MB',
+      attachmentUri: '',
+    },
+  ];
+
+  const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
+
+  const handleSend = () => {
+    if (!message.trim()) return;
     
     setMessages(prev => [
       ...prev, 
-      { id: Date.now().toString(), text: isAttachment ? '[Attachment]' : message, sender: 'user', time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), hasAttachment: isAttachment }
+      {
+        id: Date.now().toString(),
+        text: message.trim(),
+        sender: 'user',
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        hasAttachment: false,
+      }
     ]);
     setMessage('');
+  };
+
+  const handleSendAttachment = (item: { name: string; uri: string; type: 'image' | 'file'; size: string }) => {
+    setMessages(prev => [
+      ...prev,
+      {
+        id: Date.now().toString(),
+        text: item.type === 'image'
+          ? (isVi ? 'Đã gửi ảnh chụp y tế đính kèm.' : 'Attached medical photo.')
+          : (isVi ? 'Đã gửi tài liệu y khoa đính kèm.' : 'Attached medical document.'),
+        sender: 'user',
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        hasAttachment: true,
+        attachmentType: item.type,
+        attachmentName: item.name,
+        attachmentSize: item.size,
+        attachmentUri: item.uri,
+      }
+    ]);
+
+    // Simulate doctor receiving attachment
+    setTimeout(() => {
+      setMessages(prev => [
+        ...prev,
+        {
+          id: (Date.now() + 1).toString(),
+          text: item.type === 'image'
+            ? (isVi ? 'Bác sĩ đã tiếp nhận hình ảnh của bạn và đang kiểm tra.' : 'I have received your medical photo and am reviewing it now.')
+            : (isVi ? 'Bác sĩ đã nhận tệp tài liệu PDF và sẽ lưu vào hồ sơ theo dõi.' : 'I have received your PDF document and archived it to your clinical dossier.'),
+          sender: 'doctor',
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          hasAttachment: false,
+        }
+      ]);
+    }, 1500);
   };
 
   return (
@@ -42,7 +131,7 @@ export default function DoctorChatScreen() {
         keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
       >
         {/* Header */}
-        <View style={tw('flex-row items-center justify-between px-4 py-4 border-b border-gray-100 dark:border-gray-800')}>
+        <View style={tw('flex-row items-center justify-between px-4 py-4 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900')}>
           <View style={tw('flex-row items-center')}>
             <TouchableOpacity 
               style={tw('p-2')}
@@ -53,11 +142,11 @@ export default function DoctorChatScreen() {
             <View style={tw('flex-row items-center ml-2')}>
               <Image 
                 source={{ uri: 'https://i.pravatar.cc/150?img=1' }} 
-                style={tw('w-10 h-10 rounded-full bg-gray-200 mr-3')} 
+                style={tw('w-10 h-10 rounded-full bg-slate-200 mr-3')} 
               />
               <View>
                 <Text style={tw('text-lg font-bold text-slate-900 dark:text-white')}>{t('mobile.dr_sarah_connor', `Dr. Sarah Connor`)}</Text>
-                <Text style={tw('text-brand text-xs font-medium')}>{t('mobile.online', `Online`)}</Text>
+                <Text style={tw('text-emerald-500 text-xs font-semibold')}>{t('mobile.online', `Online`)}</Text>
               </View>
             </View>
           </View>
@@ -77,14 +166,79 @@ export default function DoctorChatScreen() {
           {messages.map((msg) => (
             <View 
               key={msg.id} 
-              style={tw(`mb-4 max-w-[80%] ${msg.sender === 'user' ? 'self-end' : 'self-start'}`)}
+              style={tw(`mb-4 max-w-[85%] ${msg.sender === 'user' ? 'self-end' : 'self-start'}`)}
             >
-              <View style={tw(`p-4 rounded-2xl ${msg.sender === 'user' ? 'bg-brand rounded-tr-sm' : 'bg-slate-100 dark:bg-slate-800 rounded-tl-sm'}`)}>
-                <Text style={tw(`text-base ${msg.sender === 'user' ? 'text-slate-900 dark:text-white font-medium' : 'text-slate-800 dark:text-slate-100'} ${msg.hasAttachment ? 'italic' : ''}`)}>
+              <View style={tw(`p-3.5 rounded-2xl ${msg.sender === 'user' ? 'bg-brand rounded-tr-sm' : 'bg-slate-100 dark:bg-slate-800 rounded-tl-sm'}`)}>
+                {/* 1. Image Attachment Preview */}
+                {msg.attachmentType === 'image' && msg.attachmentUri && (
+                  <TouchableOpacity
+                    activeOpacity={0.88}
+                    onPress={() => setSelectedImagePreview({
+                      uri: msg.attachmentUri!,
+                      name: msg.attachmentName || 'Photo.jpg',
+                      size: msg.attachmentSize || '2.1 MB',
+                    })}
+                    style={tw('mb-2.5 rounded-xl overflow-hidden border border-black/10 dark:border-white/10 bg-slate-200 dark:bg-slate-700 relative')}
+                  >
+                    <Image
+                      source={{ uri: msg.attachmentUri }}
+                      style={tw('w-60 h-44 rounded-xl')}
+                      resizeMode="cover"
+                    />
+                    <View style={tw('absolute bottom-2 right-2 bg-black/70 px-2 py-1 rounded-md flex-row items-center')}>
+                      <ZoomIn color="#ffffff" size={12} style={tw('mr-1')} />
+                      <Text style={tw('text-[10px] text-white font-medium')}>
+                        {msg.attachmentSize || 'Photo'}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                )}
+
+                {/* 2. PDF Document Attachment Card */}
+                {msg.attachmentType === 'file' && (
+                  <TouchableOpacity
+                    activeOpacity={0.85}
+                    onPress={() => setSelectedDocPreview({
+                      name: msg.attachmentName || 'Medical_Record.pdf',
+                      size: msg.attachmentSize || '1.2 MB',
+                      uri: msg.attachmentUri,
+                    })}
+                    style={tw(
+                      `mb-2.5 p-3 rounded-xl border flex-row items-center gap-3 ${
+                        msg.sender === 'user'
+                          ? 'bg-slate-900/10 border-slate-900/20'
+                          : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700'
+                      }`
+                    )}
+                  >
+                    <View style={tw('w-10 h-10 rounded-lg bg-red-100 dark:bg-red-900/30 items-center justify-center')}>
+                      <FileText color="#ef4444" size={22} />
+                    </View>
+                    <View style={tw('flex-1 mr-1')}>
+                      <Text
+                        numberOfLines={1}
+                        style={tw(
+                          `text-xs font-bold ${
+                            msg.sender === 'user' ? 'text-slate-900' : 'text-slate-900 dark:text-white'
+                          }`
+                        )}
+                      >
+                        {msg.attachmentName || 'Document.pdf'}
+                      </Text>
+                      <Text style={tw('text-[10px] text-slate-500 dark:text-slate-400 mt-0.5')}>
+                        {msg.attachmentSize || 'PDF Document'} • {isVi ? 'Nhấn để xem' : 'Tap to view'}
+                      </Text>
+                    </View>
+                    <Eye color={msg.sender === 'user' ? '#0f172a' : '#64748b'} size={18} />
+                  </TouchableOpacity>
+                )}
+
+                {/* Text Message */}
+                <Text style={tw(`text-sm leading-5 ${msg.sender === 'user' ? 'text-slate-900 font-medium' : 'text-slate-800 dark:text-slate-100'}`)}>
                   {msg.text}
                 </Text>
               </View>
-              <Text style={tw(`text-xs text-gray-400 mt-1 ${msg.sender === 'user' ? 'text-right' : 'text-left'}`)}>
+              <Text style={tw(`text-[11px] text-slate-400 mt-1 ${msg.sender === 'user' ? 'text-right' : 'text-left'}`)}>
                 {msg.time}
               </Text>
             </View>
@@ -92,16 +246,28 @@ export default function DoctorChatScreen() {
         </ScrollView>
 
         {/* Input Area */}
-        <View style={tw('p-4 border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-slate-900 flex-row items-center')}>
-          <TouchableOpacity onPress={() => Toast.show({ type: 'info', text1: t('mobile.info', 'Info'), text2: t('mobile.add_image_clicked', 'Add Image clicked') })} style={tw('p-3 bg-slate-100 dark:bg-slate-800 rounded-full mr-2')}>
+        <View style={tw('p-4 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 flex-row items-center')}>
+          <TouchableOpacity 
+            onPress={() => {
+              setAttachmentMode('image');
+              setAttachmentModalVisible(true);
+            }} 
+            style={tw('p-3 bg-slate-100 dark:bg-slate-800 rounded-full mr-2 active:opacity-80')}
+          >
             <ImagePlus color="#64748b" size={20} />
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => Toast.show({ type: 'info', text1: t('mobile.info', 'Info'), text2: t('mobile.add_file_clicked', 'Add File clicked') })} style={tw('p-3 bg-slate-100 dark:bg-slate-800 rounded-full mr-3')}>
+          <TouchableOpacity 
+            onPress={() => {
+              setAttachmentMode('file');
+              setAttachmentModalVisible(true);
+            }} 
+            style={tw('p-3 bg-slate-100 dark:bg-slate-800 rounded-full mr-3 active:opacity-80')}
+          >
             <Paperclip color="#64748b" size={20} />
           </TouchableOpacity>
-          <View style={tw('flex-1 bg-gray-100 rounded-3xl px-4 py-2 mr-3 flex-row items-center min-h-[48px]')}>
+          <View style={tw('flex-1 bg-slate-100 dark:bg-slate-800 rounded-3xl px-4 py-2 mr-3 flex-row items-center min-h-[48px]')}>
             <TextInput
-              style={tw('flex-1 text-base text-gray-900 dark:text-gray-100 h-10')}
+              style={tw('flex-1 text-base text-slate-900 dark:text-white h-10')}
               placeholder={t('mobile.type_a_message', 'Type a message...')}
               placeholderTextColor="#9ca3af"
               value={message}
@@ -110,7 +276,7 @@ export default function DoctorChatScreen() {
             />
           </View>
           <TouchableOpacity 
-            onPress={() => handleSend(false)}
+            onPress={handleSend}
             style={tw(`w-12 h-12 rounded-full items-center justify-center ${message.trim() ? 'bg-brand' : 'bg-slate-200 dark:bg-slate-700'}`)}
             disabled={!message.trim()}
           >
@@ -129,7 +295,7 @@ export default function DoctorChatScreen() {
             </View>
             
             <View style={tw('items-center mb-6')}>
-              <Image source={{ uri: 'https://i.pravatar.cc/150?img=1' }} style={tw('w-16 h-16 rounded-full bg-gray-200 mb-3')} />
+              <Image source={{ uri: 'https://i.pravatar.cc/150?img=1' }} style={tw('w-16 h-16 rounded-full bg-slate-200 mb-3')} />
               <Text style={tw('text-lg font-bold text-slate-900 dark:text-white')}>{t('mobile.dr_sarah_connor', `Dr. Sarah Connor`)}</Text>
             </View>
 
@@ -153,7 +319,7 @@ export default function DoctorChatScreen() {
               />
             </View>
             <TouchableOpacity onPress={() => { setEndModalVisible(false); Toast.show({ type: 'success', text1: t('mobile.success', 'Success'), text2: t('mobile.review_submitted', 'Review Submitted') }); }} style={tw('bg-brand py-4 rounded-xl items-center')}>
-              <Text style={tw('text-slate-900 dark:text-white font-bold text-base')}>{t('mobile.submit_review', `Submit Review`)}</Text>
+              <Text style={tw('text-slate-900 font-bold text-base')}>{t('mobile.submit_review', `Submit Review`)}</Text>
             </TouchableOpacity>
           </View>
         </KeyboardAvoidingView>
@@ -184,6 +350,32 @@ export default function DoctorChatScreen() {
           </View>
         </KeyboardAvoidingView>
       </Modal>
+
+      {/* Attachment Picker Modal */}
+      <AttachmentPickerModal
+        visible={attachmentModalVisible}
+        onClose={() => setAttachmentModalVisible(false)}
+        initialMode={attachmentMode}
+        onSendAttachment={handleSendAttachment}
+      />
+
+      {/* Lightbox Image Preview Modal */}
+      <ImageViewerModal
+        visible={!!selectedImagePreview}
+        onClose={() => setSelectedImagePreview(null)}
+        imageUri={selectedImagePreview?.uri}
+        imageName={selectedImagePreview?.name}
+        imageSize={selectedImagePreview?.size}
+      />
+
+      {/* PDF Document Viewer Modal */}
+      <DocViewerModal
+        visible={!!selectedDocPreview}
+        onClose={() => setSelectedDocPreview(null)}
+        fileName={selectedDocPreview?.name}
+        fileSize={selectedDocPreview?.size}
+        fileUri={selectedDocPreview?.uri}
+      />
     </SafeAreaView>
   );
 }

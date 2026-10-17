@@ -5,6 +5,7 @@ import { useSafeRouter as useRouter } from '@/utils/useSafeRouter';
 import { MicOff, Video, PhoneOff, Maximize, MessageCircle, FileText, ChevronDown, BrainCircuit, Activity, Save, LineChart, AlertTriangle } from 'lucide-react-native';
 import { tw, twInstance } from '@/tw';
 import Toast from 'react-native-toast-message';
+import { AiSummaryModal, HealthChartModal, CareAlertsModal } from '@/components/modals';
 
 export default function DoctorVideoCallScreen() {
   const { t } = useTranslation();
@@ -12,6 +13,9 @@ export default function DoctorVideoCallScreen() {
 
   const [notesVisible, setNotesVisible] = useState(false);
   const [clinicalNotes, setClinicalNotes] = useState('');
+  const [aiSummaryModalVisible, setAiSummaryModalVisible] = useState(false);
+  const [healthChartModalVisible, setHealthChartModalVisible] = useState(false);
+  const [careAlertsModalVisible, setCareAlertsModalVisible] = useState(false);
 
   return (
     <View style={tw('flex-1 bg-slate-900 relative')}>
@@ -109,17 +113,26 @@ export default function DoctorVideoCallScreen() {
                 
                 {/* Quick Actions Row */}
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={tw('-mx-4')} contentContainerStyle={tw('px-4 gap-3')}>
-                  <TouchableOpacity onPress={() => Toast.show({ type: 'info', text1: 'AI Summary', text2: 'Opening AI Summary modal...' })} style={tw('bg-purple-100 dark:bg-purple-900/30 px-4 py-2.5 rounded-xl flex-row items-center border border-purple-200 dark:border-purple-800/50')}>
+                  <TouchableOpacity 
+                    onPress={() => setAiSummaryModalVisible(true)} 
+                    style={tw('bg-purple-100 dark:bg-purple-900/30 px-4 py-2.5 rounded-xl flex-row items-center border border-purple-200 dark:border-purple-800/50')}
+                  >
                     <BrainCircuit color={twInstance.color('text-purple-600 dark:text-purple-400')} size={16} />
                     <Text style={tw('text-purple-700 dark:text-purple-300 font-bold ml-1.5 text-xs')}>{t('mobile.ai_summary', 'AI Summary')}</Text>
                   </TouchableOpacity>
                   
-                  <TouchableOpacity onPress={() => Toast.show({ type: 'info', text1: 'Health Chart', text2: 'Opening Health Chart modal...' })} style={tw('bg-blue-100 dark:bg-blue-900/30 px-4 py-2.5 rounded-xl flex-row items-center border border-blue-200 dark:border-blue-800/50')}>
+                  <TouchableOpacity 
+                    onPress={() => setHealthChartModalVisible(true)} 
+                    style={tw('bg-blue-100 dark:bg-blue-900/30 px-4 py-2.5 rounded-xl flex-row items-center border border-blue-200 dark:border-blue-800/50')}
+                  >
                     <LineChart color={twInstance.color('text-blue-600 dark:text-blue-400')} size={16} />
                     <Text style={tw('text-blue-700 dark:text-blue-300 font-bold ml-1.5 text-xs')}>{t('mobile.health_chart', 'Health Chart')}</Text>
                   </TouchableOpacity>
 
-                  <TouchableOpacity onPress={() => Toast.show({ type: 'info', text1: 'Care Alerts', text2: 'Opening Care Alerts modal...' })} style={tw('bg-amber-100 dark:bg-amber-900/30 px-4 py-2.5 rounded-xl flex-row items-center border border-amber-200 dark:border-amber-800/50')}>
+                  <TouchableOpacity 
+                    onPress={() => setCareAlertsModalVisible(true)} 
+                    style={tw('bg-amber-100 dark:bg-amber-900/30 px-4 py-2.5 rounded-xl flex-row items-center border border-amber-200 dark:border-amber-800/50')}
+                  >
                     <AlertTriangle color={twInstance.color('text-amber-600 dark:text-amber-400')} size={16} />
                     <Text style={tw('text-amber-700 dark:text-amber-300 font-bold ml-1.5 text-xs')}>{t('mobile.care_alerts', 'Care Alerts')}</Text>
                   </TouchableOpacity>
@@ -149,6 +162,29 @@ export default function DoctorVideoCallScreen() {
           </View>
         </KeyboardAvoidingView>
       </Modal>
+
+      {/* In-Call Modals */}
+      <AiSummaryModal
+        visible={aiSummaryModalVisible}
+        onClose={() => setAiSummaryModalVisible(false)}
+        patientName="Alex Johnson"
+        programName="Hypertension Care Program"
+        baseline="145/95 mmHg"
+        current="165/100 mmHg"
+        adherence={75}
+      />
+
+      <HealthChartModal
+        visible={healthChartModalVisible}
+        onClose={() => setHealthChartModalVisible(false)}
+        patientName="Alex Johnson"
+      />
+
+      <CareAlertsModal
+        visible={careAlertsModalVisible}
+        onClose={() => setCareAlertsModalVisible(false)}
+        patientName="Alex Johnson"
+      />
     </View>
   );
 }
