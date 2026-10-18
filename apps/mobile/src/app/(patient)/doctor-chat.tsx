@@ -131,34 +131,74 @@ export default function DoctorChatScreen() {
         keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
       >
         {/* Header */}
-        <View style={tw('flex-row items-center justify-between px-4 py-4 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900')}>
-          <View style={tw('flex-row items-center')}>
+        <View style={tw('flex-row items-center justify-between px-3 py-3 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900')}>
+          <View style={tw('flex-row items-center flex-1 mr-2')}>
             <TouchableOpacity 
-              style={tw('p-2')}
+              style={tw('p-2 -ml-1')}
               onPress={() => router.back()}
             >
-              <ArrowLeft color={twInstance.color('text-slate-900 dark:text-slate-100')} size={24} />
+              <ArrowLeft color={twInstance.color('text-slate-900 dark:text-slate-100')} size={22} />
             </TouchableOpacity>
-            <View style={tw('flex-row items-center ml-2')}>
+            <View style={tw('flex-row items-center ml-1 flex-1')}>
               <Image 
                 source={{ uri: 'https://i.pravatar.cc/150?img=1' }} 
-                style={tw('w-10 h-10 rounded-full bg-slate-200 mr-3')} 
+                style={tw('w-10 h-10 rounded-full bg-slate-200 mr-2.5')} 
               />
-              <View>
-                <Text style={tw('text-lg font-bold text-slate-900 dark:text-white')}>{t('mobile.dr_sarah_connor', `Dr. Sarah Connor`)}</Text>
+              <View style={tw('flex-1')}>
+                <Text style={tw('text-base font-bold text-slate-900 dark:text-white')} numberOfLines={1}>{t('mobile.dr_sarah_connor', `Dr. Sarah Connor`)}</Text>
                 <Text style={tw('text-emerald-500 text-xs font-semibold')}>{t('mobile.online', `Online`)}</Text>
               </View>
             </View>
           </View>
           
-          <View style={tw('flex-row gap-1')}>
-            <TouchableOpacity onPress={() => setReportModalVisible(true)} style={tw('p-2')}>
-              <AlertTriangle color="#ef4444" size={20} />
+          <View style={tw('flex-row items-center gap-1')}>
+            {/* Video Call Button */}
+            <TouchableOpacity 
+              style={tw('w-9 h-9 rounded-full bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800/60 items-center justify-center active:opacity-75')}
+              onPress={() => router.push('/(patient)/video-call')}
+              accessibilityLabel={t('mobile.video_call', 'Gọi video')}
+            >
+              <Video color="#10b981" size={18} />
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => setEndModalVisible(true)} style={tw('p-2')}>
-              <Star color="#f59e0b" size={20} />
+
+            {/* Voice Call Button */}
+            <TouchableOpacity 
+              style={tw('w-9 h-9 rounded-full bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800/60 items-center justify-center active:opacity-75')}
+              onPress={() => router.push('/(patient)/video-call')}
+              accessibilityLabel={t('mobile.call', 'Gọi điện')}
+            >
+              <Phone color="#3b82f6" size={17} />
+            </TouchableOpacity>
+
+            {/* Report */}
+            <TouchableOpacity onPress={() => setReportModalVisible(true)} style={tw('w-9 h-9 rounded-full bg-red-50 dark:bg-red-950/50 items-center justify-center active:opacity-75')}>
+              <AlertTriangle color="#ef4444" size={17} />
+            </TouchableOpacity>
+
+            {/* End / Review */}
+            <TouchableOpacity onPress={() => setEndModalVisible(true)} style={tw('w-9 h-9 rounded-full bg-amber-50 dark:bg-amber-950/50 items-center justify-center active:opacity-75')}>
+              <Star color="#f59e0b" size={17} />
             </TouchableOpacity>
           </View>
+        </View>
+
+        {/* Teleconsultation Quick Action Banner */}
+        <View style={tw('bg-emerald-50/80 dark:bg-emerald-950/40 px-4 py-2 border-b border-emerald-100 dark:border-emerald-900/40 flex-row items-center justify-between')}>
+          <View style={tw('flex-row items-center flex-1 mr-3')}>
+            <View style={tw('w-2 h-2 rounded-full bg-emerald-500 mr-2')} />
+            <Text style={tw('text-xs text-emerald-900 dark:text-emerald-200 font-semibold')} numberOfLines={1}>
+              {isVi ? 'Phòng khám trực tuyến sẵn sàng' : 'Teleconsultation room ready'}
+            </Text>
+          </View>
+          <TouchableOpacity
+            onPress={() => router.push('/(patient)/video-call')}
+            style={tw('bg-emerald-600 dark:bg-emerald-500 px-3 py-1.5 rounded-full flex-row items-center active:opacity-85 shadow-sm')}
+          >
+            <Video color="#ffffff" size={13} style={tw('mr-1.5')} />
+            <Text style={tw('text-white text-xs font-bold')}>
+              {t('mobile.video_call', 'Gọi video')}
+            </Text>
+          </TouchableOpacity>
         </View>
 
         {/* Chat Area */}
