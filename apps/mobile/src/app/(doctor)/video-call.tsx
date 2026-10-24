@@ -77,7 +77,7 @@ export default function DoctorVideoCallScreen() {
               </TouchableOpacity>
               <TouchableOpacity 
                 style={tw('w-16 h-16 rounded-full bg-red-500 items-center justify-center shadow-lg')}
-                onPress={() => router.back()}
+                onPress={() => router.back('/(doctor)')}
               >
                 <PhoneOff color="#ffffff" size={28} />
               </TouchableOpacity>

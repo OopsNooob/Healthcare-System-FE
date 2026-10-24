@@ -63,7 +63,7 @@ export default function VideoCallScreen() {
             
             <TouchableOpacity 
               style={tw('w-16 h-16 rounded-full bg-red-500 items-center justify-center shadow-lg')}
-              onPress={() => router.back()}
+              onPress={() => router.back('/(patient)/chat-hub')}
             >
               <PhoneOff color="#ffffff" size={28} />
             </TouchableOpacity>

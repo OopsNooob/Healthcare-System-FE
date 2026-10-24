@@ -9,10 +9,13 @@ export default function DoctorLayout() {
   const { colorScheme } = useThemeContext();
   
   return (
-    <Tabs screenOptions={{ 
-      headerShown: false, 
-      tabBarActiveTintColor: "#2563eb"
-    }}>
+    <Tabs 
+      backBehavior="history"
+      screenOptions={{ 
+        headerShown: false, 
+        tabBarActiveTintColor: "#2563eb"
+      }}
+    >
       <Tabs.Screen name="index" options={{ title: t('mobile.overview', "Overview"), tabBarIcon: ({ color }) => <Home color={color} size={24} /> }} />
       <Tabs.Screen name="schedule" options={{ title: t('mobile.my_schedule', "Schedule"), tabBarIcon: ({ color }) => <Calendar color={color} size={24} /> }} />
       <Tabs.Screen name="patients" options={{ title: t('mobile.patients', "Patients"), tabBarIcon: ({ color }) => <Users color={color} size={24} /> }} />

@@ -135,7 +135,7 @@ export default function DoctorChatScreen() {
           <View style={tw('flex-row items-center flex-1 mr-2')}>
             <TouchableOpacity 
               style={tw('p-2 -ml-1')}
-              onPress={() => router.back()}
+              onPress={() => router.back('/(patient)/chat-hub')}
             >
               <ArrowLeft color={twInstance.color('text-slate-900 dark:text-slate-100')} size={22} />
             </TouchableOpacity>

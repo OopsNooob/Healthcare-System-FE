@@ -141,7 +141,7 @@ export default function FamilyCompanionScreen() {
       <View style={tw('px-6 pt-6 pb-4 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800')}>
         <View style={tw('flex-row justify-between items-center')}>
           <View style={tw('flex-row items-center')}>
-            <TouchableOpacity onPress={() => router.back()} style={tw('p-2 -ml-2 mr-2')}>
+            <TouchableOpacity onPress={() => router.back('/(patient)/profile')} style={tw('p-2 -ml-2 mr-2')}>
               <ArrowLeft color={twInstance.color('text-slate-900 dark:text-white')} size={24} />
             </TouchableOpacity>
             <View>

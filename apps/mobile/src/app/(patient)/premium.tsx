@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { View, Text, ScrollView, TouchableOpacity, SafeAreaView, Platform, Alert, Image } from 'react-native';
 import { useSafeRouter as useRouter } from '@/utils/useSafeRouter';
 import Toast from 'react-native-toast-message';
-import { Crown, CheckCircle2, ArrowRight, ShieldCheck, Zap, XCircle, HeartPulse, Sparkles, AlertCircle } from 'lucide-react-native';
+import { Crown, CheckCircle2, ArrowRight, ArrowLeft, ShieldCheck, Zap, XCircle, HeartPulse, Sparkles, AlertCircle } from 'lucide-react-native';
 import { tw, twInstance } from '@/tw';
 import { useThemeContext } from '@/context/ThemeContext';
 
@@ -64,8 +64,19 @@ export default function PremiumScreen() {
   return (
     <SafeAreaView style={tw('flex-1 bg-slate-50 dark:bg-slate-950')}>
       <ScrollView contentContainerStyle={tw('pb-20')} showsVerticalScrollIndicator={false}>
+        {/* Navigation Bar */}
+        <View style={tw('flex-row items-center px-4 pt-4 pb-2')}>
+          <TouchableOpacity 
+            style={tw('p-2 -ml-1 mr-2')}
+            onPress={() => router.back('/(patient)/profile')}
+            accessibilityLabel={t('mobile.back', 'Quay lại')}
+          >
+            <ArrowLeft color={twInstance.color('text-slate-900 dark:text-slate-100')} size={24} />
+          </TouchableOpacity>
+        </View>
+
         {/* Header */}
-        <View style={tw('items-center px-6 pt-10 pb-6')}>
+        <View style={tw('items-center px-6 pt-2 pb-6')}>
           <View style={tw('w-20 h-20 bg-amber-100 dark:bg-amber-900/30 rounded-full items-center justify-center mb-4')}>
             <Crown color={twInstance.color('text-amber-500')} size={40} />
           </View>

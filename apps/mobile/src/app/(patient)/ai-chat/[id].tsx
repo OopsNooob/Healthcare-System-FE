@@ -200,7 +200,7 @@ export default function AiChatSessionScreen() {
         {/* Header */}
         <View style={tw('flex-row items-center justify-between px-4 py-4 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 z-10')}>
           <View style={tw('flex-row items-center')}>
-            <TouchableOpacity style={tw('p-2')} onPress={() => router.back()}>
+            <TouchableOpacity style={tw('p-2')} onPress={() => router.back('/(patient)/ai-chat')}>
               <ArrowLeft color={twInstance.color('text-slate-900 dark:text-slate-100')} size={24} />
             </TouchableOpacity>
             <View style={tw('flex-row items-center ml-2')}>

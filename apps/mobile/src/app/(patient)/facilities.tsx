@@ -95,7 +95,7 @@ export default function MedicalFacilitiesScreen() {
       {/* Header */}
       <View style={tw('px-6 pt-6 pb-4 bg-white dark:bg-slate-900')}>
         <View style={tw('flex-row items-center mb-4')}>
-          <TouchableOpacity onPress={() => router.back()} style={tw('p-2 -ml-2 mr-2')}>
+          <TouchableOpacity onPress={() => router.back('/(patient)/profile')} style={tw('p-2 -ml-2 mr-2')}>
             <ArrowLeft color={twInstance.color('text-slate-900 dark:text-white')} size={24} />
           </TouchableOpacity>
           <Text style={tw('flex-1 text-xl font-bold text-slate-900 dark:text-white')} numberOfLines={1}>{t('mobile.medical_facilities', 'Medical Facilities')}</Text>

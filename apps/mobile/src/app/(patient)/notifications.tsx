@@ -76,7 +76,7 @@ export default function PatientNotificationsScreen() {
     <SafeAreaView style={tw('flex-1 bg-slate-50 dark:bg-slate-950')}>
       {/* Header */}
       <View style={tw('px-4 pt-6 pb-4 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 flex-row items-center')}>
-        <TouchableOpacity onPress={() => router.back()} style={tw('p-2 mr-2')}>
+        <TouchableOpacity onPress={() => router.back('/(patient)')} style={tw('p-2 mr-2')}>
           <ArrowLeft color={twInstance.color('text-slate-900 dark:text-slate-100')} size={24} />
         </TouchableOpacity>
         <Text style={tw('text-xl font-bold text-slate-900 dark:text-white')}>{t('mobile.notifications', `Notifications`)}</Text>

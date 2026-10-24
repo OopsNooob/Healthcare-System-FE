@@ -125,7 +125,7 @@ export default function BaselineAssessmentScreen() {
                 if (currentStep > 1) {
                   setCurrentStep((prev) => (prev - 1) as 1 | 2 | 3);
                 } else {
-                  router.back();
+                  router.back('/(patient)');
                 }
               }}
               style={tw('w-10 h-10 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 items-center justify-center shadow-sm')}

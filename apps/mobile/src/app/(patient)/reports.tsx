@@ -70,7 +70,7 @@ export default function ReportsScreen() {
     <SafeAreaView style={tw('flex-1 bg-slate-50 dark:bg-slate-950')}>
       {/* Header */}
       <View style={tw('flex-row items-center px-6 pt-6 pb-4 border-b border-slate-200 dark:border-slate-800')}>
-        <TouchableOpacity onPress={() => router.back()} style={tw('p-2 -ml-2 mr-2')}>
+        <TouchableOpacity onPress={() => router.back('/(patient)/health-metric')} style={tw('p-2 -ml-2 mr-2')}>
           <ArrowLeft color={twInstance.color('text-slate-900 dark:text-white')} size={24} />
         </TouchableOpacity>
         <Text style={tw('text-xl font-bold text-slate-900 dark:text-white')}>{t('mobile.health_reports', 'Health Reports')}</Text>

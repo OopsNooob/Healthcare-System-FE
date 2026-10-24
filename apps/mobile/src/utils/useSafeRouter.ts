@@ -23,10 +23,16 @@ export function useSafeRouter() {
     }, 500);
   };
   
-  const back = () => {
+  const back = (fallbackHref?: string) => {
     if (isNavigating.current) return;
     isNavigating.current = true;
-    router.back();
+    if (router.canGoBack()) {
+      router.back();
+    } else if (fallbackHref) {
+      router.replace(fallbackHref as any);
+    } else {
+      router.back();
+    }
     setTimeout(() => {
       isNavigating.current = false;
     }, 500);

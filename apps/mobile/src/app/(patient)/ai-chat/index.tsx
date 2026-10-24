@@ -4,10 +4,12 @@ import { View, Text, TouchableOpacity, SafeAreaView, ScrollView } from 'react-na
 import { useLocalSearchParams } from 'expo-router';
 import { useSafeRouter as useRouter } from '@/utils/useSafeRouter';
 import { ArrowLeft, Sparkles, MessageSquare, Plus, ChevronRight } from 'lucide-react-native';
-import { tw } from '@/tw';
+import { tw, twInstance } from '@/tw';
+import { useThemeContext } from '@/context/ThemeContext';
 
 export default function AiChatHistoryScreen() {
   const { t } = useTranslation();
+  useThemeContext();
 
   const router = useRouter();
   const { prefill } = useLocalSearchParams<{ prefill?: string }>();
@@ -31,11 +33,18 @@ export default function AiChatHistoryScreen() {
   return (
     <SafeAreaView style={tw('flex-1 bg-slate-50 dark:bg-slate-950')}>
       {/* Header */}
-      <View style={tw('flex-row items-center px-6 py-4 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800')}>
+      <View style={tw('flex-row items-center px-4 py-4 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800')}>
+        <TouchableOpacity 
+          style={tw('p-2 -ml-1 mr-2')}
+          onPress={() => router.back('/(patient)/chat-hub')}
+          accessibilityLabel={t('mobile.back', 'Quay lại')}
+        >
+          <ArrowLeft color={twInstance.color('text-slate-900 dark:text-slate-100')} size={24} />
+        </TouchableOpacity>
         <View style={tw('w-10 h-10 bg-ai-light rounded-full items-center justify-center mr-3')}>
           <Sparkles color="#6366f1" size={20} />
         </View>
-        <View>
+        <View style={tw('flex-1')}>
           <Text style={tw('text-xl font-bold text-slate-900 dark:text-white')}>{t('mobile.ai_consultations', `AI Consultations`)}</Text>
           <Text style={tw('text-slate-500 dark:text-slate-400 dark:text-slate-500 text-sm')}>{t('mobile.your_health_analysis_history', `Your health analysis history`)}</Text>
         </View>
