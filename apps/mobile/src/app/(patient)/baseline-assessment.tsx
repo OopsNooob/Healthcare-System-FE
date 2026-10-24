@@ -32,7 +32,8 @@ import { useThemeContext } from '@/context/ThemeContext';
 import Toast from 'react-native-toast-message';
 
 export default function BaselineAssessmentScreen() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isVi = i18n.language === 'vi';
   const { colorScheme } = useThemeContext();
   const isDark = colorScheme === 'dark';
   const router = useRouter();
@@ -49,7 +50,7 @@ export default function BaselineAssessmentScreen() {
   const [diastolic, setDiastolic] = useState('82');
   const [glucose, setGlucose] = useState('105');
   const [hba1c, setHbA1c] = useState('6.2');
-  const [medications, setMedications] = useState('Amlodipine 5mg (1 viên/ngày)');
+  const [medications, setMedications] = useState(isVi ? 'Amlodipine 5mg (1 viên/ngày)' : 'Amlodipine 5mg (1 tab/day)');
 
   // Step 3: Quiet Hours
   const [quietStart, setQuietStart] = useState('22:00');

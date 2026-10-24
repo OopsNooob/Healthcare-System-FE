@@ -91,7 +91,7 @@ export function ForgetPassword({
       setCooldown(60);
 
       localStorage.setItem("resetPasswordEmail", email.trim());
-      showToast.success("OTP has been sent to your email");
+      showToast.success(t("auth.otpSent", "OTP has been sent to your email"));
       navigate("/confirm-otp");
     } catch (submitError) {
       const message =

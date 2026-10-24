@@ -41,7 +41,7 @@ export function Contact() {
               <h3 className="font-semibold text-gray-900 dark:text-gray-100">{t("sharedPages.contact.phoneSupport")}</h3>
             </div>
             <p className="text-gray-600 dark:text-gray-400 text-sm mb-2">+84 (0) 123 456 789</p>
-            <p className="text-gray-600 dark:text-gray-400 text-sm">Mon-Fri 9AM-6PM (Vietnam Time)</p>
+            <p className="text-gray-600 dark:text-gray-400 text-sm">{t("sharedPages.contact.workingHours", "Mon-Fri 9AM-6PM (Vietnam Time)")}</p>
           </div>
 
           {/* Location */}

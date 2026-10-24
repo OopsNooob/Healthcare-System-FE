@@ -228,7 +228,7 @@ export function UserManagement() {
     });
 
     if (result) {
-      showToast.success("Report submitted successfully");
+      showToast.success(t("userManagement.toasts.reportSuccess", "Report submitted successfully"));
       await refresh();
     }
   };
@@ -422,7 +422,7 @@ export function UserManagement() {
     const result = isBanningAction
       ? await submitBanUser({
           id: userId,
-          reason: "Vi phạm quy định hệ thống",
+          reason: t("userManagement.toasts.defaultBanReason", "Vi phạm quy định hệ thống"),
         })
       : await submitUnbanUser({
           id: userId,

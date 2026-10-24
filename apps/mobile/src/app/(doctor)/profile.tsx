@@ -494,13 +494,13 @@ export default function DoctorProfileScreen() {
                     onPress={() => setColorScheme('light')}
                     style={tw(`px-4 py-2 rounded-lg ${activeScheme === 'light' ? 'bg-white dark:bg-slate-700 shadow-sm' : ''}`)}
                   >
-                    <Text style={tw(`text-xs font-bold ${activeScheme === 'light' ? 'text-slate-900 dark:text-white' : 'text-slate-500 dark:text-slate-400'}`)}>Light</Text>
+                    <Text style={tw(`text-xs font-bold ${activeScheme === 'light' ? 'text-slate-900 dark:text-white' : 'text-slate-500 dark:text-slate-400'}`)}>{t('mobile.light', 'Light')}</Text>
                   </TouchableOpacity>
                   <TouchableOpacity 
                     onPress={() => setColorScheme('dark')}
                     style={tw(`px-4 py-2 rounded-lg ${activeScheme === 'dark' ? 'bg-white dark:bg-slate-700 shadow-sm' : ''}`)}
                   >
-                    <Text style={tw(`text-xs font-bold ${activeScheme === 'dark' ? 'text-slate-900 dark:text-white' : 'text-slate-500 dark:text-slate-400'}`)}>Dark</Text>
+                    <Text style={tw(`text-xs font-bold ${activeScheme === 'dark' ? 'text-slate-900 dark:text-white' : 'text-slate-500 dark:text-slate-400'}`)}>{t('mobile.dark', 'Dark')}</Text>
                   </TouchableOpacity>
                 </View>
               </View>

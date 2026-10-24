@@ -238,7 +238,7 @@ export const ReportExportModal: React.FC<ReportExportModalProps> = ({
                       )}
                     >
                       <View style={tw('flex-row items-center justify-between mb-1.5')}>
-                        <Text style={tw('font-bold text-slate-900 dark:text-white text-sm')}>PDF Document</Text>
+                        <Text style={tw('font-bold text-slate-900 dark:text-white text-sm')}>{t('mobile.pdf_document', 'PDF Document')}</Text>
                         <View
                           style={tw(
                             `w-4 h-4 rounded-full border items-center justify-center ${
@@ -265,7 +265,7 @@ export const ReportExportModal: React.FC<ReportExportModalProps> = ({
                       )}
                     >
                       <View style={tw('flex-row items-center justify-between mb-1.5')}>
-                        <Text style={tw('font-bold text-slate-900 dark:text-white text-sm')}>CSV Dataset</Text>
+                        <Text style={tw('font-bold text-slate-900 dark:text-white text-sm')}>{t('mobile.csv_dataset', 'CSV Dataset')}</Text>
                         <View
                           style={tw(
                             `w-4 h-4 rounded-full border items-center justify-center ${

@@ -4,6 +4,7 @@ import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system/legacy';
 import Toast from 'react-native-toast-message';
+import i18n from '@/i18n';
 
 export interface NativeMediaFile {
   uri: string;
@@ -39,8 +40,8 @@ export const requestCameraPermission = async (): Promise<boolean> => {
     if (status !== 'granted') {
       Toast.show({
         type: 'error',
-        text1: 'Quyền Camera bị từ chối / Camera Permission Denied',
-        text2: 'Vui lòng cấp quyền máy ảnh trong Cài đặt thiết bị.',
+        text1: i18n.t('mobile.camera_perm_denied', 'Camera Permission Denied'),
+        text2: i18n.t('mobile.camera_perm_desc', 'Please grant camera permission in device settings.'),
       });
       return false;
     }
@@ -57,8 +58,8 @@ export const requestMediaLibraryPermission = async (): Promise<boolean> => {
     if (status !== 'granted') {
       Toast.show({
         type: 'error',
-        text1: 'Quyền Thư viện ảnh bị từ chối / Gallery Permission Denied',
-        text2: 'Vui lòng cấp quyền truy cập ảnh trong Cài đặt thiết bị.',
+        text1: i18n.t('mobile.gallery_perm_denied', 'Gallery Permission Denied'),
+        text2: i18n.t('mobile.gallery_perm_desc', 'Please grant photo library permission in device settings.'),
       });
       return false;
     }
@@ -125,8 +126,8 @@ export const pickNativeImage = async (
     console.error('pickNativeImage error:', error);
     Toast.show({
       type: 'error',
-      text1: 'Lỗi chọn ảnh / Image Pick Error',
-      text2: 'Không thể mở máy ảnh hoặc thư viện.',
+      text1: i18n.t('mobile.error', 'Error'),
+      text2: i18n.t('mobile.file_pick_error_desc', 'Không thể mở máy ảnh hoặc thư viện.'),
     });
     return null;
   }
@@ -162,8 +163,8 @@ export const pickNativePdfDocument = async (): Promise<NativeMediaFile | null> =
     console.error('pickNativePdfDocument error:', error);
     Toast.show({
       type: 'error',
-      text1: 'Lỗi chọn tệp / Document Pick Error',
-      text2: 'Không thể mở trình quản lý tệp trên thiết bị.',
+      text1: i18n.t('mobile.file_pick_error', 'Document Pick Error'),
+      text2: i18n.t('mobile.file_pick_error_desc', 'Không thể mở trình quản lý tệp trên thiết bị.'),
     });
     return null;
   }
@@ -176,18 +177,26 @@ export const exportAndShareHealthReport = async (
   options: HealthReportExportOptions
 ): Promise<string | null> => {
   try {
-    const currentDate = new Date().toLocaleDateString('vi-VN', {
+    const isVi = i18n.language === 'vi';
+    const currentDate = new Date().toLocaleDateString(isVi ? 'vi-VN' : 'en-US', {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
     });
+
+    const docTitle = isVi ? 'Báo Cáo Sức Khỏe Lâm Sàng' : 'Clinical Health Report';
+    const docSubtitle = isVi ? 'Báo Cáo Sức Khỏe & Giám Sát Điều Trị Mạn Tính' : 'Chronic Care & Telecare Monitoring Report';
+    const patientLabel = isVi ? 'Bệnh nhân' : 'Patient';
+    const periodLabel = isVi ? 'Thời gian báo cáo' : 'Period';
+    const exportDateLabel = isVi ? 'Ngày xuất' : 'Export Date';
+    const dossierLabel = isVi ? 'Mã hồ sơ' : 'Dossier ID';
 
     const htmlContent = `
       <!DOCTYPE html>
       <html>
       <head>
         <meta charset="utf-8" />
-        <title>Báo Cáo Sức Khỏe Lâm Sàng / Clinical Health Report</title>
+        <title>${docTitle}</title>
         <style>
           body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1e293b; margin: 40px; }
           .header { border-bottom: 2px solid #059669; padding-bottom: 20px; margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center; }
@@ -210,33 +219,33 @@ export const exportAndShareHealthReport = async (
         <div class="header">
           <div>
             <h1 class="title">HỆ THỐNG Y TẾ THÔNG MINH - HEALTHCARE AI</h1>
-            <div class="subtitle">Báo Cáo Sức Khỏe & Giám Sát Điều Trị Mạn Tính / Chronic Telecare Report</div>
+            <div class="subtitle">${docSubtitle}</div>
           </div>
         </div>
 
         <div class="meta-box">
           <div class="meta-row">
-            <span><strong>Bệnh nhân / Patient:</strong> ${options.patientName || 'Alex Johnson'}</span>
-            <span><strong>Thời gian báo cáo / Period:</strong> ${options.timeRange.toUpperCase()}</span>
+            <span><strong>${patientLabel}:</strong> ${options.patientName || 'Alex Johnson'}</span>
+            <span><strong>${periodLabel}:</strong> ${options.timeRange.toUpperCase()}</span>
           </div>
           <div class="meta-row">
-            <span><strong>Ngày xuất / Export Date:</strong> ${currentDate}</span>
-            <span><strong>Mã hồ sơ / Dossier ID:</strong> HC-${Math.floor(100000 + Math.random() * 900000)}</span>
+            <span><strong>${exportDateLabel}:</strong> ${currentDate}</span>
+            <span><strong>${dossierLabel}:</strong> HC-${Math.floor(100000 + Math.random() * 900000)}</span>
           </div>
         </div>
 
         ${
           options.includeCharts
             ? `
-          <div class="section-title">1. Tổng hợp Chỉ số Sinh hiệu Lâm sàng (Vital Telemetry Logs)</div>
+          <div class="section-title">${isVi ? '1. Tổng hợp Chỉ số Sinh hiệu Lâm sàng' : '1. Vital Telemetry Logs & Summary'}</div>
           <table>
             <thead>
               <tr>
-                <th>Ngày đo</th>
-                <th>Huyết áp (mmHg)</th>
-                <th>Đường huyết đói (mg/dL)</th>
-                <th>Nhịp tim (BPM)</th>
-                <th>Đánh giá</th>
+                <th>${isVi ? 'Ngày đo' : 'Date & Time'}</th>
+                <th>${isVi ? 'Huyết áp (mmHg)' : 'Blood Pressure (mmHg)'}</th>
+                <th>${isVi ? 'Đường huyết đói (mg/dL)' : 'Fasting Glucose (mg/dL)'}</th>
+                <th>${isVi ? 'Nhịp tim (BPM)' : 'Heart Rate (BPM)'}</th>
+                <th>${isVi ? 'Đánh giá' : 'Assessment'}</th>
               </tr>
             </thead>
             <tbody>
@@ -245,28 +254,28 @@ export const exportAndShareHealthReport = async (
                 <td>120 / 80</td>
                 <td>102</td>
                 <td>74</td>
-                <td><span class="status-normal">Bình thường</span></td>
+                <td><span class="status-normal">${isVi ? 'Bình thường' : 'Normal'}</span></td>
               </tr>
               <tr>
                 <td>16/10/2026 08:15</td>
                 <td>124 / 82</td>
                 <td>108</td>
                 <td>78</td>
-                <td><span class="status-normal">Bình thường</span></td>
+                <td><span class="status-normal">${isVi ? 'Bình thường' : 'Normal'}</span></td>
               </tr>
               <tr>
                 <td>15/10/2026 08:00</td>
                 <td>138 / 88</td>
                 <td>125</td>
                 <td>82</td>
-                <td><span class="status-elevated">Hơi cao (Cần theo dõi)</span></td>
+                <td><span class="status-elevated">${isVi ? 'Hơi cao (Cần theo dõi)' : 'Elevated (Monitor)'}</span></td>
               </tr>
               <tr>
                 <td>14/10/2026 08:30</td>
                 <td>122 / 80</td>
                 <td>98</td>
                 <td>72</td>
-                <td><span class="status-normal">Mục tiêu</span></td>
+                <td><span class="status-normal">${isVi ? 'Mục tiêu' : 'Target'}</span></td>
               </tr>
             </tbody>
           </table>
@@ -277,11 +286,15 @@ export const exportAndShareHealthReport = async (
         ${
           options.includeAiSummary
             ? `
-          <div class="section-title">2. Phân Tích & Khuyến Nghị Từ Trí Tuệ Nhân Tạo (AI Insights)</div>
+          <div class="section-title">${isVi ? '2. Phân Tích & Khuyến Nghị Từ Trí Tuệ Nhân Tạo (AI Insights)' : '2. Artificial Intelligence Analysis & Directives (AI Insights)'}</div>
           <div class="ai-box">
-            <div class="ai-title">✨ Tóm tắt Telemetry 7 ngày:</div>
+            <div class="ai-title">✨ ${isVi ? 'Tóm tắt Telemetry 7 ngày:' : '7-Day Telemetry Summary:'}</div>
             <p style="margin: 0; line-height: 1.5; font-size: 13px; color: #312e81;">
-              Chỉ số huyết áp đạt ngưỡng mục tiêu trong 85% thời gian theo dõi. Có 1 lần ghi nhận dao động nhẹ vào buổi sáng ngày 15/10 sau bữa tối nhiều natri. Bệnh nhân duy trì tuân thủ dùng thuốc tốt. Khuyến nghị duy trì chế độ giảm muối và lịch tái khám định kỳ.
+              ${
+                isVi
+                  ? 'Chỉ số huyết áp đạt ngưỡng mục tiêu trong 85% thời gian theo dõi. Có 1 lần ghi nhận dao động nhẹ vào buổi sáng ngày 15/10 sau bữa tối nhiều natri. Bệnh nhân duy trì tuân thủ dùng thuốc tốt. Khuyến nghị duy trì chế độ giảm muối và lịch tái khám định kỳ.'
+                  : 'Blood pressure remained within target range for 85% of telemetry window. A single mild elevation occurred on Oct 15 morning following a high-sodium dinner. Patient demonstrates strong medication adherence. Continued low-sodium diet and routine follow-up recommended.'
+              }
             </p>
           </div>
         `
@@ -291,22 +304,22 @@ export const exportAndShareHealthReport = async (
         ${
           options.includeAlerts
             ? `
-          <div class="section-title">3. Nhật Ký Cảnh Báo Lâm Sàng & Ghi Chú Y Lệnh</div>
+          <div class="section-title">${isVi ? '3. Nhật Ký Cảnh Báo Lâm Sàng & Ghi Chú Y Lệnh' : '3. Clinical Alerts & Physician Order Logs'}</div>
           <table>
             <thead>
               <tr>
-                <th>Thời điểm</th>
-                <th>Mức độ</th>
-                <th>Mô tả sự kiện</th>
-                <th>Trạng thái xử lý</th>
+                <th>${isVi ? 'Thời điểm' : 'Timestamp'}</th>
+                <th>${isVi ? 'Mức độ' : 'Severity'}</th>
+                <th>${isVi ? 'Mô tả sự kiện' : 'Event Description'}</th>
+                <th>${isVi ? 'Trạng thái xử lý' : 'Resolution Status'}</th>
               </tr>
             </thead>
             <tbody>
               <tr>
                 <td>15/10/2026 08:05</td>
-                <td><span class="status-elevated">Chú ý</span></td>
-                <td>Đường huyết đói vượt ngưỡng nhẹ (125 mg/dL)</td>
-                <td>Bác sĩ đã ghi nhận & điều chỉnh</td>
+                <td><span class="status-elevated">${isVi ? 'Chú ý' : 'Attention'}</span></td>
+                <td>${isVi ? 'Đường huyết đói vượt ngưỡng nhẹ (125 mg/dL)' : 'Fasting blood sugar slightly above baseline (125 mg/dL)'}</td>
+                <td>${isVi ? 'Bác sĩ đã ghi nhận & điều chỉnh' : 'Physician reviewed and adjusted plan'}</td>
               </tr>
             </tbody>
           </table>
@@ -315,7 +328,11 @@ export const exportAndShareHealthReport = async (
         }
 
         <div class="footer">
-          Báo cáo được khởi tạo tự động từ Nền tảng Chăm sóc Sức khỏe Telecare. Dữ liệu có giá trị tham vấn chuyên môn với Bác sĩ phụ trách.
+          ${
+            isVi
+              ? 'Báo cáo được khởi tạo tự động từ Nền tảng Chăm sóc Sức khỏe Telecare. Dữ liệu có giá trị tham vấn chuyên môn với Bác sĩ phụ trách.'
+              : 'Report automatically generated from the Telecare Health Platform. Data is intended for clinical consultation with your attending physician.'
+          }
         </div>
       </body>
       </html>
@@ -380,8 +397,8 @@ export const exportAndShareHealthReport = async (
     console.error('exportAndShareHealthReport error:', error);
     Toast.show({
       type: 'error',
-      text1: 'Lỗi xuất báo cáo / Export Error',
-      text2: 'Không thể tạo hoặc chia sẻ tài liệu.',
+      text1: i18n.t('mobile.export_error', 'Report Export Error'),
+      text2: i18n.t('mobile.export_error_desc', 'Không thể tạo hoặc chia sẻ tài liệu.'),
     });
     return null;
   }

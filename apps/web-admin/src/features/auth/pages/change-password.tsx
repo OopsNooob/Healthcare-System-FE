@@ -15,6 +15,7 @@ import { Lock } from "lucide-react";
 import { Spinner } from "@repo/ui/components/ui/spinner";
 import { showToast } from "@repo/ui/components/ui/toasts";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useChangePassword } from "../hooks/useChangePassword";
 
 interface ChangePasswordProps {
@@ -36,8 +37,9 @@ export function ChangePassword({
   onSubmit,
   isLoading: propIsLoading = false,
   error: propError,
-  submitLabel = "Confirm",
+  submitLabel,
 }: ChangePasswordProps) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { changePassword, isLoading, error } = useChangePassword();
 
@@ -109,7 +111,7 @@ export function ChangePassword({
 
       localStorage.removeItem("resetPasswordEmail");
       localStorage.removeItem("resetPasswordOtp");
-      showToast.success("Password reset successfully");
+      showToast.success(t("auth.changePasswordSuccess", "Password reset successfully"));
       navigate("/login");
     } catch (submitError) {
       const message =
@@ -134,11 +136,11 @@ export function ChangePassword({
       <div className="flex flex-1 items-center justify-center px-4 py-10">
         <form onSubmit={handleSubmit} className="w-full max-w-md space-y-6">
           <h1 className="text-center text-5xl font-bold text-[#313A34] dark:text-slate-100">
-            Change password
+            {t("auth.changePasswordTitle", "Change password")}
           </h1>
 
           <p className="text-center text-lg text-black dark:text-white font-light ">
-            Set a new password for your account.
+            {t("auth.changePasswordDesc", "Set a new password for your account.")}
           </p>
 
           {displayError && (
@@ -154,7 +156,7 @@ export function ChangePassword({
                   htmlFor="password"
                   className="text-lg font-medium text-[#1E1E1E] dark:text-slate-200"
                 >
-                  Password
+                  {t("auth.newPassword", "Password")}
                 </FieldLabel>
                 <FieldControl invalid={Boolean(passwordError)}>
                   <Lock className="h-5 w-5 shrink-0 text-muted-foreground" />
@@ -164,7 +166,7 @@ export function ChangePassword({
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     onBlur={() => handleBlur("password")}
-                    placeholder="Enter your new password"
+                    placeholder={t("auth.newPasswordPlaceholder", "Enter your new password")}
                     disabled={submitting}
                     className="h-auto border-0 bg-transparent px-0 py-0 shadow-none focus-visible:border-0 focus-visible:ring-0"
                   />
@@ -177,7 +179,7 @@ export function ChangePassword({
                   htmlFor="confirmedPassword"
                   className="text-lg font-medium text-[#1E1E1E] dark:text-slate-200"
                 >
-                  Confirm password
+                  {t("auth.confirmPassword", "Confirm password")}
                 </FieldLabel>
                 <FieldControl invalid={Boolean(confirmedPasswordError)}>
                   <Lock className="h-5 w-5 shrink-0 text-muted-foreground" />
@@ -187,7 +189,7 @@ export function ChangePassword({
                     value={confirmedPassword}
                     onChange={(e) => setConfirmedPassword(e.target.value)}
                     onBlur={() => handleBlur("confirmedPassword")}
-                    placeholder="Re-enter your new password"
+                    placeholder={t("auth.confirmPasswordPlaceholder", "Re-enter your new password")}
                     disabled={submitting}
                     className="h-auto border-0 bg-transparent px-0 py-0 shadow-none focus-visible:border-0 focus-visible:ring-0"
                   />
@@ -201,7 +203,7 @@ export function ChangePassword({
                   className="h-12 w-full rounded-2xl text-base"
                   disabled={submitting}
                 >
-                  {submitting ? <Spinner className="size-6" /> : submitLabel}
+                  {submitting ? <Spinner className="size-6" /> : submitLabel || t("auth.changePasswordButton", "Change password")}
                 </Button>
               </Field>
             </FieldGroup>

@@ -243,11 +243,11 @@ export function AIManagement() {
 
       setOpenActionFor(null);
 
-      showToast.success("Delete successfully!");
+      showToast.success(t("aiManagement.toasts.deleteSuccess", "Delete successfully!"));
       void refresh();
     } catch (error) {
       showToast.error(
-        error instanceof Error ? error.message : "Failed to delete",
+        error instanceof Error ? error.message : t("common.failed", "Failed to delete"),
       );
     }
   };
@@ -375,15 +375,15 @@ export function AIManagement() {
       try {
         const res = await submitAddKeyword(sanitized);
         if (!res) {
-          showToast.error("Failed to add keyword.");
+          showToast.error(t("aiManagement.toasts.addKeywordFailed", "Failed to add keyword."));
           return;
         }
 
-        showToast.success("Keyword added successfully");
+        showToast.success(t("aiManagement.toasts.addKeywordSuccess", "Keyword added successfully"));
         void refreshKeyword();
       } catch (error) {
         showToast.error(
-          error instanceof Error ? error.message : "Failed to add keyword",
+          error instanceof Error ? error.message : t("aiManagement.toasts.addKeywordFailed", "Failed to add keyword"),
         );
       } finally {
         setNewWord("");
@@ -397,16 +397,16 @@ export function AIManagement() {
         const res = await submitDeleteKeyword(id);
         if (!res) {
           showToast.error(
-            "Failed to remove keyword. Please login and try again.",
+            t("aiManagement.toasts.removeKeywordFailed", "Failed to remove keyword. Please login and try again."),
           );
           return;
         }
 
-        showToast.success("Keyword removed successfully");
+        showToast.success(t("aiManagement.toasts.removeKeywordSuccess", "Keyword removed successfully"));
         void refreshKeyword();
       } catch (error) {
         showToast.error(
-          error instanceof Error ? error.message : "Failed to remove keyword",
+          error instanceof Error ? error.message : t("aiManagement.toasts.removeKeywordFailed", "Failed to remove keyword"),
         );
       }
     })();
@@ -565,12 +565,12 @@ export function AIManagement() {
                       <ComboboxEmpty>{t("aiManagement.combobox.noStatus")}</ComboboxEmpty>
                       <ComboboxList>
                         <ComboboxItem value="all">{t("aiManagement.filters.allStatus")}</ComboboxItem>
-                        <ComboboxItem value="active">Active</ComboboxItem>
-                        <ComboboxItem value="inactive">Inactive</ComboboxItem>
+                        <ComboboxItem value="active">{t("aiManagement.status.active", "Active")}</ComboboxItem>
+                        <ComboboxItem value="inactive">{t("aiManagement.status.inactive", "Inactive")}</ComboboxItem>
                         <ComboboxItem value="processing">
-                          Processing
+                          {t("aiManagement.status.processing", "Processing")}
                         </ComboboxItem>
-                        <ComboboxItem value="error">Error</ComboboxItem>
+                        <ComboboxItem value="error">{t("aiManagement.status.error", "Error")}</ComboboxItem>
                       </ComboboxList>
                     </ComboboxContent>
                   </Combobox>

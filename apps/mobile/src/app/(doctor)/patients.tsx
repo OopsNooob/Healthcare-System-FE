@@ -59,8 +59,8 @@ export default function PatientsManagementScreen() {
     setEnrollModalVisible(false);
     Toast.show({
       type: 'success',
-      text1: 'Success',
-      text2: 'Consent request sent to patient',
+      text1: t('mobile.success', 'Success'),
+      text2: t('mobile.consent_sent', 'Consent request sent to patient'),
     });
   };
 
@@ -252,16 +252,16 @@ export default function PatientsManagementScreen() {
               onPress={() => setSelectedProgram('hypertension')}
               style={tw(`p-4 rounded-2xl mb-3 border ${selectedProgram === 'hypertension' ? 'bg-brand/10 border-brand' : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-700'}`)}
             >
-              <Text style={tw(`font-bold text-lg ${selectedProgram === 'hypertension' ? 'text-brand-dark dark:text-brand-light' : 'text-slate-900 dark:text-white'}`)}>Hypertension Management</Text>
-              <Text style={tw('text-sm text-slate-500 mt-1')}>BP tracking, medication reminders, diet tasks.</Text>
+              <Text style={tw(`font-bold text-lg ${selectedProgram === 'hypertension' ? 'text-brand-dark dark:text-brand-light' : 'text-slate-900 dark:text-white'}`)}>{t('mobile.hypertension_management', 'Hypertension Management')}</Text>
+              <Text style={tw('text-sm text-slate-500 mt-1')}>{t('mobile.hypertension_desc', 'BP tracking, medication reminders, diet tasks.')}</Text>
             </TouchableOpacity>
             
             <TouchableOpacity 
               onPress={() => setSelectedProgram('diabetes')}
               style={tw(`p-4 rounded-2xl mb-6 border ${selectedProgram === 'diabetes' ? 'bg-brand/10 border-brand' : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-700'}`)}
             >
-              <Text style={tw(`font-bold text-lg ${selectedProgram === 'diabetes' ? 'text-brand-dark dark:text-brand-light' : 'text-slate-900 dark:text-white'}`)}>Diabetes Care</Text>
-              <Text style={tw('text-sm text-slate-500 mt-1')}>Glucose tracking, insulin reminders, foot checks.</Text>
+              <Text style={tw(`font-bold text-lg ${selectedProgram === 'diabetes' ? 'text-brand-dark dark:text-brand-light' : 'text-slate-900 dark:text-white'}`)}>{t('mobile.diabetes_care', 'Diabetes Care')}</Text>
+              <Text style={tw('text-sm text-slate-500 mt-1')}>{t('mobile.diabetes_desc', 'Glucose tracking, insulin reminders, foot checks.')}</Text>
             </TouchableOpacity>
 
             {/* Eligibility Status */}

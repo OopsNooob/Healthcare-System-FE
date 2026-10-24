@@ -46,7 +46,9 @@
       "changePasswordSuccess": "Your password has been changed successfully.",
       "changePasswordFailed": "Failed to change password",
       "changePasswordButton": "Change Password",
-      "sendOtpFailed": "Failed to send OTP"
+      "sendOtpFailed": "Failed to send OTP",
+      "logInAgain": "Log in again",
+      "close": "Close"
     },
     "sidebar": {
       "overview": "Overview",
@@ -171,6 +173,10 @@
         },
         "cancel": "Cancel",
         "createAdmin": "Create Admin"
+      },
+      "toasts": {
+        "reportSuccess": "Report submitted successfully",
+        "defaultBanReason": "System policy violation"
       }
     },
     "medicalFacilities": {
@@ -218,7 +224,8 @@
         "operatingHours": "Operating Hours",
         "status": "Initial Status",
         "cancel": "Cancel",
-        "save": "Save Facility"
+        "save": "Save Facility",
+        "addTitle": "Add Medical Facility"
       },
       "decisionModal": {
         "approveTitle": "Approve Medical Facility",
@@ -241,7 +248,11 @@
         "rejectSuccess": "Facility rejected successfully",
         "reasonRequired": "Please enter a rejection reason",
         "addressRequired": "Please enter facility address",
-        "nameRequired": "Please enter facility name"
+        "nameRequired": "Please enter facility name",
+        "updated": "Facility updated successfully",
+        "added": "Facility added successfully",
+        "verified": "Facility verified and published to map",
+        "rejected": "Facility submission rejected"
       }
     },
     "docVerification": {
@@ -362,7 +373,8 @@
         "feature2": "• Priority in doctor waiting queue",
         "feature3": "• Advanced health metrics insights",
         "status": "Status",
-        "active": "Active"
+        "active": "Active",
+        "limits": "Limits & Quotas"
       },
       "refundModal": {
         "title": "Review Refund Request",
@@ -446,7 +458,9 @@
       "subtitle": "Monitor all appointments, wait times, and system queue",
       "types": {
         "videoCall": "Video Call",
-        "chat": "Chat"
+        "chat": "Chat",
+        "routineCheckup": "Routine Checkup",
+        "consultation": "Direct Consultation"
       },
       "stats": {
         "totalToday": "Total Today",
@@ -456,7 +470,13 @@
         "fromYesterday": "+12% from yesterday",
         "completionRate": "Completion Rate",
         "cancelationRate": "Cancellation Rate",
-        "thanAverage": "than average"
+        "thanAverage": "than average",
+        "subtitles": {
+          "increaseFromYesterday": "+12% from yesterday",
+          "completionRate": "66% Completion Rate",
+          "cancelRate": "7% Cancelation Rate",
+          "thanAverage": "+1.5m than average"
+        }
       },
       "queue": {
         "title": "Today's Queue & Appointments",
@@ -588,6 +608,19 @@
         "exclusionNotice": "* Chunk exclusion disables RAG retrieval on this fragment without changing document publishing status.",
         "successExclude": "Chunk excluded from RAG retrieval",
         "successRestore": "Chunk restored to RAG retrieval"
+      },
+      "status": {
+        "active": "Active",
+        "inactive": "Inactive",
+        "processing": "Processing",
+        "error": "Error"
+      },
+      "toasts": {
+        "deleteSuccess": "Delete successfully!",
+        "addKeywordFailed": "Failed to add keyword.",
+        "addKeywordSuccess": "Keyword added successfully",
+        "removeKeywordFailed": "Failed to remove keyword. Please login and try again.",
+        "removeKeywordSuccess": "Keyword removed successfully"
       }
     },
     "violationReport": {
@@ -660,6 +693,12 @@
       "loading": "Loading violation reports...",
       "pagination": {
         "showing": "Showing {{count}} of {{total}} results"
+      },
+      "toasts": {
+        "loadFailed": "Failed to load violation reports",
+        "cannotBan": "Cannot ban this user!",
+        "resolutionApplied": "Resolution applied ({{action}})",
+        "dismissSuccess": "Report dismissed."
       }
     },
     "profile": {
@@ -852,7 +891,9 @@
         "ruleCreated": "Alert rule created successfully",
         "ruleActivated": "Rule activated",
         "ruleRetired": "Rule retired",
-        "updateSuccess": "Care program updated successfully"
+        "updateSuccess": "Care program updated successfully",
+        "publishSuccess": "Program published successfully",
+        "draftSuccess": "Draft saved successfully"
       }
     },
     "sharedPages": {
@@ -928,17 +969,41 @@
         "missionDesc": "We empower healthcare administrators with tools to manage doctor networks, verify credentials, monitor patient health metrics, and ensure compliance with healthcare standards. Our platform bridges the gap between doctors, patients, and administrators.",
         "valuesTitle": "💎 Core Values",
         "values": [
-          { "title": "Integrity", "desc": "Upholding the highest standards of healthcare management" },
-          { "title": "Innovation", "desc": "Leveraging technology to improve healthcare delivery" },
-          { "title": "Transparency", "desc": "Clear communication and data accessibility" },
-          { "title": "Excellence", "desc": "Consistent quality in all operations" }
+          {
+            "title": "Integrity",
+            "desc": "Upholding the highest standards of healthcare management"
+          },
+          {
+            "title": "Innovation",
+            "desc": "Leveraging technology to improve healthcare delivery"
+          },
+          {
+            "title": "Transparency",
+            "desc": "Clear communication and data accessibility"
+          },
+          {
+            "title": "Excellence",
+            "desc": "Consistent quality in all operations"
+          }
         ],
         "statsTitle": "📊 Platform Statistics",
         "stats": [
-          { "label": "Total Users", "value": "10K+" },
-          { "label": "Active Doctors", "value": "500+" },
-          { "label": "Patients", "value": "1000+" },
-          { "label": "Consultations", "value": "10K+" }
+          {
+            "label": "Total Users",
+            "value": "10K+"
+          },
+          {
+            "label": "Active Doctors",
+            "value": "500+"
+          },
+          {
+            "label": "Patients",
+            "value": "1000+"
+          },
+          {
+            "label": "Consultations",
+            "value": "10K+"
+          }
         ],
         "adminFeaturesTitle": "🛠️ Admin Capabilities",
         "adminFeatures": [
@@ -959,23 +1024,63 @@
         "officeAddress2": "Ho Chi Minh City, Vietnam",
         "categoriesTitle": "📞 Support Categories",
         "categories": [
-          { "category": "System Issues", "desc": "Report bugs or technical problems" },
-          { "category": "Account Management", "desc": "Help with admin account issues" },
-          { "category": "Feature Requests", "desc": "Suggest new features or improvements" },
-          { "category": "Security Concerns", "desc": "Report security vulnerabilities" },
-          { "category": "Compliance Questions", "desc": "Healthcare compliance inquiries" },
-          { "category": "General Inquiries", "desc": "Any other questions" }
+          {
+            "category": "System Issues",
+            "desc": "Report bugs or technical problems"
+          },
+          {
+            "category": "Account Management",
+            "desc": "Help with admin account issues"
+          },
+          {
+            "category": "Feature Requests",
+            "desc": "Suggest new features or improvements"
+          },
+          {
+            "category": "Security Concerns",
+            "desc": "Report security vulnerabilities"
+          },
+          {
+            "category": "Compliance Questions",
+            "desc": "Healthcare compliance inquiries"
+          },
+          {
+            "category": "General Inquiries",
+            "desc": "Any other questions"
+          }
         ],
         "faqTitle": "❓ Frequently Asked Questions",
         "faq": [
-          { "q": "How do I verify a doctor's credentials?", "a": "Go to Document Verification section, upload required documents and follow the verification workflow." },
-          { "q": "How do I handle user violations?", "a": "Navigate to Violation Reports, review violations and take appropriate action." },
-          { "q": "Can I export system reports?", "a": "Yes, all reports can be downloaded from the Overview dashboard." },
-          { "q": "How is patient data secured?", "a": "All data is encrypted and stored securely following healthcare compliance standards." }
+          {
+            "q": "How do I verify a doctor's credentials?",
+            "a": "Go to Document Verification section, upload required documents and follow the verification workflow."
+          },
+          {
+            "q": "How do I handle user violations?",
+            "a": "Navigate to Violation Reports, review violations and take appropriate action."
+          },
+          {
+            "q": "Can I export system reports?",
+            "a": "Yes, all reports can be downloaded from the Overview dashboard."
+          },
+          {
+            "q": "How is patient data secured?",
+            "a": "All data is encrypted and stored securely following healthcare compliance standards."
+          }
         ],
         "responseTimeTitle": "⏱️ Response Time",
-        "responseTimeDesc": "We strive to respond to all support inquiries within 24 hours. For urgent security issues, please call our hotline immediately."
+        "responseTimeDesc": "We strive to respond to all support inquiries within 24 hours. For urgent security issues, please call our hotline immediately.",
+        "workingHours": "Mon-Fri 9AM-6PM (Vietnam Time)"
       }
+    },
+    "common": {
+      "close": "Close",
+      "cancel": "Cancel",
+      "save": "Save",
+      "search": "Search",
+      "confirm": "Confirm",
+      "loading": "Loading...",
+      "failed": "Failed"
     }
   }
 }

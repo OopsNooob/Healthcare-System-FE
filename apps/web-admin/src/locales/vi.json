@@ -46,7 +46,9 @@
       "changePasswordSuccess": "Mật khẩu của bạn đã được thay đổi thành công.",
       "changePasswordFailed": "Thay đổi mật khẩu thất bại",
       "changePasswordButton": "Thay đổi mật khẩu",
-      "sendOtpFailed": "Gửi OTP thất bại"
+      "sendOtpFailed": "Gửi OTP thất bại",
+      "logInAgain": "Đăng nhập lại",
+      "close": "Đóng"
     },
     "sidebar": {
       "overview": "Tổng quan",
@@ -171,6 +173,10 @@
         },
         "cancel": "Hủy",
         "createAdmin": "Tạo Quản trị viên"
+      },
+      "toasts": {
+        "reportSuccess": "Gửi báo cáo thành công",
+        "defaultBanReason": "Vi phạm quy định hệ thống"
       }
     },
     "medicalFacilities": {
@@ -218,7 +224,8 @@
         "operatingHours": "Khung giờ làm việc",
         "status": "Trạng thái ban đầu",
         "cancel": "Hủy",
-        "save": "Lưu thông tin"
+        "save": "Lưu thông tin",
+        "addTitle": "Thêm Cơ sở Y tế Mới"
       },
       "decisionModal": {
         "approveTitle": "Xác nhận Phê duyệt Cơ sở Y tế",
@@ -241,7 +248,11 @@
         "rejectSuccess": "Đã từ chối cơ sở y tế",
         "reasonRequired": "Vui lòng nhập lý do từ chối",
         "addressRequired": "Vui lòng nhập địa chỉ cơ sở y tế",
-        "nameRequired": "Vui lòng nhập tên cơ sở y tế"
+        "nameRequired": "Vui lòng nhập tên cơ sở y tế",
+        "updated": "Cập nhật cơ sở y tế thành công",
+        "added": "Thêm cơ sở y tế thành công",
+        "verified": "Đã xác minh và công bố cơ sở y tế lên bản đồ",
+        "rejected": "Đã từ chối đề xuất cơ sở y tế"
       }
     },
     "docVerification": {
@@ -362,7 +373,8 @@
         "feature2": "• Ưu tiên hàng chờ bác sĩ",
         "feature3": "• Phân tích chỉ số sức khoẻ nâng cao",
         "status": "Trạng thái",
-        "active": "Hoạt động"
+        "active": "Hoạt động",
+        "limits": "Giới hạn & Định mức"
       },
       "refundModal": {
         "title": "Xem xét Phê duyệt Hoàn tiền",
@@ -446,7 +458,9 @@
       "subtitle": "Theo dõi lịch hẹn, thời gian chờ và hàng chờ hệ thống",
       "types": {
         "videoCall": "Cuộc gọi Video",
-        "chat": "Nhắn tin Chat"
+        "chat": "Nhắn tin Chat",
+        "routineCheckup": "Khám định kỳ",
+        "consultation": "Tư vấn trực tiếp"
       },
       "stats": {
         "totalToday": "Tổng hôm nay",
@@ -456,7 +470,13 @@
         "fromYesterday": "+12% so với hôm qua",
         "completionRate": "Tỷ lệ hoàn thành",
         "cancelationRate": "Tỷ lệ huỷ hẹn",
-        "thanAverage": "so với mức trung bình"
+        "thanAverage": "so với mức trung bình",
+        "subtitles": {
+          "increaseFromYesterday": "+12% so với hôm qua",
+          "completionRate": "Tỷ lệ hoàn thành 66%",
+          "cancelRate": "Tỷ lệ hủy 7%",
+          "thanAverage": "+1.5p so với trung bình"
+        }
       },
       "queue": {
         "title": "Hàng chờ & Lịch hẹn hôm nay",
@@ -588,6 +608,19 @@
         "exclusionNotice": "* Loại trừ đoạn (chunk exclusion) sẽ vô hiệu hóa việc truy xuất RAG đối với phân đoạn này mà không làm thay đổi trạng thái xuất bản của tài liệu gốc.",
         "successExclude": "Đã loại trừ đoạn này khỏi truy xuất RAG",
         "successRestore": "Đã khôi phục đoạn này vào truy xuất RAG"
+      },
+      "status": {
+        "active": "Hoạt động",
+        "inactive": "Không hoạt động",
+        "processing": "Đang xử lý",
+        "error": "Lỗi"
+      },
+      "toasts": {
+        "deleteSuccess": "Xóa thành công!",
+        "addKeywordFailed": "Thêm từ khóa thất bại.",
+        "addKeywordSuccess": "Thêm từ khóa thành công",
+        "removeKeywordFailed": "Xóa từ khóa thất bại. Vui lòng đăng nhập lại.",
+        "removeKeywordSuccess": "Xóa từ khóa thành công"
       }
     },
     "violationReport": {
@@ -660,6 +693,12 @@
       "loading": "Đang tải danh sách báo cáo vi phạm...",
       "pagination": {
         "showing": "Hiển thị {{count}} trên {{total}} kết quả"
+      },
+      "toasts": {
+        "loadFailed": "Không thể tải danh sách báo cáo vi phạm",
+        "cannotBan": "Không thể khóa tài khoản người dùng này!",
+        "resolutionApplied": "Đã áp dụng biện pháp xử lý ({{action}})",
+        "dismissSuccess": "Đã bác bỏ báo cáo."
       }
     },
     "profile": {
@@ -852,7 +891,9 @@
         "ruleCreated": "Tạo quy tắc cảnh báo thành công",
         "ruleActivated": "Quy tắc đã được kích hoạt",
         "ruleRetired": "Quy tắc đã ngưng áp dụng",
-        "updateSuccess": "Cập nhật chương trình chăm sóc thành công"
+        "updateSuccess": "Cập nhật chương trình chăm sóc thành công",
+        "publishSuccess": "Xuất bản chương trình thành công",
+        "draftSuccess": "Lưu bản nháp thành công"
       }
     },
     "sharedPages": {
@@ -928,17 +969,41 @@
         "missionDesc": "Chúng tôi trao quyền cho các nhà quản trị y tế với các công cụ để quản lý mạng lưới bác sĩ, xác minh chứng chỉ, giám sát chỉ số sức khỏe bệnh nhân và đảm bảo tuân thủ tiêu chuẩn y tế. Nền tảng của chúng tôi làm cầu nối giữa bác sĩ, bệnh nhân và nhà quản trị.",
         "valuesTitle": "💎 Giá trị cốt lõi",
         "values": [
-          { "title": "Chính trực", "desc": "Bảo vệ các tiêu chuẩn cao nhất trong quản lý y tế" },
-          { "title": "Đổi mới", "desc": "Tận dụng công nghệ để cải thiện việc cung cấp dịch vụ y tế" },
-          { "title": "Minh bạch", "desc": "Giao tiếp rõ ràng và khả năng tiếp cận dữ liệu" },
-          { "title": "Xuất sắc", "desc": "Chất lượng ổn định trong mọi hoạt động" }
+          {
+            "title": "Chính trực",
+            "desc": "Bảo vệ các tiêu chuẩn cao nhất trong quản lý y tế"
+          },
+          {
+            "title": "Đổi mới",
+            "desc": "Tận dụng công nghệ để cải thiện việc cung cấp dịch vụ y tế"
+          },
+          {
+            "title": "Minh bạch",
+            "desc": "Giao tiếp rõ ràng và khả năng tiếp cận dữ liệu"
+          },
+          {
+            "title": "Xuất sắc",
+            "desc": "Chất lượng ổn định trong mọi hoạt động"
+          }
         ],
         "statsTitle": "📊 Thống kê Nền tảng",
         "stats": [
-          { "label": "Tổng Người dùng", "value": "10K+" },
-          { "label": "Bác sĩ Hoạt động", "value": "500+" },
-          { "label": "Bệnh nhân", "value": "1000+" },
-          { "label": "Cuộc tư vấn", "value": "10K+" }
+          {
+            "label": "Tổng Người dùng",
+            "value": "10K+"
+          },
+          {
+            "label": "Bác sĩ Hoạt động",
+            "value": "500+"
+          },
+          {
+            "label": "Bệnh nhân",
+            "value": "1000+"
+          },
+          {
+            "label": "Cuộc tư vấn",
+            "value": "10K+"
+          }
         ],
         "adminFeaturesTitle": "🛠️ Khả năng Quản trị",
         "adminFeatures": [
@@ -959,23 +1024,63 @@
         "officeAddress2": "TP. Hồ Chí Minh, Việt Nam",
         "categoriesTitle": "📞 Các hạng mục Hỗ trợ",
         "categories": [
-          { "category": "Vấn đề Hệ thống", "desc": "Báo cáo lỗi hoặc vấn đề kỹ thuật" },
-          { "category": "Quản lý Tài khoản", "desc": "Trợ giúp các vấn đề tài khoản quản trị" },
-          { "category": "Yêu cầu Tính năng", "desc": "Đề xuất tính năng mới hoặc cải tiến" },
-          { "category": "Lo ngại Bảo mật", "desc": "Báo cáo các lỗ hổng bảo mật" },
-          { "category": "Câu hỏi Tuân thủ", "desc": "Thắc mắc về tuân thủ y tế" },
-          { "category": "Thắc mắc Chung", "desc": "Bất kỳ câu hỏi nào khác" }
+          {
+            "category": "Vấn đề Hệ thống",
+            "desc": "Báo cáo lỗi hoặc vấn đề kỹ thuật"
+          },
+          {
+            "category": "Quản lý Tài khoản",
+            "desc": "Trợ giúp các vấn đề tài khoản quản trị"
+          },
+          {
+            "category": "Yêu cầu Tính năng",
+            "desc": "Đề xuất tính năng mới hoặc cải tiến"
+          },
+          {
+            "category": "Lo ngại Bảo mật",
+            "desc": "Báo cáo các lỗ hổng bảo mật"
+          },
+          {
+            "category": "Câu hỏi Tuân thủ",
+            "desc": "Thắc mắc về tuân thủ y tế"
+          },
+          {
+            "category": "Thắc mắc Chung",
+            "desc": "Bất kỳ câu hỏi nào khác"
+          }
         ],
         "faqTitle": "❓ Các câu hỏi Thường gặp",
         "faq": [
-          { "q": "Làm thế nào để tôi xác minh chứng chỉ của một bác sĩ?", "a": "Đi tới phần Xác minh Tài liệu, tải lên các tài liệu được yêu cầu và theo dõi quy trình xác minh." },
-          { "q": "Tôi xử lý vi phạm của người dùng thế nào?", "a": "Điều hướng đến Báo cáo Vi phạm, xem xét vi phạm và thực hiện các hành động phù hợp." },
-          { "q": "Tôi có thể xuất các báo cáo hệ thống không?", "a": "Có, tất cả các báo cáo đều có thể được tải xuống từ Bảng điều khiển Tổng quan." },
-          { "q": "Dữ liệu bệnh nhân được bảo mật ra sao?", "a": "Tất cả dữ liệu đều được mã hóa và lưu trữ an toàn theo tiêu chuẩn tuân thủ y tế." }
+          {
+            "q": "Làm thế nào để tôi xác minh chứng chỉ của một bác sĩ?",
+            "a": "Đi tới phần Xác minh Tài liệu, tải lên các tài liệu được yêu cầu và theo dõi quy trình xác minh."
+          },
+          {
+            "q": "Tôi xử lý vi phạm của người dùng thế nào?",
+            "a": "Điều hướng đến Báo cáo Vi phạm, xem xét vi phạm và thực hiện các hành động phù hợp."
+          },
+          {
+            "q": "Tôi có thể xuất các báo cáo hệ thống không?",
+            "a": "Có, tất cả các báo cáo đều có thể được tải xuống từ Bảng điều khiển Tổng quan."
+          },
+          {
+            "q": "Dữ liệu bệnh nhân được bảo mật ra sao?",
+            "a": "Tất cả dữ liệu đều được mã hóa và lưu trữ an toàn theo tiêu chuẩn tuân thủ y tế."
+          }
         ],
         "responseTimeTitle": "⏱️ Thời gian Phản hồi",
-        "responseTimeDesc": "Chúng tôi cố gắng trả lời mọi yêu cầu hỗ trợ trong vòng 24 giờ. Đối với các vấn đề bảo mật cấp bách, vui lòng gọi ngay cho đường dây nóng của chúng tôi."
+        "responseTimeDesc": "Chúng tôi cố gắng trả lời mọi yêu cầu hỗ trợ trong vòng 24 giờ. Đối với các vấn đề bảo mật cấp bách, vui lòng gọi ngay cho đường dây nóng của chúng tôi.",
+        "workingHours": "Thứ 2 - Thứ 6: 09:00 - 18:00 (Giờ Việt Nam)"
       }
+    },
+    "common": {
+      "close": "Đóng",
+      "cancel": "Hủy",
+      "save": "Lưu",
+      "search": "Tìm kiếm",
+      "confirm": "Xác nhận",
+      "loading": "Đang tải...",
+      "failed": "Thất bại"
     }
   }
 }

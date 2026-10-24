@@ -115,7 +115,7 @@ export default function PremiumScreen() {
                 <Sparkles color={selectedPlan === 'plus' ? twInstance.color('text-amber-500') : twInstance.color('text-slate-400')} size={24} />
                 <Text style={tw(`font-bold text-xl ml-2 ${selectedPlan === 'plus' ? 'text-amber-600 dark:text-amber-400' : 'text-slate-900 dark:text-white'}`)}>{t('mobile.plus_plan', 'Plus Plan')}</Text>
               </View>
-              <Text style={tw('text-2xl font-bold text-slate-900 dark:text-white')}>99K<Text style={tw('text-sm text-slate-500 dark:text-slate-400')}>/mo</Text></Text>
+              <Text style={tw('text-2xl font-bold text-slate-900 dark:text-white')}>99K<Text style={tw('text-sm text-slate-500 dark:text-slate-400')}>{t('mobile.per_month_short', '/mo')}</Text></Text>
             </View>
             <View style={tw('gap-3')}>
               <View style={tw('flex-row items-center')}>
@@ -143,7 +143,7 @@ export default function PremiumScreen() {
                 <HeartPulse color={selectedPlan === 'care' ? twInstance.color('text-brand') : twInstance.color('text-slate-400')} size={24} />
                 <Text style={tw(`font-bold text-xl ml-2 ${selectedPlan === 'care' ? 'text-brand' : 'text-slate-900 dark:text-white'}`)}>{t('mobile.care_plan', 'Care Plan')}</Text>
               </View>
-              <Text style={tw('text-2xl font-bold text-slate-900 dark:text-white')}>299K<Text style={tw('text-sm text-slate-500 dark:text-slate-400')}>/mo</Text></Text>
+              <Text style={tw('text-2xl font-bold text-slate-900 dark:text-white')}>299K<Text style={tw('text-sm text-slate-500 dark:text-slate-400')}>{t('mobile.per_month_short', '/mo')}</Text></Text>
             </View>
             <View style={tw('gap-3')}>
               <View style={tw('flex-row items-center')}>

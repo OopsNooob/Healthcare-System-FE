@@ -68,17 +68,17 @@ export default function DoctorHomeScreen() {
   const confirmResolve = () => {
     setResolveModalVisible(false);
     setResolutionNote('');
-    Toast.show({ type: 'success', text1: 'Success', text2: 'Alert resolved successfully' });
+    Toast.show({ type: 'success', text1: t('mobile.success', 'Success'), text2: t('mobile.alert_resolved', 'Alert resolved successfully') });
   };
 
   const confirmDismiss = () => {
     if (!reasonCode) {
-      Toast.show({ type: 'error', text1: 'Error', text2: 'Reason code is required' });
+      Toast.show({ type: 'error', text1: t('mobile.error', 'Error'), text2: t('mobile.reason_code_required', 'Reason code is required') });
       return;
     }
     setDismissModalVisible(false);
     setReasonCode('');
-    Toast.show({ type: 'success', text1: 'Success', text2: 'Alert dismissed' });
+    Toast.show({ type: 'success', text1: t('mobile.success', 'Success'), text2: t('mobile.alert_dismissed', 'Alert dismissed') });
   };
 
   const renderQueueSkeleton = () => (

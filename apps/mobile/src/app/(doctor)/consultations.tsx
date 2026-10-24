@@ -69,8 +69,8 @@ export default function DoctorConsultationsScreen() {
   const handleAction = (action: string) => {
     Toast.show({
       type: 'success',
-      text1: 'Success',
-      text2: `${action} successful`,
+      text1: t('mobile.success', 'Success'),
+      text2: t('mobile.action_successful', '{{action}} successful', { action }),
     });
   };
 
@@ -79,8 +79,8 @@ export default function DoctorConsultationsScreen() {
     setDoctorNote('');
     Toast.show({
       type: 'success',
-      text1: 'Success',
-      text2: 'Consultation Ended',
+      text1: t('mobile.success', 'Success'),
+      text2: t('mobile.consultation_ended', 'Consultation Ended'),
     });
   };
 
@@ -89,8 +89,8 @@ export default function DoctorConsultationsScreen() {
     setReportReason('');
     Toast.show({
       type: 'success',
-      text1: 'Success',
-      text2: 'Report Submitted',
+      text1: t('mobile.success', 'Success'),
+      text2: t('mobile.report_submitted', 'Report Submitted'),
     });
   };
 
@@ -170,7 +170,9 @@ export default function DoctorConsultationsScreen() {
             <View style={tw('flex-row justify-between items-start mb-3')}>
               <View>
                 <Text style={tw('text-lg font-bold text-slate-900 dark:text-white')}>{session.patientName}</Text>
-                <Text style={tw('text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500')}>{session.age} {t('mobile.yrs', 'yrs')} • {session.gender}</Text>
+                <Text style={tw('text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500')}>
+                  {session.age} {t('mobile.yrs', 'yrs')} • {session.gender === 'Male' ? t('mobile.male', 'Male') : session.gender === 'Female' ? t('mobile.female', 'Female') : session.gender}
+                </Text>
               </View>
               <View style={tw('flex-row items-center gap-2')}>
                 <View style={tw(`px-3 py-1 rounded-full ${session.statusKey === 'interrupted' ? 'bg-amber-50 dark:bg-amber-900/30' : 'bg-emerald-50 dark:bg-emerald-900/30'}`)}>
@@ -213,10 +215,14 @@ export default function DoctorConsultationsScreen() {
             <View style={tw('flex-row justify-between items-start mb-2')}>
               <View>
                 <Text style={tw('text-lg font-bold text-slate-900 dark:text-white')}>{session.patientName}</Text>
-                <Text style={tw('text-xs text-slate-400 dark:text-slate-500')}>{session.date} • {session.time}</Text>
+                <Text style={tw('text-xs text-slate-400 dark:text-slate-500')}>
+                  {session.date === 'Today' ? t('mobile.today', 'Today') : session.date === 'Yesterday' ? t('mobile.yesterday', 'Yesterday') : session.date} • {session.time}
+                </Text>
               </View>
               <View style={tw('px-3 py-1 bg-slate-100 dark:bg-slate-800 rounded-full')}>
-                <Text style={tw('text-xs font-bold text-slate-600 dark:text-slate-300')}>{session.status}</Text>
+                <Text style={tw('text-xs font-bold text-slate-600 dark:text-slate-300')}>
+                  {session.status === 'Completed' ? t('mobile.completed', 'Completed') : session.status}
+                </Text>
               </View>
             </View>
             

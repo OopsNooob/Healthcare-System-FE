@@ -15,6 +15,7 @@ import { Mail } from "lucide-react";
 import { Spinner } from "@repo/ui/components/ui/spinner";
 import { showToast } from "@repo/ui/components/ui/toasts";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useConfirmOtp } from "../hooks/useConfirmOtp";
 
 interface ConfirmOTPProps {
@@ -32,8 +33,9 @@ export function ConfirmOTP({
   onSubmit,
   isLoading: propIsLoading = false,
   error: propError,
-  submitLabel = "Verify OTP",
+  submitLabel,
 }: ConfirmOTPProps) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { confirmOtp, isLoading, error } = useConfirmOtp();
 
@@ -92,7 +94,7 @@ export function ConfirmOTP({
         localStorage.setItem("resetPasswordOtp", otp.trim());
       }
 
-      showToast.success("OTP verified. Please set your new password.");
+      showToast.success(t("auth.otpVerified", "OTP verified. Please set your new password."));
       navigate("/change-password");
     } catch (submitError) {
       const message =
@@ -113,11 +115,11 @@ export function ConfirmOTP({
       <div className="flex flex-1 items-center justify-center px-4 py-10">
         <form onSubmit={handleSubmit} className="w-full max-w-md space-y-6">
           <p className="text-center text-5xl font-bold text-[#313A34] dark:text-slate-100 mb-2">
-            Verify OTP
+            {t("auth.verifyOtpTitle", "Verify OTP")}
           </p>
 
           <p className="text-center text-lg text-black dark:text-white font-light ">
-            Enter the code from our email sent to you.
+            {t("auth.verifyOtpDesc", "Enter the code from our email sent to you.")}
           </p>
 
           {displayError && (
@@ -133,7 +135,7 @@ export function ConfirmOTP({
                   htmlFor="otp"
                   className="text-lg font-medium text-[#1E1E1E] dark:text-slate-200"
                 >
-                  OTP
+                  {t("auth.otpLabel", "OTP")}
                 </FieldLabel>
                 <FieldControl invalid={Boolean(otpError)}>
                   <Mail className="h-5 w-5 shrink-0 text-muted-foreground" />
@@ -145,7 +147,7 @@ export function ConfirmOTP({
                     value={otp}
                     onChange={(e) => setOTP(e.target.value)}
                     onBlur={handleBlur}
-                    placeholder="Enter your OTP"
+                    placeholder={t("auth.otpPlaceholder", "Enter your OTP")}
                     disabled={submitting}
                     className="h-auto border-0 bg-transparent px-0 py-0 shadow-none focus-visible:border-0 focus-visible:ring-0"
                   />
@@ -159,7 +161,7 @@ export function ConfirmOTP({
                   className="h-12 w-full rounded-2xl text-base"
                   disabled={submitting}
                 >
-                  {submitting ? <Spinner className="size-6" /> : submitLabel}
+                  {submitting ? <Spinner className="size-6" /> : submitLabel || t("auth.verifyOtpButton", "Verify OTP")}
                 </Button>
               </Field>
             </FieldGroup>

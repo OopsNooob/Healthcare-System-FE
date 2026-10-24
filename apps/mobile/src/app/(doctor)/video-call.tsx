@@ -107,7 +107,7 @@ export default function DoctorVideoCallScreen() {
                   </View>
                   <View>
                     <Text style={tw('text-slate-500 text-xs font-bold uppercase tracking-wider')}>{t('mobile.latest_bp', 'Latest BP')}</Text>
-                    <Text style={tw('text-slate-900 dark:text-white font-bold text-base')}>165/100 <Text style={tw('text-sm text-red-500')}>(High)</Text></Text>
+                    <Text style={tw('text-slate-900 dark:text-white font-bold text-base')}>165/100 <Text style={tw('text-sm text-red-500')}>({t('mobile.high', 'High')})</Text></Text>
                   </View>
                 </View>
                 
@@ -152,7 +152,7 @@ export default function DoctorVideoCallScreen() {
               />
               
               <TouchableOpacity onPress={() => {
-                Toast.show({ type: 'success', text1: 'Success', text2: 'Clinical notes saved' });
+                Toast.show({ type: 'success', text1: t('mobile.success', 'Success'), text2: t('mobile.clinical_notes_saved', 'Clinical notes saved') });
                 setClinicalNotes('');
               }} style={tw('bg-brand flex-row items-center justify-center p-4 rounded-xl mt-4')}>
                 <Save color="#0f172a" size={20} />

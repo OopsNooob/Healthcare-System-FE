@@ -118,7 +118,7 @@ export function AppointmentManagement() {
             </div>
           </div>
           <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100">42</h3>
-          <p className="text-xs text-green-500 font-medium mt-2">+12% from yesterday</p>
+          <p className="text-xs text-green-500 font-medium mt-2">{t("appointmentManagement.stats.subtitles.increaseFromYesterday", "+12% from yesterday")}</p>
         </div>
 
         <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-gray-100 dark:border-slate-800 p-5">
@@ -131,7 +131,7 @@ export function AppointmentManagement() {
             </div>
           </div>
           <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100">28</h3>
-          <p className="text-xs text-gray-400 font-medium mt-2">66% Completion Rate</p>
+          <p className="text-xs text-gray-400 font-medium mt-2">{t("appointmentManagement.stats.subtitles.completionRate", "66% Completion Rate")}</p>
         </div>
 
         <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-gray-100 dark:border-slate-800 p-5">
@@ -144,7 +144,7 @@ export function AppointmentManagement() {
             </div>
           </div>
           <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100">3</h3>
-          <p className="text-xs text-gray-400 font-medium mt-2">7% Cancelation Rate</p>
+          <p className="text-xs text-gray-400 font-medium mt-2">{t("appointmentManagement.stats.subtitles.cancelRate", "7% Cancelation Rate")}</p>
         </div>
 
         <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-gray-100 dark:border-slate-800 p-5">
@@ -157,7 +157,7 @@ export function AppointmentManagement() {
             </div>
           </div>
           <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100">8.5 min</h3>
-          <p className="text-xs text-red-500 font-medium mt-2">+1.5m than average</p>
+          <p className="text-xs text-red-500 font-medium mt-2">{t("appointmentManagement.stats.subtitles.thanAverage", "+1.5m than average")}</p>
         </div>
       </div>
 
@@ -222,7 +222,15 @@ export function AppointmentManagement() {
                     <td className="px-6 py-4">
                       <span className="inline-flex items-center text-gray-600 dark:text-gray-300">
                         {apt.type === "Video Call" ? <Video className="w-3 h-3 mr-1 text-gray-400" /> : null}
-                        {apt.type}
+                        {apt.type === "Video Call"
+                          ? t("appointmentManagement.types.videoCall", "Video Call")
+                          : apt.type === "Chat"
+                          ? t("appointmentManagement.types.chat", "Chat")
+                          : apt.type === "Routine Checkup"
+                          ? t("appointmentManagement.types.routineCheckup", "Routine Checkup")
+                          : apt.type === "Direct Consultation"
+                          ? t("appointmentManagement.types.consultation", "Direct Consultation")
+                          : apt.type}
                       </span>
                     </td>
                     <td className="px-6 py-4">

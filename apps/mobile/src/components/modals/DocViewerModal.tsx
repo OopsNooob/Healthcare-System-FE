@@ -23,10 +23,13 @@ export const DocViewerModal: React.FC<DocViewerModalProps> = ({
   fileSize = '1.2 MB',
   fileUri,
   uploadDate = '17/10/2026',
-  summary = 'Báo cáo ghi nhận điện tâm đồ và chỉ số huyết áp trong đợt điều trị ngoại trú.',
+  summary,
 }) => {
   const { t, i18n } = useTranslation();
   const isVi = i18n.language === 'vi';
+  const finalSummary = summary || (isVi 
+    ? 'Báo cáo ghi nhận điện tâm đồ và chỉ số huyết áp trong đợt điều trị ngoại trú.' 
+    : 'Report recording ECG telemetry and blood pressure metrics during outpatient treatment.');
 
   const handleShare = async () => {
     try {
@@ -118,7 +121,7 @@ export const DocViewerModal: React.FC<DocViewerModalProps> = ({
               </Text>
               <View style={tw('p-4 rounded-2xl bg-indigo-50/60 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-800/30')}>
                 <Text style={tw('text-xs leading-5 text-indigo-950 dark:text-indigo-200')}>
-                  {summary}
+                  {finalSummary}
                 </Text>
               </View>
             </View>

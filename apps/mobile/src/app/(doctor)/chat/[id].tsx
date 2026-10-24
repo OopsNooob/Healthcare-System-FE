@@ -385,7 +385,7 @@ export default function DoctorChatSessionScreen() {
               />
             </View>
             
-            <TouchableOpacity onPress={() => { setEndModalVisible(false); Toast.show({ type: 'success', text1: 'Success', text2: 'Consultation Ended' }); router.back(); }} style={tw('bg-brand py-4 rounded-xl items-center')}>
+            <TouchableOpacity onPress={() => { setEndModalVisible(false); Toast.show({ type: 'success', text1: t('mobile.success', 'Success'), text2: t('mobile.consultation_ended', 'Consultation Ended') }); router.back(); }} style={tw('bg-brand py-4 rounded-xl items-center')}>
               <Text style={tw('text-slate-900 font-bold text-base')}>{t('mobile.complete_and_close', `Complete & Close`)}</Text>
             </TouchableOpacity>
           </View>
@@ -411,7 +411,7 @@ export default function DoctorChatSessionScreen() {
                 textAlignVertical="top"
               />
             </View>
-            <TouchableOpacity onPress={() => { setReportModalVisible(false); Toast.show({ type: 'success', text1: 'Success', text2: 'Report Submitted' }); }} style={tw('bg-red-500 py-4 rounded-xl items-center')}>
+            <TouchableOpacity onPress={() => { setReportModalVisible(false); Toast.show({ type: 'success', text1: t('mobile.success', 'Success'), text2: t('mobile.report_submitted', 'Report Submitted') }); }} style={tw('bg-red-500 py-4 rounded-xl items-center')}>
               <Text style={tw('text-white font-bold text-base')}>{t('mobile.submit_report', `Submit Report`)}</Text>
             </TouchableOpacity>
           </View>

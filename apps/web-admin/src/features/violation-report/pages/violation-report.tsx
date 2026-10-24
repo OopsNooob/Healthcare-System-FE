@@ -79,12 +79,12 @@ export function ViolationReport() {
     const fetchReports = async () => {
       const loaded = await loadReportList();
       if (loaded === null) {
-        showToast.error("Failed to load violation reports");
+        showToast.error(t("violationReport.toasts.loadFailed", "Failed to load violation reports"));
       }
     };
 
     void fetchReports();
-  }, [loadReportList]);
+  }, [loadReportList, t]);
 
   const reportList = useMemo(() => {
     if (!reportListResponse) {
@@ -160,7 +160,7 @@ export function ViolationReport() {
         },
       }));
     } catch {
-      showToast.error("Cannot ban this user!");
+      showToast.error(t("violationReport.toasts.cannotBan", "Cannot ban this user!"));
     }
   };
 
@@ -184,7 +184,10 @@ export function ViolationReport() {
       },
     }));
 
-    showToast.success(`Resolution applied (${action})${notes ? `: ${notes}` : ""}!`);
+    showToast.success(
+      t("violationReport.toasts.resolutionApplied", "Resolution applied ({{action}})", { action }) +
+        (notes ? `: ${notes}` : "") + "!"
+    );
     setIsModalOpen(false);
   };
 
@@ -197,7 +200,7 @@ export function ViolationReport() {
       },
     }));
 
-    showToast.success("Report dismissed.");
+    showToast.success(t("violationReport.toasts.dismissSuccess", "Report dismissed."));
     setIsModalOpen(false);
   };
 
