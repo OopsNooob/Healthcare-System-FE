@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { View, Text, ScrollView, TouchableOpacity, SafeAreaView, ActivityIndicator, RefreshControl } from 'react-native';
 import { useSafeRouter as useRouter } from '@/utils/useSafeRouter';
-import { ArrowLeft, LineChart, Sparkles, Activity, FileText, ChevronDown, ChevronUp, AlertTriangle } from 'lucide-react-native';
+import { ArrowLeft, LineChart, Sparkles, Activity, FileSpreadsheet, ChevronDown, ChevronUp, AlertTriangle } from 'lucide-react-native';
 import { tw, twInstance } from '@/tw';
 import { useThemeContext } from '@/context/ThemeContext';
 import { ReportExportModal } from '@/components/modals';
@@ -43,7 +43,8 @@ const AiSummaryAccordion = ({ title, content, isEmpty }: { title: string, conten
 };
 
 export default function ReportsScreen() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isVi = i18n.language === 'vi';
   useThemeContext();
   const router = useRouter();
 
@@ -87,10 +88,19 @@ export default function ReportsScreen() {
             <TouchableOpacity 
               key={range}
               onPress={() => setTimeRange(range as any)}
-              style={tw(`flex-1 py-2.5 items-center rounded-lg ${timeRange === range ? 'bg-white dark:bg-slate-900 shadow-sm' : ''}`)}
+              style={tw(`flex-1 py-2.5 px-1 items-center justify-center rounded-lg ${timeRange === range ? 'bg-white dark:bg-slate-900 shadow-sm' : ''}`)}
             >
-              <Text style={tw(`font-semibold ${timeRange === range ? 'text-slate-900 dark:text-white' : 'text-slate-500 dark:text-slate-400'}`)}>
-                {range === '7d' ? t('mobile.7_days', '7 Days') : range === '30d' ? t('mobile.30_days', '30 Days') : t('mobile.90_days', '90 Days')}
+              <Text 
+                numberOfLines={1}
+                adjustsFontSizeToFit={true}
+                minimumFontScale={0.75}
+                style={tw(`font-semibold text-center ${timeRange === range ? 'text-slate-900 dark:text-white' : 'text-slate-500 dark:text-slate-400'}`)}
+              >
+                {range === '7d' 
+                  ? (isVi ? '7\u00A0Ngày' : '7\u00A0Days') 
+                  : range === '30d' 
+                  ? (isVi ? '30\u00A0Ngày' : '30\u00A0Days') 
+                  : (isVi ? '90\u00A0Ngày' : '90\u00A0Days')}
               </Text>
             </TouchableOpacity>
           ))}
@@ -165,11 +175,11 @@ export default function ReportsScreen() {
 
               <TouchableOpacity 
                 onPress={() => setExportModalVisible(true)}
-                style={tw('flex-row items-center justify-center gap-2 bg-indigo-100 dark:bg-indigo-800/50 px-4 py-3 rounded-xl active:opacity-80')}
+                style={tw('flex-row items-center justify-center gap-2 bg-emerald-100 dark:bg-emerald-900/40 px-4 py-3.5 rounded-xl active:opacity-80')}
               >
-                <FileText color={twInstance.color('text-indigo-600 dark:text-indigo-300')} size={18} />
-                <Text style={tw('text-indigo-700 dark:text-indigo-200 font-semibold')}>
-                  {t('mobile.download_pdf', 'Download PDF Report')}
+                <FileSpreadsheet color={twInstance.color('text-emerald-600 dark:text-emerald-400')} size={18} />
+                <Text style={tw('text-emerald-700 dark:text-emerald-300 font-bold')}>
+                  {t('mobile.export_excel_report', 'Xuất Báo Cáo Excel')}
                 </Text>
               </TouchableOpacity>
             </View>

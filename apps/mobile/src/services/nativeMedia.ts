@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
 import * as Print from 'expo-print';
@@ -13,6 +14,14 @@ export interface NativeMediaFile {
   sizeBytes?: number;
   type: 'image' | 'file';
   mimeType?: string;
+}
+
+export interface GeneratedReport {
+  uri: string;
+  name: string;
+  size: string;
+  type: 'pdf' | 'csv' | 'html';
+  mimeType: string;
 }
 
 export interface HealthReportExportOptions {
@@ -171,11 +180,11 @@ export const pickNativePdfDocument = async (): Promise<NativeMediaFile | null> =
 };
 
 /**
- * Generate medical PDF report and open system sharing/save dialog
+ * Generate medical PDF/CSV report safely and return local file details without triggering native intent collisions
  */
-export const exportAndShareHealthReport = async (
+export const generateHealthReport = async (
   options: HealthReportExportOptions
-): Promise<string | null> => {
+): Promise<GeneratedReport | null> => {
   try {
     const isVi = i18n.language === 'vi';
     const currentDate = new Date().toLocaleDateString(isVi ? 'vi-VN' : 'en-US', {
@@ -191,54 +200,230 @@ export const exportAndShareHealthReport = async (
     const exportDateLabel = isVi ? 'Ngày xuất' : 'Export Date';
     const dossierLabel = isVi ? 'Mã hồ sơ' : 'Dossier ID';
 
+    const cacheDir = FileSystem.cacheDirectory || FileSystem.documentDirectory || '';
+
+    // 1. Handle CSV / Excel format (Default & Recommended)
+    if (!options.format || options.format === 'csv') {
+      const csvSections: string[] = [];
+
+      // Metadata section
+      csvSections.push(`"${isVi ? 'BÁO CÁO CHỈ SỐ SỨC KHỎE LÂM SÀNG' : 'CLINICAL HEALTH TELEMETRY REPORT'}"`);
+      csvSections.push(`"${patientLabel}:","Nguyễn Văn An"`);
+      csvSections.push(`"${dossierLabel}:","HS-8921-2026"`);
+      csvSections.push(`"${periodLabel}:","${options.timeRange.toUpperCase()}"`);
+      csvSections.push(`"${exportDateLabel}:","${currentDate}"`);
+      csvSections.push('');
+
+      // AI Summary section if enabled
+      if (options.includeAiSummary) {
+        const aiSummaryText = isVi
+          ? 'Trong thời gian theo dõi, chỉ số huyết áp khá ổn định ở mức trung bình 120/80 mmHg. Đường huyết có 1 lần vượt ngưỡng nhẹ vào sáng ngày thứ 3. Khuyến nghị tiếp tục duy trì chế độ ăn nhạt và theo dõi thường xuyên.'
+          : 'During the observation period, blood pressure remained stable at an average of 120/80 mmHg. Fasting blood sugar slightly elevated on day 3. Recommended to maintain low sodium diet.';
+        csvSections.push(`"${isVi ? 'TÓM TẮT TỔNG QUAN TỪ AI' : 'AI CLINICAL SUMMARY'}"`);
+        csvSections.push(`"${aiSummaryText.replace(/"/g, '""')}"`);
+        csvSections.push('');
+      }
+
+      // Telemetry Data Table
+      const headerLine = isVi
+        ? 'Thời gian,Huyết áp tâm thu (mmHg),Huyết áp tâm trương (mmHg),Đường huyết đói (mg/dL),Nhịp tim (BPM),Đánh giá lâm sàng'
+        : 'Timestamp,Systolic (mmHg),Diastolic (mmHg),Fasting Glucose (mg/dL),Heart Rate (BPM),Assessment';
+      
+      const rows = isVi
+        ? [
+            '17/10/2026 08:00,120,80,102,74,Bình thường',
+            '16/10/2026 08:15,124,82,108,78,Bình thường',
+            '15/10/2026 08:00,138,88,125,82,Hơi cao',
+            '14/10/2026 08:30,122,80,98,72,Đạt mục tiêu',
+            '13/10/2026 08:00,118,78,95,70,Tối ưu',
+            '12/10/2026 08:00,121,80,101,73,Bình thường',
+            '11/10/2026 08:00,125,82,105,75,Bình thường',
+          ]
+        : [
+            '17/10/2026 08:00,120,80,102,74,Normal',
+            '16/10/2026 08:15,124,82,108,78,Normal',
+            '15/10/2026 08:00,138,88,125,82,Elevated',
+            '14/10/2026 08:30,122,80,98,72,Target',
+            '13/10/2026 08:00,118,78,95,70,Optimal',
+            '12/10/2026 08:00,121,80,101,73,Normal',
+            '11/10/2026 08:00,125,82,105,75,Normal',
+          ];
+
+      csvSections.push(`"${isVi ? 'DỮ LIỆU CHỈ SỐ SINH HIỆU CHI TIẾT' : 'DETAILED BIOMETRIC TELEMETRY'}"`);
+      csvSections.push(headerLine);
+      csvSections.push(...rows);
+      csvSections.push('');
+
+      // Alerts section if enabled
+      if (options.includeAlerts) {
+        csvSections.push(`"${isVi ? 'LỊCH SỬ CẢNH BÁO & GHI CHÚ ĐIỀU TRỊ' : 'ALERT HISTORY & CLINICAL NOTES'}"`);
+        const alertHeaders = isVi
+          ? 'Thời gian,Mức độ,Nội dung cảnh báo,Hành động khuyến nghị'
+          : 'Timestamp,Severity,Alert Description,Recommended Action';
+        const alertRows = isVi
+          ? [
+              '15/10/2026 08:00,Cần chú ý,Huyết áp tâm thu 138 mmHg vượt ngưỡng mục tiêu,Nghỉ ngơi 15 phút và đo lại',
+              '15/10/2026 08:00,Cảnh báo nhẹ,Đường huyết sáng 125 mg/dL cao hơn mức chuẩn,Uống thuốc đúng giờ và hạn chế tinh bột',
+            ]
+          : [
+              '15/10/2026 08:00,Attention,Systolic BP 138 mmHg exceeded target,Rest 15 minutes and remeasure',
+              '15/10/2026 08:00,Mild Alert,Fasting glucose 125 mg/dL elevated,Take prescribed medication and reduce carbs',
+            ];
+        csvSections.push(alertHeaders);
+        csvSections.push(...alertRows);
+      }
+
+      // Prepend UTF-8 BOM (\uFEFF) so Microsoft Excel natively decodes Vietnamese characters correctly
+      const csvDataWithBOM = '\uFEFF' + csvSections.join('\n');
+      const fileName = isVi
+        ? `Bao_Cao_Suc_Khoe_Excel_${options.timeRange.toUpperCase()}.csv`
+        : `Health_Report_Excel_${options.timeRange.toUpperCase()}.csv`;
+      const csvPath = `${cacheDir}${fileName}`;
+
+      await FileSystem.writeAsStringAsync(csvPath, csvDataWithBOM, {
+        encoding: FileSystem.EncodingType.UTF8,
+      });
+      const fileInfo = await FileSystem.getInfoAsync(csvPath);
+
+      return {
+        uri: csvPath,
+        name: fileName,
+        size: formatFileSize(fileInfo.exists ? fileInfo.size : undefined),
+        type: 'csv',
+        mimeType: 'text/csv',
+      };
+    }
+
+    // 2. Handle PDF format with print-safe, crash-proof HTML template
     const htmlContent = `
       <!DOCTYPE html>
       <html>
       <head>
         <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>${docTitle}</title>
         <style>
-          body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1e293b; margin: 40px; }
-          .header { border-bottom: 2px solid #059669; padding-bottom: 20px; margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center; }
-          .title { font-size: 24px; font-weight: bold; color: #065f46; margin: 0; }
-          .subtitle { font-size: 13px; color: #64748b; margin-top: 5px; }
-          .meta-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; margin-bottom: 24px; }
-          .meta-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px; }
-          .section-title { font-size: 16px; font-weight: bold; color: #0f172a; margin-top: 24px; margin-bottom: 12px; border-left: 4px solid #10b981; padding-left: 10px; }
-          table { width: 100%; border-collapse: collapse; margin-top: 10px; margin-bottom: 20px; font-size: 13px; }
-          th { background: #f1f5f9; text-align: left; padding: 10px 12px; border-bottom: 2px solid #cbd5e1; color: #334155; }
-          td { padding: 10px 12px; border-bottom: 1px solid #e2e8f0; }
-          .status-normal { color: #059669; font-weight: bold; }
-          .status-elevated { color: #d97706; font-weight: bold; }
-          .ai-box { background: #eef2ff; border: 1px solid #c7d2fe; border-radius: 12px; padding: 16px; margin-top: 15px; }
-          .ai-title { font-weight: bold; color: #4338ca; margin-bottom: 6px; font-size: 14px; }
-          .footer { margin-top: 40px; border-top: 1px solid #e2e8f0; padding-top: 15px; font-size: 11px; color: #94a3b8; text-align: center; }
+          body {
+            font-family: Roboto, Arial, sans-serif;
+            color: #1e293b;
+            margin: 24px;
+            padding: 0;
+            font-size: 13px;
+            line-height: 1.4;
+          }
+          table {
+            width: 100%;
+            border-collapse: collapse;
+          }
+          .header-table {
+            border-bottom: 2px solid #059669;
+            margin-bottom: 16px;
+            padding-bottom: 10px;
+          }
+          .title {
+            font-size: 20px;
+            font-weight: bold;
+            color: #065f46;
+            margin: 0;
+          }
+          .subtitle {
+            font-size: 12px;
+            color: #64748b;
+            margin-top: 4px;
+          }
+          .meta-table {
+            background-color: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            margin-bottom: 16px;
+          }
+          .meta-table td {
+            padding: 6px 12px;
+            font-size: 12px;
+          }
+          .section-title {
+            font-size: 14px;
+            font-weight: bold;
+            color: #0f172a;
+            margin-top: 18px;
+            margin-bottom: 8px;
+            border-left: 4px solid #10b981;
+            padding-left: 8px;
+          }
+          .data-table {
+            margin-top: 8px;
+            margin-bottom: 16px;
+          }
+          .data-table th {
+            background-color: #f1f5f9;
+            text-align: left;
+            padding: 8px 10px;
+            border-bottom: 2px solid #cbd5e1;
+            color: #334155;
+            font-size: 12px;
+          }
+          .data-table td {
+            padding: 8px 10px;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 12px;
+          }
+          .status-normal {
+            color: #059669;
+            font-weight: bold;
+          }
+          .status-elevated {
+            color: #d97706;
+            font-weight: bold;
+          }
+          .ai-box {
+            background-color: #eef2ff;
+            border: 1px solid #c7d2fe;
+            border-radius: 8px;
+            padding: 12px 14px;
+            margin-top: 10px;
+          }
+          .ai-title {
+            font-weight: bold;
+            color: #4338ca;
+            margin-bottom: 6px;
+            font-size: 13px;
+          }
+          .footer {
+            margin-top: 30px;
+            border-top: 1px solid #e2e8f0;
+            padding-top: 12px;
+            font-size: 11px;
+            color: #94a3b8;
+            text-align: center;
+          }
         </style>
       </head>
       <body>
-        <div class="header">
-          <div>
-            <h1 class="title">HỆ THỐNG Y TẾ THÔNG MINH - HEALTHCARE AI</h1>
-            <div class="subtitle">${docSubtitle}</div>
-          </div>
-        </div>
+        <table class="header-table">
+          <tr>
+            <td>
+              <h1 class="title">HỆ THỐNG Y TẾ THÔNG MINH - HEALTHCARE AI</h1>
+              <div class="subtitle">${docSubtitle}</div>
+            </td>
+          </tr>
+        </table>
 
-        <div class="meta-box">
-          <div class="meta-row">
-            <span><strong>${patientLabel}:</strong> ${options.patientName || 'Alex Johnson'}</span>
-            <span><strong>${periodLabel}:</strong> ${options.timeRange.toUpperCase()}</span>
-          </div>
-          <div class="meta-row">
-            <span><strong>${exportDateLabel}:</strong> ${currentDate}</span>
-            <span><strong>${dossierLabel}:</strong> HC-${Math.floor(100000 + Math.random() * 900000)}</span>
-          </div>
-        </div>
+        <table class="meta-table">
+          <tr>
+            <td style="width: 50%;"><strong>${patientLabel}:</strong> ${options.patientName || 'Alex Johnson'}</td>
+            <td style="width: 50%; text-align: right;"><strong>${periodLabel}:</strong> ${options.timeRange.toUpperCase()}</td>
+          </tr>
+          <tr>
+            <td style="width: 50%;"><strong>${exportDateLabel}:</strong> ${currentDate}</td>
+            <td style="width: 50%; text-align: right;"><strong>${dossierLabel}:</strong> HC-${Math.floor(100000 + Math.random() * 900000)}</td>
+          </tr>
+        </table>
 
         ${
           options.includeCharts
             ? `
           <div class="section-title">${isVi ? '1. Tổng hợp Chỉ số Sinh hiệu Lâm sàng' : '1. Vital Telemetry Logs & Summary'}</div>
-          <table>
+          <table class="data-table">
             <thead>
               <tr>
                 <th>${isVi ? 'Ngày đo' : 'Date & Time'}</th>
@@ -305,7 +490,7 @@ export const exportAndShareHealthReport = async (
           options.includeAlerts
             ? `
           <div class="section-title">${isVi ? '3. Nhật Ký Cảnh Báo Lâm Sàng & Ghi Chú Y Lệnh' : '3. Clinical Alerts & Physician Order Logs'}</div>
-          <table>
+          <table class="data-table">
             <thead>
               <tr>
                 <th>${isVi ? 'Thời điểm' : 'Timestamp'}</th>
@@ -338,70 +523,158 @@ export const exportAndShareHealthReport = async (
       </html>
     `;
 
-    if (options.format === 'csv') {
-      const csvData = [
-        'Timestamp,Systolic (mmHg),Diastolic (mmHg),Fasting Glucose (mg/dL),Heart Rate (BPM),Assessment',
-        '17/10/2026 08:00,120,80,102,74,Normal',
-        '16/10/2026 08:15,124,82,108,78,Normal',
-        '15/10/2026 08:00,138,88,125,82,Elevated',
-        '14/10/2026 08:30,122,80,98,72,Target',
-      ].join('\n');
-      const csvPath = `${FileSystem.cacheDirectory || ''}Health_Report_${options.timeRange.toUpperCase()}.csv`;
-      await FileSystem.writeAsStringAsync(csvPath, csvData, { encoding: FileSystem.EncodingType.UTF8 });
-      try {
-        const isAvailable = await Sharing.isAvailableAsync();
-        if (isAvailable) {
-          await Sharing.shareAsync(csvPath, {
-            mimeType: 'text/csv',
-            dialogTitle: `Health_Report_${options.timeRange.toUpperCase()}.csv`,
-          });
-        }
-      } catch (shareErr) {
-        console.warn('Sharing dismissed:', shareErr);
-      }
-      return csvPath;
-    }
-
     let fileUri: string | null = null;
+    let fileType: 'pdf' | 'html' = 'pdf';
+
     try {
       const printResult = await Print.printToFileAsync({
         html: htmlContent,
+        width: 612,
+        height: 792,
         base64: false,
       });
-      fileUri = printResult?.uri ?? null;
+      if (printResult?.uri) {
+        fileUri = printResult.uri;
+      }
     } catch (printErr) {
       console.warn('Print.printToFileAsync failed, writing HTML document fallback:', printErr);
     }
 
-    // Fallback to formatted HTML document if Print fails on certain Android configurations
+    // Resilient fallback to HTML document if native print fails on specific Android ROMs
     if (!fileUri) {
-      const fallbackPath = `${FileSystem.cacheDirectory || ''}Health_Report_${options.timeRange.toUpperCase()}.html`;
+      const fallbackName = `Health_Report_${options.timeRange.toUpperCase()}.html`;
+      const fallbackPath = `${cacheDir}${fallbackName}`;
       await FileSystem.writeAsStringAsync(fallbackPath, htmlContent, { encoding: FileSystem.EncodingType.UTF8 });
       fileUri = fallbackPath;
+      fileType = 'html';
     }
 
-    try {
-      const isAvailable = await Sharing.isAvailableAsync();
-      if (isAvailable && fileUri) {
-        await Sharing.shareAsync(fileUri, {
-          mimeType: fileUri.endsWith('.pdf') ? 'application/pdf' : 'text/html',
-          dialogTitle: `Health_Report_${options.timeRange.toUpperCase()}`,
-        });
-      }
-    } catch (shareErr) {
-      console.warn('Sharing.shareAsync dismissed or not handled:', shareErr);
-    }
+    const fileName = fileType === 'pdf'
+      ? `Health_Report_${options.timeRange.toUpperCase()}.pdf`
+      : `Health_Report_${options.timeRange.toUpperCase()}.html`;
 
-    return fileUri;
+    const fileInfo = await FileSystem.getInfoAsync(fileUri);
+
+    return {
+      uri: fileUri,
+      name: fileName,
+      size: formatFileSize(fileInfo.exists ? fileInfo.size : undefined),
+      type: fileType,
+      mimeType: fileType === 'pdf' ? 'application/pdf' : 'text/html',
+    };
   } catch (error) {
-    console.error('exportAndShareHealthReport error:', error);
+    console.error('generateHealthReport error:', error);
     Toast.show({
       type: 'error',
       text1: i18n.t('mobile.export_error', 'Report Export Error'),
-      text2: i18n.t('mobile.export_error_desc', 'Không thể tạo hoặc chia sẻ tài liệu.'),
+      text2: i18n.t('mobile.export_error_desc', 'Không thể tạo tài liệu báo cáo.'),
     });
     return null;
   }
+};
+
+/**
+ * Save report directly to device storage without triggering intent chooser crashes
+ */
+export const saveReportToDevice = async (
+  fileUri: string,
+  fileName: string,
+  mimeType: string
+): Promise<boolean> => {
+  try {
+    if (Platform.OS === 'android' && FileSystem.StorageAccessFramework) {
+      try {
+        const permissions = await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync();
+        if (permissions.granted) {
+          const directoryUri = permissions.directoryUri;
+          const fileString = await FileSystem.readAsStringAsync(fileUri, {
+            encoding: FileSystem.EncodingType.Base64,
+          });
+          const newFileUri = await FileSystem.StorageAccessFramework.createFileAsync(
+            directoryUri,
+            fileName,
+            mimeType
+          );
+          await FileSystem.writeAsStringAsync(newFileUri, fileString, {
+            encoding: FileSystem.EncodingType.Base64,
+          });
+          Toast.show({
+            type: 'success',
+            text1: i18n.t('mobile.file_saved_success', 'File saved to device successfully'),
+            text2: fileName,
+          });
+          return true;
+        }
+      } catch (safErr) {
+        console.warn('StorageAccessFramework failed, trying sharing fallback:', safErr);
+      }
+    }
+
+    // Fallback: Use safe sharing sheet if direct folder save is unavailable
+    const isAvailable = await Sharing.isAvailableAsync();
+    if (isAvailable) {
+      await new Promise((resolve) => setTimeout(resolve, 200));
+      await Sharing.shareAsync(fileUri, {
+        mimeType,
+        dialogTitle: fileName,
+      });
+      return true;
+    } else {
+      Toast.show({
+        type: 'success',
+        text1: i18n.t('mobile.file_saved_success', 'File saved to device successfully'),
+        text2: fileName,
+      });
+      return true;
+    }
+  } catch (err) {
+    console.warn('saveReportToDevice error:', err);
+    Toast.show({
+      type: 'error',
+      text1: i18n.t('mobile.error', 'Error'),
+      text2: i18n.t('mobile.file_save_error', 'Failed to save file to device'),
+    });
+    return false;
+  }
+};
+
+/**
+ * Safe report file sharing with delayed execution to prevent window token collision on Fabric
+ */
+export const shareReportFile = async (
+  fileUri: string,
+  fileName: string,
+  mimeType: string
+): Promise<void> => {
+  try {
+    const isAvailable = await Sharing.isAvailableAsync();
+    if (!isAvailable) {
+      Toast.show({
+        type: 'error',
+        text1: i18n.t('mobile.error', 'Error'),
+        text2: 'Sharing is not supported on this device.',
+      });
+      return;
+    }
+    // Settle pending UI transitions before launching Android system intent
+    await new Promise((resolve) => setTimeout(resolve, 250));
+    await Sharing.shareAsync(fileUri, {
+      mimeType,
+      dialogTitle: fileName,
+    });
+  } catch (shareErr) {
+    console.warn('shareReportFile dismissed or error:', shareErr);
+  }
+};
+
+/**
+ * Backward-compatible helper for legacy callers
+ */
+export const exportAndShareHealthReport = async (
+  options: HealthReportExportOptions
+): Promise<string | null> => {
+  const result = await generateHealthReport(options);
+  return result?.uri ?? null;
 };
 
 /**

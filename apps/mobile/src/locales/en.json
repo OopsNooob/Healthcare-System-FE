@@ -749,5 +749,20 @@
   "mobile.female": "Female",
   "mobile.today": "Today",
   "mobile.yesterday": "Yesterday",
-  "mobile.completed": "Completed"
+  "mobile.completed": "Completed",
+  "mobile.save_to_device": "Save to Device",
+  "mobile.file_saved_success": "File saved to device successfully",
+  "mobile.share_report": "Share",
+  "mobile.file_save_error": "Failed to save file to device",
+  "mobile.saved_in_downloads": "File saved to your selected directory",
+  "mobile.export_excel_report": "Export Excel Report",
+  "mobile.export_excel_title": "Export Health Report",
+  "mobile.export_excel_desc": "Generate Excel spreadsheet (.csv) with vital telemetry and alerts",
+  "mobile.excel_format_name": "Excel Spreadsheet (.csv)",
+  "mobile.excel_format_desc": "Compatible with Microsoft Excel, Google Sheets, Apple Numbers",
+  "mobile.export_excel": "Export Excel",
+  "mobile.export_excel_success_title": "Excel Spreadsheet Generated",
+  "mobile.export_excel_success_desc": "Health biometric telemetry report is ready to save or share.",
+  "mobile.excel_saved_desc": "Saved to local cache",
+  "mobile.include_vital_data": "Vital telemetry raw dataset (BP, Blood Sugar, Heart Rate)"
 }
