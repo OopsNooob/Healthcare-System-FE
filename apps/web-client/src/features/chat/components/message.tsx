@@ -1,6 +1,6 @@
 import { UserAvatar } from "@repo/ui/components/ui/user-avatar";
 import { Bot, Download, FileText, X } from "lucide-react";
-import { useState, type ReactNode } from "react";
+import { useState } from "react";
 import { renderFormattedContent } from "@/features/shared/services/format-markdown";
 
 export type ChatAttachment = {

@@ -184,7 +184,6 @@ export function ChatWindow({
     </section>
   );
 
-  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     setMessages(initialMessages ?? []);
   }, [initialMessages]);
@@ -197,7 +196,6 @@ export function ChatWindow({
     isFirstMessageRenderRef.current = true;
     setShowScrollToBottomButton(false);
   }, [sessionId]);
-  /* eslint-enable react-hooks/set-state-in-effect */
 
   useLayoutEffect(() => {
     if (!isOpen || !scrollRef.current) return;

@@ -63,7 +63,7 @@ export function useMyDoctor(options: UseMyDoctorOptions = {}) {
           try {
             const profile = await getProfile({ id: doctor.id });
             return { id: doctor.id, profile: profile.userInformation };
-          } catch (profileError) {
+          } catch {
             return { id: doctor.id, profile: null };
           }
         }),

@@ -409,7 +409,7 @@ function isDailyTotalMetricType(
 }
 
 function normalizeDailyTotal(
-  metricType: DailyTotalMetricType,
+  _metricType: DailyTotalMetricType,
   total: number,
 ): number {
   return total;

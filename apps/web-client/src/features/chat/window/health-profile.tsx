@@ -6,7 +6,6 @@ import {
   UserRound,
 } from "lucide-react";
 import {
-  useEffect,
   useMemo,
   useRef,
   useState,
@@ -141,26 +140,25 @@ function buildChartEntries(
   metricType: MetricType,
   metrics: HealthMetric[],
 ): ChartEntry[] {
-  return metrics
-    .filter((metric) => metric.type === metricType)
-    .map((metric) => {
-      const recordedAt = metric.recordedAt;
-      const recordedTime = new Date(recordedAt).getTime();
-      if (!recordedAt || Number.isNaN(recordedTime)) return null;
+  const entries: ChartEntry[] = [];
+  for (const metric of metrics) {
+    if (metric.type !== metricType) continue;
+    const recordedAt = metric.recordedAt;
+    const recordedTime = new Date(recordedAt).getTime();
+    if (!recordedAt || Number.isNaN(recordedTime)) continue;
 
-      const primaryValue = getPrimaryMetricValue(metric);
-      if (typeof primaryValue !== "number") return null;
+    const primaryValue = getPrimaryMetricValue(metric);
+    if (typeof primaryValue !== "number") continue;
 
-      const secondaryValue = getSecondaryMetricValue(metric);
-
-      return {
-        id: metric.id,
-        recordedAt,
-        primaryValue,
-        secondaryValue,
-      };
-    })
-    .filter((entry): entry is ChartEntry => Boolean(entry));
+    const secondaryValue = getSecondaryMetricValue(metric);
+    entries.push({
+      id: metric.id,
+      recordedAt,
+      primaryValue,
+      ...(secondaryValue !== undefined ? { secondaryValue } : {}),
+    });
+  }
+  return entries;
 }
 
 export function HealthProfile({

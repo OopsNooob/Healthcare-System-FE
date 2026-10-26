@@ -8,64 +8,12 @@ interface HistoryCardProps {
   onClick?: () => void;
 }
 
-function formatHistoryTime(
-  date: Date,
-  isCurrent: boolean,
-  isSelected: boolean,
-) {
-  const now = new Date();
-  const target = new Date(date);
-
-  const isSameDay =
-    now.getDate() === target.getDate() &&
-    now.getMonth() === target.getMonth() &&
-    now.getFullYear() === target.getFullYear();
-
-  if (isSameDay) {
-    return target.toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  }
-
-  const yesterday = new Date(now);
-  yesterday.setDate(now.getDate() - 1);
-  const isYesterday =
-    yesterday.getDate() === target.getDate() &&
-    yesterday.getMonth() === target.getMonth() &&
-    yesterday.getFullYear() === target.getFullYear();
-
-  if (isYesterday) {
-    if (isSelected) {
-      return `Yesterday - ${target.toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-      })}`;
-    }
-
-    return "Yesterday";
-  }
-
-  const datePart = target.toLocaleDateString([], {
-    month: "short",
-    day: "numeric",
-  });
-
-  if (!isSelected) {
-    return datePart;
-  }
-
-  return `${datePart}`;
-}
-
 export function HistoryCard({
   title,
-  createdAt,
   isCurrent = false,
   isSelected = false,
   onClick,
 }: HistoryCardProps) {
-  // const displayTime = formatHistoryTime(createdAt, isCurrent, isSelected);
 
   return (
     <button

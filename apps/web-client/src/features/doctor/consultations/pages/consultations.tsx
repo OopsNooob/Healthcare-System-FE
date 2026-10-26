@@ -78,6 +78,7 @@ export function Consultations() {
     sessionId: string;
     patientName: string;
     patientAvatarUrl?: string;
+    patientIsOnline?: boolean;
     patientRating?: number;
     patientReview?: string;
     patientNote?: string;
@@ -169,9 +170,7 @@ export function Consultations() {
 
   useEffect(() => {
     if (!reportError) return;
-    showToast.error(
-      reportError instanceof Error ? reportError.message : String(reportError),
-    );
+    showToast.error(reportError);
   }, [reportError]);
 
   const pendingRequests = (consultations || [])
@@ -816,8 +815,8 @@ export function Consultations() {
         onClose={handleCloseProfileModal}
         profileSeed={profileData ? profileData : undefined}
         reportViewer={{
-          id: currentDoctorData.id,
-          name: currentDoctorData.name,
+          id: currentDoctorData.id ?? "",
+          name: currentDoctorData.name ?? "",
           role: "doctor",
         }}
         onSubmitReport={handleSubmitReport}
@@ -840,8 +839,8 @@ export function Consultations() {
           role: "patient",
         }}
         reporter={{
-          id: currentDoctorData.id,
-          name: currentDoctorData.name,
+          id: currentDoctorData.id ?? "",
+          name: currentDoctorData.name ?? "",
           role: "doctor",
         }}
         onClose={handleCloseReportModal}

@@ -10,7 +10,6 @@ interface HealthAlertModalProps {
 }
 
 export function HealthAlertModal({
-  id,
   title,
   message,
   isOpen,

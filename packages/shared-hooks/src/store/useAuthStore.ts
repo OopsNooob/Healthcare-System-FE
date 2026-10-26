@@ -1,6 +1,5 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
-import type { AuthState, User } from "@repo/shared-types"; // Assuming types are in shared-types, if not, we copy them
 import { getStorage } from "../storage";
 
 // Define locally if not yet in shared-types to avoid breaking

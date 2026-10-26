@@ -8,6 +8,7 @@ import { useMyDoctor } from "../hooks/useMyDoctor";
 import { useViewProfile } from "@/features/shared/hooks/useProfile";
 import { doctorSpecialty } from "../services/my-doctor.service";
 import { useSharedAuthStore as useAuthStore } from "@repo/shared-hooks";
+import type { ReportActorRole } from "@repo/ui/components/complex-modal/ReportModal";
 
 export function MyDoctors() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -39,7 +40,7 @@ export function MyDoctors() {
       ? {
           id: me.user.id,
           name: me.user.name,
-          role: me.user.role,
+          role: me.user.role as ReportActorRole,
         }
       : undefined;
 

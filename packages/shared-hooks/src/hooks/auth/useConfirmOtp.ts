@@ -69,5 +69,6 @@ export function useConfirmOtp() {
     confirmOtp,
     isLoading,
     error,
+    data,
   };
 }
