@@ -46,7 +46,6 @@ export function AIReportModal({
   isOpen,
   sessionId,
   patientId,
-  patientName,
   reason,
   reportType = "other",
   onClose,

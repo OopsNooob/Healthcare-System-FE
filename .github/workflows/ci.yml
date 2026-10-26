@@ -16,7 +16,7 @@ env:
 
 jobs:
   quality:
-    name: Lint & Typecheck (Admin & Mobile)
+    name: Lint & Typecheck (Admin, Client & Mobile)
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -44,5 +44,12 @@ jobs:
       - name: Run TypeScript Typecheck (Admin)
         run: pnpm --filter admin typecheck
 
+      - name: Run ESLint (Client)
+        run: pnpm --filter client lint
+
+      - name: Run TypeScript Typecheck (Client)
+        run: pnpm --filter client typecheck
+
       - name: Run TypeScript Typecheck (Mobile)
         run: pnpm --filter mobile typecheck
+

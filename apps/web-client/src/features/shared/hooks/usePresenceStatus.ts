@@ -36,7 +36,7 @@ export function usePresenceStatus(
       try {
         const online = await getOnlineUsers(normalizedUserIds);
         if (!cancelled) setOnlineIds(new Set(online));
-      } catch (err) {
+      } catch {
         if (!cancelled) setOnlineIds(new Set());
       }
     };

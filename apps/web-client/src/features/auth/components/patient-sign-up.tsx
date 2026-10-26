@@ -8,7 +8,7 @@ import {
 } from "@repo/ui/components/ui/field";
 import { Input } from "@repo/ui/components/ui/input";
 import { Button } from "@repo/ui/components/ui/button";
-import { FormEvent, useState } from "react";
+import { type FormEvent, useState } from "react";
 import { Spinner } from "@repo/ui/components/ui/spinner";
 import { Lock, Phone, User } from "lucide-react";
 
@@ -137,7 +137,7 @@ export function PatientSignUp({
     }
   }
 
-  function handleBlur(field: keyof Omit<typeof touched, "confirmPassword">) {
+  function handleBlur(field: keyof typeof touched) {
     setTouched((prev) => ({ ...prev, [field]: true })); // Mark the field as touched
     setLocalErrors(
       validate({ email, fullName, phoneNumber, password, confirmPassword }),

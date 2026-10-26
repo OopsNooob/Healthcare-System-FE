@@ -47,5 +47,6 @@ export function useForgotPassword() {
     sendOtp,
     isLoading,
     error,
+    data,
   };
 }

@@ -44,7 +44,6 @@ export function AiChat() {
 
   const me = useAuthStore();
   const {
-    isLoading: reportLoading,
     submitReport,
     error: reportError,
   } = useReport();
@@ -312,8 +311,8 @@ export function AiChat() {
           onClose={handleCloseReportModal}
           onConfirm={handleSubmitReportModal}
           sessionId={selectedSession.id}
-          patientId={reportPatientId}
-          patientName={reportPatientName}
+          patientId={reportPatientId ?? ""}
+          patientName={reportPatientName ?? ""}
         />
       )}
     </section>

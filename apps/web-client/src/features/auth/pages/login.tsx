@@ -9,7 +9,7 @@ import {
 } from "@repo/ui/components/ui/field";
 import { Input } from "@repo/ui/components/ui/input";
 import { Button } from "@repo/ui/components/ui/button";
-import { FormEvent, useState } from "react";
+import { type FormEvent, useState } from "react";
 import { Cross, Lock, User } from "lucide-react";
 import { Spinner } from "@repo/ui/components/ui/spinner";
 import { showToast } from "@repo/ui/components/ui/toasts";
@@ -121,7 +121,7 @@ export function LogIn({
 
   const emailError = touched.email ? localErrors.email : undefined;
   const passwordError = touched.password ? localErrors.password : undefined;
-  const submitting = isLoading || internalLoading;
+  const submitting = propIsLoading || isLoading || internalLoading;
   const displayError = error || propError;
 
   return (

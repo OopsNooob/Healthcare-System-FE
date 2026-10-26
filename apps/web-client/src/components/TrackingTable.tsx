@@ -1,5 +1,5 @@
 import { Button } from "@repo/ui/components/ui/button";
-import { Bot, ClipboardList, Pencil, Plus, Trash2 } from "lucide-react";
+import { Bot, Pencil, Plus, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { ConfirmationModal } from "@repo/ui/components/complex-modal/ConfirmationModal";
 import { showToast } from "@repo/ui/components/ui/toasts";
@@ -80,7 +80,6 @@ const dateKey = (date: Date) =>
   `${date.getFullYear()}-${`${date.getMonth() + 1}`.padStart(2, "0")}-${`${date.getDate()}`.padStart(2, "0")}`;
 
 export function TrackingTable({
-  metricTitle,
   metricType,
   selectedDate,
   today,
@@ -137,7 +136,7 @@ export function TrackingTable({
     setEditTimeInput(timeStringLocale);
     setPendingDeleteEntryId(null);
     setConfirmationModalOpen(false);
-  }, [entries, selectedDate]);
+  }, [entries, selectedDate, hasData, isEditable, timeStringLocale]);
 
   const evaluatedEntries = useMetricStatus({
     metricType,
@@ -225,7 +224,6 @@ export function TrackingTable({
           secondaryValue: nextEntry.secondaryValue,
         });
         showToast.success("Entry added successfully");
-      } else {
       }
       resetForm();
       setIsAdding(false);

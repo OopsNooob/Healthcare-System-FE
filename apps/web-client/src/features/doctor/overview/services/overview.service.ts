@@ -13,10 +13,6 @@ type CreatedAtRecord = {
   createdAt?: string;
 };
 
-type UpdatedAtRecord = {
-  _id?: string;
-  updatedAt?: string;
-};
 
 type ScheduledAtRecord = {
   _id?: string;

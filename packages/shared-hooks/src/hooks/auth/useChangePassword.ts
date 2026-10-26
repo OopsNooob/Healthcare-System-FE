@@ -78,5 +78,6 @@ export function useChangePassword() {
     changePassword,
     isLoading,
     error,
+    data,
   };
 }

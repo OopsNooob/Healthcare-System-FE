@@ -1,5 +1,5 @@
 import { UserAvatar } from "@repo/ui/components/ui/user-avatar";
-import { Dot, Clock, CheckCircle, CircleX } from "lucide-react";
+import { Clock, CheckCircle, CircleX } from "lucide-react";
 
 type SessionStatus = "pending" | "rejected" | "completed" | "active";
 

@@ -58,6 +58,8 @@ export type DoctorReRegisterPrefillApiResponse = {
   rejectReason?: string | null;
   reason?: string | null; // Legacy field
   verificationDocuments?: string[]; // Array of secureUrls
+  verification_documents?: string[];
+  existingDocuments?: unknown[];
 };
 
 type ApiUserSignUpResponse = {

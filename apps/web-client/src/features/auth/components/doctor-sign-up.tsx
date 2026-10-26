@@ -8,7 +8,7 @@ import {
 } from "@repo/ui/components/ui/field";
 import { Input } from "@repo/ui/components/ui/input";
 import { Button } from "@repo/ui/components/ui/button";
-import { FormEvent, useRef, useState } from "react";
+import { type FormEvent, useRef, useState } from "react";
 import { Spinner } from "@repo/ui/components/ui/spinner";
 import {
   Building2,
@@ -72,14 +72,15 @@ function preprocessDoctorPrefillData( // Renamed function
     payload.verificationStatus ?? payload.verification_status ?? "pending";
   const yearsOfExperienceRaw =
     payload.yearsOfExperience ?? payload.experienceYears ?? "";
-  const existingDocumentsFromMetadata = payload.existingDocuments ?? [];
+  const existingDocumentsFromMetadata = (payload.existingDocuments ??
+    []) as ExistingVerificationDocument[];
   const existingDocumentLinks =
     payload.verificationDocuments ?? payload.verification_documents ?? [];
 
   const existingDocuments =
     existingDocumentsFromMetadata.length > 0
       ? existingDocumentsFromMetadata
-      : existingDocumentLinks.map((documentUrl, index) => {
+      : existingDocumentLinks.map((documentUrl: string, index: number) => {
           const strippedQuery = documentUrl.split("?")[0];
           const fallbackName = `document-${index + 1}`;
           const originalFilename =
@@ -214,8 +215,6 @@ export function DoctorSignUp({
     useDoctorPrefillData(); // Use the new hook
 
   const submitting = isLoading || internalLoading;
-  const replacementFiles = Object.values(replacementFilesByDocumentId);
-  const newFiles = [...verificationFiles, ...replacementFiles];
 
   function validate(values: DoctorSignUpValues): DoctorSignUpErrors {
     const nextErrors: DoctorSignUpErrors = {};

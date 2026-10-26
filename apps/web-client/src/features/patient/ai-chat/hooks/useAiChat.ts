@@ -194,11 +194,8 @@ export function useAiChat() {
           sortOrder: -1,
         };
         const response = await getConversation(conversationId, query);
-        const records = response.messages.length
-          ? response.messages
-          : response.conversation.messages;
         const mapped = response.messages.length
-          ? mapConversationRecords(conversationId, records).slice().reverse()
+          ? mapConversationRecords(conversationId, response.messages).slice().reverse()
           : mapConversationMessages(response.conversation);
         if (page === 1) {
           setMessages(mapped);
