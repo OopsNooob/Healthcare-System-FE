@@ -1,2 +1,0 @@
-174: "mobile.free_tier": "Gói miễn phí",
-185: "mobile.free_plan": "Gói miễn phí",
