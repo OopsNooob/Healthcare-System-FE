@@ -1,4 +1,3 @@
-import * as React from "react";
 import { Cross } from "lucide-react";
 import { useTranslation } from "react-i18next";
 

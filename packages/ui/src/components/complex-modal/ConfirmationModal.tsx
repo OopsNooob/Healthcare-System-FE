@@ -1,4 +1,3 @@
-import * as React from "react";
 import { TriangleAlert, X } from "lucide-react";
 import { Button } from "../ui/button";
 
@@ -73,9 +72,9 @@ export function ConfirmationModal({
           <div className="flex flex-col items-center text-center">
             {/* Icon */}
             <div
-              className={`w-16 h-16 rounded-full bg-red-50 flex items-center justify-center mb-4`}
+              className={`w-16 h-16 rounded-full ${style.bg} flex items-center justify-center mb-4`}
             >
-              <TriangleAlert className={`w-8 h-8 text-red-600`} />
+              <TriangleAlert className={`w-8 h-8 ${style.icon}`} />
             </div>
 
             {/* Title */}
@@ -91,7 +90,7 @@ export function ConfirmationModal({
               <Button variant="outline" size="lg" onClick={onClose}>
                 {cancelText}
               </Button>
-              <Button size="lg" onClick={handleConfirm}>
+              <Button size="lg" className={style.confirmBtn} onClick={handleConfirm}>
                 {confirmText}
               </Button>
             </div>

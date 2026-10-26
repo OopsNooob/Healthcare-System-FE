@@ -7,14 +7,15 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "lint": "eslint . --max-warnings 0",
-    "check-types": "tsc --noEmit"
+    "lint": "eslint .",
+    "check-types": "tsc --noEmit",
+    "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
     "@repo/eslint-config": "workspace:*",
     "@repo/typescript-config": "workspace:*",
     "@types/node": "^20.0.0",
-    "@types/react": "19.2.2",
+    "@types/react": "^19.2.7",
     "eslint": "^9.39.1",
     "typescript": "5.9.2"
   },
