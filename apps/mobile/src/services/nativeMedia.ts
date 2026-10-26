@@ -6,6 +6,7 @@ import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system/legacy';
 import Toast from 'react-native-toast-message';
 import i18n from '@/i18n';
+import { buildHealthReportExcel } from './excelReportGenerator';
 
 export interface NativeMediaFile {
   uri: string;
@@ -20,14 +21,14 @@ export interface GeneratedReport {
   uri: string;
   name: string;
   size: string;
-  type: 'pdf' | 'csv' | 'html';
+  type: 'pdf' | 'csv' | 'html' | 'xlsx';
   mimeType: string;
 }
 
 export interface HealthReportExportOptions {
   patientName?: string;
   timeRange: string;
-  format?: 'pdf' | 'csv';
+  format?: 'pdf' | 'csv' | 'xlsx';
   includeAiSummary: boolean;
   includeCharts: boolean;
   includeAlerts: boolean;
@@ -202,95 +203,23 @@ export const generateHealthReport = async (
 
     const cacheDir = FileSystem.cacheDirectory || FileSystem.documentDirectory || '';
 
-    // 1. Handle CSV / Excel format (Default & Recommended)
-    if (!options.format || options.format === 'csv') {
-      const csvSections: string[] = [];
+    // 1. Handle Excel (.xlsx) format (Default & Recommended)
+    if (!options.format || options.format === 'xlsx' || options.format === 'csv') {
+      const excelResult = buildHealthReportExcel(options, isVi);
+      const filePath = `${cacheDir}${excelResult.fileName}`;
 
-      // Metadata section
-      csvSections.push(`"${isVi ? 'BÁO CÁO CHỈ SỐ SỨC KHỎE LÂM SÀNG' : 'CLINICAL HEALTH TELEMETRY REPORT'}"`);
-      csvSections.push(`"${patientLabel}:","Nguyễn Văn An"`);
-      csvSections.push(`"${dossierLabel}:","HS-8921-2026"`);
-      csvSections.push(`"${periodLabel}:","${options.timeRange.toUpperCase()}"`);
-      csvSections.push(`"${exportDateLabel}:","${currentDate}"`);
-      csvSections.push('');
-
-      // AI Summary section if enabled
-      if (options.includeAiSummary) {
-        const aiSummaryText = isVi
-          ? 'Trong thời gian theo dõi, chỉ số huyết áp khá ổn định ở mức trung bình 120/80 mmHg. Đường huyết có 1 lần vượt ngưỡng nhẹ vào sáng ngày thứ 3. Khuyến nghị tiếp tục duy trì chế độ ăn nhạt và theo dõi thường xuyên.'
-          : 'During the observation period, blood pressure remained stable at an average of 120/80 mmHg. Fasting blood sugar slightly elevated on day 3. Recommended to maintain low sodium diet.';
-        csvSections.push(`"${isVi ? 'TÓM TẮT TỔNG QUAN TỪ AI' : 'AI CLINICAL SUMMARY'}"`);
-        csvSections.push(`"${aiSummaryText.replace(/"/g, '""')}"`);
-        csvSections.push('');
-      }
-
-      // Telemetry Data Table
-      const headerLine = isVi
-        ? 'Thời gian,Huyết áp tâm thu (mmHg),Huyết áp tâm trương (mmHg),Đường huyết đói (mg/dL),Nhịp tim (BPM),Đánh giá lâm sàng'
-        : 'Timestamp,Systolic (mmHg),Diastolic (mmHg),Fasting Glucose (mg/dL),Heart Rate (BPM),Assessment';
-      
-      const rows = isVi
-        ? [
-            '17/10/2026 08:00,120,80,102,74,Bình thường',
-            '16/10/2026 08:15,124,82,108,78,Bình thường',
-            '15/10/2026 08:00,138,88,125,82,Hơi cao',
-            '14/10/2026 08:30,122,80,98,72,Đạt mục tiêu',
-            '13/10/2026 08:00,118,78,95,70,Tối ưu',
-            '12/10/2026 08:00,121,80,101,73,Bình thường',
-            '11/10/2026 08:00,125,82,105,75,Bình thường',
-          ]
-        : [
-            '17/10/2026 08:00,120,80,102,74,Normal',
-            '16/10/2026 08:15,124,82,108,78,Normal',
-            '15/10/2026 08:00,138,88,125,82,Elevated',
-            '14/10/2026 08:30,122,80,98,72,Target',
-            '13/10/2026 08:00,118,78,95,70,Optimal',
-            '12/10/2026 08:00,121,80,101,73,Normal',
-            '11/10/2026 08:00,125,82,105,75,Normal',
-          ];
-
-      csvSections.push(`"${isVi ? 'DỮ LIỆU CHỈ SỐ SINH HIỆU CHI TIẾT' : 'DETAILED BIOMETRIC TELEMETRY'}"`);
-      csvSections.push(headerLine);
-      csvSections.push(...rows);
-      csvSections.push('');
-
-      // Alerts section if enabled
-      if (options.includeAlerts) {
-        csvSections.push(`"${isVi ? 'LỊCH SỬ CẢNH BÁO & GHI CHÚ ĐIỀU TRỊ' : 'ALERT HISTORY & CLINICAL NOTES'}"`);
-        const alertHeaders = isVi
-          ? 'Thời gian,Mức độ,Nội dung cảnh báo,Hành động khuyến nghị'
-          : 'Timestamp,Severity,Alert Description,Recommended Action';
-        const alertRows = isVi
-          ? [
-              '15/10/2026 08:00,Cần chú ý,Huyết áp tâm thu 138 mmHg vượt ngưỡng mục tiêu,Nghỉ ngơi 15 phút và đo lại',
-              '15/10/2026 08:00,Cảnh báo nhẹ,Đường huyết sáng 125 mg/dL cao hơn mức chuẩn,Uống thuốc đúng giờ và hạn chế tinh bột',
-            ]
-          : [
-              '15/10/2026 08:00,Attention,Systolic BP 138 mmHg exceeded target,Rest 15 minutes and remeasure',
-              '15/10/2026 08:00,Mild Alert,Fasting glucose 125 mg/dL elevated,Take prescribed medication and reduce carbs',
-            ];
-        csvSections.push(alertHeaders);
-        csvSections.push(...alertRows);
-      }
-
-      // Prepend UTF-8 BOM (\uFEFF) so Microsoft Excel natively decodes Vietnamese characters correctly
-      const csvDataWithBOM = '\uFEFF' + csvSections.join('\n');
-      const fileName = isVi
-        ? `Bao_Cao_Suc_Khoe_Excel_${options.timeRange.toUpperCase()}.csv`
-        : `Health_Report_Excel_${options.timeRange.toUpperCase()}.csv`;
-      const csvPath = `${cacheDir}${fileName}`;
-
-      await FileSystem.writeAsStringAsync(csvPath, csvDataWithBOM, {
-        encoding: FileSystem.EncodingType.UTF8,
+      await FileSystem.writeAsStringAsync(filePath, excelResult.base64, {
+        encoding: FileSystem.EncodingType.Base64,
       });
-      const fileInfo = await FileSystem.getInfoAsync(csvPath);
+
+      const fileInfo = await FileSystem.getInfoAsync(filePath);
 
       return {
-        uri: csvPath,
-        name: fileName,
+        uri: filePath,
+        name: excelResult.fileName,
         size: formatFileSize(fileInfo.exists ? fileInfo.size : undefined),
-        type: 'csv',
-        mimeType: 'text/csv',
+        type: 'xlsx',
+        mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       };
     }
 

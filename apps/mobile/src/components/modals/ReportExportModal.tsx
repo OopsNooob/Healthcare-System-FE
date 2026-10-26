@@ -11,7 +11,7 @@ interface ReportExportModalProps {
   onClose: () => void;
   onExportReport?: (options: {
     timeRange: string;
-    format: 'csv';
+    format: 'xlsx' | 'csv';
     includeAiSummary: boolean;
     includeCharts: boolean;
     includeAlerts: boolean;
@@ -29,7 +29,7 @@ export const ReportExportModal: React.FC<ReportExportModalProps> = ({
   const isVi = i18n.language ? i18n.language.startsWith('vi') : true;
 
   const [timeRange, setTimeRange] = useState<string>(defaultTimeRange);
-  const format = 'csv' as const;
+  const format = 'xlsx' as const;
   const [includeAiSummary, setIncludeAiSummary] = useState(true);
   const [includeCharts, setIncludeCharts] = useState(true);
   const [includeAlerts, setIncludeAlerts] = useState(true);
@@ -50,7 +50,7 @@ export const ReportExportModal: React.FC<ReportExportModalProps> = ({
     try {
       const result = await generateHealthReport({
         timeRange,
-        format: 'csv',
+        format: 'xlsx',
         includeAiSummary,
         includeCharts,
         includeAlerts,
@@ -69,7 +69,7 @@ export const ReportExportModal: React.FC<ReportExportModalProps> = ({
       if (onExportReport) {
         onExportReport({
           timeRange,
-          format: 'csv',
+          format: 'xlsx',
           includeAiSummary,
           includeCharts,
           includeAlerts,
@@ -136,7 +136,7 @@ export const ReportExportModal: React.FC<ReportExportModalProps> = ({
                 <Text style={tw('text-xs text-slate-500 dark:text-slate-400 leading-4 mt-0.5')}>
                   {showPreview
                     ? (isVi ? 'Dữ liệu chỉ số sinh hiệu và đánh giá' : 'Telemetry and clinical notes')
-                    : t('mobile.export_excel_desc', 'Tạo bảng tính Excel (.csv) tổng hợp dữ liệu sinh hiệu và cảnh báo')}
+                    : t('mobile.export_excel_desc', 'Tạo bảng tính Excel (.xlsx) định dạng chuẩn với biểu đồ và chỉ số sinh hiệu')}
                 </Text>
               </View>
             </View>
@@ -399,10 +399,10 @@ export const ReportExportModal: React.FC<ReportExportModalProps> = ({
                     </View>
                     <View style={tw('flex-1')}>
                       <Text style={tw('font-bold text-slate-900 dark:text-white text-sm')}>
-                        {t('mobile.excel_format_name', 'Bảng tính Excel (.csv)')}
+                        {t('mobile.excel_format_name', 'Bảng tính Excel (.xlsx)')}
                       </Text>
                       <Text style={tw('text-[11px] text-slate-500 dark:text-slate-400 leading-4 mt-0.5')}>
-                        {t('mobile.excel_format_desc', 'Tương thích Microsoft Excel, Google Sheets, Apple Numbers')}
+                        {t('mobile.excel_format_desc', 'Định dạng bảng biểu, màu sắc tự động, tương thích Microsoft Excel & Google Sheets')}
                       </Text>
                     </View>
                   </View>
