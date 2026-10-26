@@ -38,8 +38,11 @@ jobs:
       - name: Install Dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Run ESLint
-        run: pnpm turbo run lint --filter=admin... --filter=mobile...
+      - name: Expose Workspace Binaries to PATH
+        run: echo "${{ github.workspace }}/node_modules/.bin" >> $GITHUB_PATH
 
-      - name: Run TypeScript Typecheck
-        run: pnpm turbo run typecheck --filter=admin... --filter=mobile...
+      - name: Run ESLint (Admin)
+        run: pnpm turbo run lint --filter=admin --filter=mobile
+
+      - name: Run TypeScript Typecheck (Admin & Mobile)
+        run: pnpm turbo run typecheck --filter=admin --filter=mobile
