@@ -72,7 +72,8 @@ function preprocessDoctorPrefillData( // Renamed function
     payload.verificationStatus ?? payload.verification_status ?? "pending";
   const yearsOfExperienceRaw =
     payload.yearsOfExperience ?? payload.experienceYears ?? "";
-  const existingDocumentsFromMetadata = payload.existingDocuments ?? [];
+  const existingDocumentsFromMetadata = (payload.existingDocuments ??
+    []) as ExistingVerificationDocument[];
   const existingDocumentLinks =
     payload.verificationDocuments ?? payload.verification_documents ?? [];
 

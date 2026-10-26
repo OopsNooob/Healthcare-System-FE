@@ -664,8 +664,10 @@ export function useMetricStatus({
   entries,
   options,
 }: UseMetricStatusParams): MetricReading[] {
+  const birthDay = options?.birthDay;
+  const gender = options?.gender;
   return useMemo(
-    () => deriveMetricStatuses({ metricType, entries, options }),
-    [entries, metricType, options?.birthDay, options?.gender],
+    () => deriveMetricStatuses({ metricType, entries, options: { birthDay, gender } }),
+    [entries, metricType, birthDay, gender],
   );
 }

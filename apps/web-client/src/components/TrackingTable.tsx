@@ -136,7 +136,7 @@ export function TrackingTable({
     setEditTimeInput(timeStringLocale);
     setPendingDeleteEntryId(null);
     setConfirmationModalOpen(false);
-  }, [entries, selectedDate]);
+  }, [entries, selectedDate, hasData, isEditable, timeStringLocale]);
 
   const evaluatedEntries = useMetricStatus({
     metricType,

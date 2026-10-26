@@ -59,7 +59,7 @@ export type DoctorReRegisterPrefillApiResponse = {
   reason?: string | null; // Legacy field
   verificationDocuments?: string[]; // Array of secureUrls
   verification_documents?: string[];
-  existingDocuments?: any[];
+  existingDocuments?: unknown[];
 };
 
 type ApiUserSignUpResponse = {
