@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { View, Text, ScrollView, TouchableOpacity, SafeAreaView, Modal, TextInput, Alert, KeyboardAvoidingView, Platform, Linking } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Modal, TextInput, Alert, KeyboardAvoidingView, Platform, Linking } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Activity, Heart, Droplet, Plus, Edit2, Trash2, Bot, X, AlertTriangle, AlertCircle, PhoneCall, CheckCircle2 } from 'lucide-react-native';
 import { tw, twInstance } from '@/tw';
 import { useSafeRouter as useRouter } from '@/utils/useSafeRouter';

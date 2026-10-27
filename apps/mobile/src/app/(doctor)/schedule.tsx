@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { View, Text, ScrollView, TouchableOpacity, SafeAreaView, Switch, RefreshControl, Alert } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Switch, RefreshControl, Alert } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSafeRouter as useRouter } from '@/utils/useSafeRouter';
 import Toast from 'react-native-toast-message';
 import { Calendar, Plus, Clock, Copy, Trash2 } from 'lucide-react-native';

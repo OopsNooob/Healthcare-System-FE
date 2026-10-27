@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { View, Text, TouchableOpacity, ScrollView, TextInput, SafeAreaView, RefreshControl } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, TextInput, RefreshControl } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSafeRouter as useRouter } from '@/utils/useSafeRouter';
 import { ArrowLeft, MapPin, Search, ShieldCheck, Navigation, Phone, HeartPulse, Building2 } from 'lucide-react-native';
 import { tw, twInstance } from '@/tw';

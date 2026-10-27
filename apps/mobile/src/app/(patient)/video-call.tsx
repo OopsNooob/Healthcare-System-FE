@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
-import { View, Text, TouchableOpacity, SafeAreaView, Image, StatusBar } from 'react-native';
+import { View, Text, TouchableOpacity, Image, StatusBar } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSafeRouter as useRouter } from '@/utils/useSafeRouter';
 import { MicOff, Video, PhoneOff, Maximize, MessageCircle } from 'lucide-react-native';
 import { tw } from '@/tw';

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { View, Text, ScrollView, TouchableOpacity, SafeAreaView, Switch, RefreshControl, Modal, KeyboardAvoidingView, Platform, TextInput } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Switch, RefreshControl, Modal, KeyboardAvoidingView, Platform, TextInput } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSafeRouter as useRouter } from '@/utils/useSafeRouter';
 import { Users, Calendar as CalendarIcon, Clock, TrendingUp, Bell, Power, CheckCircle, XCircle, X, ChevronDown, Check } from 'lucide-react-native';
 import { tw, twInstance } from '@/tw';

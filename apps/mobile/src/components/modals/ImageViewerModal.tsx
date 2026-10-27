@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, Modal, TouchableOpacity, Image, Dimensions, SafeAreaView } from 'react-native';
+import { View, Text, Modal, TouchableOpacity, Image, Dimensions } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { X, ZoomIn, Download, Share2 } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { tw, twInstance } from '@/tw';
