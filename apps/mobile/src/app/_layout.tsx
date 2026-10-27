@@ -11,6 +11,11 @@ import '../i18n';
 import { useDeviceContext, useAppColorScheme } from 'twrnc';
 import { twInstance } from '@/tw';
 import { ThemeContext } from '@/context/ThemeContext';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { setStorageProvider } from '@repo/shared-hooks';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+
+setStorageProvider(AsyncStorage);
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -62,19 +67,21 @@ export default function RootLayout() {
   const activeScheme = (colorScheme ?? 'light') as 'light' | 'dark';
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <ThemeContext.Provider value={{ colorScheme: activeScheme }}>
-        <ThemeProvider value={colorScheme === 'dark' ? CustomDarkTheme : CustomDefaultTheme}>
-          <Stack screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-            <Stack.Screen name="(patient)" options={{ headerShown: false }} />
-            <Stack.Screen name="(doctor)" options={{ headerShown: false }} />
-            <Stack.Screen name="+not-found" />
-          </Stack>
-          <StatusBar style="auto" />
-        </ThemeProvider>
-      </ThemeContext.Provider>
-      <Toast />
-    </QueryClientProvider>
+    <SafeAreaProvider>
+      <QueryClientProvider client={queryClient}>
+        <ThemeContext.Provider value={{ colorScheme: activeScheme }}>
+          <ThemeProvider value={colorScheme === 'dark' ? CustomDarkTheme : CustomDefaultTheme}>
+            <Stack screenOptions={{ headerShown: false }}>
+              <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+              <Stack.Screen name="(patient)" options={{ headerShown: false }} />
+              <Stack.Screen name="(doctor)" options={{ headerShown: false }} />
+              <Stack.Screen name="+not-found" />
+            </Stack>
+            <StatusBar style="auto" />
+          </ThemeProvider>
+        </ThemeContext.Provider>
+        <Toast />
+      </QueryClientProvider>
+    </SafeAreaProvider>
   );
 }

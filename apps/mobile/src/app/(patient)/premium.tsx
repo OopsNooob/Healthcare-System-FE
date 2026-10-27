@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { View, Text, ScrollView, TouchableOpacity, SafeAreaView, Platform, Alert, Image } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Platform, Alert, Image } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSafeRouter as useRouter } from '@/utils/useSafeRouter';
 import Toast from 'react-native-toast-message';
 import { Crown, CheckCircle2, ArrowRight, ArrowLeft, ShieldCheck, Zap, XCircle, HeartPulse, Sparkles, AlertCircle } from 'lucide-react-native';

@@ -1,7 +1,7 @@
 {
   "name": "mobile",
   "version": "1.0.0",
-  "main": "expo-router/entry",
+  "main": "index.js",
   "dependencies": {
     "@expo/metro-runtime": "^57.0.16",
     "@healthcare/api-client": "workspace:*",

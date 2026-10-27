@@ -5,21 +5,18 @@ export interface StorageProvider {
 }
 
 let currentStorage: StorageProvider | null = null;
+let warned = false;
 
 export function setStorageProvider(provider: StorageProvider) {
   currentStorage = provider;
 }
 
-export function getStorage(): StorageProvider {
-  if (!currentStorage) {
-    console.warn("Storage provider not set. Falling back to memory storage.");
-    return createMemoryStorage();
+let memoryStore: Map<string, string> | null = null;
+function getMemoryStorage(): StorageProvider {
+  if (!memoryStore) {
+    memoryStore = new Map<string, string>();
   }
-  return currentStorage;
-}
-
-function createMemoryStorage(): StorageProvider {
-  const store = new Map<string, string>();
+  const store = memoryStore;
   return {
     getItem: (key) => store.get(key) || null,
     setItem: (key, value) => {
@@ -27,6 +24,61 @@ function createMemoryStorage(): StorageProvider {
     },
     removeItem: (key) => {
       store.delete(key);
+    },
+  };
+}
+
+export function getStorage(): StorageProvider {
+  if (currentStorage) {
+    return currentStorage;
+  }
+
+  if (typeof window !== "undefined" && window.localStorage) {
+    return window.localStorage;
+  }
+
+  // Return a lazy proxy that waits for the next microtask in case setStorageProvider
+  // is executed in the same module evaluation tick (e.g., at app startup).
+  return {
+    getItem: async (key: string) => {
+      if (!currentStorage) {
+        await Promise.resolve();
+      }
+      if (currentStorage) {
+        return currentStorage.getItem(key);
+      }
+      if (typeof window !== "undefined" && window.localStorage) {
+        return window.localStorage.getItem(key);
+      }
+      if (!warned) {
+        warned = true;
+        console.warn("Storage provider not set. Falling back to memory storage.");
+      }
+      return getMemoryStorage().getItem(key);
+    },
+    setItem: async (key: string, value: string) => {
+      if (!currentStorage) {
+        await Promise.resolve();
+      }
+      if (currentStorage) {
+        return currentStorage.setItem(key, value);
+      }
+      if (typeof window !== "undefined" && window.localStorage) {
+        return window.localStorage.setItem(key, value);
+      }
+      return getMemoryStorage().setItem(key, value);
+    },
+    removeItem: async (key: string) => {
+      if (!currentStorage) {
+        await Promise.resolve();
+      }
+      if (currentStorage) {
+        return currentStorage.removeItem(key);
+      }
+      if (typeof window !== "undefined" && window.localStorage) {
+        return window.localStorage.removeItem(key);
+      }
+      return getMemoryStorage().removeItem(key);
     },
   };
 }

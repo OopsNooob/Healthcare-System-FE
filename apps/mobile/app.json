@@ -2,6 +2,7 @@
   "expo": {
     "name": "Healthcare",
     "slug": "healthcare",
+    "scheme": "healthcare",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
