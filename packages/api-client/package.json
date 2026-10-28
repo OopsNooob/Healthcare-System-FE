@@ -11,6 +11,7 @@
   },
   "devDependencies": {
     "@hey-api/openapi-ts": "^0.99.0",
+    "@repo/typescript-config": "workspace:*",
     "typescript": "^5.9.3"
   }
 }

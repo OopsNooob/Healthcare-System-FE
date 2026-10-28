@@ -3,10 +3,10 @@ import { useAuthStore } from "@repo/ui/store/useAuthStore";
 
 import { io } from "socket.io-client";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api/v1";
 
-if (!API_BASE_URL) {
-  throw new Error("VITE_API_BASE_URL is missing");
+if (!import.meta.env.VITE_API_BASE_URL) {
+  console.warn("VITE_API_BASE_URL is missing in environment variables. Falling back to:", API_BASE_URL);
 }
 
 const SOCKET_BASE_URL = API_BASE_URL.replace(/\/api(\/.*)?$/, "");

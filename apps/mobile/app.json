@@ -32,6 +32,12 @@
       "expo-secure-store",
       "expo-splash-screen",
       "expo-font"
-    ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "5833010f-7b36-43e7-a03f-14af5f96ada8"
+      }
+    }
   }
 }
