@@ -13,9 +13,11 @@ import { twInstance } from '@/tw';
 import { ThemeContext } from '@/context/ThemeContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { setStorageProvider } from '@repo/shared-hooks';
+import { setTokenGetter } from '@healthcare/api-client';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 setStorageProvider(AsyncStorage);
+setTokenGetter(() => AsyncStorage.getItem('accessToken'));
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
