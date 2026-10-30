@@ -137,6 +137,9 @@ importers:
       '@fontsource-variable/geist':
         specifier: ^5.2.8
         version: 5.3.0
+      '@healthcare/api-client':
+        specifier: workspace:*
+        version: link:../../packages/api-client
       '@repo/ui':
         specifier: workspace:*
         version: link:../../packages/ui
@@ -8730,7 +8733,9 @@ snapshots:
       metro-runtime: 0.84.6
     transitivePeerDependencies:
       - '@babel/core'
+      - bufferutil
       - supports-color
+      - utf-8-validate
 
   '@react-native/normalize-colors@0.86.3': {}
 

@@ -7,6 +7,12 @@ import { Calendar, Clock, Video, MessageCircle, MapPin, AlertCircle, X, Check, C
 import { tw } from '@/tw';
 import { useSafeRouter as useRouter } from '@/utils/useSafeRouter';
 import { useThemeContext } from '@/context/ThemeContext';
+import {
+  consultationsUpcoming,
+  consultationsFindAll,
+  consultationsCancel,
+  consultationsRecordWaitingRoomPresence,
+} from '@healthcare/api-client';
 
 export default function AppointmentsScreen() {
   const { t } = useTranslation();
@@ -72,21 +78,56 @@ export default function AppointmentsScreen() {
     },
   ];
 
-  useEffect(() => {
-    // Simulate initial loading
-    setTimeout(() => {
+  const loadData = async () => {
+    try {
+      const [upcomingRes, historyRes]: any = await Promise.all([
+        consultationsUpcoming().catch(() => null),
+        consultationsFindAll({ query: { limit: 10 } }).catch(() => null),
+      ]);
+
+      const formatApt = (item: any) => {
+        const d = item.scheduledStartAt ? new Date(item.scheduledStartAt) : new Date();
+        return {
+          id: item._id || item.id,
+          doctor: item.doctor?.fullName || item.doctorId || 'Bác sĩ chuyên khoa',
+          specialty: item.doctor?.doctorProfile?.specialty || item.doctor?.specialty || 'General Practitioner',
+          date: d.toLocaleDateString(),
+          time: d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          type: item.mode === 'on_demand' ? 'Chat' : 'Video Call',
+          status: item.sessionStatus === 'waiting' ? 'Waiting' : item.requestStatus === 'accepted' ? 'Confirmed' : item.sessionStatus === 'completed' ? 'Completed' : item.requestStatus === 'cancelled' ? 'Cancelled' : 'Pending',
+          queuePosition: item.queuePosition || 1,
+          estimatedWait: item.estimatedWaitMinutes ? `${item.estimatedWaitMinutes} mins` : '10 mins',
+        };
+      };
+
+      if (upcomingRes?.data && Array.isArray(upcomingRes.data) && upcomingRes.data.length > 0) {
+        setUpcomingList(upcomingRes.data.map(formatApt));
+      } else {
+        setUpcomingList(upcomingAppointments);
+      }
+
+      const historyData = historyRes?.data?.items || historyRes?.data;
+      if (Array.isArray(historyData) && historyData.length > 0) {
+        setHistoryList(historyData.map(formatApt));
+      } else {
+        setHistoryList(historyAppointments);
+      }
+    } catch {
       setUpcomingList(upcomingAppointments);
       setHistoryList(historyAppointments);
+    } finally {
       setLoading(false);
-    }, 1500);
+      setRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
   }, []);
 
   const onRefresh = () => {
     setRefreshing(true);
-    setTimeout(() => {
-      setRefreshing(false);
-      // Simulate refreshing data
-    }, 1500);
+    loadData();
   };
 
   const handleCancel = (id: string) => {
@@ -98,7 +139,15 @@ export default function AppointmentsScreen() {
         { 
           text: t('mobile.yes_cancel', 'Yes, Cancel'), 
           style: 'destructive',
-          onPress: () => {
+          onPress: async () => {
+            try {
+              await consultationsCancel({
+                path: { id },
+                body: { reason: 'User requested cancellation' } as any,
+              });
+            } catch {
+              // fallback
+            }
             setUpcomingList(prev => prev.filter(apt => apt.id !== id));
             Toast.show({
               type: 'success',

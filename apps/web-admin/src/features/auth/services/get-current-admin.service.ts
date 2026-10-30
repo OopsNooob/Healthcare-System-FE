@@ -2,7 +2,8 @@ import { api } from "@/lib/api";
 import type { AdminRole } from "@repo/ui/types/auth";
 
 type ApiCurrentAdminProfile = {
-  id: string;
+  _id?: string;
+  id?: string;
   email: string;
   fullName: string;
   role: "admin";
@@ -26,7 +27,7 @@ export async function getCurrentAdmin(): Promise<CurrentAdmin> {
   const currentAdmin = res.data;
 
   return {
-    id: currentAdmin.id,
+    id: currentAdmin.id || currentAdmin._id || "",
     email: currentAdmin.email,
     fullName: currentAdmin.fullName,
     role: currentAdmin.role,
