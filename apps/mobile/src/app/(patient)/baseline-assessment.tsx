@@ -264,7 +264,7 @@ export default function BaselineAssessmentScreen() {
                     </View>
                   </View>
 
-                  <View style={tw('space-y-3.5 mb-2')}>
+                  <View style={tw('mb-2')}>
                     <View style={tw('flex-row items-start gap-3')}>
                       <View style={tw('w-6 h-6 rounded-full bg-emerald-50 dark:bg-emerald-900/30 items-center justify-center mt-0.5')}>
                         <Check size={14} color={twInstance.color('text-emerald-600 dark:text-emerald-400')} />
@@ -289,7 +289,7 @@ export default function BaselineAssessmentScreen() {
                 <TouchableOpacity
                   activeOpacity={0.8}
                   onPress={() => setHasAgreedConsent(!hasAgreedConsent)}
-                  style={tw(`flex-row items-center p-4 rounded-2xl border transition-all ${
+                  style={tw(`flex-row items-center p-4 rounded-2xl border ${
                     hasAgreedConsent
                       ? 'bg-indigo-50/70 dark:bg-indigo-950/40 border-indigo-400 dark:border-indigo-600'
                       : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800'
@@ -586,11 +586,11 @@ export default function BaselineAssessmentScreen() {
                     Configuration Summary
                   </Text>
 
-                  <View style={tw('flex-row justify-between items-center py-1 border-b border-slate-100 dark:border-slate-800')}>
-                    <Text style={tw('text-sm text-slate-600 dark:text-slate-400')}>
+                  <View style={tw('flex-row justify-between items-start py-1 border-b border-slate-100 dark:border-slate-800 gap-2')}>
+                    <Text style={tw('text-sm text-slate-600 dark:text-slate-400 shrink-0')}>
                       {t('mobile.active_program', 'Active Program')}
                     </Text>
-                    <Text style={tw('text-sm font-bold text-slate-900 dark:text-slate-100')}>
+                    <Text style={tw('text-sm font-bold text-slate-900 dark:text-slate-100 flex-1 text-right')}>
                       {t('mobile.hypertension_program', 'Hypertension Management')}
                     </Text>
                   </View>

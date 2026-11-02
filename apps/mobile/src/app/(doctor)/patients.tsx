@@ -137,7 +137,7 @@ export default function PatientsManagementScreen() {
           filteredPatients.map((patient) => (
             <View key={patient.id} style={tw('bg-white dark:bg-slate-900 rounded-3xl p-5 mb-4 shadow-sm border border-slate-200 dark:border-slate-800')}>
               <View style={tw('flex-row justify-between items-start mb-4')}>
-                <View>
+                <View style={tw('flex-1 mr-3')}>
                   <Text style={tw('text-lg font-bold text-slate-900 dark:text-white')}>{patient.name}</Text>
                   {patient.program ? (
                     <View style={tw('bg-indigo-50 dark:bg-indigo-900/30 px-3 py-1 rounded-full mt-2 self-start')}>
@@ -152,10 +152,10 @@ export default function PatientsManagementScreen() {
                 {!patient.program && (
                   <TouchableOpacity 
                     onPress={() => handleEnroll(patient)}
-                    style={tw('flex-row items-center bg-brand px-3 py-2 rounded-xl')}
+                    style={tw('flex-row items-center bg-brand px-3.5 py-2 rounded-xl shrink-0')}
                   >
                     <UserPlus color="#0f172a" size={16} />
-                    <Text style={tw('text-slate-900 font-bold ml-1 text-sm')}>{t('mobile.enroll', 'Enroll')}</Text>
+                    <Text style={tw('text-slate-900 font-bold ml-1.5 text-sm')} numberOfLines={1}>{t('mobile.enroll', 'Enroll')}</Text>
                   </TouchableOpacity>
                 )}
               </View>

@@ -4,7 +4,7 @@ import { View, Text, ScrollView, TouchableOpacity, Image, TextInput, KeyboardAvo
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSafeRouter as useRouter } from '@/utils/useSafeRouter';
 import { Camera, Mail, Phone, MapPin, Stethoscope, LogOut, FileText, Pencil, Trash2, Plus, Radical, Building, ShieldCheck, Eye, CheckCircle2, Clock } from 'lucide-react-native';
-import { useAppColorScheme } from 'twrnc';
+import { useThemeContext } from '@/context/ThemeContext';
 import { tw, twInstance } from '@/tw';
 import Toast from 'react-native-toast-message';
 import { AvatarPickerModal, DocUploadModal, DocViewerModal, ImageViewerModal } from '@/components/modals';
@@ -14,9 +14,8 @@ import { pickNativePdfDocument, pickNativeImage } from '@/services/nativeMedia';
 export default function DoctorProfileScreen() {
   const { t, i18n } = useTranslation();
   const isVi = i18n.language?.startsWith('vi');
-  const [colorScheme, toggleColorScheme, setColorScheme] = useAppColorScheme(twInstance);
-  const rnColorScheme = useRNColorScheme();
-  const activeScheme = colorScheme || rnColorScheme || 'light';
+  const { colorScheme, setColorScheme } = useThemeContext();
+  const activeScheme = colorScheme;
 
   const router = useRouter();
 
