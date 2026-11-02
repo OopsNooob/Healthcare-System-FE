@@ -201,8 +201,8 @@ export default function HealthMetricScreen() {
     const dateStr = formatDate(new Date(entry.timestamp));
     const prompt = isVi ? `Đánh giá giúp tôi chỉ số ${selectedMetric.title} là ${entry.value} ${selectedMetric.unit} vừa đo lúc ${timeStr} ngày ${dateStr} có sao không?` : `Please evaluate my ${selectedMetric.title} which is ${entry.value} ${selectedMetric.unit} measured at ${timeStr} on ${dateStr}. Is it okay?`;
     router.push({
-      pathname: '/(patient)/ai-chat',
-      params: { prefill: prompt }
+      pathname: '/(patient)/ai-chat/[id]',
+      params: { id: 'new-session', prefill: prompt }
     });
   };
 

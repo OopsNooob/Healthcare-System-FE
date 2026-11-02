@@ -1,29 +1,29 @@
 import { useRouter } from 'expo-router';
-import { useRef } from 'react';
+import { useRef, useCallback, useMemo } from 'react';
 
 export function useSafeRouter() {
   const router = useRouter();
   const isNavigating = useRef(false);
 
-  const push = (href: Parameters<typeof router.push>[0], options?: any) => {
+  const push = useCallback((href: Parameters<typeof router.push>[0], options?: any) => {
     if (isNavigating.current) return;
     isNavigating.current = true;
     router.push(href as any, options);
     setTimeout(() => {
       isNavigating.current = false;
     }, 500);
-  };
+  }, [router]);
 
-  const replace = (href: Parameters<typeof router.replace>[0], options?: any) => {
+  const replace = useCallback((href: Parameters<typeof router.replace>[0], options?: any) => {
     if (isNavigating.current) return;
     isNavigating.current = true;
     router.replace(href as any, options);
     setTimeout(() => {
       isNavigating.current = false;
     }, 500);
-  };
+  }, [router]);
   
-  const back = (fallbackHref?: string) => {
+  const back = useCallback((fallbackHref?: string) => {
     if (isNavigating.current) return;
     isNavigating.current = true;
     if (router.canGoBack()) {
@@ -36,12 +36,12 @@ export function useSafeRouter() {
     setTimeout(() => {
       isNavigating.current = false;
     }, 500);
-  };
+  }, [router]);
 
-  return {
+  return useMemo(() => ({
     ...router,
     push,
     replace,
     back
-  };
+  }), [router, push, replace, back]);
 }

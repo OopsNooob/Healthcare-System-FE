@@ -305,21 +305,22 @@ export default function AiChatSessionScreen() {
         </ScrollView>
 
         {/* Input Area */}
-        <View style={tw('p-4 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 flex-row items-center')}>
+        <View style={tw('p-4 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 flex-row items-end')}>
           <TouchableOpacity 
             onPress={() => setImagePickerModalVisible(true)}
-            style={tw('p-3 bg-slate-100 dark:bg-slate-800 rounded-full mr-2 active:opacity-80')}
+            style={tw('w-12 h-12 bg-slate-100 dark:bg-slate-800 rounded-full mr-2 items-center justify-center active:opacity-80')}
           >
             <Camera color={twInstance.color('text-indigo-600 dark:text-indigo-400')} size={20} />
           </TouchableOpacity>
-          <View style={tw('flex-1 bg-slate-100 dark:bg-slate-800 rounded-3xl px-4 py-1 mr-2 flex-row items-center min-h-[48px]')}>
+          <View style={tw('flex-1 bg-slate-100 dark:bg-slate-800 rounded-2xl px-4 py-1 mr-2 flex-row items-center min-h-[48px] max-h-32')}>
             <TextInput
-              style={tw('flex-1 text-base text-slate-900 dark:text-white h-10')}
+              style={tw('flex-1 text-base text-slate-900 dark:text-white py-1.5 min-h-[36px] max-h-28')}
               placeholder={t('mobile.ask_anything', 'Hỏi AI... (Thử gõ "kê đơn")')}
               placeholderTextColor="#94a3b8"
               value={message}
               onChangeText={setMessage}
               multiline
+              textAlignVertical="top"
             />
           </View>
           <TouchableOpacity 
