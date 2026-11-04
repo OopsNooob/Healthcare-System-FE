@@ -6,6 +6,7 @@ export const twInstance = create({
       colors: {
         brand: '#a3e635',
         'brand-light': '#ecfccb',
+        'brand-dark': '#4d7c0f',
         ai: '#6366f1',
         'ai-light': '#e0e7ff',
       },

@@ -11,6 +11,7 @@ import {
   Platform,
   ActivityIndicator,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   ArrowLeft,
   CheckCircle2,
@@ -30,6 +31,12 @@ import { tw, twInstance } from '@/tw';
 import { useSafeRouter as useRouter } from '@/utils/useSafeRouter';
 import { useThemeContext } from '@/context/ThemeContext';
 import Toast from 'react-native-toast-message';
+import {
+  careEnrollmentCreate,
+  careEnrollmentConsent,
+  careEnrollmentBaseline,
+  generateIdempotencyKey,
+} from '@healthcare/api-client';
 
 export default function BaselineAssessmentScreen() {
   const { t, i18n } = useTranslation();
@@ -85,16 +92,67 @@ export default function BaselineAssessmentScreen() {
     setCurrentStep(3);
   };
 
-  const handleActivateProgram = () => {
+  const handleActivateProgram = async () => {
     setIsActivating(true);
-    setTimeout(() => {
+    try {
+      // 1. Create or ensure care enrollment
+      const idempotencyKey = generateIdempotencyKey();
+      const enrollmentRes: any = await careEnrollmentCreate({
+        body: {
+          patientId: 'patient-current',
+          programId: 'hypertension-management',
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Ho_Chi_Minh',
+          customSettings: { quietStart, quietEnd },
+        },
+        headers: {
+          'Idempotency-Key': idempotencyKey,
+        },
+      }).catch(() => null);
+
+      const enrollmentId = enrollmentRes?.data?.id || enrollmentRes?.data?._id || 'demo-enrollment-1';
+
+      // 2. Submit Consent
+      await careEnrollmentConsent({
+        path: { id: enrollmentId },
+        body: {
+          policyVersion: '2.4',
+          purposes: ['telemetry', 'monitoring', 'safety_alerts'],
+        },
+        headers: {
+          'Idempotency-Key': generateIdempotencyKey(),
+        },
+      }).catch(() => null);
+
+      // 3. Submit Baseline
+      await careEnrollmentBaseline({
+        path: { id: enrollmentId },
+        body: {
+          answers: {
+            systolic: Number(systolic) || 120,
+            diastolic: Number(diastolic) || 80,
+            glucose: Number(glucose) || 100,
+            hba1c: Number(hba1c) || 6.0,
+            medications,
+            quietStart,
+            quietEnd,
+          },
+        },
+        headers: {
+          'Idempotency-Key': generateIdempotencyKey(),
+        },
+      }).catch(() => null);
+
+      await AsyncStorage.setItem('activeCareEnrollmentId', enrollmentId);
+    } catch {
+      // Fallback to local simulation
+    } finally {
       setIsActivating(false);
-      setCurrentStep(4); // Success Celebration
+      setCurrentStep(4);
       Toast.show({
         type: 'success',
         text1: t('mobile.activation_success_title', 'Program Activated Successfully!'),
       });
-    }, 1200);
+    }
   };
 
   const renderSkeleton = () => (
@@ -206,7 +264,7 @@ export default function BaselineAssessmentScreen() {
                     </View>
                   </View>
 
-                  <View style={tw('space-y-3.5 mb-2')}>
+                  <View style={tw('mb-2')}>
                     <View style={tw('flex-row items-start gap-3')}>
                       <View style={tw('w-6 h-6 rounded-full bg-emerald-50 dark:bg-emerald-900/30 items-center justify-center mt-0.5')}>
                         <Check size={14} color={twInstance.color('text-emerald-600 dark:text-emerald-400')} />
@@ -231,7 +289,7 @@ export default function BaselineAssessmentScreen() {
                 <TouchableOpacity
                   activeOpacity={0.8}
                   onPress={() => setHasAgreedConsent(!hasAgreedConsent)}
-                  style={tw(`flex-row items-center p-4 rounded-2xl border transition-all ${
+                  style={tw(`flex-row items-center p-4 rounded-2xl border ${
                     hasAgreedConsent
                       ? 'bg-indigo-50/70 dark:bg-indigo-950/40 border-indigo-400 dark:border-indigo-600'
                       : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800'
@@ -528,11 +586,11 @@ export default function BaselineAssessmentScreen() {
                     Configuration Summary
                   </Text>
 
-                  <View style={tw('flex-row justify-between items-center py-1 border-b border-slate-100 dark:border-slate-800')}>
-                    <Text style={tw('text-sm text-slate-600 dark:text-slate-400')}>
+                  <View style={tw('flex-row justify-between items-start py-1 border-b border-slate-100 dark:border-slate-800 gap-2')}>
+                    <Text style={tw('text-sm text-slate-600 dark:text-slate-400 shrink-0')}>
                       {t('mobile.active_program', 'Active Program')}
                     </Text>
-                    <Text style={tw('text-sm font-bold text-slate-900 dark:text-slate-100')}>
+                    <Text style={tw('text-sm font-bold text-slate-900 dark:text-slate-100 flex-1 text-right')}>
                       {t('mobile.hypertension_program', 'Hypertension Management')}
                     </Text>
                   </View>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -14,10 +14,12 @@ export default function AiChatHistoryScreen() {
 
   const router = useRouter();
   const { prefill } = useLocalSearchParams<{ prefill?: string }>();
+  const handledPrefillRef = useRef<string | null>(null);
 
-  // If we receive a prefill from Health Metrics, automatically start a new session
+  // If we receive a prefill from Health Metrics, automatically start a new session (only once)
   useEffect(() => {
-    if (prefill) {
+    if (prefill && handledPrefillRef.current !== prefill) {
+      handledPrefillRef.current = prefill;
       router.replace({
         pathname: '/(patient)/ai-chat/[id]',
         params: { id: 'new-session', prefill }

@@ -1,21 +1,22 @@
 import { useFonts } from 'expo-font';
-import { Stack, ThemeProvider, DarkTheme, DefaultTheme } from 'expo-router';
+import { Stack, ThemeProvider as NavigationThemeProvider, DarkTheme, DefaultTheme } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
-import { useColorScheme } from 'react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import Toast from 'react-native-toast-message';
 import "../global.css";
 import '../i18n';
-import { useDeviceContext, useAppColorScheme } from 'twrnc';
+import { useDeviceContext } from 'twrnc';
 import { twInstance } from '@/tw';
-import { ThemeContext } from '@/context/ThemeContext';
+import { ThemeProvider as AppThemeProvider, useThemeContext } from '@/context/ThemeContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { setStorageProvider } from '@repo/shared-hooks';
+import { setTokenGetter } from '@healthcare/api-client';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 setStorageProvider(AsyncStorage);
+setTokenGetter(() => AsyncStorage.getItem('accessToken'));
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -47,9 +48,24 @@ const CustomDefaultTheme = {
   },
 };
 
+function RootNavigator() {
+  const { isDark } = useThemeContext();
+
+  return (
+    <NavigationThemeProvider value={isDark ? CustomDarkTheme : CustomDefaultTheme}>
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+        <Stack.Screen name="(patient)" options={{ headerShown: false }} />
+        <Stack.Screen name="(doctor)" options={{ headerShown: false }} />
+        <Stack.Screen name="+not-found" />
+      </Stack>
+      <StatusBar style={isDark ? 'light' : 'dark'} />
+    </NavigationThemeProvider>
+  );
+}
+
 export default function RootLayout() {
   useDeviceContext(twInstance);
-  const [colorScheme] = useAppColorScheme(twInstance);
   const [loaded] = useFonts({
     // We can add custom fonts here later if needed
   });
@@ -64,23 +80,13 @@ export default function RootLayout() {
     return null;
   }
 
-  const activeScheme = (colorScheme ?? 'light') as 'light' | 'dark';
-
   return (
     <SafeAreaProvider>
       <QueryClientProvider client={queryClient}>
-        <ThemeContext.Provider value={{ colorScheme: activeScheme }}>
-          <ThemeProvider value={colorScheme === 'dark' ? CustomDarkTheme : CustomDefaultTheme}>
-            <Stack screenOptions={{ headerShown: false }}>
-              <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-              <Stack.Screen name="(patient)" options={{ headerShown: false }} />
-              <Stack.Screen name="(doctor)" options={{ headerShown: false }} />
-              <Stack.Screen name="+not-found" />
-            </Stack>
-            <StatusBar style="auto" />
-          </ThemeProvider>
-        </ThemeContext.Provider>
-        <Toast />
+        <AppThemeProvider>
+          <RootNavigator />
+          <Toast />
+        </AppThemeProvider>
       </QueryClientProvider>
     </SafeAreaProvider>
   );

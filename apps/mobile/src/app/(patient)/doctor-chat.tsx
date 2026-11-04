@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { View, Text, TouchableOpacity, ScrollView, TextInput, Image, KeyboardAvoidingView, Platform, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -72,6 +72,7 @@ export default function DoctorChatScreen() {
   ];
 
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
+  const scrollViewRef = useRef<ScrollView>(null);
 
   const handleSend = () => {
     if (!message.trim()) return;
@@ -87,6 +88,7 @@ export default function DoctorChatScreen() {
       }
     ]);
     setMessage('');
+    setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 100);
   };
 
   const handleSendAttachment = (item: { name: string; uri: string; type: 'image' | 'file'; size: string }) => {
@@ -127,7 +129,7 @@ export default function DoctorChatScreen() {
   return (
     <SafeAreaView style={tw('flex-1 bg-white dark:bg-slate-900')}>
       <KeyboardAvoidingView 
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={tw('flex-1')}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
       >
@@ -203,7 +205,12 @@ export default function DoctorChatScreen() {
         </View>
 
         {/* Chat Area */}
-        <ScrollView contentContainerStyle={tw('p-4 pb-20')} showsVerticalScrollIndicator={false}>
+        <ScrollView 
+          ref={scrollViewRef}
+          onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
+          contentContainerStyle={tw('p-4 pb-20')} 
+          showsVerticalScrollIndicator={false}
+        >
           {messages.map((msg) => (
             <View 
               key={msg.id} 
@@ -287,13 +294,13 @@ export default function DoctorChatScreen() {
         </ScrollView>
 
         {/* Input Area */}
-        <View style={tw('p-4 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 flex-row items-center')}>
+        <View style={tw('p-4 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 flex-row items-end')}>
           <TouchableOpacity 
             onPress={() => {
               setAttachmentMode('image');
               setAttachmentModalVisible(true);
             }} 
-            style={tw('p-3 bg-slate-100 dark:bg-slate-800 rounded-full mr-2 active:opacity-80')}
+            style={tw('w-12 h-12 bg-slate-100 dark:bg-slate-800 rounded-full mr-2 items-center justify-center active:opacity-80')}
           >
             <ImagePlus color="#64748b" size={20} />
           </TouchableOpacity>
@@ -302,18 +309,19 @@ export default function DoctorChatScreen() {
               setAttachmentMode('file');
               setAttachmentModalVisible(true);
             }} 
-            style={tw('p-3 bg-slate-100 dark:bg-slate-800 rounded-full mr-3 active:opacity-80')}
+            style={tw('w-12 h-12 bg-slate-100 dark:bg-slate-800 rounded-full mr-3 items-center justify-center active:opacity-80')}
           >
             <Paperclip color="#64748b" size={20} />
           </TouchableOpacity>
-          <View style={tw('flex-1 bg-slate-100 dark:bg-slate-800 rounded-3xl px-4 py-2 mr-3 flex-row items-center min-h-[48px]')}>
+          <View style={tw('flex-1 bg-slate-100 dark:bg-slate-800 rounded-2xl px-4 py-1 mr-3 flex-row items-center min-h-[48px] max-h-32')}>
             <TextInput
-              style={tw('flex-1 text-base text-slate-900 dark:text-white h-10')}
+              style={tw('flex-1 text-base text-slate-900 dark:text-white py-1.5 min-h-[36px] max-h-28')}
               placeholder={t('mobile.type_a_message', 'Type a message...')}
               placeholderTextColor="#9ca3af"
               value={message}
               onChangeText={setMessage}
               multiline
+              textAlignVertical="top"
             />
           </View>
           <TouchableOpacity 

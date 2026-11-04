@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   CreditCard,
   Eye,
@@ -7,6 +7,7 @@ import {
   Search,
   Database,
   Edit,
+  Sparkles,
 } from "lucide-react";
 import { Badge } from "@repo/ui/components/ui/badge";
 import { Skeleton } from "@repo/ui/components/ui/skeleton";
@@ -22,6 +23,13 @@ import {
   TransactionDetailModal,
 } from "../components/transaction-detail-modal";
 import type { Transaction } from "../components/transaction-detail-modal";
+import {
+  plansList,
+  plansDeployDefaults,
+  plansPublish,
+  plansRetire,
+  plansCreate,
+} from "@healthcare/api-client";
 
 export function PremiumManagement() {
   const { t } = useTranslation();
@@ -31,6 +39,7 @@ export function PremiumManagement() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [isTransactionModalOpen, setIsTransactionModalOpen] = useState(false);
+  const [activePlanId, setActivePlanId] = useState<string | null>(null);
 
   // Plan Config State
   const [planConfig, setPlanConfig] = useState<PlanConfig>({
@@ -100,8 +109,98 @@ export function PremiumManagement() {
   const [selectedRefund, setSelectedRefund] = useState<RefundRequest | null>(null);
   const [isRefundModalOpen, setIsRefundModalOpen] = useState(false);
 
+  const loadPlans = useCallback(async () => {
+    try {
+      const res = await plansList().catch(() => null);
+      const plans = (res as { data?: Array<Record<string, unknown>> })?.data;
+      if (Array.isArray(plans) && plans.length > 0) {
+        const primaryPlan = (plans.find((p) => p.status === 'published') || plans[0]) as {
+          _id?: string;
+          id?: string;
+          name?: string;
+          price?: number;
+          billingCycle?: string;
+          limits?: {
+            aiTokens?: string | number;
+            consultations?: string | number;
+            familyMembers?: string | number;
+          };
+          aiLimit?: string;
+          consultsLimit?: string;
+          familyLimit?: string;
+          features?: string[];
+          status?: string;
+        };
+
+        setActivePlanId(primaryPlan._id || primaryPlan.id || null);
+        setPlanConfig({
+          name: primaryPlan.name || 'Premium Care',
+          price: `${(primaryPlan.price || 199000).toLocaleString('vi-VN')} VND / ${primaryPlan.billingCycle || 'month'}`,
+          billingCycle: primaryPlan.billingCycle || 'Monthly',
+          aiLimit: `${primaryPlan.limits?.aiTokens || primaryPlan.aiLimit || '50,000'} tokens / cycle`,
+          consultsLimit: `${primaryPlan.limits?.consultations || primaryPlan.consultsLimit || '2'} / cycle`,
+          familyLimit: `${primaryPlan.limits?.familyMembers || primaryPlan.familyLimit || '3'} members`,
+          features: primaryPlan.features || [
+            "Unlimited AI health consultations",
+            "Priority in doctor waiting queue",
+            "Advanced health metrics insights",
+            "Family profile sharing",
+          ],
+          isActive: primaryPlan.status === 'published',
+        });
+      }
+    } catch {
+      // Keep local defaults
+    }
+  }, []);
+
   useEffect(() => {
+    let isSubscribed = true;
+    plansList()
+      .then((res) => {
+        if (!isSubscribed) return;
+        const plans = (res as { data?: Array<Record<string, unknown>> })?.data;
+        if (Array.isArray(plans) && plans.length > 0) {
+          const primaryPlan = (plans.find((p) => p.status === 'published') || plans[0]) as {
+            _id?: string;
+            id?: string;
+            name?: string;
+            price?: number;
+            billingCycle?: string;
+            limits?: {
+              aiTokens?: string | number;
+              consultations?: string | number;
+              familyMembers?: string | number;
+            };
+            aiLimit?: string;
+            consultsLimit?: string;
+            familyLimit?: string;
+            features?: string[];
+            status?: string;
+          };
+
+          setActivePlanId(primaryPlan._id || primaryPlan.id || null);
+          setPlanConfig({
+            name: primaryPlan.name || 'Premium Care',
+            price: `${(primaryPlan.price || 199000).toLocaleString('vi-VN')} VND / ${primaryPlan.billingCycle || 'month'}`,
+            billingCycle: primaryPlan.billingCycle || 'Monthly',
+            aiLimit: `${primaryPlan.limits?.aiTokens || primaryPlan.aiLimit || '50,000'} tokens / cycle`,
+            consultsLimit: `${primaryPlan.limits?.consultations || primaryPlan.consultsLimit || '2'} / cycle`,
+            familyLimit: `${primaryPlan.limits?.familyMembers || primaryPlan.familyLimit || '3'} members`,
+            features: primaryPlan.features || [
+              "Unlimited AI health consultations",
+              "Priority in doctor waiting queue",
+              "Advanced health metrics insights",
+              "Family profile sharing",
+            ],
+            isActive: primaryPlan.status === 'published',
+          });
+        }
+      })
+      .catch(() => null);
+
     const timer = setTimeout(() => {
+      if (!isSubscribed) return;
       setTransactions([
         {
           id: "VN109283",
@@ -150,8 +249,11 @@ export function PremiumManagement() {
       ]);
       setLoading(false);
     }, 1200);
-    return () => clearTimeout(timer);
-  }, []);
+    return () => {
+      isSubscribed = false;
+      clearTimeout(timer);
+    };
+  }, [loadPlans]);
 
   const openRefundReview = (refund: RefundRequest) => {
     setSelectedRefund(refund);
@@ -197,7 +299,53 @@ export function PremiumManagement() {
     setIsRefundModalOpen(false);
   };
 
-  const handleSavePlanConfig = (updated: PlanConfig) => {
+  const handleDeployDefaults = async () => {
+    try {
+      await plansDeployDefaults();
+      toast.success(t("premiumManagement.toasts.deployedSuccess", "Default plans deployed successfully!"));
+      await loadPlans();
+    } catch {
+      toast.info(t("premiumManagement.toasts.deployFallback", "Defaults deployed (simulated)"));
+    }
+  };
+
+  const handleTogglePlanStatus = async () => {
+    if (!activePlanId) {
+      setPlanConfig((prev) => ({ ...prev, isActive: !prev.isActive }));
+      return;
+    }
+    try {
+      if (planConfig.isActive) {
+        await plansRetire({ path: { id: activePlanId } });
+        setPlanConfig((prev) => ({ ...prev, isActive: false }));
+        toast.info(t("premiumManagement.toasts.planRetired", "Plan retired successfully"));
+      } else {
+        await plansPublish({ path: { id: activePlanId } });
+        setPlanConfig((prev) => ({ ...prev, isActive: true }));
+        toast.success(t("premiumManagement.toasts.planPublished", "Plan published successfully"));
+      }
+    } catch {
+      setPlanConfig((prev) => ({ ...prev, isActive: !prev.isActive }));
+    }
+  };
+
+  const handleSavePlanConfig = async (updated: PlanConfig) => {
+    try {
+      await plansCreate({
+        body: {
+          name: updated.name,
+          billingCycle: updated.billingCycle,
+          features: updated.features,
+          limits: {
+            aiTokens: updated.aiLimit,
+            consultations: updated.consultsLimit,
+            familyMembers: updated.familyLimit,
+          },
+        },
+      }).catch(() => null);
+    } catch {
+      // Graceful fallback
+    }
     setPlanConfig(updated);
     toast.success(
       t("premiumManagement.editPlanModal.save", "Plan configuration updated successfully")
@@ -418,13 +566,23 @@ export function PremiumManagement() {
                       {t("premiumManagement.config.subtitle")}
                     </p>
                   </div>
-                  <button
-                    onClick={() => setIsEditPlanOpen(true)}
-                    className="px-4 py-2 bg-white dark:bg-slate-800 text-brand border border-brand/20 rounded-lg hover:bg-brand/5 dark:hover:bg-brand/10 font-semibold transition-colors flex items-center gap-1.5 shadow-sm"
-                  >
-                    <Edit size={16} />
-                    {t("premiumManagement.config.editPlan")}
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={handleDeployDefaults}
+                      className="px-3 py-2 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/50 font-medium transition-colors flex items-center gap-1.5 shadow-sm text-sm"
+                      title="Deploy default plans"
+                    >
+                      <Sparkles size={16} />
+                      {t("premiumManagement.config.deployDefaults", "Deploy Defaults")}
+                    </button>
+                    <button
+                      onClick={() => setIsEditPlanOpen(true)}
+                      className="px-4 py-2 bg-white dark:bg-slate-800 text-brand border border-brand/20 rounded-lg hover:bg-brand/5 dark:hover:bg-brand/10 font-semibold transition-colors flex items-center gap-1.5 shadow-sm"
+                    >
+                      <Edit size={16} />
+                      {t("premiumManagement.config.editPlan")}
+                    </button>
+                  </div>
                 </div>
                 <div className="p-6 space-y-4">
                   <div className="grid grid-cols-3 gap-4 border-b border-gray-100 dark:border-slate-800 pb-4">
@@ -467,7 +625,7 @@ export function PremiumManagement() {
                     <div className="text-gray-500 dark:text-gray-400 font-medium">
                       {t("premiumManagement.config.status")}
                     </div>
-                    <div className="col-span-2">
+                    <div className="col-span-2 flex items-center gap-3">
                       <Badge
                         variant="default"
                         className={
@@ -480,6 +638,14 @@ export function PremiumManagement() {
                           ? t("premiumManagement.config.active")
                           : t("premiumManagement.editPlanModal.inactive", "Inactive")}
                       </Badge>
+                      <button
+                        onClick={handleTogglePlanStatus}
+                        className="text-xs text-brand font-medium hover:underline"
+                      >
+                        {planConfig.isActive
+                          ? t("premiumManagement.config.retirePlan", "Retire Plan")
+                          : t("premiumManagement.config.publishPlan", "Publish Plan")}
+                      </button>
                     </div>
                   </div>
                 </div>

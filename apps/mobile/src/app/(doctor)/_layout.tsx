@@ -7,13 +7,19 @@ import { tw } from '@/tw';
 export default function DoctorLayout() {
   const { t } = useTranslation();
   const { colorScheme } = useThemeContext();
+  const isDark = colorScheme === 'dark';
   
   return (
     <Tabs 
       backBehavior="history"
       screenOptions={{ 
         headerShown: false, 
-        tabBarActiveTintColor: "#2563eb"
+        tabBarActiveTintColor: "#2563eb",
+        tabBarInactiveTintColor: isDark ? "#94a3b8" : "#64748b",
+        tabBarStyle: {
+          backgroundColor: isDark ? "#0f172a" : "#ffffff",
+          borderTopColor: isDark ? "#1e293b" : "#f1f5f9",
+        }
       }}
     >
       <Tabs.Screen name="index" options={{ title: t('mobile.overview', "Overview"), tabBarIcon: ({ color }) => <Home color={color} size={24} /> }} />

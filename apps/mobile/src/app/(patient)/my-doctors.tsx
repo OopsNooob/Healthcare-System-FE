@@ -229,9 +229,9 @@ export default function MyDoctorsScreen() {
               <View style={tw('w-full h-[1px] bg-slate-100 dark:bg-slate-800 my-4')} />
               
               <View style={tw('flex-row justify-between items-center')}>
-                <Text style={tw('text-xs text-slate-400 dark:text-slate-500 font-medium')}>{t('mobile.last_visit', 'Last visit')}: {doc.lastVisit}</Text>
+                <Text style={tw('text-xs text-slate-400 dark:text-slate-500 font-medium flex-1 mr-2')} numberOfLines={1}>{t('mobile.last_visit', 'Last visit')}: {doc.lastVisit}</Text>
                 
-                <View style={tw('flex-row gap-2')}>
+                <View style={tw('flex-row gap-2 shrink-0')}>
                   {doc.status === 'accepted' && (
                     <>
                       <TouchableOpacity 
@@ -249,21 +249,21 @@ export default function MyDoctorsScreen() {
                     </>
                   )}
                   {doc.status === 'pending' && (
-                    <View style={tw('flex-row items-center px-4 py-2 bg-amber-50 rounded-full border border-amber-100')}>
+                    <View style={tw('flex-row items-center px-3.5 py-1.5 bg-amber-50 dark:bg-amber-900/30 rounded-full border border-amber-200 dark:border-amber-800 shrink-0')}>
                       <Clock color="#d97706" size={14} />
-                      <Text style={tw('text-amber-600 font-semibold text-xs ml-1')}>{t('mobile.pending', `Pending`)}</Text>
+                      <Text style={tw('text-amber-600 dark:text-amber-400 font-semibold text-xs ml-1.5')} numberOfLines={1}>{t('mobile.pending', `Pending`)}</Text>
                     </View>
                   )}
                   {doc.status === 'unrequested' && (
                     <TouchableOpacity 
-                      style={tw('flex-row items-center px-4 py-2 bg-brand rounded-full')}
+                      style={tw('flex-row items-center px-4 py-2 bg-brand rounded-full shrink-0')}
                       onPress={() => handleOpenRequest(doc)}
                     >
-                      <Text style={tw('text-slate-900 dark:text-white font-bold text-sm')}>{t('mobile.request', `Request`)}</Text>
+                      <Text style={tw('text-slate-900 font-bold text-sm')} numberOfLines={1}>{t('mobile.request', `Request`)}</Text>
                     </TouchableOpacity>
-                    )}
-                  </View>
+                  )}
                 </View>
+              </View>
               </TouchableOpacity>
             )) : renderEmptyState()
           )}

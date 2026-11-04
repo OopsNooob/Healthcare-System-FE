@@ -4,16 +4,15 @@ import { View, Text, ScrollView, TouchableOpacity, Image, TextInput, KeyboardAvo
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSafeRouter as useRouter } from '@/utils/useSafeRouter';
 import { Camera, Mail, Phone, MapPin, User, LogOut, Crown, ChevronRight, CheckCircle2, Circle, Sparkles } from 'lucide-react-native';
-import { useAppColorScheme } from 'twrnc';
+import { useThemeContext } from '@/context/ThemeContext';
 import { tw, twInstance } from '@/tw';
 import Toast from 'react-native-toast-message';
 import { AvatarPickerModal } from '@/components/modals';
 
 export default function ProfileScreen() {
   const { t, i18n } = useTranslation();
-  const [colorScheme, toggleColorScheme, setColorScheme] = useAppColorScheme(twInstance);
-  const rnColorScheme = useRNColorScheme();
-  const activeScheme = colorScheme || rnColorScheme || 'light';
+  const { colorScheme, setColorScheme } = useThemeContext();
+  const activeScheme = colorScheme;
   const router = useRouter();
 
   const [avatarUri, setAvatarUri] = useState('https://i.pravatar.cc/150?img=12');

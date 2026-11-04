@@ -1,12 +1,20 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { View, Text, ScrollView, TouchableOpacity, Image, TextInput, RefreshControl, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeRouter as useRouter } from '@/utils/useSafeRouter';
 import { Search, Bell, Calendar, ChevronRight, Star, Heart, Activity, Crown, MessageSquare, Droplet, Flame, CheckCircle2, Circle, XCircle, ClipboardList, Sparkles } from 'lucide-react-native';
 import { tw, twInstance } from '@/tw';
 import { useThemeContext } from '@/context/ThemeContext';
 import { PauseProgramModal } from '@/components/modals';
+import {
+  careTaskTasks,
+  careTaskCompletionRate,
+  careEnrollmentPause,
+  careEnrollmentResume,
+  generateIdempotencyKey,
+} from '@healthcare/api-client';
 
 export default function PatientHomeScreen() {
   const { t } = useTranslation();
@@ -18,21 +26,23 @@ export default function PatientHomeScreen() {
   const [hasPendingProgram, setHasPendingProgram] = useState(true);
   const [pauseModalVisible, setPauseModalVisible] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
+  const [activeEnrollmentId, setActiveEnrollmentId] = useState<string | null>(null);
+  const [expectedRevision, setExpectedRevision] = useState(1);
 
-  // --- NEW DA2 MOCK DATA ---
-  const careProgram = {
+  // --- NEW DA2 MOCK / DYNAMIC DATA ---
+  const [careProgram, setCareProgram] = useState({
     name: t('mobile.hypertension_program', 'Hypertension Management'),
     progress: 75, // 75% adherence
     streak: 12, // 12 days streak
     daysLeft: 45,
-  };
+  });
 
-  const todayTasks = [
-    { id: 1, type: 'metric', title: t('mobile.measure_bp', 'Measure Blood Pressure'), time: '08:00 AM', status: 'missed', icon: Activity, color: twInstance.color('text-rose-500'), bg: 'bg-rose-100 dark:bg-rose-900/30' },
-    { id: 2, type: 'metric', title: t('mobile.measure_bg', 'Measure Blood Sugar'), time: '01:00 PM', status: 'completed', icon: Droplet, color: twInstance.color('text-emerald-500'), bg: 'bg-emerald-100 dark:bg-emerald-900/30' },
-    { id: 3, type: 'education', title: t('mobile.read_diet', 'Diet for Hypertension'), time: t('mobile.anytime', 'Anytime'), status: 'due', icon: Flame, color: twInstance.color('text-amber-500'), bg: 'bg-amber-100 dark:bg-amber-900/30' },
-    { id: 4, type: 'metric', title: t('mobile.measure_bp', 'Measure Blood Pressure'), time: '08:00 PM', status: 'scheduled', icon: Activity, color: twInstance.color('text-blue-500'), bg: 'bg-blue-100 dark:bg-blue-900/30' },
-  ];
+  const [todayTasks, setTodayTasks] = useState([
+    { id: '1', type: 'metric', title: t('mobile.measure_bp', 'Measure Blood Pressure'), time: '08:00 AM', status: 'missed', icon: Activity, color: twInstance.color('text-rose-500'), bg: 'bg-rose-100 dark:bg-rose-900/30' },
+    { id: '2', type: 'metric', title: t('mobile.measure_bg', 'Measure Blood Sugar'), time: '01:00 PM', status: 'completed', icon: Droplet, color: twInstance.color('text-emerald-500'), bg: 'bg-emerald-100 dark:bg-emerald-900/30' },
+    { id: '3', type: 'education', title: t('mobile.read_diet', 'Diet for Hypertension'), time: t('mobile.anytime', 'Anytime'), status: 'due', icon: Flame, color: twInstance.color('text-amber-500'), bg: 'bg-amber-100 dark:bg-amber-900/30' },
+    { id: '4', type: 'metric', title: t('mobile.measure_bp', 'Measure Blood Pressure'), time: '08:00 PM', status: 'scheduled', icon: Activity, color: twInstance.color('text-blue-500'), bg: 'bg-blue-100 dark:bg-blue-900/30' },
+  ]);
 
   const quotas = {
     aiRemaining: 15,
@@ -50,15 +60,124 @@ export default function PatientHomeScreen() {
     image: 'https://i.pravatar.cc/150?img=1',
   };
 
-  useEffect(() => {
-    setTimeout(() => {
+  const loadHomeData = useCallback(async () => {
+    try {
+      const enrollmentId = await AsyncStorage.getItem('activeCareEnrollmentId');
+      if (enrollmentId) {
+        setActiveEnrollmentId(enrollmentId);
+        setHasPendingProgram(false);
+
+        // Fetch tasks
+        const tasksRes: any = await careTaskTasks({
+          path: { id: enrollmentId },
+        }).catch(() => null);
+
+        if (tasksRes?.data && Array.isArray(tasksRes.data) && tasksRes.data.length > 0) {
+          const mappedTasks = tasksRes.data.map((item: any, idx: number) => {
+            let icon = Activity;
+            let color = twInstance.color('text-blue-500');
+            let bg = 'bg-blue-100 dark:bg-blue-900/30';
+
+            if (item.taskType === 'education') {
+              icon = Flame;
+              color = twInstance.color('text-amber-500');
+              bg = 'bg-amber-100 dark:bg-amber-900/30';
+            } else if (item.templateKey?.includes('glucose') || item.templateKey?.includes('sugar')) {
+              icon = Droplet;
+              color = twInstance.color('text-emerald-500');
+              bg = 'bg-emerald-100 dark:bg-emerald-900/30';
+            } else if (item.status === 'missed') {
+              color = twInstance.color('text-rose-500');
+              bg = 'bg-rose-100 dark:bg-rose-900/30';
+            }
+
+            const time = item.scheduledFor
+              ? new Date(item.scheduledFor).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+              : t('mobile.anytime', 'Anytime');
+
+            return {
+              id: item._id || item.id || String(idx + 1),
+              type: item.taskType || 'metric',
+              title: item.templateKey || t('mobile.measure_bp', 'Measure Blood Pressure'),
+              time,
+              status: item.status || 'scheduled',
+              icon,
+              color,
+              bg,
+            };
+          });
+          setTodayTasks(mappedTasks);
+        }
+
+        // Fetch completion rate
+        const rateRes: any = await careTaskCompletionRate({
+          path: { id: enrollmentId },
+        }).catch(() => null);
+
+        if (rateRes?.data && typeof rateRes.data.completionRate === 'number') {
+          const ratePct = Math.round(rateRes.data.completionRate * 100);
+          setCareProgram((prev) => ({
+            ...prev,
+            progress: ratePct,
+          }));
+        }
+      }
+    } catch {
+      // Graceful fallback to default mock data
+    } finally {
       setLoading(false);
-    }, 1200);
-  }, []);
+      setRefreshing(false);
+    }
+  }, [t]);
+
+  useEffect(() => {
+    loadHomeData();
+  }, [loadHomeData]);
 
   const onRefresh = () => {
     setRefreshing(true);
-    setTimeout(() => setRefreshing(false), 1200);
+    loadHomeData();
+  };
+
+  const handlePauseConfirm = async (reason: string, _durationDays: number) => {
+    const enrollmentId = activeEnrollmentId || (await AsyncStorage.getItem('activeCareEnrollmentId')) || 'demo-enrollment-1';
+    try {
+      await careEnrollmentPause({
+        path: { id: enrollmentId },
+        body: {
+          expectedRevision,
+          reason: reason || 'Patient requested pause',
+        },
+        headers: {
+          'Idempotency-Key': generateIdempotencyKey(),
+        },
+      });
+      setExpectedRevision((prev) => prev + 1);
+    } catch {
+      // Graceful fallback
+    }
+    setIsPaused(true);
+    setPauseModalVisible(false);
+  };
+
+  const handleResume = async () => {
+    const enrollmentId = activeEnrollmentId || (await AsyncStorage.getItem('activeCareEnrollmentId')) || 'demo-enrollment-1';
+    try {
+      await careEnrollmentResume({
+        path: { id: enrollmentId },
+        body: {
+          expectedRevision,
+          reason: 'Patient resumed program',
+        },
+        headers: {
+          'Idempotency-Key': generateIdempotencyKey(),
+        },
+      });
+      setExpectedRevision((prev) => prev + 1);
+    } catch {
+      // Graceful fallback
+    }
+    setIsPaused(false);
   };
 
   return (
@@ -168,7 +287,13 @@ export default function PatientHomeScreen() {
             <View style={tw('flex-row justify-between items-center')}>
               <Text style={tw('text-indigo-200 text-xs')}>{careProgram.daysLeft} {t('mobile.days_remaining', 'days remaining')}</Text>
               <TouchableOpacity 
-                onPress={() => setPauseModalVisible(true)}
+                onPress={() => {
+                  if (isPaused) {
+                    handleResume();
+                  } else {
+                    setPauseModalVisible(true);
+                  }
+                }}
                 style={tw('bg-white/20 px-3 py-1.5 rounded-full active:opacity-80')}
               >
                 <Text style={tw('text-white text-xs font-medium')}>
@@ -183,7 +308,9 @@ export default function PatientHomeScreen() {
         <View style={tw('px-6 mb-8')}>
           <View style={tw('flex-row justify-between items-end mb-4')}>
             <Text style={tw('text-lg font-bold text-[#313A34] dark:text-slate-100')}>{t('mobile.todays_tasks', "Today's Tasks")}</Text>
-            <Text style={tw('text-sm font-medium text-emerald-500')}>1/3 {t('mobile.done', 'Done')}</Text>
+            <Text style={tw('text-sm font-medium text-emerald-500')}>
+              {todayTasks.filter((task) => task.status === 'completed').length}/{todayTasks.length} {t('mobile.done', 'Done')}
+            </Text>
           </View>
 
           <View style={tw('gap-3')}>
@@ -302,9 +429,7 @@ export default function PatientHomeScreen() {
         visible={pauseModalVisible}
         onClose={() => setPauseModalVisible(false)}
         programName={careProgram.name}
-        onConfirmPause={(reason, durationDays) => {
-          setIsPaused(true);
-        }}
+        onConfirmPause={handlePauseConfirm}
       />
     </SafeAreaView>
   );

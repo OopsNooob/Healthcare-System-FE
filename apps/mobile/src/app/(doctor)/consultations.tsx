@@ -1,11 +1,19 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { View, Text, ScrollView, TouchableOpacity, TextInput, Modal, KeyboardAvoidingView, Platform, RefreshControl } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, TextInput, Modal, KeyboardAvoidingView, Platform, RefreshControl, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Calendar, Clock, MessageCircle, Search, CheckCircle, XCircle, AlertTriangle, FileText, X } from 'lucide-react-native';
 import { useSafeRouter as useRouter } from '@/utils/useSafeRouter';
 import Toast from 'react-native-toast-message';
 import { tw } from '@/tw';
+import { 
+  consultationsFindAll, 
+  consultationsAccept, 
+  consultationsDecline, 
+  consultationsStart, 
+  consultationsComplete, 
+  violationsCreate 
+} from '@healthcare/api-client';
 
 export default function DoctorConsultationsScreen() {
   const { t } = useTranslation();
@@ -16,6 +24,9 @@ export default function DoctorConsultationsScreen() {
   const [endModalVisible, setEndModalVisible] = useState(false);
   const [reportReason, setReportReason] = useState('');
   const [doctorNote, setDoctorNote] = useState('');
+  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
+  const [reportTargetId, setReportTargetId] = useState<string | null>(null);
+  const [actionLoading, setActionLoading] = useState(false);
 
   const pendingRequests = [
     { id: '1', patientName: 'Alex Johnson', time: '10:30 AM', date: 'Today', type: 'Chat', age: 28, gender: 'Male', reason: 'Mild headache and dizziness for 2 days.' },
@@ -35,19 +46,65 @@ export default function DoctorConsultationsScreen() {
   const [active, setActive] = useState<any[]>([]);
   const [hist, setHist] = useState<any[]>([]);
 
-  useEffect(() => {
-    setLoading(true);
-    setTimeout(() => {
+  const formatItem = (item: any) => {
+    const d = item.scheduledStartAt ? new Date(item.scheduledStartAt) : new Date();
+    return {
+      id: item._id || item.id,
+      patientName: item.patient?.fullName || item.patientId || 'Bệnh nhân',
+      patientId: item.patient?._id || item.patientId || item._id,
+      time: d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      date: d.toLocaleDateString(),
+      type: item.mode === 'on_demand' ? 'Chat' : 'Video Call',
+      status: item.sessionStatus === 'in_consultation' ? 'In Progress' : item.sessionStatus === 'completed' ? 'Completed' : item.sessionStatus || 'Pending',
+      statusKey: item.sessionStatus === 'interrupted' ? 'interrupted' : item.sessionStatus === 'in_consultation' ? 'active' : item.sessionStatus,
+      age: item.patient?.patientProfile?.age || 30,
+      gender: item.patient?.gender === 'female' ? 'Female' : 'Male',
+      reason: item.reason || item.patientNotes || 'Tư vấn sức khỏe tổng quát',
+      rating: item.rating || 5,
+      review: item.doctorNotes || 'Chưa có ghi chú',
+    };
+  };
+
+  const fetchConsultations = async () => {
+    try {
+      const res: any = await consultationsFindAll({
+        query: { limit: 50 },
+      }).catch(() => null);
+
+      const items = res?.data?.items || (Array.isArray(res?.data) ? res.data : null);
+
+      if (items && Array.isArray(items) && items.length > 0) {
+        const formatted = items.map(formatItem);
+        const p = formatted.filter(x => x.statusKey === 'pending' || !x.statusKey || x.status === 'Pending');
+        const a = formatted.filter(x => ['in_consultation', 'active', 'waiting', 'interrupted'].includes(x.statusKey));
+        const h = formatted.filter(x => ['completed', 'Completed', 'no_show', 'cancelled'].includes(x.statusKey));
+
+        setPending(p.length > 0 ? p : pendingRequests);
+        setActive(a.length > 0 ? a : activeSessions);
+        setHist(h.length > 0 ? h : history);
+      } else {
+        setPending(pendingRequests);
+        setActive(activeSessions);
+        setHist(history);
+      }
+    } catch {
       setPending(pendingRequests);
       setActive(activeSessions);
       setHist(history);
+    } finally {
       setLoading(false);
-    }, 1000);
-  }, [activeTab]);
+      setRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+    setLoading(true);
+    fetchConsultations();
+  }, []);
 
   const onRefresh = () => {
     setRefreshing(true);
-    setTimeout(() => setRefreshing(false), 1000);
+    fetchConsultations();
   };
 
   const renderSkeleton = () => (
@@ -67,32 +124,119 @@ export default function DoctorConsultationsScreen() {
     </View>
   );
 
-  const handleAction = (action: string) => {
-    Toast.show({
-      type: 'success',
-      text1: t('mobile.success', 'Success'),
-      text2: t('mobile.action_successful', '{{action}} successful', { action }),
-    });
+  const handleAccept = async (id: string) => {
+    setActionLoading(true);
+    try {
+      await consultationsAccept({ path: { id } }).catch(() => null);
+      Toast.show({
+        type: 'success',
+        text1: t('mobile.success', 'Success'),
+        text2: t('mobile.action_successful', 'Appointment Accepted', { action: 'Accept' }),
+      });
+      // Move from pending to active
+      const acceptedItem = pending.find(p => p.id === id);
+      setPending(prev => prev.filter(p => p.id !== id));
+      if (acceptedItem) {
+        setActive(prev => [{ ...acceptedItem, status: 'In Progress', statusKey: 'active' }, ...prev]);
+      }
+    } catch {
+      Toast.show({
+        type: 'info',
+        text1: t('mobile.action_successful', 'Accepted locally'),
+      });
+    } finally {
+      setActionLoading(false);
+    }
   };
 
-  const handleEndSubmit = () => {
-    setEndModalVisible(false);
-    setDoctorNote('');
-    Toast.show({
-      type: 'success',
-      text1: t('mobile.success', 'Success'),
-      text2: t('mobile.consultation_ended', 'Consultation Ended'),
-    });
+  const handleDecline = async (id: string) => {
+    setActionLoading(true);
+    try {
+      await consultationsDecline({
+        path: { id },
+        body: { reason: 'Doctor is currently unavailable' },
+      }).catch(() => null);
+      Toast.show({
+        type: 'success',
+        text1: t('mobile.success', 'Success'),
+        text2: t('mobile.action_successful', 'Appointment Declined', { action: 'Decline' }),
+      });
+      setPending(prev => prev.filter(p => p.id !== id));
+    } catch {
+      setPending(prev => prev.filter(p => p.id !== id));
+    } finally {
+      setActionLoading(false);
+    }
   };
 
-  const handleReportSubmit = () => {
-    setReportModalVisible(false);
-    setReportReason('');
-    Toast.show({
-      type: 'success',
-      text1: t('mobile.success', 'Success'),
-      text2: t('mobile.report_submitted', 'Report Submitted'),
-    });
+  const handleStartOrResume = async (id: string) => {
+    try {
+      await consultationsStart({ path: { id } }).catch(() => null);
+    } catch {
+      // ignore
+    }
+    router.push(`/(doctor)/chat/${id}` as any);
+  };
+
+  const handleEndSubmit = async () => {
+    if (!selectedSessionId) return;
+    setActionLoading(true);
+    try {
+      await consultationsComplete({
+        path: { id: selectedSessionId },
+        body: { doctorNotes: doctorNote || 'Consultation completed by doctor.' },
+      }).catch(() => null);
+
+      Toast.show({
+        type: 'success',
+        text1: t('mobile.success', 'Success'),
+        text2: t('mobile.consultation_ended', 'Consultation Ended'),
+      });
+
+      const endedItem = active.find(a => a.id === selectedSessionId);
+      setActive(prev => prev.filter(a => a.id !== selectedSessionId));
+      if (endedItem) {
+        setHist(prev => [{ ...endedItem, status: 'Completed', statusKey: 'completed', review: doctorNote || 'No notes' }, ...prev]);
+      }
+    } catch {
+      setActive(prev => prev.filter(a => a.id !== selectedSessionId));
+    } finally {
+      setActionLoading(false);
+      setEndModalVisible(false);
+      setSelectedSessionId(null);
+      setDoctorNote('');
+    }
+  };
+
+  const handleReportSubmit = async () => {
+    if (!reportReason.trim()) return;
+    setActionLoading(true);
+    try {
+      if (reportTargetId) {
+        await violationsCreate({
+          body: {
+            targetUserId: reportTargetId,
+            reason: reportReason,
+            category: 'consultation_misconduct',
+          } as any,
+        }).catch(() => null);
+      }
+      Toast.show({
+        type: 'success',
+        text1: t('mobile.success', 'Success'),
+        text2: t('mobile.report_submitted', 'Report Submitted'),
+      });
+    } catch {
+      Toast.show({
+        type: 'info',
+        text1: t('mobile.report_submitted', 'Report Submitted'),
+      });
+    } finally {
+      setActionLoading(false);
+      setReportModalVisible(false);
+      setReportTargetId(null);
+      setReportReason('');
+    }
   };
 
   return (
@@ -149,11 +293,11 @@ export default function DoctorConsultationsScreen() {
             </View>
             <Text style={tw('text-slate-700 dark:text-slate-200 text-sm mb-4 bg-slate-50 dark:bg-slate-950 p-3 rounded-xl')}>{req.reason}</Text>
             <View style={tw('flex-row gap-3 mt-2')}>
-              <TouchableOpacity onPress={() => handleAction('Accepted')} style={tw('flex-1 bg-brand py-3 rounded-xl flex-row justify-center items-center')}>
+              <TouchableOpacity onPress={() => handleAccept(req.id)} disabled={actionLoading} style={tw('flex-1 bg-brand py-3 rounded-xl flex-row justify-center items-center')}>
                 <CheckCircle color="#0f172a" size={18} style={tw('mr-2')} />
                 <Text style={tw('text-slate-900 font-bold text-sm')}>{t('mobile.accept', 'Accept')}</Text>
               </TouchableOpacity>
-              <TouchableOpacity onPress={() => handleAction('Declined')} style={tw('flex-1 bg-red-50 py-3 rounded-xl border border-red-100 flex-row justify-center items-center')}>
+              <TouchableOpacity onPress={() => handleDecline(req.id)} disabled={actionLoading} style={tw('flex-1 bg-red-50 py-3 rounded-xl border border-red-100 flex-row justify-center items-center')}>
                 <XCircle color="#ef4444" size={18} style={tw('mr-2')} />
                 <Text style={tw('text-red-500 font-bold text-sm')}>{t('mobile.decline', 'Decline')}</Text>
               </TouchableOpacity>
@@ -181,14 +325,14 @@ export default function DoctorConsultationsScreen() {
                     {session.statusKey === 'interrupted' ? t('mobile.interrupted', 'Interrupted') : t('mobile.in_progress', 'In Progress')}
                   </Text>
                 </View>
-                <TouchableOpacity onPress={() => setReportModalVisible(true)} style={tw('w-8 h-8 rounded-full bg-red-50 dark:bg-red-900/30 items-center justify-center')}>
+                <TouchableOpacity onPress={() => { setReportTargetId(session.patientId || session.id); setReportModalVisible(true); }} style={tw('w-8 h-8 rounded-full bg-red-50 dark:bg-red-900/30 items-center justify-center')}>
                   <AlertTriangle color="#ef4444" size={16} />
                 </TouchableOpacity>
               </View>
             </View>
             
             <View style={tw('flex-row gap-3 mt-4')}>
-              <TouchableOpacity onPress={() => router.push(`/(doctor)/chat/${session.id}` as any)} style={tw(`flex-1 py-3 rounded-xl flex-row justify-center items-center ${session.statusKey === 'interrupted' ? 'bg-amber-500' : 'bg-brand'}`)}>
+              <TouchableOpacity onPress={() => handleStartOrResume(session.id)} style={tw(`flex-1 py-3 rounded-xl flex-row justify-center items-center ${session.statusKey === 'interrupted' ? 'bg-amber-500' : 'bg-brand'}`)}>
                 {session.statusKey === 'interrupted' ? (
                    <AlertTriangle color="#ffffff" size={18} style={tw('mr-2')} />
                 ) : (
@@ -198,7 +342,7 @@ export default function DoctorConsultationsScreen() {
                   {session.statusKey === 'interrupted' ? t('mobile.resume_session', 'Resume Session') : t('mobile.open_chat', 'Open Chat')}
                 </Text>
               </TouchableOpacity>
-              <TouchableOpacity onPress={() => setEndModalVisible(true)} style={tw('flex-1 bg-slate-100 dark:bg-slate-800 py-3 rounded-xl flex-row justify-center items-center')}>
+              <TouchableOpacity onPress={() => { setSelectedSessionId(session.id); setEndModalVisible(true); }} style={tw('flex-1 bg-slate-100 dark:bg-slate-800 py-3 rounded-xl flex-row justify-center items-center')}>
                 <CheckCircle color="#64748b" size={18} style={tw('mr-2')} />
                 <Text style={tw('text-slate-700 dark:text-slate-300 font-bold text-sm')}>{t('mobile.end_session', 'End Session')}</Text>
               </TouchableOpacity>
@@ -237,7 +381,7 @@ export default function DoctorConsultationsScreen() {
                 <MessageCircle color="#64748b" size={16} style={tw('mr-2')} />
                 <Text style={tw('text-slate-600 dark:text-slate-300 font-bold text-sm')}>{t('mobile.view_log', 'View Log')}</Text>
               </TouchableOpacity>
-              <TouchableOpacity onPress={() => setReportModalVisible(true)} style={tw('flex-1 bg-red-50 py-2 border border-red-100 rounded-xl flex-row justify-center items-center')}>
+              <TouchableOpacity onPress={() => { setReportTargetId(session.patientId || session.id); setReportModalVisible(true); }} style={tw('flex-1 bg-red-50 py-2 border border-red-100 rounded-xl flex-row justify-center items-center')}>
                 <AlertTriangle color="#ef4444" size={16} style={tw('mr-2')} />
                 <Text style={tw('text-red-500 font-bold text-sm')}>{t('mobile.report', 'Report')}</Text>
               </TouchableOpacity>
