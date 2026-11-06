@@ -4,9 +4,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSafeRouter as useRouter } from '@/utils/useSafeRouter';
 import { Search } from 'lucide-react-native';
 import { tw, twInstance } from '@/tw';
+import { useThemeContext } from '@/context/ThemeContext';
 
 export default function DoctorChatScreen() {
   const { t } = useTranslation();
+  useThemeContext();
 
   const router = useRouter();
 

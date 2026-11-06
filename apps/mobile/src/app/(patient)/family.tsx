@@ -64,7 +64,7 @@ export default function FamilyCompanionScreen() {
     return entry ? (isVi ? entry[0] : entry[1]) : rel;
   };
 
-  const yesNo = (v: boolean) => (v ? (isVi ? 'Có' : 'Yes') : isVi ? 'Không' : 'No');
+  const yesNo = (v: boolean) => (v ? t('mobile.common_yes', 'Có') : t('mobile.common_no', 'Không'));
   useThemeContext();
   const router = useRouter();
 
@@ -555,7 +555,7 @@ export default function FamilyCompanionScreen() {
                       {inv.inviterName}
                     </Text>
                     <Text style={tw('text-xs text-slate-500 dark:text-slate-400')}>
-                      {inv.inviterEmail} • {isVi ? 'Quan hệ' : 'Relationship'}: {relationshipLabel(inv.relationship)}
+                      {inv.inviterEmail} • {t('mobile.relationship_label', 'Quan hệ')}: {relationshipLabel(inv.relationship)}
                     </Text>
                   </View>
                   <View
@@ -595,11 +595,11 @@ export default function FamilyCompanionScreen() {
                       'text-xs font-bold text-slate-700 dark:text-slate-300 mb-2'
                     )}
                   >
-                    {isVi ? 'Quyền hạn được cấp cho bạn:' : 'Permissions granted to you:'}
+                    {t('mobile.permissions_granted_title', 'Quyền hạn được cấp cho bạn:')}
                   </Text>
                   <View style={tw('gap-1.5')}>
                     <Text style={tw('text-xs text-slate-600 dark:text-slate-400')}>
-                      • {isVi ? 'Nhận thông báo nhắc nhở' : 'Receive reminders'}:{' '}
+                      • {t('mobile.perm_receive_reminders', 'Nhận thông báo nhắc nhở')}:{' '}
                       {yesNo(inv.permissions.receiveReminders)}
                     </Text>
                     <Text style={tw('text-xs text-slate-600 dark:text-slate-400')}>

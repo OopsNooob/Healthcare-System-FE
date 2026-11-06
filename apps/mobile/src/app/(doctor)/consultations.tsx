@@ -26,6 +26,7 @@ import {
 import { useSafeRouter as useRouter } from '@/utils/useSafeRouter';
 import Toast from 'react-native-toast-message';
 import { tw, twInstance } from '@/tw';
+import { useThemeContext } from '@/context/ThemeContext';
 import {
   consultationsFindAll,
   consultationsAccept,
@@ -51,9 +52,10 @@ interface WaitingQueueItem {
 export default function DoctorConsultationsScreen() {
   const { t, i18n } = useTranslation();
   const isVi = i18n.language === 'vi';
+  useThemeContext();
 
   const genderLabel = (g: string) =>
-    g === 'Male' ? (isVi ? 'Nam' : 'Male') : g === 'Female' ? (isVi ? 'Nữ' : 'Female') : g;
+    g === 'Male' ? t('mobile.gender_male', 'Nam') : g === 'Female' ? t('mobile.gender_female', 'Nữ') : g;
 
   const followUpActionLabel = (action: string) => {
     const map: Record<string, [string, string]> = {
@@ -375,18 +377,12 @@ export default function DoctorConsultationsScreen() {
     Toast.show({
       type: 'info',
       text1: t('mobile.marked_no_show', 'Đã ghi nhận bệnh nhân vắng mặt'),
-      text2: `${isVi ? 'Lý do' : 'Reason'}: ${
+      text2: `${t('mobile.reason_label', 'Lý do')}: ${
           noShowReasonCode === 'patient_absent'
-            ? isVi
-              ? 'Bệnh nhân không có mặt'
-              : 'Patient absent'
+            ? t('mobile.patient_absent', 'Bệnh nhân không có mặt')
             : noShowReasonCode === 'unreachable'
-              ? isVi
-                ? 'Không thể liên lạc'
-                : 'Unreachable'
-              : isVi
-                ? 'Đã rời phòng chờ'
-                : 'Left the waiting room'
+              ? t('mobile.patient_unreachable', 'Không thể liên lạc')
+              : t('mobile.left_waiting_room', 'Đã rời phòng chờ')
         }`,
     });
   };
@@ -575,18 +571,19 @@ export default function DoctorConsultationsScreen() {
       {/* Tabs */}
       <View
         style={tw(
-          'flex-row px-3 py-2 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800'
+          'flex-row px-2 py-2 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800'
         )}
       >
         <TouchableOpacity
           onPress={() => setActiveTab('queue')}
           style={tw(
-            `flex-1 py-3 items-center border-b-2 ${
+            `flex-1 py-3 px-1 items-center border-b-2 ${
               activeTab === 'queue' ? 'border-brand' : 'border-transparent'
             }`
           )}
         >
           <Text
+            numberOfLines={1}
             style={tw(
               `font-bold text-xs ${
                 activeTab === 'queue' ? 'text-brand' : 'text-slate-500 dark:text-slate-400'
@@ -599,12 +596,13 @@ export default function DoctorConsultationsScreen() {
         <TouchableOpacity
           onPress={() => setActiveTab('pending')}
           style={tw(
-            `flex-1 py-3 items-center border-b-2 ${
+            `flex-1 py-3 px-1 items-center border-b-2 ${
               activeTab === 'pending' ? 'border-brand' : 'border-transparent'
             }`
           )}
         >
           <Text
+            numberOfLines={1}
             style={tw(
               `font-bold text-xs ${
                 activeTab === 'pending' ? 'text-brand' : 'text-slate-500 dark:text-slate-400'
@@ -617,30 +615,32 @@ export default function DoctorConsultationsScreen() {
         <TouchableOpacity
           onPress={() => setActiveTab('active')}
           style={tw(
-            `flex-1 py-3 items-center border-b-2 ${
+            `flex-1 py-3 px-1 items-center border-b-2 ${
               activeTab === 'active' ? 'border-brand' : 'border-transparent'
             }`
           )}
         >
           <Text
+            numberOfLines={1}
             style={tw(
               `font-bold text-xs ${
                 activeTab === 'active' ? 'text-brand' : 'text-slate-500 dark:text-slate-400'
               }`
             )}
           >
-            {t('mobile.active', 'Đang khám')} ({active.length})
+            {t('mobile.in_consultation_tab', 'Đang khám')} ({active.length})
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
           onPress={() => setActiveTab('history')}
           style={tw(
-            `flex-1 py-3 items-center border-b-2 ${
+            `flex-1 py-3 px-1 items-center border-b-2 ${
               activeTab === 'history' ? 'border-brand' : 'border-transparent'
             }`
           )}
         >
           <Text
+            numberOfLines={1}
             style={tw(
               `font-bold text-xs ${
                 activeTab === 'history' ? 'text-brand' : 'text-slate-500 dark:text-slate-400'
@@ -672,9 +672,7 @@ export default function DoctorConsultationsScreen() {
                   {t('mobile.waiting_room_queue_title', 'Phòng chờ khám (theo thứ tự ưu tiên)')}
                 </Text>
                 <Text style={tw('text-xs text-indigo-700 dark:text-indigo-400 mt-0.5')}>
-                  {isVi
-                    ? 'Sắp xếp theo mức ưu tiên và thời gian vào phòng chờ • Tối đa 1 bệnh nhân được gọi'
-                    : 'Sorted by priority and waiting-room join time • Only 1 patient can be called at a time'}
+                  {t('mobile.waiting_room_notice', 'Sắp xếp theo mức ưu tiên và thời gian vào phòng chờ • Tối đa 1 bệnh nhân được gọi')}
                 </Text>
               </View>
               <TouchableOpacity
@@ -722,7 +720,7 @@ export default function DoctorConsultationsScreen() {
                         </Text>
                         <Text style={tw('text-xs text-slate-500 dark:text-slate-400')}>
                           {qItem.age} {t('mobile.yrs', 'tuổi')} • {genderLabel(qItem.gender)} •{' '}
-                          {qItem.mode === 'on_demand' ? (isVi ? 'Khám ngay' : 'On-demand') : isVi ? 'Đặt lịch' : 'Scheduled'}
+                          {qItem.mode === 'on_demand' ? t('mobile.mode_on_demand', 'Khám ngay') : t('mobile.mode_scheduled', 'Đặt lịch')}
                         </Text>
                       </View>
                     </View>
@@ -780,7 +778,7 @@ export default function DoctorConsultationsScreen() {
                     >
                       <UserX size={15} color="#ef4444" style={tw('mr-1')} />
                       <Text style={tw('text-red-600 dark:text-red-400 font-bold text-xs')}>
-                        {isVi ? 'Vắng mặt' : 'No-show'}
+                        {t('mobile.mark_no_show', 'Vắng mặt')}
                       </Text>
                     </TouchableOpacity>
                   </View>
@@ -1034,11 +1032,11 @@ export default function DoctorConsultationsScreen() {
                   )}
                 >
                   <Text style={tw('text-xs font-bold text-emerald-800 dark:text-emerald-300')}>
-                    {isVi ? 'Khuyến nghị tái khám' : 'Follow-up recommendation'} (
+                    {t('mobile.follow_up_recommendation', 'Khuyến nghị tái khám')} (
                     {followUpActionLabel(session.followUpRecommendation.nextAction)}):
                   </Text>
                   <Text style={tw('text-xs text-emerald-700 dark:text-emerald-400 mt-0.5')}>
-                    {session.followUpRecommendation.note} • {isVi ? 'Hẹn' : 'Due'}:{' '}
+                    {session.followUpRecommendation.note} • {t('mobile.due', 'Hẹn')}:{' '}
                     {session.followUpRecommendation.followUpAt}
                   </Text>
                 </View>
@@ -1123,9 +1121,9 @@ export default function DoctorConsultationsScreen() {
             <View style={tw('gap-2 mb-4')}>
               {(
                 [
-                  { code: 'patient_absent', label: isVi ? 'Bệnh nhân không có mặt sau khi gọi' : 'Patient absent after being called' },
-                  { code: 'unreachable', label: isVi ? 'Không thể liên lạc qua kết nối khám' : 'Unreachable over the consultation connection' },
-                  { code: 'left_waiting_room', label: isVi ? 'Đã rời phòng chờ khám' : 'Left the waiting room' },
+                  { code: 'patient_absent', label: t('mobile.no_show_patient_absent', 'Bệnh nhân không có mặt sau khi gọi') },
+                  { code: 'unreachable', label: t('mobile.no_show_unreachable', 'Không thể liên lạc qua kết nối khám') },
+                  { code: 'left_waiting_room', label: t('mobile.no_show_left_room', 'Đã rời phòng chờ khám') },
                 ] as const
               ).map((r) => (
                 <TouchableOpacity

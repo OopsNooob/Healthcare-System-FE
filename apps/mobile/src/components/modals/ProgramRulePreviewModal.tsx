@@ -111,16 +111,16 @@ export const ProgramRulePreviewModal: React.FC<ProgramRulePreviewModalProps> = (
             <View style={tw('bg-slate-50 dark:bg-slate-950 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 flex-row items-center justify-between')}>
               <View>
                 <Text style={tw('text-xs text-slate-500 dark:text-slate-400')}>
-                  {isVi ? 'Mã quy tắc' : 'Rule ID'}: {activeRule.ruleId}
+                  {t('mobile.rule_id', 'Mã quy tắc')}: {activeRule.ruleId}
                 </Text>
                 <Text style={tw('text-base font-bold text-slate-900 dark:text-white mt-0.5')}>
-                  {isVi ? 'Phiên bản' : 'Version'} {activeRule.version}
+                  {t('mobile.rule_version', 'Phiên bản')} {activeRule.version}
                 </Text>
               </View>
               <View style={tw('bg-emerald-100 dark:bg-emerald-900/40 px-3 py-1 rounded-full flex-row items-center')}>
                 <ShieldCheck color="#10b981" size={14} style={tw('mr-1')} />
                 <Text style={tw('text-xs font-bold text-emerald-700 dark:text-emerald-300 uppercase')}>
-                  {isVi ? 'Đang áp dụng' : 'Active'}
+                  {t('mobile.rule_active', 'Đang áp dụng')}
                 </Text>
               </View>
             </View>

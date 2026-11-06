@@ -407,16 +407,10 @@ export default function DoctorHomeScreen() {
                     )}
                   >
                     {sev === 'All'
-                      ? isVi
-                        ? 'Tất cả mức độ'
-                        : 'All severities'
+                      ? t('mobile.all_severities', 'Tất cả mức độ')
                       : sev === 'Urgent'
-                        ? isVi
-                          ? 'Khẩn cấp'
-                          : 'Urgent'
-                        : isVi
-                          ? 'Cần chú ý'
-                          : 'Attention'}
+                        ? t('mobile.urgent', 'Khẩn cấp')
+                        : t('mobile.attention', 'Cần chú ý')}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -440,16 +434,10 @@ export default function DoctorHomeScreen() {
                     )}
                   >
                     {st === 'all'
-                      ? isVi
-                        ? 'Mọi trạng thái'
-                        : 'All statuses'
+                      ? t('mobile.all_statuses', 'Mọi trạng thái')
                       : st === 'open'
-                        ? isVi
-                          ? 'Đang mở'
-                          : 'Open'
-                        : isVi
-                          ? 'Đã tiếp nhận'
-                          : 'Acknowledged'}
+                        ? t('mobile.status_open', 'Đang mở')
+                        : t('mobile.status_acknowledged', 'Đã tiếp nhận')}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -478,8 +466,8 @@ export default function DoctorHomeScreen() {
                   }`
                 )}
               >
-                <View style={tw('flex-row justify-between mb-3')}>
-                  <View style={tw('flex-1')}>
+                <View style={tw('flex-row justify-between items-start mb-3')}>
+                  <View style={tw('flex-1 mr-2')}>
                     <View style={tw('flex-row items-center flex-wrap gap-1.5 mb-1')}>
                       <Text style={tw('text-lg font-bold text-slate-900 dark:text-white mr-1')}>
                         {item.name}
@@ -542,7 +530,7 @@ export default function DoctorHomeScreen() {
                         : router.push('/(doctor)/chat/1')
                     }
                     style={tw(
-                      `px-3 py-1.5 rounded-full h-8 justify-center ${
+                      `px-3 py-1.5 rounded-full shrink-0 self-start justify-center items-center ${
                         item.statusKey === 'waiting'
                           ? 'bg-blue-50 dark:bg-blue-900/30'
                           : 'bg-slate-100 dark:bg-slate-800'
@@ -550,6 +538,7 @@ export default function DoctorHomeScreen() {
                     )}
                   >
                     <Text
+                      numberOfLines={1}
                       style={tw(
                         `text-xs font-bold ${
                           item.statusKey === 'waiting'
@@ -600,9 +589,12 @@ export default function DoctorHomeScreen() {
                       </Text>
                     </View>
                     {item.linkedConsultationId && (
-                      <Text style={tw('text-xs font-bold text-emerald-600 dark:text-emerald-400')}>
-                        {isVi ? 'Đã liên kết' : 'Linked'}: {item.linkedConsultationId}
-                      </Text>
+                      <View style={tw('flex-row items-center bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-md')}>
+                        <CheckCircle size={12} color="#10b981" style={tw('mr-1')} />
+                        <Text style={tw('text-xs font-bold text-emerald-600 dark:text-emerald-400')}>
+                          {t('mobile.consultation_created', 'Đã tạo phiên khám')}
+                        </Text>
+                      </View>
                     )}
                   </View>
                 </View>

@@ -376,40 +376,40 @@ export default function PremiumScreen() {
   };
 
   const orderStatusText = (status: string) => {
-    const map: Record<string, [string, string]> = {
-      paid: ['Đã thanh toán', 'Paid'],
-      pending: ['Chờ xác minh', 'Awaiting verification'],
-      created: ['Mới tạo', 'Created'],
-      processing: ['Đang xử lý', 'Processing'],
-      expired: ['Hết hạn', 'Expired'],
-      cancelled: ['Đã hủy', 'Cancelled'],
-      failed: ['Thất bại', 'Failed'],
-      refund_pending: ['Chờ hoàn tiền', 'Refund pending'],
-      refunded: ['Đã hoàn tiền', 'Refunded'],
+    const key = `mobile.order_status_${status}`;
+    const map: Record<string, string> = {
+      paid: 'Đã thanh toán',
+      pending: 'Chờ xác minh',
+      created: 'Mới tạo',
+      processing: 'Đang xử lý',
+      expired: 'Hết hạn',
+      cancelled: 'Đã hủy',
+      failed: 'Thất bại',
+      refund_pending: 'Chờ hoàn tiền',
+      refunded: 'Đã hoàn tiền',
     };
-    const entry = map[status];
-    return entry ? (isVi ? entry[0] : entry[1]) : status;
+    return t(key, map[status] || status);
   };
 
   const refundReasonText = (code: string) => {
-    const map: Record<string, [string, string]> = {
-      service_not_used: ['Chưa sử dụng dịch vụ', 'Service not used'],
-      accidental_purchase: ['Mua nhầm gói', 'Accidental purchase'],
-      technical_issue: ['Lỗi kỹ thuật', 'Technical issue'],
-      other: ['Lý do khác', 'Other reason'],
+    const key = `mobile.refund_reason_${code}`;
+    const map: Record<string, string> = {
+      service_not_used: 'Chưa sử dụng dịch vụ',
+      accidental_purchase: 'Mua nhầm gói',
+      technical_issue: 'Lỗi kỹ thuật',
+      other: 'Lý do khác',
     };
-    const entry = map[code];
-    return entry ? (isVi ? entry[0] : entry[1]) : code;
+    return t(key, map[code] || code);
   };
 
   const refundStatusText = (status: string) => {
-    const map: Record<string, [string, string]> = {
-      pending: ['Chờ duyệt', 'Pending'],
-      approved: ['Đã duyệt', 'Approved'],
-      rejected: ['Từ chối', 'Rejected'],
+    const key = `mobile.refund_status_${status}`;
+    const map: Record<string, string> = {
+      pending: 'Chờ duyệt',
+      approved: 'Đã duyệt',
+      rejected: 'Từ chối',
     };
-    const entry = map[status];
-    return entry ? (isVi ? entry[0] : entry[1]) : status;
+    return t(key, map[status] || status);
   };
 
   const getOrderStatusBadge = (status: PaymentOrderInfo['status']) => {

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, Modal, TouchableOpacity, ScrollView } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { X, Settings2, Globe, Clock, CheckCircle2, ShieldCheck } from 'lucide-react-native';
@@ -33,6 +33,12 @@ export const BookingSettingsModal: React.FC<BookingSettingsModalProps> = ({
   const isVi = i18n.language?.startsWith('vi');
   const [draft, setDraft] = useState<DoctorBookingSettingsDto>(settings);
 
+  useEffect(() => {
+    if (visible) {
+      setDraft(settings);
+    }
+  }, [visible, settings]);
+
   const timezones = ['Asia/Ho_Chi_Minh', 'Asia/Bangkok', 'Asia/Singapore', 'UTC'];
 
   const handleSave = () => {
@@ -60,7 +66,10 @@ export const BookingSettingsModal: React.FC<BookingSettingsModalProps> = ({
                   {t('mobile.booking_settings_title', isVi ? 'Cấu hình Đặt lịch & Phòng chờ' : 'Booking & Waiting Room Settings')}
                 </Text>
                 <Text style={tw('text-xs text-slate-500 dark:text-slate-400')}>
-                  {isVi ? 'Thiết lập múi giờ, thời lượng ca khám và chính sách nhận lịch' : 'Configure timezone, slot duration, and booking confirmation policy'}
+                  {t(
+                    'mobile.booking_settings_subtitle',
+                    'Thiết lập múi giờ, thời lượng ca khám và chính sách nhận lịch'
+                  )}
                 </Text>
               </View>
             </View>
@@ -78,7 +87,7 @@ export const BookingSettingsModal: React.FC<BookingSettingsModalProps> = ({
                   {t('mobile.iana_timezone', isVi ? 'Múi giờ làm việc' : 'Working Timezone')}
                 </Text>
               </View>
-              <View style={tw('flex-row flex-wrap gap-2')}>
+              <View style={tw('flex-row flex-wrap justify-between gap-y-2.5')}>
                 {timezones.map((tz) => {
                   const active = draft.timezone === tz;
                   return (
@@ -86,14 +95,17 @@ export const BookingSettingsModal: React.FC<BookingSettingsModalProps> = ({
                       key={tz}
                       onPress={() => setDraft({ ...draft, timezone: tz })}
                       style={tw(
-                        `px-3.5 py-2 rounded-xl border ${
+                        `w-[48%] py-2.5 px-2 rounded-xl border items-center justify-center ${
                           active
                             ? 'bg-indigo-600 border-indigo-600'
                             : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800'
                         }`
                       )}
                     >
-                      <Text style={tw(`text-xs font-bold ${active ? 'text-white' : 'text-slate-700 dark:text-slate-300'}`)}>
+                      <Text
+                        numberOfLines={1}
+                        style={tw(`text-xs font-bold ${active ? 'text-white' : 'text-slate-700 dark:text-slate-300'}`)}
+                      >
                         {tz}
                       </Text>
                     </TouchableOpacity>

@@ -5,11 +5,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSafeRouter as useRouter } from '@/utils/useSafeRouter';
 import { Mic, MicOff, Video, VideoOff, PhoneOff, MessageCircle, FileText, ChevronDown, BrainCircuit, Activity, Save, LineChart, AlertTriangle } from 'lucide-react-native';
 import { tw, twInstance } from '@/tw';
+import { useThemeContext } from '@/context/ThemeContext';
 import Toast from 'react-native-toast-message';
 import { AiSummaryModal, HealthChartModal, CareAlertsModal } from '@/components/modals';
 
 export default function DoctorVideoCallScreen() {
   const { t } = useTranslation();
+  useThemeContext();
   const router = useRouter();
 
   const [notesVisible, setNotesVisible] = useState(false);

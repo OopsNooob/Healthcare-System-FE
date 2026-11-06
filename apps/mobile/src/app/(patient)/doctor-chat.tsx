@@ -97,8 +97,8 @@ export default function DoctorChatScreen() {
       {
         id: Date.now().toString(),
         text: item.type === 'image'
-          ? (isVi ? 'Đã gửi ảnh chụp y tế đính kèm.' : 'Attached medical photo.')
-          : (isVi ? 'Đã gửi tài liệu y khoa đính kèm.' : 'Attached medical document.'),
+          ? t('mobile.medical_image_sent', 'Đã gửi ảnh chụp y tế đính kèm.')
+          : t('mobile.medical_doc_sent', 'Đã gửi tài liệu y khoa đính kèm.'),
         sender: 'user',
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         hasAttachment: true,
@@ -274,7 +274,7 @@ export default function DoctorChatScreen() {
                         {msg.attachmentName || 'Document.pdf'}
                       </Text>
                       <Text style={tw('text-[10px] text-slate-500 dark:text-slate-400 mt-0.5')}>
-                        {msg.attachmentSize || 'PDF Document'} • {isVi ? 'Nhấn để xem' : 'Tap to view'}
+                        {msg.attachmentSize || 'PDF Document'} • {t('mobile.tap_to_view', 'Nhấn để xem')}
                       </Text>
                     </View>
                     <Eye color={msg.sender === 'user' ? '#0f172a' : '#64748b'} size={18} />

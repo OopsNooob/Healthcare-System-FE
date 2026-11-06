@@ -92,7 +92,7 @@ export const EducationTaskModal: React.FC<EducationTaskModalProps> = ({
                   {t('mobile.education_task_title', isVi ? 'Tài liệu Giáo dục Sức khỏe' : 'Health Education Material')}
                 </Text>
                 <Text style={tw('text-xs text-slate-500 dark:text-slate-400')}>
-                  {isVi ? 'Phiên bản' : 'Version'}: {resolvedRef.version}
+                  {t('mobile.version_label', 'Phiên bản')}: {resolvedRef.version}
                 </Text>
               </View>
             </View>
@@ -115,7 +115,7 @@ export const EducationTaskModal: React.FC<EducationTaskModalProps> = ({
               </View>
               <View style={tw('bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-full')}>
                 <Text style={tw('text-xs font-semibold text-slate-600 dark:text-slate-300')}>
-                  {isVi ? 'Ngôn ngữ: Tiếng Việt' : 'Language: English'}
+                  {isVi ? t('mobile.language_vietnamese', 'Ngôn ngữ: Tiếng Việt') : t('mobile.language_english', 'Language: English')}
                 </Text>
               </View>
             </View>

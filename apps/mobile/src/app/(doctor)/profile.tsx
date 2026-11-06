@@ -40,7 +40,7 @@ export default function DoctorProfileScreen() {
     {
       id: 'doc-1',
       type: 'license',
-      title: isVi ? 'Chứng chỉ hành nghề Y khoa' : 'Medical Practice License',
+      title: t('mobile.doc_license_title', 'Chứng chỉ hành nghề Y khoa'),
       fileName: 'Medical_License_2023.pdf',
       fileSize: '2.4 MB',
       status: 'pending',
@@ -50,7 +50,7 @@ export default function DoctorProfileScreen() {
     {
       id: 'doc-2',
       type: 'degree',
-      title: isVi ? 'Bằng Bác sĩ Chuyên khoa Tim mạch' : 'Doctor of Medicine - Cardiology Board',
+      title: t('mobile.doc_degree_title', 'Bằng Bác sĩ Chuyên khoa Tim mạch'),
       fileName: 'Cardiology_Board_Diploma_2018.pdf',
       fileSize: '3.8 MB',
       status: 'verified',
@@ -206,48 +206,44 @@ export default function DoctorProfileScreen() {
             >
               <View style={tw('flex-row justify-between items-center mb-2')}>
                 <Text style={tw('text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300')}>
-                  {isVi ? 'Trạng thái xác minh hành nghề' : 'Practice verification status'}
+                  {t('mobile.practice_verification_status', 'Trạng thái xác minh hành nghề')}
                 </Text>
-                <View style={tw('flex-row gap-1')}>
-                  {(['approved', 'pending', 'rejected'] as const).map((st) => (
-                    <TouchableOpacity
-                      key={st}
-                      onPress={() => setVerificationStatus(st)}
-                      style={tw(
-                        `px-2 py-0.5 rounded-md ${
-                          verificationStatus === st
-                            ? 'bg-slate-900 dark:bg-white'
-                            : 'bg-white/60 dark:bg-slate-800'
-                        }`
-                      )}
-                    >
-                      <Text
-                        style={tw(
-                          `text-[10px] font-bold uppercase ${
-                            verificationStatus === st
-                              ? 'text-white dark:text-slate-900'
-                              : 'text-slate-500 dark:text-slate-400'
-                          }`
-                        )}
-                      >
-                        {st}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
+                <View
+                  style={tw(
+                    `px-2.5 py-0.5 rounded-full ${
+                      verificationStatus === 'approved'
+                        ? 'bg-emerald-100 dark:bg-emerald-900/50'
+                        : verificationStatus === 'pending'
+                          ? 'bg-amber-100 dark:bg-amber-900/50'
+                          : 'bg-red-100 dark:bg-red-900/50'
+                    }`
+                  )}
+                >
+                  <Text
+                    style={tw(
+                      `text-[10px] font-bold uppercase ${
+                        verificationStatus === 'approved'
+                          ? 'text-emerald-700 dark:text-emerald-300'
+                          : verificationStatus === 'pending'
+                            ? 'text-amber-700 dark:text-amber-400'
+                            : 'text-red-700 dark:text-red-400'
+                      }`
+                    )}
+                  >
+                    {verificationStatus === 'approved'
+                      ? t('mobile.status_approved', 'Đã duyệt')
+                      : verificationStatus === 'pending'
+                        ? t('mobile.status_pending_review', 'Chờ duyệt')
+                        : t('mobile.status_rejected', 'Từ chối')}
+                  </Text>
                 </View>
               </View>
               <Text style={tw('text-xs text-slate-700 dark:text-slate-200 leading-4')}>
                 {verificationStatus === 'approved'
-                  ? isVi
-                    ? 'Hồ sơ đã được duyệt. Bạn có toàn quyền nhận lịch khám, quản lý chương trình chăm sóc của bệnh nhân và kích hoạt quy tắc theo dõi.'
-                    : 'Your profile is approved. You can accept appointments, manage patients’ care programs, and activate monitoring rules.'
+                  ? t('mobile.desc_approved', 'Hồ sơ đã được duyệt. Bạn có toàn quyền nhận lịch khám, quản lý chương trình chăm sóc của bệnh nhân và kích hoạt quy tắc theo dõi.')
                   : verificationStatus === 'pending'
-                    ? isVi
-                      ? 'Hồ sơ đang chờ quản trị viên thẩm định. Tạm thời chưa hiển thị công khai trong danh bạ đặt lịch.'
-                      : 'Your profile is awaiting administrator review. It is not yet visible in the public booking directory.'
-                    : isVi
-                      ? 'Hồ sơ bị từ chối: ảnh chụp chứng chỉ hành nghề bị mờ. Vui lòng tải lại tệp PDF rõ nét để gửi duyệt lại.'
-                      : 'Your profile was rejected: the practice certificate photo is blurry. Please upload a clear PDF to resubmit.'}
+                    ? t('mobile.desc_pending', 'Hồ sơ đang chờ quản trị viên thẩm định. Tạm thời chưa hiển thị công khai trong danh bạ đặt lịch.')
+                    : t('mobile.desc_rejected', 'Hồ sơ bị từ chối: ảnh chụp chứng chỉ hành nghề bị mờ. Vui lòng tải lại tệp PDF rõ nét để gửi duyệt lại.')}
               </Text>
             </View>
           </View>
@@ -260,21 +256,17 @@ export default function DoctorProfileScreen() {
                 'bg-white dark:bg-slate-900 p-4 rounded-2xl flex-row items-center justify-between shadow-sm border border-slate-100 dark:border-slate-800'
               )}
             >
-              <View style={tw('flex-row items-center')}>
+              <View style={tw('flex-row items-center flex-1 mr-2')}>
                 <View
                   style={tw(
-                    'w-10 h-10 bg-amber-50 dark:bg-amber-900/30 rounded-xl items-center justify-center mr-3'
+                    'w-10 h-10 bg-amber-50 dark:bg-amber-900/30 rounded-xl items-center justify-center mr-3 shrink-0'
                   )}
                 >
                   <Star color={twInstance.color('text-amber-500')} size={20} />
                 </View>
-                <View>
-                  <Text style={tw('text-slate-900 dark:text-white font-bold')}>
-                    {t('mobile.doctor_reviews_link', 'Đánh giá từ bệnh nhân và báo cáo lạm dụng')}
-                  </Text>
-                  <Text style={tw('text-xs text-slate-500 dark:text-slate-400')}>
-                    4.9 ★ (128 {isVi ? 'đánh giá' : 'reviews'}) •{' '}
-                    {isVi ? 'Xem phân bổ sao và báo cáo lạm dụng' : 'View rating breakdown and report abuse'}
+                <View style={tw('flex-1')}>
+                  <Text numberOfLines={1} style={tw('text-slate-900 dark:text-white font-bold')}>
+                    {t('mobile.doctor_reviews_link', 'Đánh giá & báo cáo')}
                   </Text>
                 </View>
               </View>
@@ -287,17 +279,19 @@ export default function DoctorProfileScreen() {
                 'bg-white dark:bg-slate-900 p-4 rounded-2xl flex-row items-center justify-between shadow-sm border border-slate-100 dark:border-slate-800'
               )}
             >
-              <View style={tw('flex-row items-center')}>
+              <View style={tw('flex-row items-center flex-1 mr-2')}>
                 <View
                   style={tw(
-                    'w-10 h-10 bg-emerald-50 dark:bg-emerald-900/30 rounded-xl items-center justify-center mr-3'
+                    'w-10 h-10 bg-emerald-50 dark:bg-emerald-900/30 rounded-xl items-center justify-center mr-3 shrink-0'
                   )}
                 >
                   <Shield color={twInstance.color('text-emerald-500')} size={20} />
                 </View>
-                <Text style={tw('text-slate-900 dark:text-white font-bold')}>
-                  {t('mobile.security_sessions', 'Bảo mật & Phiên đăng nhập')}
-                </Text>
+                <View style={tw('flex-1')}>
+                  <Text numberOfLines={1} style={tw('text-slate-900 dark:text-white font-bold')}>
+                    {t('mobile.security_sessions', 'Bảo mật & Phiên đăng nhập')}
+                  </Text>
+                </View>
               </View>
               <ChevronRight color={twInstance.color('text-slate-400')} size={20} />
             </TouchableOpacity>
@@ -308,17 +302,19 @@ export default function DoctorProfileScreen() {
                 'bg-white dark:bg-slate-900 p-4 rounded-2xl flex-row items-center justify-between shadow-sm border border-slate-100 dark:border-slate-800'
               )}
             >
-              <View style={tw('flex-row items-center')}>
+              <View style={tw('flex-row items-center flex-1 mr-2')}>
                 <View
                   style={tw(
-                    'w-10 h-10 bg-indigo-50 dark:bg-indigo-900/30 rounded-xl items-center justify-center mr-3'
+                    'w-10 h-10 bg-indigo-50 dark:bg-indigo-900/30 rounded-xl items-center justify-center mr-3 shrink-0'
                   )}
                 >
                   <Database color={twInstance.color('text-indigo-500')} size={20} />
                 </View>
-                <Text style={tw('text-slate-900 dark:text-white font-bold')}>
-                  {t('mobile.privacy_and_data', 'Quyền riêng tư & Dữ liệu cá nhân')}
-                </Text>
+                <View style={tw('flex-1')}>
+                  <Text numberOfLines={1} style={tw('text-slate-900 dark:text-white font-bold')}>
+                    {t('mobile.privacy_and_data', 'Quyền riêng tư & Dữ liệu cá nhân')}
+                  </Text>
+                </View>
               </View>
               <ChevronRight color={twInstance.color('text-slate-400')} size={20} />
             </TouchableOpacity>
@@ -704,7 +700,7 @@ export default function DoctorProfileScreen() {
         fileSize={selectedDocPreview?.size}
         fileUri={selectedDocPreview?.uri}
         uploadDate={selectedDocPreview?.uploadDate}
-        summary={isVi ? 'Chứng nhận chuyên môn y khoa hợp lệ đã được Bộ Y Tế và Hội đồng Y khoa xác thực.' : 'Official medical qualification verified by the Ministry of Health and Medical Board.'}
+        summary={t('mobile.qualification_verified_desc', 'Chứng nhận chuyên môn y khoa hợp lệ đã được Bộ Y Tế và Hội đồng Y khoa xác thực.')}
         onClose={() => setSelectedDocPreview(null)}
       />
 

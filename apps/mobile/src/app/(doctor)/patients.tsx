@@ -382,7 +382,7 @@ export default function PatientsManagementScreen() {
                   >
                     <RefreshCw size={14} color={twInstance.color('text-slate-600 dark:text-slate-300')} />
                     <Text style={tw('text-xs font-bold text-slate-700 dark:text-slate-300 ml-1')}>
-                      {isVi ? 'Trạng thái' : 'Status'}
+                      {t('mobile.status_label', 'Trạng thái')}
                     </Text>
                   </TouchableOpacity>
                 )}
@@ -429,7 +429,7 @@ export default function PatientsManagementScreen() {
 
                   {patient.lastDoctorReview && (
                     <Text style={tw('text-[11px] text-indigo-600 dark:text-indigo-400 font-semibold mb-2')}>
-                      {isVi ? 'Rà soát gần nhất' : 'Last review'}: {reviewLabel(patient.lastDoctorReview)}
+                      {t('mobile.last_review_label', 'Rà soát gần nhất')}: {reviewLabel(patient.lastDoctorReview)}
                     </Text>
                   )}
 
@@ -716,17 +716,17 @@ export default function PatientsManagementScreen() {
             </View>
 
             <Text style={tw('text-xs text-slate-500 dark:text-slate-400 mb-3')}>
-              {isVi ? 'Bệnh nhân' : 'Patient'}: <Text style={tw('font-bold')}>{activePatientData?.name}</Text> •{' '}
+              {t('mobile.patient_label', 'Bệnh nhân')}: <Text style={tw('font-bold')}>{activePatientData?.name}</Text> •{' '}
               {activePatientData?.program}
             </Text>
 
             <View style={tw('flex-row flex-wrap gap-2 mb-4')}>
               {(
                 [
-                  { id: 'pause', label: isVi ? 'Tạm dừng' : 'Pause' },
-                  { id: 'resume', label: isVi ? 'Tiếp tục' : 'Resume' },
-                  { id: 'complete', label: isVi ? 'Hoàn thành' : 'Complete' },
-                  { id: 'cancel', label: isVi ? 'Hủy chương trình' : 'Cancel program' },
+                  { id: 'pause', label: t('mobile.program_pause', 'Tạm dừng') },
+                  { id: 'resume', label: t('mobile.program_resume', 'Tiếp tục') },
+                  { id: 'complete', label: t('mobile.program_complete', 'Hoàn thành') },
+                  { id: 'cancel', label: t('mobile.program_cancel', 'Hủy chương trình') },
                 ] as const
               ).map((act) => (
                 <TouchableOpacity

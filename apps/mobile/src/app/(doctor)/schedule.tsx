@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import {
   Calendar,
   Plus,
@@ -22,6 +23,7 @@ import {
   Unlock,
 } from 'lucide-react-native';
 import { tw, twInstance } from '@/tw';
+import { useThemeContext } from '@/context/ThemeContext';
 import {
   AddSlotModal,
   CopyScheduleModal,
@@ -41,8 +43,10 @@ import { bookingPolicyLabel, timezoneLabel } from '@/utils/bookingLabels';
 export default function DoctorScheduleScreen() {
   const { t, i18n } = useTranslation();
   const isVi = i18n.language === 'vi';
+  useThemeContext();
 
   const [selectedDate, setSelectedDate] = useState('2026-11-06');
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const [isAcceptingAppts, setIsAcceptingAppts] = useState(true);
   const [addSlotModalVisible, setAddSlotModalVisible] = useState(false);
   const [copyScheduleModalVisible, setCopyScheduleModalVisible] = useState(false);
@@ -59,14 +63,31 @@ export default function DoctorScheduleScreen() {
     noShowAfterMinutes: 15,
   });
 
-  const dates = [
-    { date: '2026-11-06', dayName: 'Fri', dayNum: '06' },
-    { date: '2026-11-07', dayName: 'Sat', dayNum: '07' },
-    { date: '2026-11-08', dayName: 'Sun', dayNum: '08' },
-    { date: '2026-11-09', dayName: 'Mon', dayNum: '09' },
-    { date: '2026-11-10', dayName: 'Tue', dayNum: '10' },
-    { date: '2026-11-11', dayName: 'Wed', dayNum: '11' },
-  ];
+  const generateDates = (selectedStr: string) => {
+    const dayNamesEn = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const dayNamesVi = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
+    const base = new Date(selectedStr);
+    const res = [];
+    for (let offset = -1; offset <= 5; offset++) {
+      const d = new Date(base);
+      d.setDate(base.getDate() + offset);
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      res.push({
+        date: `${yyyy}-${mm}-${dd}`,
+        dayName: isVi ? dayNamesVi[d.getDay()] : dayNamesEn[d.getDay()],
+        dayNum: dd,
+      });
+    }
+    return res;
+  };
+
+  const dates = generateDates(selectedDate);
+  const selectedDateObj = new Date(selectedDate);
+  const monthYearTitle = isVi
+    ? `Tháng ${selectedDateObj.getMonth() + 1}, ${selectedDateObj.getFullYear()}`
+    : `${selectedDateObj.toLocaleString('en-US', { month: 'long' })}, ${selectedDateObj.getFullYear()}`;
 
   const timeSlots: DoctorSlotItem[] = [
     { id: '1', time: '08:00 AM', status: 'expired' },
@@ -187,7 +208,7 @@ export default function DoctorScheduleScreen() {
             </Text>
             <Text style={tw('text-slate-500 dark:text-slate-400 text-xs mt-1')}>
               {timezoneLabel(bookingSettings.timezone, isVi)} • {bookingPolicyLabel(bookingSettings.bookingPolicy, isVi)} •{' '}
-              {bookingSettings.defaultDurationMinutes} {isVi ? 'phút' : 'min'}
+              {bookingSettings.defaultDurationMinutes} {t('mobile.minutes_short', 'phút')}
             </Text>
           </View>
           <TouchableOpacity
@@ -240,11 +261,14 @@ export default function DoctorScheduleScreen() {
         >
           <View style={tw('flex-row justify-between items-center px-6 mb-4')}>
             <Text style={tw('text-lg font-bold text-slate-900 dark:text-white')}>
-              {t('mobile.november_2026', 'Tháng 11, 2026')}
+              {monthYearTitle}
             </Text>
-            <TouchableOpacity style={tw('flex-row items-center')}>
-              <Calendar color="#64748b" size={16} style={tw('mr-2')} />
-              <Text style={tw('text-slate-600 dark:text-slate-300 font-medium')}>
+            <TouchableOpacity
+              onPress={() => setShowDatePicker(true)}
+              style={tw('flex-row items-center px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800')}
+            >
+              <Calendar color="#64748b" size={16} style={tw('mr-1.5')} />
+              <Text style={tw('text-slate-600 dark:text-slate-300 font-medium text-xs')}>
                 {t('mobile.pick_date', 'Pick Date')}
               </Text>
             </TouchableOpacity>
@@ -303,7 +327,7 @@ export default function DoctorScheduleScreen() {
                 {t('mobile.time_slots', 'Time Slots')}
               </Text>
               <Text style={tw('text-xs text-slate-500 dark:text-slate-400')}>
-                {isVi ? 'còn trống • đã đặt • đã khóa • đã qua giờ' : 'available • booked • blocked • expired'}
+                {t('mobile.slot_status_legend', 'còn trống • đã đặt • đã khóa • đã qua giờ')}
               </Text>
             </View>
             <TouchableOpacity
@@ -361,19 +385,19 @@ export default function DoctorScheduleScreen() {
                           <Text style={tw('font-bold text-slate-700 dark:text-slate-200')}>
                             {slot.patient}
                           </Text>{' '}
-                          ({isVi ? 'Đã khóa' : 'Locked'})
+                          ({t('mobile.slot_locked_pill', 'Đã khóa')})
                         </Text>
                       ) : slot.status === 'blocked' ? (
                         <Text style={tw('text-xs text-amber-600 dark:text-amber-400 font-bold')}>
-                          {isVi ? 'ĐÃ KHÓA (tạm ngưng đặt lịch)' : 'BLOCKED (booking paused)'}
+                          {t('mobile.slot_blocked_notice', 'ĐÃ KHÓA (tạm ngưng đặt lịch)')}
                         </Text>
                       ) : slot.status === 'expired' ? (
                         <Text style={tw('text-xs text-slate-400 font-medium')}>
-                          {isVi ? 'ĐÃ QUA GIỜ' : 'EXPIRED'}
+                          {t('mobile.slot_expired_notice', 'ĐÃ QUA GIỜ')}
                         </Text>
                       ) : (
                         <Text style={tw('text-xs text-emerald-600 dark:text-emerald-400 font-bold')}>
-                          {isVi ? 'CÒN TRỐNG' : 'AVAILABLE'} ({bookingSettings.defaultDurationMinutes} {isVi ? 'phút' : 'min'})
+                          {t('mobile.slot_available_notice', 'CÒN TRỐNG')} ({bookingSettings.defaultDurationMinutes} {t('mobile.minutes_short', 'phút')})
                         </Text>
                       )}
                     </View>
@@ -448,6 +472,24 @@ export default function DoctorScheduleScreen() {
         settings={bookingSettings}
         onSave={(next) => setBookingSettings(next)}
       />
+
+      {/* Date Picker Native Dialog */}
+      {showDatePicker && (
+        <DateTimePicker
+          value={new Date(selectedDate)}
+          mode="date"
+          display="default"
+          onChange={(event, date) => {
+            setShowDatePicker(false);
+            if (date && event.type !== 'dismissed') {
+              const yyyy = date.getFullYear();
+              const mm = String(date.getMonth() + 1).padStart(2, '0');
+              const dd = String(date.getDate()).padStart(2, '0');
+              setSelectedDate(`${yyyy}-${mm}-${dd}`);
+            }
+          }}
+        />
+      )}
     </SafeAreaView>
   );
 }

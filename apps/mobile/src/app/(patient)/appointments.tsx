@@ -159,7 +159,7 @@ export default function AppointmentsScreen() {
         const d = item.scheduledStartAt ? new Date(item.scheduledStartAt) : new Date();
         return {
           id: item._id || item.id,
-          doctor: item.doctor?.fullName || item.doctorId || (isVi ? 'Bác sĩ chuyên khoa' : 'Specialist doctor'),
+          doctor: item.doctor?.fullName || item.doctorId || t('mobile.specialist_doctor', 'Bác sĩ chuyên khoa'),
           specialty: item.doctor?.doctorProfile?.specialty || item.doctor?.specialty || 'General Practitioner',
           date: d.toLocaleDateString(),
           time: d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -230,7 +230,7 @@ export default function AppointmentsScreen() {
   };
 
   const typeLabel = (type: string) =>
-    type === 'Video Call' ? (isVi ? 'Gọi video' : 'Video call') : isVi ? 'Trò chuyện' : 'Chat';
+    type === 'Video Call' ? t('mobile.mode_video', 'Gọi video') : t('mobile.mode_chat', 'Trò chuyện');
 
   const specialtyLabel = (specialty: string) => {
     const map: Record<string, string> = {
@@ -371,21 +371,13 @@ export default function AppointmentsScreen() {
       </View>
       <Text style={tw('text-xl font-bold text-slate-900 dark:text-white mb-2 text-center')}>
         {tab === 'upcoming'
-          ? isVi
-            ? 'Chưa có lịch hẹn sắp tới'
-            : 'No upcoming appointments'
-          : isVi
-          ? 'Chưa có lịch sử khám'
-          : 'No appointment history'}
+          ? t('mobile.no_upcoming_appointments_title', 'Chưa có lịch hẹn sắp tới')
+          : t('mobile.no_history_appointments_title', 'Chưa có lịch sử khám')}
       </Text>
       <Text style={tw('text-slate-500 dark:text-slate-400 text-center mb-8')}>
         {tab === 'upcoming'
-          ? isVi
-            ? 'Hiện bạn chưa có lịch hẹn nào sắp tới.'
-            : "You don't have any upcoming appointments scheduled at the moment."
-          : isVi
-          ? 'Bạn chưa có buổi khám nào.'
-          : "You haven't had any appointments yet."}
+          ? t('mobile.no_upcoming_appointments_desc', 'Hiện bạn chưa có lịch hẹn nào sắp tới.')
+          : t('mobile.no_history_appointments_desc', 'Bạn chưa có buổi khám nào.')}
       </Text>
       {tab === 'upcoming' && (
         <TouchableOpacity
@@ -773,7 +765,7 @@ export default function AppointmentsScreen() {
                 </Text>
                 <Text style={tw('text-xs text-slate-500 dark:text-slate-400')}>
                   {selectedAptForReschedule?.doctor} •{' '}
-                  {isVi ? 'Hạn đổi lịch: trước giờ hẹn 60 phút' : 'Reschedule cutoff: 60 min before'}
+                  {t('mobile.reschedule_cutoff_desc', 'Hạn đổi lịch: trước giờ hẹn 60 phút')}
                 </Text>
               </View>
               <TouchableOpacity onPress={() => setRescheduleModalVisible(false)}>
