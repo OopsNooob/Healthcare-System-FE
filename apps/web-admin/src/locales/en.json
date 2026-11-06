@@ -65,6 +65,7 @@
       "violationReports": "Violation Reports",
       "careProgram": "Care Program",
       "medicalFacilities": "Medical Facilities",
+      "auditLogs": "Audit Logs",
       "mainMenu": "Main Menu"
     },
     "authHeader": {

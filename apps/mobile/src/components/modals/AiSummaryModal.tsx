@@ -1,7 +1,8 @@
-import React from 'react';
-import { View, Text, Modal, TouchableOpacity, ScrollView } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, Modal, TouchableOpacity, ScrollView, TextInput } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { X, Sparkles, AlertTriangle, TrendingUp, CheckCircle, ShieldCheck, Info } from 'lucide-react-native';
+import { X, Sparkles, AlertTriangle, TrendingUp, CheckCircle, ShieldCheck, Info, ThumbsUp, ThumbsDown } from 'lucide-react-native';
+import Toast from 'react-native-toast-message';
 import { tw, twInstance } from '@/tw';
 
 interface AiSummaryModalProps {
@@ -25,22 +26,41 @@ export const AiSummaryModal: React.FC<AiSummaryModalProps> = ({
 }) => {
   const { t } = useTranslation();
 
+  // CARE-29: Assigned Doctor review/reject Doctor-audience AI summary
+  const [reviewDecision, setReviewDecision] = useState<'pending' | 'reviewed' | 'rejected'>('pending');
+  const [reviewerNote, setReviewerNote] = useState('');
+
+  const handleDoctorSummaryDecision = (decision: 'reviewed' | 'rejected') => {
+    setReviewDecision(decision);
+    Toast.show({
+      type: decision === 'reviewed' ? 'success' : 'info',
+      text1:
+        decision === 'reviewed'
+          ? t('mobile.ai_summary_approved', 'Đã xác nhận bản tóm tắt AI (CARE-29)')
+          : t('mobile.ai_summary_rejected', 'Đã từ chối bản tóm tắt AI (CARE-29)'),
+      text2: t(
+        'mobile.ai_summary_audit_desc',
+        'Đã ghi nhận người duyệt, ghi chú và phiên bản. Các thống kê tất định (deterministic facts) được giữ nguyên.'
+      ),
+    });
+  };
+
   return (
     <Modal visible={visible} transparent={true} animationType="slide" onRequestClose={onClose}>
       <View style={tw('flex-1 justify-end bg-black/60')}>
-        <View style={tw('bg-white dark:bg-slate-900 rounded-t-3xl max-h-[85%] border-t border-slate-200 dark:border-slate-800')}>
+        <View style={tw('bg-white dark:bg-slate-900 rounded-t-3xl max-h-[88%] border-t border-slate-200 dark:border-slate-800')}>
           {/* Header */}
           <View style={tw('p-5 border-b border-slate-100 dark:border-slate-800 flex-row items-center justify-between')}>
-            <View style={tw('flex-row items-center')}>
+            <View style={tw('flex-row items-center flex-1 mr-2')}>
               <View style={tw('w-10 h-10 rounded-2xl bg-purple-100 dark:bg-purple-900/40 items-center justify-center mr-3')}>
                 <Sparkles color={twInstance.color('text-purple-600 dark:text-purple-400')} size={22} />
               </View>
-              <View>
-                <Text style={tw('text-lg font-bold text-slate-900 dark:text-white')}>
+              <View style={tw('flex-1')}>
+                <Text style={tw('text-lg font-bold text-slate-900 dark:text-white')} numberOfLines={1}>
                   {t('mobile.ai_clinical_summary', 'AI Clinical Telemetry Summary')}
                 </Text>
                 <Text style={tw('text-xs text-slate-500 dark:text-slate-400')}>
-                  {patientName} • {programName}
+                  {patientName} • {programName} • SummaryInput v1 (CARE-28/29)
                 </Text>
               </View>
             </View>
@@ -50,7 +70,7 @@ export const AiSummaryModal: React.FC<AiSummaryModalProps> = ({
           </View>
 
           <ScrollView contentContainerStyle={tw('p-5 gap-4')} showsVerticalScrollIndicator={false}>
-            {/* Quick Metrics Comparison */}
+            {/* Quick Metrics Comparison (Deterministic Facts - CARE-28) */}
             <View style={tw('bg-slate-50 dark:bg-slate-950 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 flex-row justify-between items-center')}>
               <View>
                 <Text style={tw('text-xs text-slate-500 dark:text-slate-400')}>{t('mobile.baseline', 'Baseline')}</Text>
@@ -132,6 +152,70 @@ export const AiSummaryModal: React.FC<AiSummaryModalProps> = ({
               <Text style={tw('text-xs text-slate-600 dark:text-slate-300 leading-5')}>
                 • {t('mobile.ai_rec_3', 'Schedule routine follow-up consultation in 14 days.')}
               </Text>
+            </View>
+
+            {/* CARE-29: Doctor Review / Reject AI Summary Panel */}
+            <View style={tw('bg-slate-50 dark:bg-slate-950 p-4 rounded-2xl border border-slate-200 dark:border-slate-800')}>
+              <View style={tw('flex-row justify-between items-center mb-2')}>
+                <Text style={tw('text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300')}>
+                  {t('mobile.doctor_ai_review_title', 'Kiểm duyệt Tóm tắt AI của Bác sĩ (CARE-29)')}
+                </Text>
+                <View
+                  style={tw(
+                    `px-2.5 py-0.5 rounded-full ${
+                      reviewDecision === 'reviewed'
+                        ? 'bg-emerald-100 dark:bg-emerald-900/40'
+                        : reviewDecision === 'rejected'
+                        ? 'bg-rose-100 dark:bg-rose-900/40'
+                        : 'bg-amber-100 dark:bg-amber-900/40'
+                    }`
+                  )}
+                >
+                  <Text
+                    style={tw(
+                      `text-[10px] font-bold uppercase ${
+                        reviewDecision === 'reviewed'
+                          ? 'text-emerald-700 dark:text-emerald-300'
+                          : reviewDecision === 'rejected'
+                          ? 'text-rose-700 dark:text-rose-300'
+                          : 'text-amber-700 dark:text-amber-300'
+                      }`
+                    )}
+                  >
+                    {reviewDecision}
+                  </Text>
+                </View>
+              </View>
+              <TextInput
+                value={reviewerNote}
+                onChangeText={setReviewerNote}
+                placeholder={t(
+                  'mobile.ai_reviewer_note_placeholder',
+                  'Ghi chú kiểm duyệt của bác sĩ (không làm thay đổi số liệu thống kê gốc)...'
+                )}
+                placeholderTextColor="#94a3b8"
+                style={tw('bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 dark:text-white mb-3')}
+              />
+              <View style={tw('flex-row gap-2.5')}>
+                <TouchableOpacity
+                  onPress={() => handleDoctorSummaryDecision('reviewed')}
+                  style={tw('flex-1 bg-emerald-600 py-2.5 rounded-xl flex-row items-center justify-center')}
+                >
+                  <ThumbsUp color="#ffffff" size={14} style={tw('mr-1.5')} />
+                  <Text style={tw('text-xs font-bold text-white')}>
+                    {t('mobile.approve_ai_summary', 'Xác nhận hợp lệ')}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => handleDoctorSummaryDecision('rejected')}
+                  style={tw('flex-1 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 py-2.5 rounded-xl flex-row items-center justify-center')}
+                >
+                  <ThumbsDown color="#ef4444" size={14} style={tw('mr-1.5')} />
+                  <Text style={tw('text-xs font-bold text-rose-600 dark:text-rose-400')}>
+                    {t('mobile.reject_ai_summary', 'Từ chối bản tóm tắt')}
+                  </Text>
+                </TouchableOpacity>
+              </View>
             </View>
 
             {/* Disclaimer */}

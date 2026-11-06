@@ -47,7 +47,12 @@ export function ViolationReport() {
   const [reportOverrides, setReportOverrides] = useState<
     Record<
       string,
-      Partial<Pick<ViolationReportItem, "status" | "accountStatus">>
+      Partial<
+        Pick<
+          ViolationReportItem,
+          "status" | "accountStatus" | "assignee" | "actionTaken"
+        >
+      >
     >
   >({});
   const [searchQuery, setSearchQuery] = useState("");
@@ -101,6 +106,8 @@ export function ViolationReport() {
       status: reportOverrides[item.id]?.status ?? item.status,
       accountStatus:
         reportOverrides[item.id]?.accountStatus ?? item.accountStatus,
+      assignee: reportOverrides[item.id]?.assignee ?? "Admin Moderation",
+      actionTaken: reportOverrides[item.id]?.actionTaken,
       createdAt: item.createdAt,
     }));
   }, [reportListResponse, reportOverrides]);
@@ -164,6 +171,20 @@ export function ViolationReport() {
     }
   };
 
+  const handleStartProcessing = (id: string, assignee: string) => {
+    setReportOverrides((prev) => ({
+      ...prev,
+      [id]: {
+        ...prev[id],
+        status: "processing",
+        assignee,
+      },
+    }));
+    showToast.success(
+      t("violationReport.toasts.processingStarted", "Report moved to processing (MOD-03)")
+    );
+  };
+
   const handleApplyResolution = async (
     id: string,
     action: ResolutionAction,
@@ -172,7 +193,7 @@ export function ViolationReport() {
     const targetReport = reportList.find((item) => item.id === id);
     if (!targetReport) return;
 
-    if (action === "ban" && targetReport.reportedUserId) {
+    if ((action === "ban" || action === "user_locked") && targetReport.reportedUserId) {
       await handleBanUser(id);
     }
 
@@ -181,6 +202,7 @@ export function ViolationReport() {
       [id]: {
         ...prev[id],
         status: "resolved",
+        actionTaken: action,
       },
     }));
 
@@ -191,16 +213,20 @@ export function ViolationReport() {
     setIsModalOpen(false);
   };
 
-  const handleDismissReport = (id: string) => {
+  const handleDismissReport = (id: string, notes?: string) => {
     setReportOverrides((prev) => ({
       ...prev,
       [id]: {
         ...prev[id],
         status: "dismissed",
+        actionTaken: "none",
       },
     }));
 
-    showToast.success(t("violationReport.toasts.dismissSuccess", "Report dismissed."));
+    showToast.success(
+      t("violationReport.toasts.dismissSuccess", "Report dismissed (MOD-05)") +
+        (notes ? `: ${notes}` : "")
+    );
     setIsModalOpen(false);
   };
 
@@ -293,6 +319,7 @@ export function ViolationReport() {
                   <ComboboxList>
                     <ComboboxItem value="all">{t("violationReport.filters.allStatus")}</ComboboxItem>
                     <ComboboxItem value="pending">{t("violationReport.filters.pending")}</ComboboxItem>
+                    <ComboboxItem value="processing">{t("violationReport.filters.processing", "Processing")}</ComboboxItem>
                     <ComboboxItem value="resolved">{t("violationReport.filters.resolved")}</ComboboxItem>
                     <ComboboxItem value="dismissed">{t("violationReport.filters.dismissed", "Dismissed")}</ComboboxItem>
                   </ComboboxList>
@@ -377,6 +404,8 @@ export function ViolationReport() {
                           className={`h-5 rounded-full border px-2 text-[10px] font-medium ${
                             report.status === "pending"
                               ? "border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400"
+                              : report.status === "processing"
+                              ? "border-blue-200 dark:border-blue-900 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400"
                               : report.status === "dismissed"
                               ? "border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
                               : "border-emerald-200 dark:border-emerald-900 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400"
@@ -384,6 +413,8 @@ export function ViolationReport() {
                         >
                           {report.status === "pending"
                             ? t("violationReport.modal.pending")
+                            : report.status === "processing"
+                            ? t("violationReport.modal.processing", "Processing")
                             : report.status === "dismissed"
                             ? t("violationReport.modal.dismissed", "Dismissed")
                             : t("violationReport.modal.resolved")}
@@ -504,6 +535,7 @@ export function ViolationReport() {
             setIsModalOpen(false);
             setSelectedReportId(null);
           }}
+          onStartProcessing={handleStartProcessing}
           onApplyResolution={handleApplyResolution}
           onDismissReport={handleDismissReport}
           isUpdating={modalLoading}

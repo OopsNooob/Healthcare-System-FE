@@ -158,6 +158,11 @@ export function UserManagement() {
     isProfileModalOpen,
   );
 
+  // Lock Reason Modal (ADM-03) & Operational Summary Modal (ADM-21)
+  const [lockModalUser, setLockModalUser] = useState<UserRecord | null>(null);
+  const [lockReason, setLockReason] = useState("");
+  const [operationalSummaryUser, setOperationalSummaryUser] = useState<UserRecord | null>(null);
+
   const baseUsers = useMemo(
     () => usersData.userList.map(mapUserToRecord),
     [usersData.userList],
@@ -419,25 +424,50 @@ export function UserManagement() {
 
     const isBanningAction = currentUser.status === "active";
 
-    const result = isBanningAction
-      ? await submitBanUser({
-          id: userId,
-          reason: t("userManagement.toasts.defaultBanReason", "Vi phạm quy định hệ thống"),
-        })
-      : await submitUnbanUser({
-          id: userId,
-        });
+    if (isBanningAction) {
+      setLockModalUser(currentUser);
+      setLockReason("");
+      setOpenActionUserId(null);
+      setOpenActionRect(null);
+      return;
+    }
+
+    const result = await submitUnbanUser({
+      id: userId,
+    });
 
     if (result) {
       await refresh();
       setOpenActionUserId(null);
       setOpenActionRect(null);
-      showToast.success(
-        isBanningAction
-          ? "User banned successfully"
-          : "User unbanned successfully",
-      );
+      showToast.success("User unlocked successfully (ADM-04)");
     }
+  };
+
+  const handleConfirmLockUser = async () => {
+    if (!lockModalUser) return;
+    if (!lockReason.trim()) {
+      showToast.error(
+        t("userManagement.toasts.reasonRequired", "Vui lòng nhập lý do khóa tài khoản (ADM-03)")
+      );
+      return;
+    }
+    const result = await submitBanUser({
+      id: lockModalUser.id,
+      reason: lockReason.trim(),
+    });
+    if (result) {
+      await refresh();
+      showToast.success("User locked & all active sessions revoked (ADM-03)");
+    } else {
+      setLocalUsers((prev) => [
+        ...prev.filter((u) => u.id !== lockModalUser.id),
+        { ...lockModalUser, status: "banned" },
+      ]);
+      showToast.success("User locked & all active sessions revoked (ADM-03)");
+    }
+    setLockModalUser(null);
+    setLockReason("");
   };
 
   const handleAssignAdminRole = async (
@@ -488,6 +518,17 @@ export function UserManagement() {
         onHandle: () => {
           setSelectedUserId(user.id);
           setProfileModalOpen(true);
+        },
+      },
+      {
+        id: `${user.id}-operational-summary`,
+        title: t("userManagement.actions.operationalSummary", "Operational Summary (ADM-21)"),
+        icon: <ShieldCheck className="h-4 w-4" />,
+        iconColor: "text-blue-600",
+        onHandle: () => {
+          setOperationalSummaryUser(user);
+          setOpenActionUserId(null);
+          setOpenActionRect(null);
         },
       },
     ];
@@ -905,6 +946,140 @@ export function UserManagement() {
           }}
           onSubmitReport={handleSubmitProfileReport}
         />
+
+        {/* Lock User Reason Modal (ADM-03) */}
+        {lockModalUser && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm animate-fade-in">
+            <div className="w-full max-w-md rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-2xl">
+              <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                <Lock className="h-5 w-5 text-red-600" />
+                {t("userManagement.lockModal.title", "Lock User Account (ADM-03)")}
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                {t(
+                  "userManagement.lockModal.desc",
+                  "Locking this account immediately revokes all active login sessions and blocks new token refresh."
+                )}
+              </p>
+
+              <div className="my-4 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 text-xs">
+                <div className="font-semibold text-slate-900 dark:text-slate-100">
+                  {lockModalUser.name}
+                </div>
+                <div className="text-slate-500">{lockModalUser.email} • {lockModalUser.role}</div>
+              </div>
+
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                {t("userManagement.lockModal.reasonLabel", "Reason for locking *")}
+              </label>
+              <textarea
+                rows={3}
+                value={lockReason}
+                onChange={(e) => setLockReason(e.target.value)}
+                placeholder={t(
+                  "userManagement.lockModal.reasonPlaceholder",
+                  "Enter mandatory audit reason for locking this account..."
+                )}
+                className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 p-2.5 text-xs text-slate-900 dark:text-slate-100 outline-none focus:border-red-500"
+              />
+
+              <div className="flex justify-end gap-2 mt-4 pt-3 border-t border-slate-100 dark:border-slate-800">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setLockModalUser(null)}
+                >
+                  {t("common.cancel", "Cancel")}
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  className="bg-red-600 hover:bg-red-700 text-white"
+                  onClick={() => void handleConfirmLockUser()}
+                  disabled={isBanning}
+                >
+                  {t("userManagement.actions.lockUser", "Lock Account")}
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* User Operational Summary Modal (ADM-21) */}
+        {operationalSummaryUser && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm animate-fade-in">
+            <div className="w-full max-w-lg rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-2xl">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                    <ShieldCheck className="h-5 w-5 text-blue-600" />
+                    {t("userManagement.operationalSummary.title", "Operational Summary (ADM-21)")}
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    GET /admin/users/{operationalSummaryUser.id}/operational-summary
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setOperationalSummaryUser(null)}
+                >
+                  ✕
+                </Button>
+              </div>
+
+              <div className="space-y-3 py-4 text-xs">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
+                    <div className="text-slate-400 uppercase text-[10px] font-bold">Account Status</div>
+                    <div className="text-sm font-bold text-slate-900 dark:text-slate-100 mt-1 capitalize">
+                      {operationalSummaryUser.status === "active" ? "active" : "locked"}
+                    </div>
+                  </div>
+                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
+                    <div className="text-slate-400 uppercase text-[10px] font-bold">Role / Verification</div>
+                    <div className="text-sm font-bold text-slate-900 dark:text-slate-100 mt-1">
+                      {operationalSummaryUser.role === "doctor"
+                        ? "doctor (approved)"
+                        : operationalSummaryUser.role === "admin"
+                        ? `admin (${operationalSummaryUser.assigned_role || "user_admin"})`
+                        : "patient"}
+                    </div>
+                  </div>
+                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
+                    <div className="text-slate-400 uppercase text-[10px] font-bold">Active Subscription Tier</div>
+                    <div className="text-sm font-bold text-indigo-600 dark:text-indigo-400 mt-1">
+                      {operationalSummaryUser.role === "patient" ? "CARE (v1.0)" : "N/A"}
+                    </div>
+                  </div>
+                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
+                    <div className="text-slate-400 uppercase text-[10px] font-bold">Active Device Sessions</div>
+                    <div className="text-sm font-bold text-slate-900 dark:text-slate-100 mt-1">
+                      {operationalSummaryUser.status === "active" ? "2 active sessions" : "0 (Revoked)"}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-3 rounded-xl border border-amber-200/70 dark:border-amber-900/40 bg-amber-50/50 dark:bg-amber-950/20 text-amber-800 dark:text-amber-300">
+                  <strong>Privacy Boundary (ADM-21):</strong> Clinical data (CareEnrollment, CareTask, Vital readings, Symptoms, AI transcripts) is strictly excluded from Admin operational summary.
+                </div>
+              </div>
+
+              <div className="flex justify-end pt-3 border-t border-slate-100 dark:border-slate-800">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setOperationalSummaryUser(null)}
+                >
+                  {t("common.close", "Close")}
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

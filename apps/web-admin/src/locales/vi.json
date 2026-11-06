@@ -65,6 +65,7 @@
       "violationReports": "Báo cáo vi phạm",
       "careProgram": "Chương trình Chăm sóc",
       "medicalFacilities": "Cơ sở Y tế",
+      "auditLogs": "Nhật ký Kiểm toán",
       "mainMenu": "Menu chính"
     },
     "authHeader": {

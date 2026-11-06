@@ -1,13 +1,21 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { View, Text, ScrollView, TouchableOpacity, Image, TextInput, KeyboardAvoidingView, Platform, useColorScheme as useRNColorScheme, Switch } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Image, TextInput, KeyboardAvoidingView, Platform, Switch, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSafeRouter as useRouter } from '@/utils/useSafeRouter';
-import { Camera, Mail, Phone, MapPin, Stethoscope, LogOut, FileText, Pencil, Trash2, Plus, Radical, Building, ShieldCheck, Eye, CheckCircle2, Clock } from 'lucide-react-native';
+import { Camera, Mail, Phone, MapPin, Stethoscope, LogOut, FileText, Pencil, Trash2, Plus, Radical, Building, ShieldCheck, Eye, CheckCircle2, Clock, Star, Shield, Database, ChevronRight } from 'lucide-react-native';
 import { useThemeContext } from '@/context/ThemeContext';
 import { tw, twInstance } from '@/tw';
 import Toast from 'react-native-toast-message';
-import { AvatarPickerModal, DocUploadModal, DocViewerModal, ImageViewerModal } from '@/components/modals';
+import {
+  AvatarPickerModal,
+  DocUploadModal,
+  DocViewerModal,
+  ImageViewerModal,
+  DoctorReviewsModal,
+  SecuritySessionsModal,
+  PrivacyDataModal,
+} from '@/components/modals';
 import type { VerificationDocument } from '@/components/modals/DocUploadModal';
 import { pickNativePdfDocument, pickNativeImage } from '@/services/nativeMedia';
 
@@ -21,6 +29,11 @@ export default function DoctorProfileScreen() {
 
   const [avatarUri, setAvatarUri] = useState('https://i.pravatar.cc/150?img=1');
   const [avatarModalVisible, setAvatarModalVisible] = useState(false);
+  const [reviewsModalVisible, setReviewsModalVisible] = useState(false);
+  const [securityModalVisible, setSecurityModalVisible] = useState(false);
+  const [privacyModalVisible, setPrivacyModalVisible] = useState(false);
+  const [verificationStatus, setVerificationStatus] = useState<'approved' | 'pending' | 'rejected'>('approved');
+  const [refreshing, setRefreshing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
   const defaultDocs: VerificationDocument[] = [
@@ -134,7 +147,20 @@ export default function DoctorProfileScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={tw('flex-1')}
       >
-        <ScrollView contentContainerStyle={tw('pb-20')} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          contentContainerStyle={tw('pb-24')}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={() => {
+                setRefreshing(true);
+                setTimeout(() => setRefreshing(false), 700);
+              }}
+              tintColor="#3b82f6"
+            />
+          }
+        >
           {/* Header */}
           <View style={tw('px-6 pt-6 pb-4 flex-row justify-between items-center')}>
             <Text style={tw('text-2xl font-bold text-slate-900 dark:text-white')}>{t('mobile.my_profile', `My Profile`)}</Text>
@@ -144,7 +170,7 @@ export default function DoctorProfileScreen() {
           </View>
 
           {/* Avatar Section */}
-          <View style={tw('items-center mb-8 mt-2')}>
+          <View style={tw('items-center mb-6 mt-2')}>
             <View style={tw('relative')}>
               <Image 
                 source={{ uri: avatarUri }} 
@@ -157,10 +183,148 @@ export default function DoctorProfileScreen() {
                 <Camera color="#ffffff" size={16} />
               </TouchableOpacity>
             </View>
-            <View style={tw('mt-4 bg-blue-50 px-4 py-1.5 rounded-full border border-blue-200 flex-row items-center')}>
+            <View style={tw('mt-4 bg-blue-50 dark:bg-blue-900/30 px-4 py-1.5 rounded-full border border-blue-200 dark:border-blue-800 flex-row items-center')}>
               <Stethoscope color="#3b82f6" size={14} />
-              <Text style={tw('text-blue-700 font-bold text-xs ml-1')}>{t('mobile.doctor', `Doctor`)}</Text>
+              <Text style={tw('text-blue-700 dark:text-blue-300 font-bold text-xs ml-1')}>
+                {t('mobile.doctor', 'Doctor')} • {verificationStatus.toUpperCase()}
+              </Text>
             </View>
+          </View>
+
+          {/* D-02: Verification Status Banner & Capability Notice */}
+          <View style={tw('px-6 mb-6')}>
+            <View
+              style={tw(
+                `p-4 rounded-3xl border ${
+                  verificationStatus === 'approved'
+                    ? 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800/60'
+                    : verificationStatus === 'pending'
+                      ? 'bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800/60'
+                      : 'bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800/60'
+                }`
+              )}
+            >
+              <View style={tw('flex-row justify-between items-center mb-2')}>
+                <Text style={tw('text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300')}>
+                  D-02 • Trạng thái xác minh hành nghề
+                </Text>
+                <View style={tw('flex-row gap-1')}>
+                  {(['approved', 'pending', 'rejected'] as const).map((st) => (
+                    <TouchableOpacity
+                      key={st}
+                      onPress={() => setVerificationStatus(st)}
+                      style={tw(
+                        `px-2 py-0.5 rounded-md ${
+                          verificationStatus === st
+                            ? 'bg-slate-900 dark:bg-white'
+                            : 'bg-white/60 dark:bg-slate-800'
+                        }`
+                      )}
+                    >
+                      <Text
+                        style={tw(
+                          `text-[10px] font-bold uppercase ${
+                            verificationStatus === st
+                              ? 'text-white dark:text-slate-900'
+                              : 'text-slate-500 dark:text-slate-400'
+                          }`
+                        )}
+                      >
+                        {st}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+              <Text style={tw('text-xs text-slate-700 dark:text-slate-200 leading-4')}>
+                {verificationStatus === 'approved'
+                  ? 'Hồ sơ đã được duyệt (active + approved). Bạn có toàn quyền nhận lịch khám, quản lý CareEnrollment và kích hoạt CareRule (CARE-21).'
+                  : verificationStatus === 'pending'
+                    ? 'Hồ sơ đang chờ Admin thẩm định (pending). Tạm thời chưa hiển thị công khai trong danh bạ đặt lịch.'
+                    : 'Hồ sơ bị từ chối (rejected): Ảnh chụp chứng chỉ hành nghề bị mờ. Vui lòng tải lại file PDF rõ nét để gửi duyệt lại.'}
+              </Text>
+            </View>
+          </View>
+
+          {/* Quick Links: D-08 Reviews, C-05 Security, C-06 Privacy */}
+          <View style={tw('px-6 mb-6 gap-3')}>
+            <TouchableOpacity
+              onPress={() => setReviewsModalVisible(true)}
+              style={tw(
+                'bg-white dark:bg-slate-900 p-4 rounded-2xl flex-row items-center justify-between shadow-sm border border-slate-100 dark:border-slate-800'
+              )}
+            >
+              <View style={tw('flex-row items-center')}>
+                <View
+                  style={tw(
+                    'w-10 h-10 bg-amber-50 dark:bg-amber-900/30 rounded-xl items-center justify-center mr-3'
+                  )}
+                >
+                  <Star color={twInstance.color('text-amber-500')} size={20} />
+                </View>
+                <View>
+                  <Text style={tw('text-slate-900 dark:text-white font-bold')}>
+                    {t('mobile.doctor_reviews_link', 'Đánh giá từ Bệnh nhân & Báo cáo lạm dụng (D-08)')}
+                  </Text>
+                  <Text style={tw('text-xs text-slate-500 dark:text-slate-400')}>
+                    4.9 ★ (128 đánh giá) • Xem phân bổ sao & Report Abuse (MOD-01)
+                  </Text>
+                </View>
+              </View>
+              <ChevronRight color={twInstance.color('text-slate-400')} size={20} />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => setSecurityModalVisible(true)}
+              style={tw(
+                'bg-white dark:bg-slate-900 p-4 rounded-2xl flex-row items-center justify-between shadow-sm border border-slate-100 dark:border-slate-800'
+              )}
+            >
+              <View style={tw('flex-row items-center')}>
+                <View
+                  style={tw(
+                    'w-10 h-10 bg-emerald-50 dark:bg-emerald-900/30 rounded-xl items-center justify-center mr-3'
+                  )}
+                >
+                  <Shield color={twInstance.color('text-emerald-500')} size={20} />
+                </View>
+                <View>
+                  <Text style={tw('text-slate-900 dark:text-white font-bold')}>
+                    {t('mobile.security_sessions', 'Bảo mật & Phiên đăng nhập (C-05)')}
+                  </Text>
+                  <Text style={tw('text-xs text-slate-500 dark:text-slate-400')}>
+                    Quản lý phiên thiết bị (AUTH-06/07) & Đổi mật khẩu
+                  </Text>
+                </View>
+              </View>
+              <ChevronRight color={twInstance.color('text-slate-400')} size={20} />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => setPrivacyModalVisible(true)}
+              style={tw(
+                'bg-white dark:bg-slate-900 p-4 rounded-2xl flex-row items-center justify-between shadow-sm border border-slate-100 dark:border-slate-800'
+              )}
+            >
+              <View style={tw('flex-row items-center')}>
+                <View
+                  style={tw(
+                    'w-10 h-10 bg-indigo-50 dark:bg-indigo-900/30 rounded-xl items-center justify-center mr-3'
+                  )}
+                >
+                  <Database color={twInstance.color('text-indigo-500')} size={20} />
+                </View>
+                <View>
+                  <Text style={tw('text-slate-900 dark:text-white font-bold')}>
+                    {t('mobile.privacy_and_data', 'Quyền riêng tư & Dữ liệu cá nhân (C-06)')}
+                  </Text>
+                  <Text style={tw('text-xs text-slate-500 dark:text-slate-400')}>
+                    Trích xuất dữ liệu & Yêu cầu xóa tài khoản (USER-07..11)
+                  </Text>
+                </View>
+              </View>
+              <ChevronRight color={twInstance.color('text-slate-400')} size={20} />
+            </TouchableOpacity>
           </View>
 
           {/* Basic Info Form */}
@@ -554,6 +718,29 @@ export default function DoctorProfileScreen() {
         imageName={selectedImagePreview?.name}
         imageSize={selectedImagePreview?.size}
         onClose={() => setSelectedImagePreview(null)}
+      />
+
+      {/* D-08: Doctor Reviews & Report Abuse Modal */}
+      <DoctorReviewsModal
+        visible={reviewsModalVisible}
+        onClose={() => setReviewsModalVisible(false)}
+        doctorName={form.fullName}
+      />
+
+      {/* C-05: Security & Active Sessions Modal */}
+      <SecuritySessionsModal
+        visible={securityModalVisible}
+        onClose={() => setSecurityModalVisible(false)}
+        onNavigateChangePassword={() => {
+          setSecurityModalVisible(false);
+          router.push('/(auth)/change-password');
+        }}
+      />
+
+      {/* C-06: Privacy, Data Export & Deletion Modal */}
+      <PrivacyDataModal
+        visible={privacyModalVisible}
+        onClose={() => setPrivacyModalVisible(false)}
       />
     </SafeAreaView>
   );

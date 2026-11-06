@@ -16,6 +16,7 @@ import { AppointmentManagement } from "./features/appointment-management/pages/a
 import { Profile } from "./features/profile/page/profile";
 import { MedicalFacilities } from "./features/medical-facilities/pages/medical-facilities";
 import { CareProgram } from "./features/care-program/pages/care-program";
+import { AuditLogs } from "./features/audit-logs/pages/audit-logs";
 import { useAuthStore } from "@repo/ui/store/useAuthStore";
 import { useEffect, useState } from "react";
 import { useLogout } from "./features/auth/hooks/useLogout";
@@ -141,6 +142,7 @@ function App() {
             <Route path="/violation-reports" element={<ViolationReport />} />
             <Route path="/medical-facilities" element={<MedicalFacilities />} />
             <Route path="/care-program" element={<CareProgram />} />
+            <Route path="/audit-logs" element={<AuditLogs />} />
             <Route path="/profile" element={<Profile />} />
           </Route>
           <Route path="/page-not-found" element={<ErrorPage />} />
