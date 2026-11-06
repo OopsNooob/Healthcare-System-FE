@@ -43,7 +43,8 @@ import type {
 } from "../types";
 
 export function ViolationReport() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isVi = i18n.language?.startsWith("vi");
   const [reportOverrides, setReportOverrides] = useState<
     Record<
       string,
@@ -181,7 +182,10 @@ export function ViolationReport() {
       },
     }));
     showToast.success(
-      t("violationReport.toasts.processingStarted", "Report moved to processing (MOD-03)")
+      t(
+        "violationReport.toasts.processingStarted",
+        isVi ? "Đã chuyển báo cáo sang trạng thái đang xử lý" : "Report moved to processing"
+      )
     );
   };
 
@@ -207,7 +211,11 @@ export function ViolationReport() {
     }));
 
     showToast.success(
-      t("violationReport.toasts.resolutionApplied", "Resolution applied ({{action}})", { action }) +
+      t(
+        "violationReport.toasts.resolutionApplied",
+        isVi ? "Đã áp dụng hướng xử lý ({{action}})" : "Resolution applied ({{action}})",
+        { action }
+      ) +
         (notes ? `: ${notes}` : "") + "!"
     );
     setIsModalOpen(false);
@@ -224,7 +232,10 @@ export function ViolationReport() {
     }));
 
     showToast.success(
-      t("violationReport.toasts.dismissSuccess", "Report dismissed (MOD-05)") +
+      t(
+        "violationReport.toasts.dismissSuccess",
+        isVi ? "Đã bác bỏ báo cáo vi phạm" : "Report dismissed"
+      ) +
         (notes ? `: ${notes}` : "")
     );
     setIsModalOpen(false);

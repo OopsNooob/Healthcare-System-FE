@@ -36,8 +36,11 @@ interface DoctorSlotItem {
   patient?: string;
 }
 
+import { bookingPolicyLabel, timezoneLabel } from '@/utils/bookingLabels';
+
 export default function DoctorScheduleScreen() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isVi = i18n.language === 'vi';
 
   const [selectedDate, setSelectedDate] = useState('2026-11-06');
   const [isAcceptingAppts, setIsAcceptingAppts] = useState(true);
@@ -120,10 +123,8 @@ export default function DoctorScheduleScreen() {
     if (slot.status === 'booked') {
       Toast.show({
         type: 'error',
-        text1: t('mobile.slot_booked_locked', 'Không thể khóa Slot đã đặt (CON-02)'),
-        text2: t(
-          'mobile.slot_booked_locked_desc',
-          'Slot đang có lịch hẹn của bệnh nhân không thể khóa hoặc xóa trực tiếp.'
+        text1: t('mobile.slot_booked_locked', 'Không thể khóa khung giờ đã đặt'),
+        text2: t('mobile.slot_booked_locked_desc', 'Khung giờ đã có lịch hẹn của bệnh nhân nên không thể khóa hoặc xóa trực tiếp.'
         ),
       });
       return;
@@ -136,8 +137,8 @@ export default function DoctorScheduleScreen() {
       type: 'success',
       text1:
         nextStatus === 'blocked'
-          ? t('mobile.slot_blocked', 'Đã khóa khung giờ (blocked)')
-          : t('mobile.slot_unblocked', 'Đã mở lại khung giờ (available)'),
+          ? t('mobile.slot_blocked', 'Đã khóa khung giờ')
+          : t('mobile.slot_unblocked', 'Đã mở lại khung giờ'),
       text2: `${slot.time} -> ${nextStatus}`,
     });
   };
@@ -182,11 +183,11 @@ export default function DoctorScheduleScreen() {
         <View style={tw('flex-row justify-between items-start')}>
           <View style={tw('flex-1 mr-3')}>
             <Text style={tw('text-2xl font-bold text-slate-900 dark:text-white')}>
-              {t('mobile.my_schedule', 'My Schedule (D-03)')}
+              {t('mobile.my_schedule', 'My Schedule')}
             </Text>
             <Text style={tw('text-slate-500 dark:text-slate-400 text-xs mt-1')}>
-              TZ: {bookingSettings.timezone} • Policy: {bookingSettings.bookingPolicy} •{' '}
-              {bookingSettings.defaultDurationMinutes}m
+              {timezoneLabel(bookingSettings.timezone, isVi)} • {bookingPolicyLabel(bookingSettings.bookingPolicy, isVi)} •{' '}
+              {bookingSettings.defaultDurationMinutes} {isVi ? 'phút' : 'min'}
             </Text>
           </View>
           <TouchableOpacity
@@ -239,7 +240,7 @@ export default function DoctorScheduleScreen() {
         >
           <View style={tw('flex-row justify-between items-center px-6 mb-4')}>
             <Text style={tw('text-lg font-bold text-slate-900 dark:text-white')}>
-              {t('mobile.november_2026', 'November 2026')}
+              {t('mobile.november_2026', 'Tháng 11, 2026')}
             </Text>
             <TouchableOpacity style={tw('flex-row items-center')}>
               <Calendar color="#64748b" size={16} style={tw('mr-2')} />
@@ -302,7 +303,7 @@ export default function DoctorScheduleScreen() {
                 {t('mobile.time_slots', 'Time Slots')}
               </Text>
               <Text style={tw('text-xs text-slate-500 dark:text-slate-400')}>
-                available • booked • blocked • expired
+                {isVi ? 'còn trống • đã đặt • đã khóa • đã qua giờ' : 'available • booked • blocked • expired'}
               </Text>
             </View>
             <TouchableOpacity
@@ -360,19 +361,19 @@ export default function DoctorScheduleScreen() {
                           <Text style={tw('font-bold text-slate-700 dark:text-slate-200')}>
                             {slot.patient}
                           </Text>{' '}
-                          (Locked)
+                          ({isVi ? 'Đã khóa' : 'Locked'})
                         </Text>
                       ) : slot.status === 'blocked' ? (
                         <Text style={tw('text-xs text-amber-600 dark:text-amber-400 font-bold')}>
-                          BLOCKED (Tạm khóa đặt lịch)
+                          {isVi ? 'ĐÃ KHÓA (tạm ngưng đặt lịch)' : 'BLOCKED (booking paused)'}
                         </Text>
                       ) : slot.status === 'expired' ? (
                         <Text style={tw('text-xs text-slate-400 font-medium')}>
-                          EXPIRED (Đã qua giờ)
+                          {isVi ? 'ĐÃ QUA GIỜ' : 'EXPIRED'}
                         </Text>
                       ) : (
                         <Text style={tw('text-xs text-emerald-600 dark:text-emerald-400 font-bold')}>
-                          AVAILABLE ({bookingSettings.defaultDurationMinutes}m)
+                          {isVi ? 'CÒN TRỐNG' : 'AVAILABLE'} ({bookingSettings.defaultDurationMinutes} {isVi ? 'phút' : 'min'})
                         </Text>
                       )}
                     </View>

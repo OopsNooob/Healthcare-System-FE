@@ -39,6 +39,7 @@ import {
 
 export default function ProfileScreen() {
   const { t, i18n } = useTranslation();
+  const isVi = i18n.language === 'vi';
   const { colorScheme, setColorScheme } = useThemeContext();
   const activeScheme = colorScheme;
   const router = useRouter();
@@ -167,7 +168,7 @@ export default function ProfileScreen() {
             >
               <View style={tw('mb-4')}>
                 <Text style={tw('font-bold text-indigo-900 dark:text-indigo-100 text-lg mb-2')}>
-                  Care Program Enrollment
+                  {isVi ? 'Đăng ký chương trình chăm sóc' : 'Care Program Enrollment'}
                 </Text>
                 <View style={tw('bg-amber-100 dark:bg-amber-900/30 px-3 py-1.5 rounded-full self-start')}>
                   <Text style={tw('text-amber-700 dark:text-amber-400 text-xs font-bold')}>
@@ -304,14 +305,9 @@ export default function ProfileScreen() {
                 >
                   <Shield color={twInstance.color('text-emerald-500')} size={20} />
                 </View>
-                <View>
-                  <Text style={tw('text-slate-900 dark:text-white font-bold')}>
-                    {t('mobile.security_sessions', 'Bảo mật & Phiên đăng nhập (C-05)')}
-                  </Text>
-                  <Text style={tw('text-xs text-slate-500 dark:text-slate-400')}>
-                    {t('mobile.security_sessions_desc', 'Quản lý thiết bị, thu hồi phiên & đổi mật khẩu')}
-                  </Text>
-                </View>
+                <Text style={tw('text-slate-900 dark:text-white font-bold')}>
+                  {t('mobile.security_sessions', 'Bảo mật và phiên đăng nhập')}
+                </Text>
               </View>
               <ChevronRight color={twInstance.color('text-slate-400')} size={20} />
             </TouchableOpacity>
@@ -331,14 +327,9 @@ export default function ProfileScreen() {
                 >
                   <Database color={twInstance.color('text-amber-500')} size={20} />
                 </View>
-                <View>
-                  <Text style={tw('text-slate-900 dark:text-white font-bold')}>
-                    {t('mobile.privacy_and_data', 'Quyền riêng tư & Dữ liệu cá nhân (C-06)')}
-                  </Text>
-                  <Text style={tw('text-xs text-slate-500 dark:text-slate-400')}>
-                    {t('mobile.privacy_and_data_desc', 'Trích xuất dữ liệu (Export) & Yêu cầu xóa tài khoản')}
-                  </Text>
-                </View>
+                <Text style={tw('text-slate-900 dark:text-white font-bold')}>
+                  {t('mobile.privacy_and_data', 'Quyền riêng tư và dữ liệu cá nhân')}
+                </Text>
               </View>
               <ChevronRight color={twInstance.color('text-slate-400')} size={20} />
             </TouchableOpacity>

@@ -16,7 +16,8 @@ export const ProgramRulePreviewModal: React.FC<ProgramRulePreviewModalProps> = (
   onClose,
   programName = 'Hypertension Management',
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isVi = i18n.language?.startsWith('vi');
   const [ruleVersion, setRuleVersion] = useState('v2.1');
   const [ruleStatus, setRuleStatus] = useState<'active' | 'validated_candidate'>('active');
 
@@ -29,16 +30,20 @@ export const ProgramRulePreviewModal: React.FC<ProgramRulePreviewModalProps> = (
       {
         id: 'cond-1',
         expression: 'blood_pressure.systolic >= 160 OR blood_pressure.diastolic >= 100',
-        window: '2 consecutive readings within 24h',
+        window: isVi ? '2 lần đo liên tiếp trong 24 giờ' : '2 consecutive readings within 24h',
         severity: 'urgent',
-        action: 'Trigger Priority Inbox Alert + Notify Assigned Doctor',
+        action: isVi
+          ? 'Kích hoạt cảnh báo khẩn cấp + Thông báo bác sĩ phụ trách'
+          : 'Trigger Priority Inbox Alert + Notify Assigned Doctor',
       },
       {
         id: 'cond-2',
         expression: 'blood_pressure.systolic BETWEEN 140 AND 159',
-        window: '3 readings within 72h',
+        window: isVi ? '3 lần đo trong 72 giờ' : '3 readings within 72h',
         severity: 'attention',
-        action: 'Create Attention Alert + Schedule Check-in Task',
+        action: isVi
+          ? 'Tạo cảnh báo lưu ý + Giao nhiệm vụ kiểm tra triệu chứng'
+          : 'Create Attention Alert + Schedule Check-in Task',
       },
     ],
     testSummary: {
@@ -54,10 +59,12 @@ export const ProgramRulePreviewModal: React.FC<ProgramRulePreviewModalProps> = (
     setRuleStatus('active');
     Toast.show({
       type: 'success',
-      text1: t('mobile.rule_activated_title', 'Đã kích hoạt CareRule (CARE-21)'),
+      text1: t('mobile.rule_activated_title', isVi ? 'Đã kích hoạt quy tắc cảnh báo' : 'Alert Rule Activated'),
       text2: t(
         'mobile.rule_activated_desc',
-        'Phiên bản quy tắc mới đã kích hoạt, phiên bản cũ tự động chuyển sang retired (không hồi tố enrollment đang chạy).'
+        isVi
+          ? 'Phiên bản quy tắc mới đã được kích hoạt cho chương trình theo dõi.'
+          : 'The new alert rule version is now active for this care program.'
       ),
     });
   };
@@ -74,10 +81,10 @@ export const ProgramRulePreviewModal: React.FC<ProgramRulePreviewModalProps> = (
               </View>
               <View style={tw('flex-1')}>
                 <Text style={tw('text-lg font-bold text-slate-900 dark:text-white')} numberOfLines={1}>
-                  {t('mobile.program_rule_preview_title', 'Quy tắc Cảnh báo Chương trình (CARE-18)')}
+                  {t('mobile.program_rule_preview_title', isVi ? 'Quy tắc Cảnh báo Chương trình' : 'Program Alert Rules')}
                 </Text>
                 <Text style={tw('text-xs text-slate-500 dark:text-slate-400')}>
-                  {programName} • Read-only Active Rule & Activation (CARE-21)
+                  {programName}
                 </Text>
               </View>
             </View>
@@ -93,7 +100,9 @@ export const ProgramRulePreviewModal: React.FC<ProgramRulePreviewModalProps> = (
               <Text style={tw('text-xs text-indigo-900 dark:text-indigo-200 flex-1 leading-4')}>
                 {t(
                   'mobile.doctor_rule_scope_notice',
-                  'Theo hợp đồng CARE-18/CARE-21: Bác sĩ (active + approved) xem bản chiếu chỉ đọc (read-only) của Active Rule thuộc Program đã xuất bản và có quyền kích hoạt Rule đã qua kiểm thử.'
+                  isVi
+                    ? 'Xem cấu hình ngưỡng cảnh báo đang áp dụng cho chương trình theo dõi và kích hoạt phiên bản quy tắc mới đã qua kiểm thử.'
+                    : 'View the active alert thresholds for this care program and activate validated rule updates.'
                 )}
               </Text>
             </View>
@@ -101,15 +110,17 @@ export const ProgramRulePreviewModal: React.FC<ProgramRulePreviewModalProps> = (
             {/* Rule Version & Status Header */}
             <View style={tw('bg-slate-50 dark:bg-slate-950 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 flex-row items-center justify-between')}>
               <View>
-                <Text style={tw('text-xs text-slate-500 dark:text-slate-400')}>Rule ID: {activeRule.ruleId}</Text>
+                <Text style={tw('text-xs text-slate-500 dark:text-slate-400')}>
+                  {isVi ? 'Mã quy tắc' : 'Rule ID'}: {activeRule.ruleId}
+                </Text>
                 <Text style={tw('text-base font-bold text-slate-900 dark:text-white mt-0.5')}>
-                  Version {activeRule.version}
+                  {isVi ? 'Phiên bản' : 'Version'} {activeRule.version}
                 </Text>
               </View>
               <View style={tw('bg-emerald-100 dark:bg-emerald-900/40 px-3 py-1 rounded-full flex-row items-center')}>
                 <ShieldCheck color="#10b981" size={14} style={tw('mr-1')} />
                 <Text style={tw('text-xs font-bold text-emerald-700 dark:text-emerald-300 uppercase')}>
-                  {activeRule.status}
+                  {isVi ? 'Đang áp dụng' : 'Active'}
                 </Text>
               </View>
             </View>
@@ -117,7 +128,7 @@ export const ProgramRulePreviewModal: React.FC<ProgramRulePreviewModalProps> = (
             {/* Declarative Conditions */}
             <View style={tw('gap-2.5')}>
               <Text style={tw('text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400')}>
-                {t('mobile.declarative_conditions', 'Điều kiện Khai báo (Declarative Conditions)')}
+                {t('mobile.declarative_conditions', isVi ? 'Điều kiện ngưỡng cảnh báo' : 'Alert Threshold Conditions')}
               </Text>
               {activeRule.declarativeConditions.map((cond) => (
                 <View
@@ -144,7 +155,13 @@ export const ProgramRulePreviewModal: React.FC<ProgramRulePreviewModalProps> = (
                           }`
                         )}
                       >
-                        {cond.severity}
+                        {cond.severity === 'urgent'
+                          ? isVi
+                            ? 'Khẩn cấp'
+                            : 'Urgent'
+                          : isVi
+                          ? 'Cần lưu ý'
+                          : 'Attention'}
                       </Text>
                     </View>
                   </View>
@@ -159,33 +176,39 @@ export const ProgramRulePreviewModal: React.FC<ProgramRulePreviewModalProps> = (
             {/* Deterministic Simulation Test Summary */}
             <View style={tw('bg-emerald-50/50 dark:bg-emerald-950/20 p-4 rounded-2xl border border-emerald-200 dark:border-emerald-800/50')}>
               <Text style={tw('text-xs font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-300 mb-2.5')}>
-                {t('mobile.simulation_test_summary', 'Kết quả Kiểm thử Tất định (Test Summary - CARE-20)')}
+                {t('mobile.simulation_test_summary', isVi ? 'Kết quả kiểm thử an toàn' : 'Safety Validation Summary')}
               </Text>
               <View style={tw('flex-row justify-between mb-2')}>
                 <View style={tw('flex-row items-center')}>
                   <CheckCircle2 color="#10b981" size={14} style={tw('mr-1.5')} />
-                  <Text style={tw('text-xs text-slate-700 dark:text-slate-300')}>Boundary cases:</Text>
+                  <Text style={tw('text-xs text-slate-700 dark:text-slate-300')}>
+                    {isVi ? 'Kiểm thử giá trị biên:' : 'Boundary cases:'}
+                  </Text>
                 </View>
                 <Text style={tw('text-xs font-bold text-emerald-700 dark:text-emerald-300')}>
-                  {activeRule.testSummary.boundaryPassed} Passed
+                  {activeRule.testSummary.boundaryPassed} {isVi ? 'Đạt' : 'Passed'}
                 </Text>
               </View>
               <View style={tw('flex-row justify-between mb-2')}>
                 <View style={tw('flex-row items-center')}>
                   <CheckCircle2 color="#10b981" size={14} style={tw('mr-1.5')} />
-                  <Text style={tw('text-xs text-slate-700 dark:text-slate-300')}>Missing data guard:</Text>
+                  <Text style={tw('text-xs text-slate-700 dark:text-slate-300')}>
+                    {isVi ? 'Kiểm tra thiếu dữ liệu:' : 'Missing data guard:'}
+                  </Text>
                 </View>
                 <Text style={tw('text-xs font-bold text-emerald-700 dark:text-emerald-300')}>
-                  {activeRule.testSummary.missingDataHandled} Passed
+                  {activeRule.testSummary.missingDataHandled} {isVi ? 'Đạt' : 'Passed'}
                 </Text>
               </View>
               <View style={tw('flex-row justify-between')}>
                 <View style={tw('flex-row items-center')}>
                   <CheckCircle2 color="#10b981" size={14} style={tw('mr-1.5')} />
-                  <Text style={tw('text-xs text-slate-700 dark:text-slate-300')}>Repeated alert dedupe:</Text>
+                  <Text style={tw('text-xs text-slate-700 dark:text-slate-300')}>
+                    {isVi ? 'Chống lặp cảnh báo:' : 'Repeated alert dedupe:'}
+                  </Text>
                 </View>
                 <Text style={tw('text-xs font-bold text-emerald-700 dark:text-emerald-300')}>
-                  {activeRule.testSummary.repeatedSuppressionVerified} Passed
+                  {activeRule.testSummary.repeatedSuppressionVerified} {isVi ? 'Đạt' : 'Passed'}
                 </Text>
               </View>
             </View>
@@ -196,7 +219,9 @@ export const ProgramRulePreviewModal: React.FC<ProgramRulePreviewModalProps> = (
               onPress={onClose}
               style={tw('flex-1 py-3.5 rounded-xl bg-slate-100 dark:bg-slate-800 items-center')}
             >
-              <Text style={tw('font-bold text-slate-700 dark:text-slate-300 text-sm')}>{t('mobile.close', 'Đóng')}</Text>
+              <Text style={tw('font-bold text-slate-700 dark:text-slate-300 text-sm')}>
+                {t('mobile.close', isVi ? 'Đóng' : 'Close')}
+              </Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={handleActivateValidatedRule}
@@ -204,7 +229,7 @@ export const ProgramRulePreviewModal: React.FC<ProgramRulePreviewModalProps> = (
             >
               <PlayCircle color="#0f172a" size={18} style={tw('mr-1.5')} />
               <Text style={tw('font-bold text-slate-900 text-sm')}>
-                {t('mobile.activate_validated_rule', 'Kích hoạt Rule mới')}
+                {t('mobile.activate_validated_rule', isVi ? 'Kích hoạt quy tắc mới' : 'Activate New Rule')}
               </Text>
             </TouchableOpacity>
           </View>

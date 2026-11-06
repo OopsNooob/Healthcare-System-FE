@@ -178,29 +178,31 @@ export default function BaselineAssessmentScreen() {
         {/* Navigation Top Bar */}
         <View style={tw('flex-row items-center justify-between px-6 pt-4 pb-3 border-b border-slate-100 dark:border-slate-800/80')}>
           {currentStep < 4 ? (
-            <TouchableOpacity
-              onPress={() => {
-                if (currentStep > 1) {
-                  setCurrentStep((prev) => (prev - 1) as 1 | 2 | 3);
-                } else {
-                  router.back('/(patient)');
-                }
-              }}
-              style={tw('w-10 h-10 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 items-center justify-center shadow-sm')}
-            >
-              <ArrowLeft size={20} color={twInstance.color('text-slate-700 dark:text-slate-200')} />
-            </TouchableOpacity>
+            <View style={tw('w-12 items-start')}>
+              <TouchableOpacity
+                onPress={() => {
+                  if (currentStep > 1) {
+                    setCurrentStep((prev) => (prev - 1) as 1 | 2 | 3);
+                  } else {
+                    router.back('/(patient)');
+                  }
+                }}
+                style={tw('w-10 h-10 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 items-center justify-center shadow-sm')}
+              >
+                <ArrowLeft size={20} color={twInstance.color('text-slate-700 dark:text-slate-200')} />
+              </TouchableOpacity>
+            </View>
           ) : (
-            <View style={tw('w-10')} />
+            <View style={tw('w-12')} />
           )}
 
           <Text style={tw('text-base font-bold text-slate-900 dark:text-slate-100')}>
             {t('mobile.baseline_assessment_title', 'Baseline Assessment')}
           </Text>
 
-          <View style={tw('w-10 items-end')}>
+          <View style={tw('min-w-12 items-end justify-center')}>
             {currentStep < 4 && (
-              <View style={tw('px-2.5 py-1 rounded-full bg-indigo-50 dark:bg-indigo-900/40 border border-indigo-100 dark:border-indigo-800/60')}>
+              <View style={tw('px-2.5 py-1 rounded-full shrink-0 bg-indigo-50 dark:bg-indigo-900/40 border border-indigo-100 dark:border-indigo-800/60')}>
                 <Text style={tw('text-xs font-bold text-indigo-600 dark:text-indigo-400')}>
                   {currentStep}/3
                 </Text>

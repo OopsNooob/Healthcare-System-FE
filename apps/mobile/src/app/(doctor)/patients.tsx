@@ -52,7 +52,28 @@ interface PatientItem {
 }
 
 export default function PatientsManagementScreen() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isVi = i18n.language === 'vi';
+
+  const reviewLabel = (raw?: string) => {
+    if (!raw) return '';
+    const m = raw.match(/^(\w+)\s*(?:\((.*)\))?$/);
+    if (!m) return raw;
+    const codes: Record<string, [string, string]> = {
+      reviewed_no_action: ['Đã rà soát, không cần xử lý', 'Reviewed, no action needed'],
+      follow_up_needed: ['Cần theo dõi thêm', 'Follow-up needed'],
+      consultation_recommended: ['Đề nghị tư vấn', 'Consultation recommended'],
+      care_plan_adjustment_needed: ['Cần điều chỉnh kế hoạch chăm sóc', 'Care plan adjustment needed'],
+    };
+    const whens: Record<string, string> = {
+      '2 ngày trước': '2 days ago',
+      'Hôm qua': 'Yesterday',
+      'Vừa xong': 'Just now',
+    };
+    const label = codes[m[1]] ? (isVi ? codes[m[1]][0] : codes[m[1]][1]) : m[1];
+    const when = m[2] ? (isVi ? m[2] : whens[m[2]] || m[2]) : '';
+    return when ? `${label} (${when})` : label;
+  };
   useThemeContext();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -134,7 +155,7 @@ export default function PatientsManagementScreen() {
     setEnrollModalVisible(false);
     Toast.show({
       type: 'success',
-      text1: t('mobile.success', 'Success (CARE-02)'),
+      text1: t('mobile.success', 'Success'),
       text2: t(
         'mobile.consent_sent',
         'Đã tạo hồ sơ pending_activation. Chờ Bệnh nhân ký Consent và hoàn tất Baseline.'
@@ -147,8 +168,8 @@ export default function PatientsManagementScreen() {
     if (!lifecycleReason.trim()) {
       Toast.show({
         type: 'error',
-        text1: t('mobile.reason_required', 'Cần nhập lý do (CARE-17)'),
-        text2: t('mobile.lifecycle_reason_desc', 'Mọi thao tác chuyển trạng thái Enrollment đều cần lý do kiểm toán.'),
+        text1: t('mobile.reason_required', 'Cần nhập lý do'),
+        text2: t('mobile.lifecycle_reason_desc', 'Mọi thao tác đổi trạng thái đăng ký đều cần lý do để lưu nhật ký.'),
       });
       return;
     }
@@ -171,7 +192,7 @@ export default function PatientsManagementScreen() {
     setLifecycleReason('');
     Toast.show({
       type: 'success',
-      text1: t('mobile.enrollment_updated', 'Đã cập nhật CareEnrollment (CARE-17)'),
+      text1: t('mobile.enrollment_updated', 'Đã cập nhật đăng ký chương trình'),
       text2: `${activePatientData.name} -> ${nextStatusMap[lifecycleAction]}`,
     });
   };
@@ -361,7 +382,7 @@ export default function PatientsManagementScreen() {
                   >
                     <RefreshCw size={14} color={twInstance.color('text-slate-600 dark:text-slate-300')} />
                     <Text style={tw('text-xs font-bold text-slate-700 dark:text-slate-300 ml-1')}>
-                      CARE-17
+                      {isVi ? 'Trạng thái' : 'Status'}
                     </Text>
                   </TouchableOpacity>
                 )}
@@ -408,7 +429,7 @@ export default function PatientsManagementScreen() {
 
                   {patient.lastDoctorReview && (
                     <Text style={tw('text-[11px] text-indigo-600 dark:text-indigo-400 font-semibold mb-2')}>
-                      Doctor Review gần nhất: {patient.lastDoctorReview}
+                      {isVi ? 'Rà soát gần nhất' : 'Last review'}: {reviewLabel(patient.lastDoctorReview)}
                     </Text>
                   )}
 
@@ -443,7 +464,7 @@ export default function PatientsManagementScreen() {
                     >
                       <ClipboardCheck color={twInstance.color('text-emerald-600')} size={16} />
                       <Text style={tw('text-xs font-bold text-emerald-700 dark:text-emerald-300 ml-1')}>
-                        {t('mobile.doctor_review_task', 'Doctor Review')}
+                        {t('mobile.doctor_review_task', 'Rà soát')}
                       </Text>
                     </TouchableOpacity>
                   </View>
@@ -475,7 +496,7 @@ export default function PatientsManagementScreen() {
                     >
                       <FileCode2 color={twInstance.color('text-amber-500')} size={15} />
                       <Text style={tw('text-xs font-bold text-slate-700 dark:text-slate-300 ml-1')}>
-                        {t('mobile.active_rule_preview', 'Active Rule')}
+                        {t('mobile.active_rule_preview', 'Quy tắc')}
                       </Text>
                     </TouchableOpacity>
                     <TouchableOpacity
@@ -520,7 +541,7 @@ export default function PatientsManagementScreen() {
         <View style={tw('flex-1 justify-end bg-black/60')}>
           <View style={tw('bg-white dark:bg-slate-900 rounded-t-3xl p-6')}>
             <Text style={tw('text-xl font-bold text-slate-900 dark:text-white mb-2')}>
-              {t('mobile.enroll_in_program', 'Enroll in Care Program (CARE-02)')}
+              {t('mobile.enroll_in_program', 'Enroll in Care Program')}
             </Text>
             <Text style={tw('text-slate-500 mb-6')}>
               {t('mobile.select_program_for', 'Select a program for')} {selectedPatient?.name}
@@ -687,7 +708,7 @@ export default function PatientsManagementScreen() {
           <View style={tw('bg-white dark:bg-slate-900 rounded-t-3xl p-6')}>
             <View style={tw('flex-row justify-between items-center mb-4')}>
               <Text style={tw('text-xl font-bold text-slate-900 dark:text-white')}>
-                {t('mobile.enrollment_lifecycle_title', 'Vòng đời CareEnrollment (CARE-17)')}
+                {t('mobile.enrollment_lifecycle_title', 'Trạng thái đăng ký chương trình')}
               </Text>
               <TouchableOpacity onPress={() => setLifecycleModalVisible(false)}>
                 <X color="#64748b" size={24} />
@@ -695,17 +716,17 @@ export default function PatientsManagementScreen() {
             </View>
 
             <Text style={tw('text-xs text-slate-500 dark:text-slate-400 mb-3')}>
-              Bệnh nhân: <Text style={tw('font-bold')}>{activePatientData?.name}</Text> •{' '}
+              {isVi ? 'Bệnh nhân' : 'Patient'}: <Text style={tw('font-bold')}>{activePatientData?.name}</Text> •{' '}
               {activePatientData?.program}
             </Text>
 
             <View style={tw('flex-row flex-wrap gap-2 mb-4')}>
               {(
                 [
-                  { id: 'pause', label: 'Tạm dừng (Pause)' },
-                  { id: 'resume', label: 'Tiếp tục (Resume)' },
-                  { id: 'complete', label: 'Hoàn thành (Complete)' },
-                  { id: 'cancel', label: 'Hủy chương trình (Cancel)' },
+                  { id: 'pause', label: isVi ? 'Tạm dừng' : 'Pause' },
+                  { id: 'resume', label: isVi ? 'Tiếp tục' : 'Resume' },
+                  { id: 'complete', label: isVi ? 'Hoàn thành' : 'Complete' },
+                  { id: 'cancel', label: isVi ? 'Hủy chương trình' : 'Cancel program' },
                 ] as const
               ).map((act) => (
                 <TouchableOpacity
@@ -735,14 +756,12 @@ export default function PatientsManagementScreen() {
             </View>
 
             <Text style={tw('text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1.5')}>
-              {t('mobile.lifecycle_reason_label', 'Lý do chuyển trạng thái (Bắt buộc)')}
+              {t('mobile.lifecycle_reason_label', 'Lý do chuyển trạng thái (bắt buộc)')}
             </Text>
             <TextInput
               value={lifecycleReason}
               onChangeText={setLifecycleReason}
-              placeholder={t(
-                'mobile.lifecycle_reason_placeholder',
-                'Nhập lý do lâm sàng / hành chính để lưu nhật ký kiểm toán...'
+              placeholder={t('mobile.lifecycle_reason_placeholder', 'Nhập lý do lâm sàng hoặc hành chính để lưu nhật ký...'
               )}
               placeholderTextColor="#94a3b8"
               multiline
@@ -786,7 +805,7 @@ export default function PatientsManagementScreen() {
       <ProgramRulePreviewModal
         visible={programRulePreviewVisible}
         onClose={() => setProgramRulePreviewVisible(false)}
-        programName={activePatientData?.program || 'Hypertension Management'}
+        programName={activePatientData?.program || (isVi ? 'Quản lý tăng huyết áp' : 'Hypertension Management')}
       />
 
       {/* 4. Doctor Review Task Modal (CARE-35) */}

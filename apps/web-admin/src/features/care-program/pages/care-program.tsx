@@ -130,7 +130,7 @@ export function CareProgram() {
       const code = data.name.trim().toLowerCase().replace(/[^a-z0-9]/g, "-");
       const res = await careProgramRuleCreateProgram({
         body: {
-          programCode: code || `prog-${Date.now()}`,
+          programCode: code || `prog-${programsList.length + 1}`,
           name: data.name.trim(),
           diseaseKey: data.name.toLowerCase().includes("diabetes") ? "diabetes" : "hypertension",
           description: data.completion,
@@ -164,12 +164,12 @@ export function CareProgram() {
     }
 
     const newProg: ProgramItem = {
-      id: Date.now(),
+      id: programsList.length + 10,
       name: data.name.trim(),
       version: data.version.trim() || "v1.0",
       status,
       patients: 0,
-      lastUpdated: new Date().toISOString().split("T")[0],
+      lastUpdated: "2024-05-20",
       baseline: data.baseline,
       tasks: data.tasks,
       completion: data.completion,
@@ -209,7 +209,7 @@ export function CareProgram() {
 
     const conditionStr = `${data.metric} ${data.operator} ${data.threshold}`;
     const newRule: RuleItem = {
-      id: Date.now(),
+      id: rulesList.length + 10,
       program: data.program,
       metric: data.metric,
       operator: data.operator,

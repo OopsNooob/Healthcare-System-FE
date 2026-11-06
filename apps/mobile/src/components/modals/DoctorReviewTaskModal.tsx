@@ -33,7 +33,8 @@ export const DoctorReviewTaskModal: React.FC<DoctorReviewTaskModalProps> = ({
   taskId = 'task-doc-rev-01',
   onSubmitReview,
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isVi = i18n.language?.startsWith('vi');
 
   const [reasonCode, setReasonCode] = useState<DoctorReviewReasonCode>('reviewed_no_action');
   const [note, setNote] = useState('');
@@ -41,28 +42,47 @@ export const DoctorReviewTaskModal: React.FC<DoctorReviewTaskModalProps> = ({
   const allowlistedReasons: { code: DoctorReviewReasonCode; title: string; desc: string }[] = [
     {
       code: 'reviewed_no_action',
-      title: t('mobile.doc_rev_no_action', 'Đã xem xét — Không cần can thiệp thêm'),
-      desc: 'reviewed_no_action • Chỉ số và tuân thủ ổn định theo mục tiêu chương trình.',
+      title: t(
+        'mobile.doc_rev_no_action',
+        isVi ? 'Đã xem xét — Không cần can thiệp thêm' : 'Reviewed — No Further Action Required'
+      ),
+      desc: isVi
+        ? 'Chỉ số sinh hiệu và mức độ tuân thủ ổn định theo mục tiêu chương trình.'
+        : 'Vital readings and adherence remain stable within program targets.',
     },
     {
       code: 'follow_up_needed',
-      title: t('mobile.doc_rev_follow_up', 'Cần theo dõi sát ở chu kỳ tiếp theo'),
-      desc: 'follow_up_needed • Có dao động nhẹ, tiếp tục nhắc nhở đo chỉ số đúng khung giờ.',
+      title: t(
+        'mobile.doc_rev_follow_up',
+        isVi ? 'Cần theo dõi sát ở chu kỳ tiếp theo' : 'Close Monitoring Needed in Next Cycle'
+      ),
+      desc: isVi
+        ? 'Có dao động nhẹ, tiếp tục nhắc nhở bệnh nhân đo chỉ số đúng khung giờ.'
+        : 'Mild fluctuations observed; continue reminding patient to log readings on time.',
     },
     {
       code: 'consultation_recommended',
-      title: t('mobile.doc_rev_consult_rec', 'Khuyến nghị đặt lịch tư vấn trực tuyến'),
-      desc: 'consultation_recommended • Cần trao đổi trực tiếp qua phiên khám Scheduled/On-demand.',
+      title: t(
+        'mobile.doc_rev_consult_rec',
+        isVi ? 'Khuyến nghị đặt lịch tư vấn trực tuyến' : 'Recommend Scheduling a Teleconsultation'
+      ),
+      desc: isVi
+        ? 'Cần trao đổi trực tiếp với bệnh nhân qua buổi tư vấn trực tuyến.'
+        : 'Direct clinical discussion recommended via a scheduled or on-demand session.',
     },
     {
       code: 'care_plan_adjustment_needed',
-      title: t('mobile.doc_rev_adjust_plan', 'Cần điều chỉnh phác đồ / kế hoạch chăm sóc'),
-      desc: 'care_plan_adjustment_needed • Ghi nhận để điều chỉnh liều lượng hoặc mục tiêu theo dõi.',
+      title: t(
+        'mobile.doc_rev_adjust_plan',
+        isVi ? 'Cần điều chỉnh phác đồ / kế hoạch chăm sóc' : 'Care Plan / Regimen Adjustment Needed'
+      ),
+      desc: isVi
+        ? 'Ghi nhận để điều chỉnh hướng dẫn sinh hoạt hoặc mục tiêu theo dõi.'
+        : 'Record need to adjust lifestyle guidance or monitoring targets.',
     },
   ];
 
   const handleNoteChange = (val: string) => {
-    // Strip HTML tags per contract (plaintext only, max 500 chars)
     const stripped = val.replace(/<[^>]*>?/gm, '');
     if (stripped.length <= 500) {
       setNote(stripped);
@@ -77,8 +97,11 @@ export const DoctorReviewTaskModal: React.FC<DoctorReviewTaskModalProps> = ({
     });
     Toast.show({
       type: 'success',
-      text1: t('mobile.doctor_review_completed', 'Đã hoàn tất Doctor Review'),
-      text2: `${reasonCode} • Task: ${taskId}`,
+      text1: t(
+        'mobile.doctor_review_completed',
+        isVi ? 'Đã hoàn tất đánh giá định kỳ' : 'Periodic Clinical Review Completed'
+      ),
+      text2: `${patientName} • ${programName}`,
     });
     setNote('');
     onClose();
@@ -99,10 +122,10 @@ export const DoctorReviewTaskModal: React.FC<DoctorReviewTaskModalProps> = ({
               </View>
               <View style={tw('flex-1')}>
                 <Text style={tw('text-lg font-bold text-slate-900 dark:text-white')}>
-                  {t('mobile.doctor_review_task_title', 'Duyệt định kỳ Bác sĩ (Doctor Review)')}
+                  {t('mobile.doctor_review_task_title', isVi ? 'Đánh giá định kỳ của Bác sĩ' : 'Periodic Doctor Review')}
                 </Text>
                 <Text style={tw('text-xs text-slate-500 dark:text-slate-400')}>
-                  {patientName} • {programName} (CARE-35)
+                  {patientName} • {programName}
                 </Text>
               </View>
             </View>
@@ -117,7 +140,9 @@ export const DoctorReviewTaskModal: React.FC<DoctorReviewTaskModalProps> = ({
               <Text style={tw('text-xs text-blue-800 dark:text-blue-200 flex-1 leading-4')}>
                 {t(
                   'mobile.doctor_review_contract_hint',
-                  'POST /care-tasks/:id/doctor-review: Bắt buộc chọn 1 trong 4 mã kết luận chuẩn (reasonCode) và ghi chú văn bản thuần tối đa 500 ký tự.'
+                  isVi
+                    ? 'Vui lòng chọn kết luận đánh giá phù hợp và nhập ghi chú chuyên môn (tối đa 500 ký tự).'
+                    : 'Please select an appropriate clinical conclusion and add an optional note (up to 500 characters).'
                 )}
               </Text>
             </View>
@@ -125,7 +150,7 @@ export const DoctorReviewTaskModal: React.FC<DoctorReviewTaskModalProps> = ({
             {/* Allowlisted Reason Codes */}
             <View>
               <Text style={tw('text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2.5')}>
-                1. {t('mobile.select_reason_code', 'Mã kết luận đánh giá (Reason Code Allowlist)')} *
+                1. {t('mobile.select_reason_code', isVi ? 'Kết luận đánh giá' : 'Clinical Assessment Conclusion')} *
               </Text>
               <View style={tw('gap-2.5')}>
                 {allowlistedReasons.map((item) => {
@@ -167,7 +192,7 @@ export const DoctorReviewTaskModal: React.FC<DoctorReviewTaskModalProps> = ({
             <View>
               <View style={tw('flex-row justify-between items-center mb-2')}>
                 <Text style={tw('text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400')}>
-                  2. {t('mobile.plaintext_clinical_note', 'Ghi chú lâm sàng (Plaintext, tùy chọn)')}
+                  2. {t('mobile.plaintext_clinical_note', isVi ? 'Ghi chú lâm sàng (tùy chọn)' : 'Clinical Note (optional)')}
                 </Text>
                 <Text style={tw(`text-xs font-semibold ${note.length >= 480 ? 'text-amber-500' : 'text-slate-400'}`)}>
                   {note.length}/500
@@ -178,7 +203,7 @@ export const DoctorReviewTaskModal: React.FC<DoctorReviewTaskModalProps> = ({
                 onChangeText={handleNoteChange}
                 placeholder={t(
                   'mobile.doctor_review_note_placeholder',
-                  'Nhập nhận xét chuyên môn ngắn gọn (không chứa HTML hoặc tệp đính kèm)...'
+                  isVi ? 'Nhập nhận xét chuyên môn ngắn gọn...' : 'Enter brief clinical observations...'
                 )}
                 placeholderTextColor="#94a3b8"
                 multiline
@@ -196,7 +221,9 @@ export const DoctorReviewTaskModal: React.FC<DoctorReviewTaskModalProps> = ({
               onPress={onClose}
               style={tw('flex-1 py-3.5 rounded-xl bg-slate-100 dark:bg-slate-800 items-center')}
             >
-              <Text style={tw('font-bold text-slate-700 dark:text-slate-300 text-sm')}>{t('mobile.cancel', 'Hủy')}</Text>
+              <Text style={tw('font-bold text-slate-700 dark:text-slate-300 text-sm')}>
+                {t('mobile.cancel', isVi ? 'Hủy' : 'Cancel')}
+              </Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={handleConfirm}
@@ -204,7 +231,7 @@ export const DoctorReviewTaskModal: React.FC<DoctorReviewTaskModalProps> = ({
             >
               <CheckCircle2 color="#0f172a" size={18} style={tw('mr-1.5')} />
               <Text style={tw('font-bold text-slate-900 text-sm')}>
-                {t('mobile.submit_doctor_review', 'Hoàn tất Duyệt')}
+                {t('mobile.submit_doctor_review', isVi ? 'Hoàn tất đánh giá' : 'Submit Review')}
               </Text>
             </TouchableOpacity>
           </View>

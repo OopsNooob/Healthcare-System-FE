@@ -49,7 +49,22 @@ interface ReceivedInvitation {
 }
 
 export default function FamilyCompanionScreen() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isVi = i18n.language === 'vi';
+
+  const relationshipLabel = (rel: string) => {
+    const map: Record<string, [string, string]> = {
+      parent: ['Cha/Mẹ', 'Parent'],
+      child: ['Con', 'Child'],
+      spouse: ['Vợ/Chồng', 'Spouse'],
+      sibling: ['Anh/Chị/Em', 'Sibling'],
+      caregiver: ['Người chăm sóc', 'Caregiver'],
+    };
+    const entry = map[rel];
+    return entry ? (isVi ? entry[0] : entry[1]) : rel;
+  };
+
+  const yesNo = (v: boolean) => (v ? (isVi ? 'Có' : 'Yes') : isVi ? 'Không' : 'No');
   useThemeContext();
   const router = useRouter();
 
@@ -65,7 +80,7 @@ export default function FamilyCompanionScreen() {
   const [members, setMembers] = useState([
     {
       id: 1,
-      name: 'Emily Watson (Daughter)',
+      name: 'Emily Watson',
       email: 'emily@example.com',
       relationship: 'child',
       consentVersion: 'family-consent.v1',
@@ -79,7 +94,7 @@ export default function FamilyCompanionScreen() {
     },
     {
       id: 2,
-      name: 'John Doe (Son)',
+      name: 'John Doe',
       email: 'john@example.com',
       relationship: 'child',
       consentVersion: 'family-consent.v1',
@@ -97,7 +112,7 @@ export default function FamilyCompanionScreen() {
   const [receivedInvitations, setReceivedInvitations] = useState<ReceivedInvitation[]>([
     {
       id: 'inv_201',
-      inviterName: 'Robert Johnson (Father)',
+      inviterName: 'Robert Johnson',
       inviterEmail: 'robert.johnson@example.com',
       inviterAvatar: 'https://i.pravatar.cc/150?img=68',
       relationship: 'parent',
@@ -112,7 +127,7 @@ export default function FamilyCompanionScreen() {
     },
     {
       id: 'inv_202',
-      inviterName: 'Mary Johnson (Mother)',
+      inviterName: 'Mary Johnson',
       inviterEmail: 'mary.johnson@example.com',
       inviterAvatar: 'https://i.pravatar.cc/150?img=47',
       relationship: 'parent',
@@ -185,10 +200,8 @@ export default function FamilyCompanionScreen() {
     if (!consentConfirmed) {
       Toast.show({
         type: 'error',
-        text1: t('mobile.consent_required', 'Yêu cầu xác nhận đồng thuận (FAM-01)'),
-        text2: t(
-          'mobile.consent_required_desc',
-          'Vui lòng tích chọn đồng ý chia sẻ dữ liệu theo family-consent.v1.'
+        text1: t('mobile.consent_required', 'Yêu cầu xác nhận đồng thuận'),
+        text2: t('mobile.consent_required_desc', 'Vui lòng tích chọn đồng ý chia sẻ dữ liệu.'
         ),
       });
       return;
@@ -196,7 +209,7 @@ export default function FamilyCompanionScreen() {
 
     const newMember = {
       id: Date.now(),
-      name: `${emailToInvite.split('@')[0]} (${relationship})`,
+      name: `${emailToInvite.split('@')[0]} (${relationshipLabel(relationship)})`,
       email: emailToInvite.trim(),
       relationship,
       consentVersion: 'family-consent.v1',
@@ -212,8 +225,8 @@ export default function FamilyCompanionScreen() {
 
     Toast.show({
       type: 'success',
-      text1: t('mobile.success', 'Thành công (FAM-01)'),
-      text2: t('mobile.invite_sent', 'Đã gửi lời mời kèm consentVersion: family-consent.v1'),
+      text1: t('mobile.success', 'Thành công'),
+      text2: t('mobile.invite_sent', 'Đã gửi lời mời kèm xác nhận đồng thuận'),
     });
     setInviteModalVisible(false);
     setEmailToInvite('');
@@ -233,10 +246,8 @@ export default function FamilyCompanionScreen() {
     );
     Toast.show({
       type: 'success',
-      text1: t('mobile.invitation_accepted', 'Đã chấp nhận lời mời (FAM-03)'),
-      text2: t(
-        'mobile.invitation_accepted_desc',
-        'Liên kết Family Companion đã chuyển sang trạng thái Active.'
+      text1: t('mobile.invitation_accepted', 'Đã chấp nhận lời mời'),
+      text2: t('mobile.invitation_accepted_desc', 'Liên kết người thân đã được kích hoạt.'
       ),
     });
   };
@@ -247,7 +258,7 @@ export default function FamilyCompanionScreen() {
     );
     Toast.show({
       type: 'info',
-      text1: t('mobile.invitation_declined', 'Đã từ chối lời mời (FAM-04)'),
+      text1: t('mobile.invitation_declined', 'Đã từ chối lời mời'),
       text2: t('mobile.invitation_declined_desc', 'Lời mời liên kết đã được từ chối.'),
     });
   };
@@ -257,7 +268,7 @@ export default function FamilyCompanionScreen() {
     setSettingsModalVisible(false);
     Toast.show({
       type: 'info',
-      text1: t('mobile.access_revoked', 'Đã thu hồi quyền (FAM-05)'),
+      text1: t('mobile.access_revoked', 'Đã thu hồi quyền'),
       text2: t('mobile.member_removed', 'Liên kết thành viên gia đình đã chuyển sang revoked.'),
     });
   };
@@ -416,7 +427,7 @@ export default function FamilyCompanionScreen() {
             <Text style={tw('text-xs text-indigo-700 dark:text-indigo-300 leading-4')}>
               {t(
                 'mobile.family_plan_desc',
-                'Quy tắc quyền riêng tư (P-10): Người thân chỉ xem tiến độ & cảnh báo tổng quan, tuyệt đối không xem đoạn chat bác sĩ hay ghi chú lâm sàng.'
+                'Quy tắc quyền riêng tư: Người thân chỉ xem tiến độ & cảnh báo tổng quan, tuyệt đối không xem đoạn chat bác sĩ hay ghi chú lâm sàng.'
               )}
             </Text>
           </View>
@@ -433,7 +444,7 @@ export default function FamilyCompanionScreen() {
             >
               <Plus color={twInstance.color('text-slate-500')} size={20} />
               <Text style={tw('font-bold text-slate-600 dark:text-slate-400 ml-2')}>
-                {t('mobile.invite_member', 'Mời thành viên gia đình (FAM-01)')}
+                {t('mobile.invite_member', 'Mời thành viên gia đình')}
               </Text>
             </TouchableOpacity>
 
@@ -524,7 +535,7 @@ export default function FamilyCompanionScreen() {
           /* Received Invitations Tab (FAM-03, FAM-04) */
           <View>
             <Text style={tw('font-bold text-lg text-slate-900 dark:text-white mb-4')}>
-              {t('mobile.received_invitations', 'Lời mời đồng hành gửi đến bạn (FAM-03/04)')}
+              {t('mobile.received_invitations', 'Lời mời đồng hành gửi đến bạn')}
             </Text>
 
             {receivedInvitations.map((inv) => (
@@ -544,7 +555,7 @@ export default function FamilyCompanionScreen() {
                       {inv.inviterName}
                     </Text>
                     <Text style={tw('text-xs text-slate-500 dark:text-slate-400')}>
-                      {inv.inviterEmail} • Quan hệ: {inv.relationship}
+                      {inv.inviterEmail} • {isVi ? 'Quan hệ' : 'Relationship'}: {relationshipLabel(inv.relationship)}
                     </Text>
                   </View>
                   <View
@@ -584,18 +595,20 @@ export default function FamilyCompanionScreen() {
                       'text-xs font-bold text-slate-700 dark:text-slate-300 mb-2'
                     )}
                   >
-                    Quyền hạn được cấp cho bạn ({inv.consentVersion}):
+                    {isVi ? 'Quyền hạn được cấp cho bạn:' : 'Permissions granted to you:'}
                   </Text>
                   <View style={tw('gap-1.5')}>
                     <Text style={tw('text-xs text-slate-600 dark:text-slate-400')}>
-                      • Nhận thông báo nhắc nhở: {inv.permissions.receiveReminders ? 'Có' : 'Không'}
+                      • {isVi ? 'Nhận thông báo nhắc nhở' : 'Receive reminders'}:{' '}
+                      {yesNo(inv.permissions.receiveReminders)}
                     </Text>
                     <Text style={tw('text-xs text-slate-600 dark:text-slate-400')}>
-                      • Xem tiến độ Care Task: {inv.permissions.viewProgress ? 'Có' : 'Không'}
+                      • {isVi ? 'Xem tiến độ nhiệm vụ chăm sóc' : 'View care task progress'}:{' '}
+                      {yesNo(inv.permissions.viewProgress)}
                     </Text>
                     <Text style={tw('text-xs text-slate-600 dark:text-slate-400')}>
-                      • Xem cảnh báo sức khỏe (Alert Summary):{' '}
-                      {inv.permissions.viewAlertSummary ? 'Có' : 'Không'}
+                      • {isVi ? 'Xem tóm tắt cảnh báo sức khỏe' : 'View health alert summary'}:{' '}
+                      {yesNo(inv.permissions.viewAlertSummary)}
                     </Text>
                   </View>
                 </View>
@@ -623,8 +636,9 @@ export default function FamilyCompanionScreen() {
                         {acceptConsentChecked[inv.id] && <Check size={14} color="#fff" />}
                       </View>
                       <Text style={tw('text-xs text-slate-600 dark:text-slate-300 flex-1')}>
-                        Tôi xác nhận đồng thuận nhận thông tin đồng hành theo chuẩn{' '}
-                        <Text style={tw('font-bold')}>{inv.consentVersion}</Text>.
+                        {isVi
+                          ? 'Tôi xác nhận đồng thuận nhận thông tin đồng hành từ người thân.'
+                          : 'I consent to receive companion information from this family member.'}
                       </Text>
                     </TouchableOpacity>
 
@@ -636,7 +650,7 @@ export default function FamilyCompanionScreen() {
                         )}
                       >
                         <Text style={tw('font-bold text-slate-700 dark:text-slate-300 text-xs')}>
-                          {t('mobile.decline_invitation', 'Từ chối (FAM-04)')}
+                          {t('mobile.decline_invitation', 'Từ chối')}
                         </Text>
                       </TouchableOpacity>
                       <TouchableOpacity
@@ -644,7 +658,7 @@ export default function FamilyCompanionScreen() {
                         style={tw('flex-1 py-3 rounded-xl bg-emerald-600 items-center')}
                       >
                         <Text style={tw('font-bold text-white text-xs')}>
-                          {t('mobile.accept_invitation', 'Chấp nhận (FAM-03)')}
+                          {t('mobile.accept_invitation', 'Chấp nhận')}
                         </Text>
                       </TouchableOpacity>
                     </View>
@@ -662,7 +676,7 @@ export default function FamilyCompanionScreen() {
           <View style={tw('bg-white dark:bg-slate-900 rounded-t-3xl p-6')}>
             <View style={tw('flex-row justify-between items-center mb-5')}>
               <Text style={tw('text-xl font-bold text-slate-900 dark:text-white')}>
-                {t('mobile.invite_member', 'Mời thành viên (FAM-01)')}
+                {t('mobile.invite_member', 'Mời thành viên')}
               </Text>
               <TouchableOpacity onPress={() => setInviteModalVisible(false)}>
                 <X color={twInstance.color('text-slate-500')} size={24} />
@@ -712,7 +726,7 @@ export default function FamilyCompanionScreen() {
                         }`
                       )}
                     >
-                      {rel}
+                      {relationshipLabel(rel)}
                     </Text>
                   </TouchableOpacity>
                 ))}
@@ -739,10 +753,12 @@ export default function FamilyCompanionScreen() {
               </View>
               <View style={tw('flex-1')}>
                 <Text style={tw('text-xs font-bold text-emerald-900 dark:text-emerald-200')}>
-                  Xác nhận đồng thuận chia sẻ dữ liệu (consentVersion: family-consent.v1)
+                  {isVi ? 'Xác nhận đồng thuận chia sẻ dữ liệu' : 'Confirm consent to share data'}
                 </Text>
                 <Text style={tw('text-[11px] text-emerald-700 dark:text-emerald-400 mt-0.5')}>
-                  Tôi đồng ý cho người thân xem tiến độ nhiệm vụ và cảnh báo sức khỏe đã chọn. Không chia sẻ tin nhắn tư vấn bác sĩ.
+                  {isVi
+                    ? 'Tôi đồng ý cho người thân xem tiến độ nhiệm vụ và cảnh báo sức khỏe đã chọn. Không chia sẻ tin nhắn tư vấn bác sĩ.'
+                    : 'I agree to let my family member see my task progress and the selected health alerts. Doctor consultation messages are never shared.'}
                 </Text>
               </View>
             </TouchableOpacity>
@@ -765,7 +781,7 @@ export default function FamilyCompanionScreen() {
           <View style={tw('bg-white dark:bg-slate-900 rounded-t-3xl p-6')}>
             <View style={tw('flex-row justify-between items-center mb-6')}>
               <Text style={tw('text-xl font-bold text-slate-900 dark:text-white')}>
-                {t('mobile.member_permissions', 'Quyền hạn thành viên (FAM-02)')}
+                {t('mobile.member_permissions', 'Quyền hạn thành viên')}
               </Text>
               <TouchableOpacity onPress={() => setSettingsModalVisible(false)}>
                 <X color={twInstance.color('text-slate-500')} size={24} />
@@ -787,7 +803,7 @@ export default function FamilyCompanionScreen() {
                       {selectedMember.name}
                     </Text>
                     <Text style={tw('text-xs text-slate-500 dark:text-slate-400')}>
-                      {selectedMember.consentVersion || 'family-consent.v1'}
+                      {relationshipLabel(selectedMember.relationship)}
                     </Text>
                   </View>
                 </View>
@@ -849,12 +865,10 @@ export default function FamilyCompanionScreen() {
                   <View style={tw('flex-row justify-between items-center')}>
                     <View style={tw('flex-1 pr-4')}>
                       <Text style={tw('font-bold text-slate-900 dark:text-white')}>
-                        {t('mobile.view_alert_summary', 'Xem tóm tắt cảnh báo (viewAlertSummary)')}
+                        {t('mobile.view_alert_summary', 'Xem tóm tắt cảnh báo')}
                       </Text>
                       <Text style={tw('text-xs text-slate-500 dark:text-slate-400 mt-1')}>
-                        {t(
-                          'mobile.view_alert_summary_desc',
-                          'Cho phép xem thông báo khi chỉ số vượt ngưỡng an toàn'
+                        {t('mobile.view_alert_summary_desc', 'Cho phép xem thông báo khi chỉ số vượt ngưỡng an toàn'
                         )}
                       </Text>
                     </View>
@@ -907,7 +921,7 @@ export default function FamilyCompanionScreen() {
                   >
                     <UserX color={twInstance.color('text-red-500')} size={20} />
                     <Text style={tw('text-red-600 dark:text-red-400 font-bold ml-2')}>
-                      {t('mobile.revoke_access', 'Thu hồi (FAM-05)')}
+                      {t('mobile.revoke_access', 'Thu hồi')}
                     </Text>
                   </TouchableOpacity>
                 </View>

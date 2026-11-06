@@ -49,7 +49,21 @@ interface WaitingQueueItem {
 }
 
 export default function DoctorConsultationsScreen() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isVi = i18n.language === 'vi';
+
+  const genderLabel = (g: string) =>
+    g === 'Male' ? (isVi ? 'Nam' : 'Male') : g === 'Female' ? (isVi ? 'Nữ' : 'Female') : g;
+
+  const followUpActionLabel = (action: string) => {
+    const map: Record<string, [string, string]> = {
+      book_scheduled: ['Đặt lịch tái khám định kỳ', 'Book a scheduled follow-up'],
+      monitor_at_home: ['Tiếp tục theo dõi tại nhà', 'Continue monitoring at home'],
+      visit_facility: ['Đến cơ sở y tế khám trực tiếp', 'Visit a medical facility in person'],
+    };
+    const entry = map[action];
+    return entry ? (isVi ? entry[0] : entry[1]) : action;
+  };
 
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<'queue' | 'pending' | 'active' | 'history'>('queue');
@@ -177,7 +191,7 @@ export default function DoctorConsultationsScreen() {
     const d = item.scheduledStartAt ? new Date(item.scheduledStartAt) : new Date();
     return {
       id: item._id || item.id,
-      patientName: item.patient?.fullName || item.patientId || 'Bệnh nhân',
+      patientName: item.patient?.fullName || item.patientId || (isVi ? 'Bệnh nhân' : 'Patient'),
       patientId: item.patient?._id || item.patientId || item._id,
       time: d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       date: d.toLocaleDateString(),
@@ -196,9 +210,9 @@ export default function DoctorConsultationsScreen() {
             : item.sessionStatus,
       age: item.patient?.patientProfile?.age || 30,
       gender: item.patient?.gender === 'female' ? 'Female' : 'Male',
-      reason: item.reason || item.patientNotes || 'Tư vấn sức khỏe tổng quát',
+      reason: item.reason || item.patientNotes || (isVi ? 'Tư vấn sức khỏe tổng quát' : 'General health consultation'),
       rating: item.rating || 5,
-      review: item.doctorNotes || 'Chưa có ghi chú',
+      review: item.doctorNotes || (isVi ? 'Chưa có ghi chú' : 'No notes'),
     };
   };
 
@@ -277,10 +291,10 @@ export default function DoctorConsultationsScreen() {
     if (alreadyCalled) {
       Toast.show({
         type: 'info',
-        text1: t('mobile.queue_already_called', 'Đang gọi bệnh nhân (CON-08)'),
+        text1: t('mobile.queue_already_called', 'Đang gọi bệnh nhân'),
         text2: t(
           'mobile.queue_already_called_desc',
-          `Tối đa 1 bệnh nhân được gọi cùng lúc (${alreadyCalled.patientName}). Hãy bắt đầu khám hoặc đánh dấu No-Show.`
+          { name: alreadyCalled.patientName }
         ),
       });
       return;
@@ -290,10 +304,8 @@ export default function DoctorConsultationsScreen() {
     if (activeInConsultation) {
       Toast.show({
         type: 'info',
-        text1: t('mobile.active_session_limit', 'Đang có phiên khám in_consultation'),
-        text2: t(
-          'mobile.active_session_limit_desc',
-          'Mỗi bác sĩ chỉ có tối đa 1 phiên in_consultation tại một thời điểm.'
+        text1: t('mobile.active_session_limit', 'Đang có phiên khám diễn ra'),
+        text2: t('mobile.active_session_limit_desc', 'Mỗi bác sĩ chỉ có tối đa 1 phiên khám tại một thời điểm.'
         ),
       });
     }
@@ -306,8 +318,10 @@ export default function DoctorConsultationsScreen() {
     );
     Toast.show({
       type: 'success',
-      text1: t('mobile.called_next_patient', 'Đã gọi bệnh nhân tiếp theo (Call Next)'),
-      text2: `${waitingQueue[0].patientName} đã nhận thông báo vào phòng khám.`,
+      text1: t('mobile.called_next_patient', 'Đã gọi bệnh nhân tiếp theo'),
+      text2: isVi
+          ? `${waitingQueue[0].patientName} đã nhận thông báo vào phòng khám.`
+          : `${waitingQueue[0].patientName} has been notified to join the room.`,
     });
   };
 
@@ -360,8 +374,20 @@ export default function DoctorConsultationsScreen() {
     setNoShowNote('');
     Toast.show({
       type: 'info',
-      text1: t('mobile.marked_no_show', 'Đã ghi nhận No-Show (CON-12)'),
-      text2: `Lý do: ${noShowReasonCode}`,
+      text1: t('mobile.marked_no_show', 'Đã ghi nhận bệnh nhân vắng mặt'),
+      text2: `${isVi ? 'Lý do' : 'Reason'}: ${
+          noShowReasonCode === 'patient_absent'
+            ? isVi
+              ? 'Bệnh nhân không có mặt'
+              : 'Patient absent'
+            : noShowReasonCode === 'unreachable'
+              ? isVi
+                ? 'Không thể liên lạc'
+                : 'Unreachable'
+              : isVi
+                ? 'Đã rời phòng chờ'
+                : 'Left the waiting room'
+        }`,
     });
   };
 
@@ -386,8 +412,8 @@ export default function DoctorConsultationsScreen() {
     setFollowUpNote('');
     Toast.show({
       type: 'success',
-      text1: t('mobile.followup_saved', 'Đã lưu khuyến nghị tái khám (PUT /follow-up)'),
-      text2: `Hướng xử trí: ${followUpNextAction}`,
+      text1: t('mobile.followup_saved', 'Đã lưu khuyến nghị tái khám'),
+      text2: `${isVi ? 'Hướng xử trí' : 'Next action'}: ${followUpActionLabel(followUpNextAction)}`,
     });
   };
 
@@ -481,7 +507,7 @@ export default function DoctorConsultationsScreen() {
             ...endedItem,
             status: 'Completed',
             statusKey: 'completed',
-            review: doctorNote || 'No notes',
+            review: doctorNote || (isVi ? 'Chưa có ghi chú' : 'No notes'),
           },
           ...prev,
         ]);
@@ -541,7 +567,7 @@ export default function DoctorConsultationsScreen() {
         <Text style={tw('text-slate-500 dark:text-slate-400 text-sm mt-1')}>
           {t(
             'mobile.manage_your_appointments_and_c',
-            'Hàng đợi khám trực tuyến, yêu cầu On-demand và lịch sử phiên khám (D-04)'
+            'Hàng đợi khám trực tuyến, yêu cầu On-demand và lịch sử phiên khám'
           )}
         </Text>
       </View>
@@ -643,10 +669,12 @@ export default function DoctorConsultationsScreen() {
             >
               <View style={tw('flex-1 mr-3')}>
                 <Text style={tw('font-bold text-indigo-900 dark:text-indigo-200 text-sm')}>
-                  {t('mobile.waiting_room_queue_title', 'Phòng chờ khám (Ordered by Priority)')}
+                  {t('mobile.waiting_room_queue_title', 'Phòng chờ khám (theo thứ tự ưu tiên)')}
                 </Text>
                 <Text style={tw('text-xs text-indigo-700 dark:text-indigo-400 mt-0.5')}>
-                  Sắp xếp theo queuePriorityAt, queueJoinedAt • Tối đa 1 bệnh nhân được gọi
+                  {isVi
+                    ? 'Sắp xếp theo mức ưu tiên và thời gian vào phòng chờ • Tối đa 1 bệnh nhân được gọi'
+                    : 'Sorted by priority and waiting-room join time • Only 1 patient can be called at a time'}
                 </Text>
               </View>
               <TouchableOpacity
@@ -660,7 +688,7 @@ export default function DoctorConsultationsScreen() {
               >
                 <PhoneCall size={15} color="#fff" style={tw('mr-1.5')} />
                 <Text style={tw('text-white font-bold text-xs')}>
-                  {t('mobile.call_next', 'Call Next')}
+                  {t('mobile.call_next', 'Gọi tiếp')}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -693,7 +721,8 @@ export default function DoctorConsultationsScreen() {
                           {qItem.patientName}
                         </Text>
                         <Text style={tw('text-xs text-slate-500 dark:text-slate-400')}>
-                          {qItem.age} yrs • {qItem.gender} • Mode: {qItem.mode}
+                          {qItem.age} {t('mobile.yrs', 'tuổi')} • {genderLabel(qItem.gender)} •{' '}
+                          {qItem.mode === 'on_demand' ? (isVi ? 'Khám ngay' : 'On-demand') : isVi ? 'Đặt lịch' : 'Scheduled'}
                         </Text>
                       </View>
                     </View>
@@ -737,7 +766,7 @@ export default function DoctorConsultationsScreen() {
                     >
                       <MessageCircle size={16} color="#0f172a" style={tw('mr-1.5')} />
                       <Text style={tw('text-slate-900 font-bold text-xs')}>
-                        {t('mobile.start_consultation', 'Bắt đầu khám (CON-10)')}
+                        {t('mobile.start_consultation', 'Bắt đầu khám')}
                       </Text>
                     </TouchableOpacity>
                     <TouchableOpacity
@@ -751,7 +780,7 @@ export default function DoctorConsultationsScreen() {
                     >
                       <UserX size={15} color="#ef4444" style={tw('mr-1')} />
                       <Text style={tw('text-red-600 dark:text-red-400 font-bold text-xs')}>
-                        No-Show
+                        {isVi ? 'Vắng mặt' : 'No-show'}
                       </Text>
                     </TouchableOpacity>
                   </View>
@@ -788,12 +817,12 @@ export default function DoctorConsultationsScreen() {
                     {req.patientName}
                   </Text>
                   <Text style={tw('text-sm text-slate-500 dark:text-slate-400')}>
-                    {req.age} {t('mobile.yrs', 'yrs')} • {req.gender}
+                    {req.age} {t('mobile.yrs', 'tuổi')} • {genderLabel(req.gender)}
                   </Text>
                 </View>
                 <View style={tw('px-3 py-1 bg-amber-50 dark:bg-amber-900/30 rounded-full border border-amber-100 dark:border-amber-800')}>
                   <Text style={tw('text-xs font-bold text-amber-600 dark:text-amber-400')}>
-                    {t('mobile.pending_request', 'Requested (CON-07)')}
+                    {t('mobile.pending_request', 'Requested')}
                   </Text>
                 </View>
               </View>
@@ -981,8 +1010,10 @@ export default function DoctorConsultationsScreen() {
                 <View style={tw('px-3 py-1 bg-slate-100 dark:bg-slate-800 rounded-full')}>
                   <Text style={tw('text-xs font-bold text-slate-600 dark:text-slate-300')}>
                     {session.status === 'Completed'
-                      ? t('mobile.completed', 'Completed')
-                      : session.status}
+                      ? t('mobile.completed', 'Hoàn thành')
+                      : session.status === 'In Progress'
+                        ? t('mobile.in_progress', 'Đang diễn ra')
+                        : session.status}
                   </Text>
                 </View>
               </View>
@@ -1003,10 +1034,12 @@ export default function DoctorConsultationsScreen() {
                   )}
                 >
                   <Text style={tw('text-xs font-bold text-emerald-800 dark:text-emerald-300')}>
-                    Khuyến nghị tái khám ({session.followUpRecommendation.nextAction}):
+                    {isVi ? 'Khuyến nghị tái khám' : 'Follow-up recommendation'} (
+                    {followUpActionLabel(session.followUpRecommendation.nextAction)}):
                   </Text>
                   <Text style={tw('text-xs text-emerald-700 dark:text-emerald-400 mt-0.5')}>
-                    {session.followUpRecommendation.note} • Hẹn: {session.followUpRecommendation.followUpAt}
+                    {session.followUpRecommendation.note} • {isVi ? 'Hẹn' : 'Due'}:{' '}
+                    {session.followUpRecommendation.followUpAt}
                   </Text>
                 </View>
               )}
@@ -1034,7 +1067,7 @@ export default function DoctorConsultationsScreen() {
                 >
                   <ClipboardCheck color="#6366f1" size={15} style={tw('mr-1.5')} />
                   <Text style={tw('text-indigo-600 dark:text-indigo-400 font-bold text-xs')}>
-                    {t('mobile.follow_up', 'Follow-up')}
+                    {t('mobile.follow_up', 'Tái khám')}
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
@@ -1077,7 +1110,7 @@ export default function DoctorConsultationsScreen() {
           <View style={tw('bg-white dark:bg-slate-900 rounded-t-3xl p-6')}>
             <View style={tw('flex-row justify-between items-center mb-4')}>
               <Text style={tw('text-xl font-bold text-slate-900 dark:text-white')}>
-                {t('mobile.mark_no_show_title', 'Đánh dấu Vắng mặt (No-Show - CON-12)')}
+                {t('mobile.mark_no_show_title', 'Đánh dấu vắng mặt')}
               </Text>
               <TouchableOpacity onPress={() => setNoShowModalVisible(false)}>
                 <X color="#64748b" size={24} />
@@ -1085,14 +1118,14 @@ export default function DoctorConsultationsScreen() {
             </View>
 
             <Text style={tw('text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-2')}>
-              {t('mobile.select_no_show_reason', 'Lý do vắng mặt (Allowlisted reasonCode)')}
+              {t('mobile.select_no_show_reason', 'Lý do vắng mặt')}
             </Text>
             <View style={tw('gap-2 mb-4')}>
               {(
                 [
-                  { code: 'patient_absent', label: 'Bệnh nhân không có mặt sau khi gọi (patient_absent)' },
-                  { code: 'unreachable', label: 'Không thể liên lạc qua kết nối khám (unreachable)' },
-                  { code: 'left_waiting_room', label: 'Đã rời phòng chờ khám (left_waiting_room)' },
+                  { code: 'patient_absent', label: isVi ? 'Bệnh nhân không có mặt sau khi gọi' : 'Patient absent after being called' },
+                  { code: 'unreachable', label: isVi ? 'Không thể liên lạc qua kết nối khám' : 'Unreachable over the consultation connection' },
+                  { code: 'left_waiting_room', label: isVi ? 'Đã rời phòng chờ khám' : 'Left the waiting room' },
                 ] as const
               ).map((r) => (
                 <TouchableOpacity
@@ -1136,7 +1169,7 @@ export default function DoctorConsultationsScreen() {
               style={tw('bg-red-600 py-4 rounded-xl items-center')}
             >
               <Text style={tw('text-white font-bold text-base')}>
-                {t('mobile.confirm_no_show', 'Xác nhận No-Show')}
+                {t('mobile.confirm_no_show', 'Xác nhận vắng mặt')}
               </Text>
             </TouchableOpacity>
           </View>
@@ -1157,7 +1190,7 @@ export default function DoctorConsultationsScreen() {
           <View style={tw('bg-white dark:bg-slate-900 rounded-t-3xl p-6')}>
             <View style={tw('flex-row justify-between items-center mb-4')}>
               <Text style={tw('text-xl font-bold text-slate-900 dark:text-white')}>
-                {t('mobile.follow_up_recommendation', 'Khuyến nghị sau khám (Follow-up)')}
+                {t('mobile.follow_up_recommendation', 'Khuyến nghị sau khám')}
               </Text>
               <TouchableOpacity onPress={() => setFollowUpModalVisible(false)}>
                 <X color="#64748b" size={24} />
@@ -1165,14 +1198,14 @@ export default function DoctorConsultationsScreen() {
             </View>
 
             <Text style={tw('text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-2')}>
-              {t('mobile.next_action', 'Hướng xử trí tiếp theo (nextAction)')}
+              {t('mobile.next_action', 'Hướng xử trí tiếp theo')}
             </Text>
             <View style={tw('gap-2 mb-4')}>
               {(
                 [
-                  { code: 'book_scheduled', label: 'Đặt lịch tái khám định kỳ (book_scheduled)' },
-                  { code: 'monitor_at_home', label: 'Tiếp tục theo dõi tại nhà (monitor_at_home)' },
-                  { code: 'visit_facility', label: 'Đến cơ sở y tế khám trực tiếp (visit_facility)' },
+                  { code: 'book_scheduled', label: followUpActionLabel('book_scheduled') },
+                  { code: 'monitor_at_home', label: followUpActionLabel('monitor_at_home') },
+                  { code: 'visit_facility', label: followUpActionLabel('visit_facility') },
                 ] as const
               ).map((act) => (
                 <TouchableOpacity
@@ -1202,7 +1235,7 @@ export default function DoctorConsultationsScreen() {
             </View>
 
             <Text style={tw('text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1.5')}>
-              {t('mobile.follow_up_at', 'Thời điểm hẹn tái khám (followUpAt)')}
+              {t('mobile.follow_up_at', 'Thời điểm hẹn tái khám')}
             </Text>
             <TextInput
               value={followUpDate}
@@ -1213,14 +1246,12 @@ export default function DoctorConsultationsScreen() {
             />
 
             <Text style={tw('text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1.5')}>
-              {t('mobile.doctor_followup_note', 'Dặn dò của bác sĩ (note)')}
+              {t('mobile.doctor_followup_note', 'Dặn dò của bác sĩ')}
             </Text>
             <TextInput
               value={followUpNote}
               onChangeText={setFollowUpNote}
-              placeholder={t(
-                'mobile.followup_note_placeholder',
-                'Nhập hướng dẫn theo dõi chỉ số và lịch tái khám...'
+              placeholder={t('mobile.followup_note_placeholder', 'Nhập hướng dẫn theo dõi chỉ số và lịch tái khám...'
               )}
               placeholderTextColor="#64748b"
               multiline

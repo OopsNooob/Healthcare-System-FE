@@ -84,15 +84,9 @@ function getStatusClassName(status: DocumentStatus) {
   return "border-red-200 bg-red-50 text-red-600";
 }
 
-function getStatusLabel(status: DocumentStatus) {
-  if (status === "active") return "Active";
-  if (status === "inactive") return "Inactive";
-  if (status === "processing") return "Processing";
-  return "Error";
-}
-
 export function AIManagement() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isVi = i18n.language?.startsWith("vi");
   const [tab, setTab] = useState<TabSwitch>("doc");
   const [searchDoc, setSearchDoc] = useState("");
   const [selectedType, setSelectedType] = useState<"all" | DocumentType>("all");
@@ -299,19 +293,19 @@ export function AIManagement() {
     return [
       {
         id: `view-${doc.id}`,
-        title: "View",
+        title: isVi ? "Xem tài liệu" : "View",
         icon: <Eye className="h-4 w-4" />,
         onHandle: () => openPreview(doc),
       },
       {
         id: `download-${doc.id}`,
-        title: "Download",
+        title: isVi ? "Tải xuống" : "Download",
         icon: <Download className="h-4 w-4" />,
         onHandle: () => handleDownload(doc),
       },
       {
         id: `delete-${doc.id}`,
-        title: "Delete",
+        title: isVi ? "Xóa tài liệu" : "Delete",
         icon: <Trash2 className="h-4 w-4" />,
         iconColor: "text-red-600",
         disabled: !canDelete,
@@ -319,14 +313,20 @@ export function AIManagement() {
       },
       {
         id: `toggle-${doc.id}`,
-        title: doc.isEnabled ? "Deactivate" : "Activate",
+        title: doc.isEnabled
+          ? isVi
+            ? "Tạm ngưng sử dụng"
+            : "Deactivate"
+          : isVi
+            ? "Kích hoạt sử dụng"
+            : "Activate",
         icon: <CircleSlash className="h-4 w-4" />,
         disabled: !canMutate,
         onHandle: () => handleToggleEnable(doc.id),
       },
       {
         id: `chunks-${doc.id}`,
-        title: "Manage Chunks (ADM-27)",
+        title: isVi ? "Quản lý phân đoạn dữ liệu" : "Manage Chunks",
         icon: <Layers className="h-4 w-4" />,
         onHandle: () => {
           setChunksDoc(doc);
@@ -336,7 +336,7 @@ export function AIManagement() {
       },
       {
         id: `approve-${doc.id}`,
-        title: "Approve / Reject (ADM-19)",
+        title: isVi ? "Phê duyệt / Từ chối" : "Approve / Reject",
         icon: <Check className="h-4 w-4" />,
         onHandle: () => {
           setReviewModalDoc(doc);
@@ -347,7 +347,7 @@ export function AIManagement() {
       },
       {
         id: `reingest-${doc.id}`,
-        title: "Re-ingest Index (ADM-20)",
+        title: isVi ? "Lập chỉ mục lại" : "Re-index Document",
         icon: <Upload className="h-4 w-4" />,
         onHandle: () => {
           setReviewOverrides((prev) => ({
@@ -357,13 +357,17 @@ export function AIManagement() {
               reviewStatus: prev[doc.id]?.reviewStatus || "pending_review",
             },
           }));
-          showToast.success("Re-ingest job triggered -> processingStatus: indexed (ADM-20)");
+          showToast.success(
+            isVi
+              ? "Đã lập chỉ mục lại tài liệu thành công"
+              : "Document re-indexed successfully",
+          );
           setOpenActionFor(null);
         },
       },
       {
         id: `archive-${doc.id}`,
-        title: "Archive Document (ADM-13)",
+        title: isVi ? "Lưu trữ tài liệu" : "Archive Document",
         icon: <Ban className="h-4 w-4" />,
         onHandle: () => {
           setReviewModalDoc(doc);
@@ -701,17 +705,29 @@ export function AIManagement() {
                                 variant="outline"
                                 className={`h-5 w-fit rounded-full border px-2 text-[10px] font-medium ${getStatusClassName(doc.status)}`}
                               >
-                                {reviewOverrides[doc.id]?.processingStatus ||
-                                  (doc.status === "active"
-                                    ? "indexed"
-                                    : doc.status === "processing"
-                                      ? "processing"
-                                      : "uploaded")}
+                                {(() => {
+                                  const proc =
+                                    reviewOverrides[doc.id]?.processingStatus ||
+                                    (doc.status === "active"
+                                      ? "indexed"
+                                      : doc.status === "processing"
+                                        ? "processing"
+                                        : "uploaded");
+                                  if (proc === "indexed") return isVi ? "Đã lập chỉ mục" : "Indexed";
+                                  if (proc === "processing") return isVi ? "Đang xử lý" : "Processing";
+                                  return isVi ? "Đã tải lên" : "Uploaded";
+                                })()}
                               </Badge>
-                              <span className="text-[10px] font-mono text-indigo-600 dark:text-indigo-400">
-                                Review:{" "}
-                                {reviewOverrides[doc.id]?.reviewStatus ||
-                                  (doc.status === "active" ? "approved" : "pending_review")}
+                              <span className="text-[10px] font-medium text-indigo-600 dark:text-indigo-400">
+                                {(() => {
+                                  const rev =
+                                    reviewOverrides[doc.id]?.reviewStatus ||
+                                    (doc.status === "active" ? "approved" : "pending_review");
+                                  if (rev === "approved") return isVi ? "Đã duyệt" : "Approved";
+                                  if (rev === "rejected") return isVi ? "Đã từ chối" : "Rejected";
+                                  if (rev === "archived") return isVi ? "Đã lưu trữ" : "Archived";
+                                  return isVi ? "Chờ thẩm định" : "Pending review";
+                                })()}
                               </span>
                             </div>
                           </TableCell>
@@ -931,15 +947,19 @@ export function AIManagement() {
           }}
         />
 
-        {/* ADM-19 Approve/Reject & ADM-13 Archive Modal */}
+        {/* Approve/Reject & Archive Modal */}
         {reviewModalDoc && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
             <div className="w-full max-w-md rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-xl space-y-4">
               <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
                 <h3 className="text-base font-bold text-slate-900 dark:text-white">
                   {reviewModalMode === "archive"
-                    ? "Lưu trữ Tài liệu Y khoa (ADM-13)"
-                    : "Thẩm định Tài liệu RAG (ADM-19)"}
+                    ? isVi
+                      ? "Lưu trữ tài liệu y khoa"
+                      : "Archive Medical Document"
+                    : isVi
+                      ? "Thẩm định tài liệu tri thức AI"
+                      : "Review AI Knowledge Document"}
                 </h3>
                 <button
                   type="button"
@@ -951,7 +971,7 @@ export function AIManagement() {
               </div>
 
               <p className="text-xs text-slate-600 dark:text-slate-300">
-                Tài liệu: <b>{reviewModalDoc.title}</b>
+                {isVi ? "Tài liệu:" : "Document:"} <b>{reviewModalDoc.title}</b>
               </p>
 
               {reviewModalMode !== "archive" && (
@@ -965,7 +985,7 @@ export function AIManagement() {
                         : "bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700"
                     }`}
                   >
-                    Approve (Đưa vào RAG)
+                    {isVi ? "Phê duyệt" : "Approve"}
                   </button>
                   <button
                     type="button"
@@ -976,20 +996,26 @@ export function AIManagement() {
                         : "bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700"
                     }`}
                   >
-                    Reject (Từ chối)
+                    {isVi ? "Từ chối" : "Reject"}
                   </button>
                 </div>
               )}
 
               <div>
                 <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
-                  Ghi chú thẩm định / Lý do lưu trữ {reviewModalMode !== "approve" ? "*" : ""}
+                  {isVi
+                    ? `Ghi chú thẩm định / Lý do lưu trữ ${reviewModalMode !== "approve" ? "*" : ""}`
+                    : `Review Notes / Archive Reason ${reviewModalMode !== "approve" ? "*" : ""}`}
                 </label>
                 <textarea
                   rows={3}
                   value={reviewReasonInput}
                   onChange={(e) => setReviewReasonInput(e.target.value)}
-                  placeholder="Nhập ghi chú kiểm duyệt y khoa..."
+                  placeholder={
+                    isVi
+                      ? "Nhập ghi chú kiểm duyệt y khoa..."
+                      : "Enter medical review notes..."
+                  }
                   className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-3 text-xs text-slate-900 dark:text-white"
                 />
               </div>
@@ -1000,13 +1026,17 @@ export function AIManagement() {
                   onClick={() => setReviewModalDoc(null)}
                   className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300"
                 >
-                  Hủy
+                  {isVi ? "Hủy" : "Cancel"}
                 </button>
                 <button
                   type="button"
                   onClick={() => {
                     if (reviewModalMode !== "approve" && !reviewReasonInput.trim()) {
-                      showToast.error("Vui lòng nhập lý do từ chối / lưu trữ");
+                      showToast.error(
+                        isVi
+                          ? "Vui lòng nhập lý do từ chối hoặc lưu trữ"
+                          : "Please enter a reason for rejection or archiving",
+                      );
                       return;
                     }
                     const nextReviewStatus =
@@ -1023,12 +1053,16 @@ export function AIManagement() {
                         note: reviewReasonInput.trim(),
                       },
                     }));
-                    showToast.success(`Đã cập nhật reviewStatus: ${nextReviewStatus}`);
+                    showToast.success(
+                      isVi
+                        ? "Đã cập nhật trạng thái thẩm định tài liệu"
+                        : "Document review status updated",
+                    );
                     setReviewModalDoc(null);
                   }}
                   className="px-4 py-2 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-xs font-bold"
                 >
-                  Xác nhận
+                  {isVi ? "Xác nhận" : "Confirm"}
                 </button>
               </div>
             </div>

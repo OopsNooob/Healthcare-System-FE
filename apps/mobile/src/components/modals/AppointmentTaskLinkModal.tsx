@@ -31,13 +31,14 @@ export const AppointmentTaskLinkModal: React.FC<AppointmentTaskLinkModalProps> =
   onLinkConsultation,
   onBookNewSlot,
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isVi = i18n.language?.startsWith('vi');
 
   const candidateConsultations: CandidateConsultation[] = [
     {
       id: 'con-sched-101',
       doctorName: 'Dr. Sarah Connor',
-      specialty: t('mobile.cardiologist', 'Cardiologist'),
+      specialty: t('mobile.cardiologist', isVi ? 'Tim mạch' : 'Cardiologist'),
       scheduledStartAt: '2026-11-08 09:30 AM',
       requestStatus: 'accepted',
       sessionStatus: 'not_started',
@@ -45,7 +46,7 @@ export const AppointmentTaskLinkModal: React.FC<AppointmentTaskLinkModalProps> =
     {
       id: 'con-sched-102',
       doctorName: 'Dr. Sarah Connor',
-      specialty: t('mobile.cardiologist', 'Cardiologist'),
+      specialty: t('mobile.cardiologist', isVi ? 'Tim mạch' : 'Cardiologist'),
       scheduledStartAt: '2026-11-15 02:00 PM',
       requestStatus: 'accepted',
       sessionStatus: 'not_started',
@@ -61,10 +62,12 @@ export const AppointmentTaskLinkModal: React.FC<AppointmentTaskLinkModalProps> =
     onLinkConsultation(selectedId);
     Toast.show({
       type: 'success',
-      text1: t('mobile.appointment_linked_title', 'Đã liên kết lịch khám'),
+      text1: t('mobile.appointment_linked_title', isVi ? 'Đã liên kết lịch khám' : 'Appointment Linked'),
       text2: t(
         'mobile.appointment_linked_desc',
-        'Nhiệm vụ sẽ tự động hoàn tất sau khi buổi tư vấn kết thúc (completed).'
+        isVi
+          ? 'Nhiệm vụ sẽ tự động hoàn tất sau khi buổi tư vấn kết thúc.'
+          : 'This task will automatically complete once the consultation concludes.'
       ),
     });
     onClose();
@@ -82,10 +85,10 @@ export const AppointmentTaskLinkModal: React.FC<AppointmentTaskLinkModalProps> =
               </View>
               <View style={tw('flex-1')}>
                 <Text style={tw('text-lg font-bold text-slate-900 dark:text-white')} numberOfLines={1}>
-                  {taskTitle || t('mobile.link_appointment_task', 'Liên kết Lịch tái khám')}
+                  {taskTitle || t('mobile.link_appointment_task', isVi ? 'Liên kết Lịch tái khám' : 'Link Follow-up Appointment')}
                 </Text>
                 <Text style={tw('text-xs text-slate-500 dark:text-slate-400')}>
-                  POST /care-tasks/:id/appointment-link
+                  {isVi ? 'Kết nối nhiệm vụ theo dõi với lịch hẹn bác sĩ' : 'Connect care task with your scheduled consultation'}
                 </Text>
               </View>
             </View>
@@ -95,19 +98,24 @@ export const AppointmentTaskLinkModal: React.FC<AppointmentTaskLinkModalProps> =
           </View>
 
           <ScrollView contentContainerStyle={tw('p-5 gap-4')} showsVerticalScrollIndicator={false}>
-            {/* Contract Rule Notice */}
+            {/* Rule Notice */}
             <View style={tw('bg-indigo-50 dark:bg-indigo-950/40 p-4 rounded-2xl border border-indigo-200 dark:border-indigo-800/50 flex-row items-start')}>
               <Info color={twInstance.color('text-indigo-600 dark:text-indigo-400')} size={18} style={tw('mt-0.5 mr-2.5 shrink-0')} />
               <Text style={tw('text-xs text-indigo-900 dark:text-indigo-200 flex-1 leading-5')}>
                 {t(
                   'mobile.appointment_task_policy_note',
-                  'Chọn một lịch khám theo khung giờ (scheduled) đã đặt với bác sĩ phụ trách. Nhiệm vụ này không tạo lịch khám giả và chỉ chuyển sang Hoàn thành khi buổi khám thực tế đạt trạng thái Completed.'
+                  isVi
+                    ? 'Chọn một lịch khám theo khung giờ đã đặt với bác sĩ phụ trách. Nhiệm vụ này sẽ tự động chuyển sang Hoàn thành sau khi buổi khám thực tế kết thúc.'
+                    : 'Select a scheduled appointment with your assigned doctor. This task will automatically be marked as completed once the consultation finishes.'
                 )}
               </Text>
             </View>
 
             <Text style={tw('text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400')}>
-              {t('mobile.select_existing_scheduled_consultation', 'Chọn lịch khám Scheduled hiện có')}
+              {t(
+                'mobile.select_existing_scheduled_consultation',
+                isVi ? 'Chọn lịch khám đã đặt hiện có' : 'Select an Existing Scheduled Appointment'
+              )}
             </Text>
 
             <View style={tw('gap-3')}>
@@ -136,7 +144,7 @@ export const AppointmentTaskLinkModal: React.FC<AppointmentTaskLinkModalProps> =
                         {item.doctorName} • {item.specialty}
                       </Text>
                       <Text style={tw('text-[11px] text-slate-400 dark:text-slate-500 mt-0.5')}>
-                        ID: {item.id} • {item.requestStatus.toUpperCase()} / {item.sessionStatus}
+                        {isVi ? 'Đã xác nhận • Chưa bắt đầu' : 'Accepted • Not started'}
                       </Text>
                     </View>
                     {active && <CheckCircle2 color={twInstance.color('text-blue-600 dark:text-blue-400')} size={20} />}
@@ -154,7 +162,10 @@ export const AppointmentTaskLinkModal: React.FC<AppointmentTaskLinkModalProps> =
                 style={tw('p-3.5 rounded-2xl border border-dashed border-slate-300 dark:border-slate-700 flex-row items-center justify-center')}
               >
                 <Text style={tw('text-xs font-bold text-slate-700 dark:text-slate-300 mr-1.5')}>
-                  {t('mobile.book_new_scheduled_slot', 'Chưa có lịch phù hợp? Đặt lịch theo khung giờ mới')}
+                  {t(
+                    'mobile.book_new_scheduled_slot',
+                    isVi ? 'Chưa có lịch phù hợp? Đặt lịch theo khung giờ mới' : 'No suitable appointment? Book a new slot'
+                  )}
                 </Text>
                 <ArrowRight color={twInstance.color('text-slate-600 dark:text-slate-400')} size={15} />
               </TouchableOpacity>
@@ -167,7 +178,9 @@ export const AppointmentTaskLinkModal: React.FC<AppointmentTaskLinkModalProps> =
               onPress={onClose}
               style={tw('flex-1 py-3.5 rounded-xl bg-slate-100 dark:bg-slate-800 items-center')}
             >
-              <Text style={tw('font-bold text-slate-700 dark:text-slate-300 text-sm')}>{t('mobile.cancel', 'Hủy')}</Text>
+              <Text style={tw('font-bold text-slate-700 dark:text-slate-300 text-sm')}>
+                {t('mobile.cancel', isVi ? 'Hủy' : 'Cancel')}
+              </Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={handleConfirmLink}
@@ -175,7 +188,7 @@ export const AppointmentTaskLinkModal: React.FC<AppointmentTaskLinkModalProps> =
             >
               <Link2 color="#0f172a" size={18} style={tw('mr-1.5')} />
               <Text style={tw('font-bold text-slate-900 text-sm')}>
-                {t('mobile.confirm_link_consultation', 'Liên kết lịch khám')}
+                {t('mobile.confirm_link_consultation', isVi ? 'Liên kết lịch khám' : 'Link Appointment')}
               </Text>
             </TouchableOpacity>
           </View>

@@ -38,7 +38,8 @@ import {
 } from '@healthcare/api-client';
 
 export default function AppointmentsScreen() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isVi = i18n.language === 'vi';
   useThemeContext();
 
   const router = useRouter();
@@ -158,7 +159,7 @@ export default function AppointmentsScreen() {
         const d = item.scheduledStartAt ? new Date(item.scheduledStartAt) : new Date();
         return {
           id: item._id || item.id,
-          doctor: item.doctor?.fullName || item.doctorId || 'Bác sĩ chuyên khoa',
+          doctor: item.doctor?.fullName || item.doctorId || (isVi ? 'Bác sĩ chuyên khoa' : 'Specialist doctor'),
           specialty: item.doctor?.doctorProfile?.specialty || item.doctor?.specialty || 'General Practitioner',
           date: d.toLocaleDateString(),
           time: d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -215,6 +216,33 @@ export default function AppointmentsScreen() {
     loadData();
   };
 
+  const statusLabel = (status: string) => {
+    const map: Record<string, [string, string]> = {
+      Waiting: ['Chờ khám', 'Waiting'],
+      Confirmed: ['Đã xác nhận', 'Confirmed'],
+      Completed: ['Hoàn thành', 'Completed'],
+      Cancelled: ['Đã hủy', 'Cancelled'],
+      Pending: ['Chờ duyệt', 'Pending'],
+      Interrupted: ['Bị gián đoạn', 'Interrupted'],
+    };
+    const entry = map[status];
+    return entry ? (isVi ? entry[0] : entry[1]) : status;
+  };
+
+  const typeLabel = (type: string) =>
+    type === 'Video Call' ? (isVi ? 'Gọi video' : 'Video call') : isVi ? 'Trò chuyện' : 'Chat';
+
+  const specialtyLabel = (specialty: string) => {
+    const map: Record<string, string> = {
+      Cardiologist: 'Bác sĩ tim mạch',
+      Dermatologist: 'Bác sĩ da liễu',
+      Pediatrician: 'Bác sĩ nhi khoa',
+      Neurologist: 'Bác sĩ thần kinh',
+      'General Practitioner': 'Bác sĩ đa khoa',
+    };
+    return isVi ? map[specialty] || specialty : specialty;
+  };
+
   // Patient Scheduled Check-in (POST /consultations/:id/check-in)
   const handleCheckIn = async (apt: any) => {
     try {
@@ -241,10 +269,8 @@ export default function AppointmentsScreen() {
     );
     Toast.show({
       type: 'success',
-      text1: t('mobile.checked_in_title', 'Đã Check-in vào phòng chờ (CON-10)'),
-      text2: t(
-        'mobile.checked_in_desc',
-        'Trạng thái đã chuyển sang Waiting. Vui lòng giữ kết nối để chờ bác sĩ gọi.'
+      text1: t('mobile.checked_in_title', 'Đã vào phòng chờ'),
+      text2: t('mobile.checked_in_desc', 'Bạn đã ở trong hàng đợi. Vui lòng giữ kết nối để chờ bác sĩ gọi.'
       ),
     });
   };
@@ -262,7 +288,7 @@ export default function AppointmentsScreen() {
     Toast.show({
       type: 'success',
       text1: t('mobile.rescheduled_title', 'Đã đổi khung giờ khám'),
-      text2: `${rescheduleDate} • ${rescheduleSlot} (POST /consultations/:id/reschedule)`,
+      text2: `${rescheduleDate} • ${rescheduleSlot}`,
     });
   };
 
@@ -278,7 +304,7 @@ export default function AppointmentsScreen() {
     setReviewModalVisible(false);
     Toast.show({
       type: 'success',
-      text1: t('mobile.review_submitted_title', 'Đã gửi đánh giá bác sĩ (CON-15)'),
+      text1: t('mobile.review_submitted_title', 'Đã gửi đánh giá bác sĩ'),
       text2: `${rating}/5 ★`,
     });
   };
@@ -344,11 +370,21 @@ export default function AppointmentsScreen() {
         <CalendarX2 color="#94a3b8" size={40} />
       </View>
       <Text style={tw('text-xl font-bold text-slate-900 dark:text-white mb-2 text-center')}>
-        No {tab} appointments
+        {tab === 'upcoming'
+          ? isVi
+            ? 'Chưa có lịch hẹn sắp tới'
+            : 'No upcoming appointments'
+          : isVi
+          ? 'Chưa có lịch sử khám'
+          : 'No appointment history'}
       </Text>
       <Text style={tw('text-slate-500 dark:text-slate-400 text-center mb-8')}>
         {tab === 'upcoming'
-          ? "You don't have any upcoming appointments scheduled at the moment."
+          ? isVi
+            ? 'Hiện bạn chưa có lịch hẹn nào sắp tới.'
+            : "You don't have any upcoming appointments scheduled at the moment."
+          : isVi
+          ? 'Bạn chưa có buổi khám nào.'
           : "You haven't had any appointments yet."}
       </Text>
       {tab === 'upcoming' && (
@@ -460,12 +496,12 @@ export default function AppointmentsScreen() {
                                   )}
                                 >
                                   {apt.calledAt
-                                    ? `Called at ${apt.calledAt} • Nhấn Vào phòng khám ngay`
+                                    ? isVi
+                                      ? `Đã gọi lúc ${apt.calledAt} • Nhấn "Vào phòng khám" ngay`
+                                      : `Called at ${apt.calledAt} • Tap "Join Room" now`
                                     : apt.estimatedWaitMinutes
-                                    ? `${t('mobile.estimated_wait', 'Estimated wait')}: ${apt.estimatedWaitMinutes}m`
-                                    : t(
-                                        'mobile.eta_not_configured',
-                                        'Đang chờ bác sĩ gọi theo thứ tự ưu tiên (ETA_POLICY_NOT_CONFIGURED)'
+                                    ? `${t('mobile.estimated_wait', isVi ? 'Thời gian chờ ước tính' : 'Estimated wait')}: ${apt.estimatedWaitMinutes} ${isVi ? 'phút' : 'min'}`
+                                    : t('mobile.eta_not_configured', 'Đang chờ bác sĩ gọi theo thứ tự ưu tiên'
                                       )}
                                 </Text>
                               </View>
@@ -495,12 +531,19 @@ export default function AppointmentsScreen() {
                         <View style={tw('flex-1 mr-2')}>
                           <Text style={tw('text-lg font-bold text-slate-900 dark:text-white')}>{apt.doctor}</Text>
                           <Text style={tw('text-sm font-medium text-slate-500 dark:text-slate-400')}>
-                            {apt.specialty} • {apt.mode === 'on_demand' ? 'On-Demand' : 'Scheduled'}
+                            {specialtyLabel(apt.specialty)} •{' '}
+                            {apt.mode === 'on_demand'
+                              ? isVi
+                                ? 'Khám ngay'
+                                : 'On-demand'
+                              : isVi
+                              ? 'Đặt lịch'
+                              : 'Scheduled'}
                           </Text>
                         </View>
                         <View
                           style={tw(
-                            `px-3 py-1 rounded-full ${
+                            `px-3 py-1 rounded-full shrink-0 self-start ${
                               apt.status === 'Waiting'
                                 ? 'bg-amber-100 dark:bg-amber-900/40'
                                 : apt.status === 'Confirmed'
@@ -510,6 +553,7 @@ export default function AppointmentsScreen() {
                           )}
                         >
                           <Text
+                            numberOfLines={1}
                             style={tw(
                               `text-xs font-bold ${
                                 apt.status === 'Waiting'
@@ -520,7 +564,7 @@ export default function AppointmentsScreen() {
                               }`
                             )}
                           >
-                            {apt.requestStatus} / {apt.sessionStatus}
+                            {statusLabel(apt.status)}
                           </Text>
                         </View>
                       </View>
@@ -540,7 +584,7 @@ export default function AppointmentsScreen() {
                           ) : (
                             <MessageCircle color="#94a3b8" size={16} />
                           )}
-                          <Text style={tw('text-slate-700 dark:text-slate-200 ml-2 text-sm font-medium')}>{apt.type}</Text>
+                          <Text style={tw('text-slate-700 dark:text-slate-200 ml-2 text-sm font-medium')}>{typeLabel(apt.type)}</Text>
                         </View>
                       </View>
 
@@ -565,7 +609,7 @@ export default function AppointmentsScreen() {
                               >
                                 <LogIn color="#ffffff" size={18} style={tw('mr-2')} />
                                 <Text style={tw('text-white font-bold text-sm')}>
-                                  {t('mobile.check_in_waiting_room', 'Check-in vào phòng chờ (Khung ±15p)')}
+                                  {t('mobile.check_in_waiting_room', 'Vào phòng chờ (trong khung ±15 phút)')}
                                 </Text>
                               </TouchableOpacity>
                             )}
@@ -609,12 +653,12 @@ export default function AppointmentsScreen() {
                         <View style={tw('flex-1 mr-2')}>
                           <Text style={tw('text-lg font-bold text-slate-900 dark:text-white')}>{apt.doctor}</Text>
                           <Text style={tw('text-sm font-medium text-slate-500 dark:text-slate-400')}>
-                            {apt.specialty}
+                            {specialtyLabel(apt.specialty)}
                           </Text>
                         </View>
                         <View
                           style={tw(
-                            `px-3 py-1 rounded-full ${
+                            `px-3 py-1 rounded-full shrink-0 self-start ${
                               apt.status === 'Completed'
                                 ? 'bg-emerald-100 dark:bg-emerald-900/40'
                                 : apt.status === 'Interrupted'
@@ -624,6 +668,7 @@ export default function AppointmentsScreen() {
                           )}
                         >
                           <Text
+                            numberOfLines={1}
                             style={tw(
                               `text-xs font-bold ${
                                 apt.status === 'Completed'
@@ -634,7 +679,7 @@ export default function AppointmentsScreen() {
                               }`
                             )}
                           >
-                            {apt.status}
+                            {statusLabel(apt.status)}
                           </Text>
                         </View>
                       </View>
@@ -653,7 +698,7 @@ export default function AppointmentsScreen() {
                       {apt.followUpRecommendation && (
                         <View style={tw('bg-indigo-50 dark:bg-indigo-950/30 p-3.5 rounded-2xl border border-indigo-100 dark:border-indigo-900/50 mb-4')}>
                           <Text style={tw('text-xs font-bold text-indigo-800 dark:text-indigo-200 mb-1')}>
-                            {t('mobile.doctor_follow_up_note', 'Dặn dò tái khám của Bác sĩ (Follow-up)')}
+                            {t('mobile.doctor_follow_up_note', 'Dặn dò tái khám của bác sĩ')}
                           </Text>
                           <Text style={tw('text-xs text-indigo-700 dark:text-indigo-300 leading-4')}>
                             {apt.followUpRecommendation}
@@ -705,7 +750,7 @@ export default function AppointmentsScreen() {
                             <Text style={tw('text-white font-bold text-xs')}>
                               {apt.userRating
                                 ? t('mobile.edit_review_btn', 'Sửa đánh giá')
-                                : t('mobile.rate_doctor_btn', 'Đánh giá Bác sĩ')}
+                                : t('mobile.rate_doctor_btn', 'Đánh giá bác sĩ')}
                             </Text>
                           </TouchableOpacity>
                         )}
@@ -724,10 +769,11 @@ export default function AppointmentsScreen() {
             <View style={tw('flex-row justify-between items-center mb-4')}>
               <View>
                 <Text style={tw('text-lg font-bold text-slate-900 dark:text-white')}>
-                  {t('mobile.reschedule_modal_title', 'Đổi khung giờ khám (Reschedule)')}
+                  {t('mobile.reschedule_modal_title', 'Đổi khung giờ khám')}
                 </Text>
                 <Text style={tw('text-xs text-slate-500 dark:text-slate-400')}>
-                  {selectedAptForReschedule?.doctor} • Cutoff: 60m trước giờ hẹn
+                  {selectedAptForReschedule?.doctor} •{' '}
+                  {isVi ? 'Hạn đổi lịch: trước giờ hẹn 60 phút' : 'Reschedule cutoff: 60 min before'}
                 </Text>
               </View>
               <TouchableOpacity onPress={() => setRescheduleModalVisible(false)}>
@@ -759,7 +805,7 @@ export default function AppointmentsScreen() {
             </View>
 
             <Text style={tw('text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-2')}>
-              {t('mobile.select_available_slot', 'Chọn Slot trống (status = available)')}
+              {t('mobile.select_available_slot', 'Chọn khung giờ còn trống')}
             </Text>
             <View style={tw('flex-row flex-wrap gap-2 mb-6')}>
               {['09:30 AM', '10:30 AM', '02:00 PM', '03:30 PM'].map((slot) => (
@@ -806,7 +852,7 @@ export default function AppointmentsScreen() {
             <View style={tw('flex-row justify-between items-center mb-4')}>
               <View>
                 <Text style={tw('text-lg font-bold text-slate-900 dark:text-white')}>
-                  {t('mobile.rate_consultation_title', 'Đánh giá buổi tư vấn (CON-15)')}
+                  {t('mobile.rate_consultation_title', 'Đánh giá buổi tư vấn')}
                 </Text>
                 <Text style={tw('text-xs text-slate-500 dark:text-slate-400')}>
                   {selectedAptForReview?.doctor}

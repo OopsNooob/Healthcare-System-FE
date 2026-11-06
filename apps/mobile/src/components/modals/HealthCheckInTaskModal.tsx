@@ -78,13 +78,23 @@ export const HealthCheckInTaskModal: React.FC<HealthCheckInTaskModalProps> = ({
   const handleConfirm = () => {
     if (severity === 'none' && symptomCodes.length > 0) {
       setValidationError(
-        t('mobile.checkin_err_none_with_symptoms', 'Khi mức độ là Không có triệu chứng, danh sách triệu chứng phải để trống.')
+        t(
+          'mobile.checkin_err_none_with_symptoms',
+          isVi
+            ? 'Khi mức độ là Không có triệu chứng, danh sách triệu chứng phải để trống.'
+            : 'When severity is None, no symptoms can be selected.'
+        )
       );
       return;
     }
     if (severity !== 'none' && symptomCodes.length === 0) {
       setValidationError(
-        t('mobile.checkin_err_require_symptom', 'Vui lòng chọn ít nhất 1 mã triệu chứng khi mức độ khác "Không có".')
+        t(
+          'mobile.checkin_err_require_symptom',
+          isVi
+            ? 'Vui lòng chọn ít nhất 1 triệu chứng khi mức độ khác "Không có".'
+            : 'Please select at least 1 symptom when severity is not None.'
+        )
       );
       return;
     }
@@ -99,23 +109,40 @@ export const HealthCheckInTaskModal: React.FC<HealthCheckInTaskModalProps> = ({
     onSubmit(payload);
     Toast.show({
       type: 'success',
-      text1: t('mobile.success', 'Thành công'),
-      text2: t('mobile.checkin_submitted_desc', 'Đã ghi nhận phiếu kiểm tra triệu chứng định kỳ (health-check-in.v1).'),
+      text1: t('mobile.success', isVi ? 'Thành công' : 'Success'),
+      text2: t(
+        'mobile.checkin_submitted_desc',
+        isVi
+          ? 'Đã ghi nhận phiếu kiểm tra triệu chứng định kỳ.'
+          : 'Routine symptom check-in submitted successfully.'
+      ),
     });
     onClose();
   };
 
   const statusOptions: { id: OverallStatus; label: string; color: string }[] = [
-    { id: 'improved', label: t('mobile.status_improved', 'Cải thiện (Improved)'), color: 'emerald' },
-    { id: 'stable', label: t('mobile.status_stable', 'Ổn định (Stable)'), color: 'blue' },
-    { id: 'worsened', label: t('mobile.status_worsened', 'Xấu đi (Worsened)'), color: 'rose' },
+    {
+      id: 'improved',
+      label: t('mobile.status_improved', isVi ? 'Cải thiện' : 'Improved'),
+      color: 'emerald',
+    },
+    {
+      id: 'stable',
+      label: t('mobile.status_stable', isVi ? 'Ổn định' : 'Stable'),
+      color: 'blue',
+    },
+    {
+      id: 'worsened',
+      label: t('mobile.status_worsened', isVi ? 'Xấu đi' : 'Worsened'),
+      color: 'rose',
+    },
   ];
 
   const severityOptions: { id: CheckInSeverity; label: string }[] = [
-    { id: 'none', label: t('mobile.sev_none', 'Không có (None)') },
-    { id: 'mild', label: t('mobile.sev_mild', 'Nhẹ (Mild)') },
-    { id: 'moderate', label: t('mobile.sev_moderate', 'Trung bình (Moderate)') },
-    { id: 'severe', label: t('mobile.sev_severe', 'Nặng (Severe)') },
+    { id: 'none', label: t('mobile.sev_none', isVi ? 'Không có' : 'None') },
+    { id: 'mild', label: t('mobile.sev_mild', isVi ? 'Nhẹ' : 'Mild') },
+    { id: 'moderate', label: t('mobile.sev_moderate', isVi ? 'Trung bình' : 'Moderate') },
+    { id: 'severe', label: t('mobile.sev_severe', isVi ? 'Nặng' : 'Severe') },
   ];
 
   return (
@@ -130,10 +157,17 @@ export const HealthCheckInTaskModal: React.FC<HealthCheckInTaskModalProps> = ({
               </View>
               <View style={tw('flex-1')}>
                 <Text style={tw('text-lg font-bold text-slate-900 dark:text-white')} numberOfLines={1}>
-                  {taskTitle || t('mobile.health_check_in_title', 'Kiểm tra triệu chứng định kỳ')}
+                  {taskTitle ||
+                    t(
+                      'mobile.health_check_in_title',
+                      isVi ? 'Kiểm tra triệu chứng định kỳ' : 'Routine Symptom Check-in'
+                    )}
                 </Text>
                 <Text style={tw('text-xs text-slate-500 dark:text-slate-400')}>
-                  Schema: health-check-in.v1 • {t('mobile.structured_only', 'Biểu mẫu chuẩn hóa (Không nhập tự do)')}
+                  {t(
+                    'mobile.structured_only',
+                    isVi ? 'Biểu mẫu đánh giá sức khỏe định kỳ' : 'Structured daily health assessment'
+                  )}
                 </Text>
               </View>
             </View>
@@ -146,7 +180,11 @@ export const HealthCheckInTaskModal: React.FC<HealthCheckInTaskModalProps> = ({
             {/* 1. Overall Status */}
             <View>
               <Text style={tw('text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2.5')}>
-                1. {t('mobile.overall_status_label', 'Tình trạng sức khỏe tổng thể hôm nay')}
+                1.{' '}
+                {t(
+                  'mobile.overall_status_label',
+                  isVi ? 'Tình trạng sức khỏe tổng thể hôm nay' : 'Overall Health Status Today'
+                )}
               </Text>
               <View style={tw('gap-2')}>
                 {statusOptions.map((opt) => {
@@ -182,7 +220,7 @@ export const HealthCheckInTaskModal: React.FC<HealthCheckInTaskModalProps> = ({
             {/* 2. Severity */}
             <View>
               <Text style={tw('text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2.5')}>
-                2. {t('mobile.severity_label', 'Mức độ triệu chứng (Severity)')}
+                2. {t('mobile.severity_label', isVi ? 'Mức độ triệu chứng' : 'Symptom Severity')}
               </Text>
               <View style={tw('flex-row flex-wrap gap-2')}>
                 {severityOptions.map((sev) => {
@@ -224,7 +262,7 @@ export const HealthCheckInTaskModal: React.FC<HealthCheckInTaskModalProps> = ({
             <View>
               <View style={tw('flex-row justify-between items-center mb-2.5')}>
                 <Text style={tw('text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400')}>
-                  3. {t('mobile.symptom_codes_label', 'Danh mục triệu chứng chuẩn (Allowlist)')}
+                  3. {t('mobile.symptom_codes_label', isVi ? 'Triệu chứng gặp phải' : 'Reported Symptoms')}
                 </Text>
                 <Text style={tw('text-xs font-semibold text-indigo-600 dark:text-indigo-400')}>
                   {symptomCodes.length}/8
@@ -237,7 +275,9 @@ export const HealthCheckInTaskModal: React.FC<HealthCheckInTaskModalProps> = ({
                   <Text style={tw('text-xs text-emerald-800 dark:text-emerald-300 flex-1')}>
                     {t(
                       'mobile.severity_none_hint',
-                      'Bạn đang chọn "Không có triệu chứng" (symptomCodes = []). Chọn bất kỳ triệu chứng nào bên dưới sẽ tự chuyển mức độ sang Nhẹ.'
+                      isVi
+                        ? 'Bạn đang chọn "Không có triệu chứng". Chọn bất kỳ triệu chứng nào bên dưới sẽ tự chuyển mức độ sang Nhẹ.'
+                        : 'You selected "No symptoms". Selecting any symptom below will automatically set severity to Mild.'
                     )}
                   </Text>
                 </View>
@@ -287,14 +327,16 @@ export const HealthCheckInTaskModal: React.FC<HealthCheckInTaskModalProps> = ({
               onPress={onClose}
               style={tw('flex-1 py-3.5 rounded-xl bg-slate-100 dark:bg-slate-800 items-center')}
             >
-              <Text style={tw('font-bold text-slate-700 dark:text-slate-300 text-sm')}>{t('mobile.cancel', 'Hủy')}</Text>
+              <Text style={tw('font-bold text-slate-700 dark:text-slate-300 text-sm')}>
+                {t('mobile.cancel', isVi ? 'Hủy' : 'Cancel')}
+              </Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={handleConfirm}
               style={tw('flex-1 py-3.5 rounded-xl bg-brand items-center justify-center')}
             >
               <Text style={tw('font-bold text-slate-900 text-sm')}>
-                {t('mobile.submit_check_in', 'Gửi phiếu Check-in')}
+                {t('mobile.submit_check_in', isVi ? 'Gửi phiếu kiểm tra' : 'Submit Check-in')}
               </Text>
             </TouchableOpacity>
           </View>

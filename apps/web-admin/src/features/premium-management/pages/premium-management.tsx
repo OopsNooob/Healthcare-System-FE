@@ -214,7 +214,51 @@ export function PremiumManagement() {
 
   useEffect(() => {
     let isSubscribed = true;
-    loadPlans();
+
+    plansList()
+      .then((res) => {
+        if (!isSubscribed) return;
+        const plans = (res as { data?: Array<Record<string, unknown>> })?.data;
+        if (Array.isArray(plans) && plans.length > 0) {
+          const primaryPlan = (plans.find((p) => p.status === "published") || plans[0]) as {
+            _id?: string;
+            id?: string;
+            name?: string;
+            price?: number;
+            billingCycle?: string;
+            limits?: {
+              aiTokens?: string | number;
+              consultations?: string | number;
+              familyMembers?: string | number;
+            };
+            aiLimit?: string;
+            consultsLimit?: string;
+            familyLimit?: string;
+            features?: string[];
+            status?: string;
+          };
+
+          setActivePlanId(primaryPlan._id || primaryPlan.id || null);
+          setPlanConfig({
+            name: primaryPlan.name || "Chronic Care Pro",
+            price: `${(primaryPlan.price || 299000).toLocaleString("vi-VN")} VND / ${primaryPlan.billingCycle || "month"}`,
+            billingCycle: primaryPlan.billingCycle || "Monthly",
+            aiLimit: `${primaryPlan.limits?.aiTokens || primaryPlan.aiLimit || "500"} turns / cycle`,
+            consultsLimit: `${primaryPlan.limits?.consultations || primaryPlan.consultsLimit || "3"} / cycle`,
+            familyLimit: `${primaryPlan.limits?.familyMembers || primaryPlan.familyLimit || "5"} members`,
+            features: primaryPlan.features || [
+              "500 AI health assistant turns / cycle",
+              "3 priority teleconsultations / cycle",
+              "Up to 5 Chronic Care Programs",
+              "Up to 5 Family profile links",
+            ],
+            isActive: primaryPlan.status === "published",
+          });
+        }
+      })
+      .catch(() => {
+        // Keep local defaults
+      });
 
     const timer = setTimeout(() => {
       if (!isSubscribed) return;
@@ -299,7 +343,7 @@ export function PremiumManagement() {
       isSubscribed = false;
       clearTimeout(timer);
     };
-  }, [loadPlans]);
+  }, []);
 
   const handleReconcileOrder = (orderId: string) => {
     setTransactions((prev) =>
@@ -326,8 +370,8 @@ export function PremiumManagement() {
     );
     toast.success(
       isVi
-        ? `Đối soát đơn hàng ${orderId} thành công (BILL-19): Đã xác nhận IPN và cấp quyền gói.`
-        : `Order ${orderId} reconciled with gateway (BILL-19): IPN verified & entitlement granted.`
+        ? `Đối soát đơn hàng ${orderId} thành công: Đã xác nhận thanh toán và kích hoạt quyền lợi gói.`
+        : `Order ${orderId} reconciled successfully: Payment verified & subscription activated.`
     );
   };
 
@@ -335,15 +379,15 @@ export function PremiumManagement() {
     const nextVersion = `v1.${planVersions.filter((p) => p.code === plan.code).length}-draft`;
     const draftClone: PlanVersionRow = {
       ...plan,
-      id: `${plan.id}-clone-${Date.now()}`,
+      id: `${plan.id}-clone-${nextVersion}`,
       version: nextVersion,
       status: "draft",
     };
     setPlanVersions((prev) => [...prev, draftClone]);
     toast.success(
       isVi
-        ? `Đã tạo bản nháp mới ${plan.code} (${nextVersion}) (BILL-14)`
-        : `Cloned draft version ${plan.code} (${nextVersion}) (BILL-14)`
+        ? `Đã tạo phiên bản nháp mới cho gói ${plan.code} (${nextVersion})`
+        : `Created new draft version for ${plan.code} (${nextVersion})`
     );
   };
 
@@ -361,8 +405,8 @@ export function PremiumManagement() {
     );
     toast.success(
       isVi
-        ? `Đã phát hành phiên bản ${target.code} ${target.version} (BILL-15)`
-        : `Published ${target.code} ${target.version} (BILL-15)`
+        ? `Đã phát hành phiên bản ${target.code} ${target.version}`
+        : `Published ${target.code} ${target.version}`
     );
   };
 
@@ -374,8 +418,8 @@ export function PremiumManagement() {
     );
     toast.info(
       isVi
-        ? `Đã ngừng phát hành ${target.code} ${target.version} (BILL-16)`
-        : `Retired ${target.code} ${target.version} (BILL-16)`
+        ? `Đã ngừng lưu hành phiên bản ${target.code} ${target.version}`
+        : `Retired ${target.code} ${target.version}`
     );
   };
 
@@ -488,25 +532,29 @@ export function PremiumManagement() {
     if (norm === "paid" || norm === "success") {
       return (
         <Badge className="bg-emerald-600 hover:bg-emerald-700 text-white">
-          {t("premiumManagement.status.success", "paid")}
+          {isVi ? "Đã thanh toán" : "Paid"}
         </Badge>
       );
     }
     if (norm === "pending" || norm === "refund_pending") {
       return (
         <Badge className="bg-amber-500 hover:bg-amber-600 text-white">
-          {norm}
+          {isVi ? "Chờ xử lý" : "Pending"}
         </Badge>
       );
     }
     if (norm === "refunded") {
       return (
         <Badge className="bg-purple-600 hover:bg-purple-700 text-white">
-          refunded
+          {isVi ? "Đã hoàn tiền" : "Refunded"}
         </Badge>
       );
     }
-    return <Badge variant="destructive">{norm}</Badge>;
+    return (
+      <Badge variant="destructive">
+        {isVi ? "Thất bại" : "Failed"}
+      </Badge>
+    );
   };
 
   return (
@@ -581,7 +629,7 @@ export function PremiumManagement() {
               }`}
               onClick={() => setActiveTab("config")}
             >
-              {t("premiumManagement.tabs.config", "Plans & Versions (A-07)")}
+              {t("premiumManagement.tabs.config", isVi ? "Gói & Phiên bản" : "Plans & Versions")}
             </button>
             <button
               className={`font-medium pb-4 border-b-2 -mb-4 transition-colors ${
@@ -619,7 +667,7 @@ export function PremiumManagement() {
                 <tr className="bg-gray-50 dark:bg-slate-800 text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wider sticky top-0 z-10 shadow-sm">
                   <th className="px-6 py-3 font-medium">{t("premiumManagement.table.transactionId")}</th>
                   <th className="px-6 py-3 font-medium">{t("premiumManagement.table.user")}</th>
-                  <th className="px-6 py-3 font-medium">{isVi ? "Gói (Plan)" : "Plan"}</th>
+                  <th className="px-6 py-3 font-medium">{isVi ? "Gói dịch vụ" : "Plan"}</th>
                   <th className="px-6 py-3 font-medium">{t("premiumManagement.table.amount")}</th>
                   <th className="px-6 py-3 font-medium">{t("premiumManagement.table.date")}</th>
                   <th className="px-6 py-3 font-medium">{t("premiumManagement.table.status")}</th>
@@ -660,7 +708,7 @@ export function PremiumManagement() {
                             <button
                               onClick={() => handleReconcileOrder(tx.id)}
                               className="px-2.5 py-1 rounded-md bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-300 hover:bg-indigo-100 text-xs font-semibold flex items-center gap-1"
-                              title="POST /admin/billing/orders/:id/reconcile (BILL-19)"
+                              title={isVi ? "Đối soát giao dịch với cổng thanh toán" : "Reconcile payment order"}
                             >
                               <RefreshCw size={12} />
                               {isVi ? "Đối soát" : "Reconcile"}
@@ -672,7 +720,7 @@ export function PremiumManagement() {
                               setIsTransactionModalOpen(true);
                             }}
                             className="p-1 text-gray-400 hover:text-brand transition-colors"
-                            title="View Details"
+                            title={isVi ? "Xem chi tiết" : "View Details"}
                           >
                             <Eye className="w-4 h-4" />
                           </button>
@@ -701,18 +749,18 @@ export function PremiumManagement() {
             </table>
           ) : activeTab === "config" ? (
             <div className="p-6 space-y-6">
-              {/* Multi-tier Plan Versions Table (A-07 / BILL-12..16) */}
+              {/* Multi-tier Plan Versions Table */}
               <div className="border border-gray-200 dark:border-slate-800 rounded-xl overflow-hidden bg-white dark:bg-slate-900 shadow-sm">
                 <div className="bg-slate-50 dark:bg-slate-800/60 px-6 py-4 border-b border-gray-200 dark:border-slate-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                   <div>
                     <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">
                       {isVi
-                        ? "Danh mục Gói & Phiên bản (FREE / PLUS / CARE • BILL-12..16)"
-                        : "Subscription Plan Versions Catalog (FREE / PLUS / CARE • BILL-12..16)"}
+                        ? "Danh mục Gói & Phiên bản"
+                        : "Subscription Plan Versions Catalog"}
                     </h3>
                     <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                       {isVi
-                        ? "Mỗi gói chỉ có tối đa 1 phiên bản đang phát hành (published). Tạo bản nháp (Clone Draft) để chỉnh sửa trước khi phát hành."
+                        ? "Mỗi gói chỉ có tối đa 1 phiên bản đang phát hành. Tạo bản nháp mới để chỉnh sửa hạn mức trước khi phát hành."
                         : "Each plan code has at most 1 published version. Clone a draft to modify quotas before publishing."}
                     </p>
                   </div>
@@ -722,14 +770,14 @@ export function PremiumManagement() {
                       className="px-3 py-2 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/50 font-medium transition-colors flex items-center gap-1.5 shadow-sm text-xs"
                     >
                       <Sparkles size={14} />
-                      {t("premiumManagement.config.deployDefaults", "Deploy Defaults (BILL-12)")}
+                      {t("premiumManagement.config.deployDefaults", isVi ? "Khởi tạo gói mặc định" : "Deploy Default Plans")}
                     </button>
                     <button
                       onClick={() => setIsEditPlanOpen(true)}
                       className="px-3 py-2 bg-white dark:bg-slate-800 text-brand border border-brand/20 rounded-lg hover:bg-brand/5 dark:hover:bg-brand/10 font-semibold transition-colors flex items-center gap-1.5 shadow-sm text-xs"
                     >
                       <Edit size={14} />
-                      {t("premiumManagement.config.editPlan", "Edit Draft Config")}
+                      {t("premiumManagement.config.editPlan", isVi ? "Chỉnh sửa cấu hình gói" : "Edit Draft Config")}
                     </button>
                   </div>
                 </div>
@@ -738,15 +786,15 @@ export function PremiumManagement() {
                   <table className="w-full text-left text-xs border-collapse">
                     <thead>
                       <tr className="bg-slate-50/70 dark:bg-slate-800/40 text-slate-500 dark:text-slate-400 uppercase border-b border-slate-200 dark:border-slate-800">
-                        <th className="px-4 py-3 font-semibold">Code</th>
-                        <th className="px-4 py-3 font-semibold">Version</th>
+                        <th className="px-4 py-3 font-semibold">{isVi ? "Mã gói" : "Code"}</th>
+                        <th className="px-4 py-3 font-semibold">{isVi ? "Phiên bản" : "Version"}</th>
                         <th className="px-4 py-3 font-semibold">{isVi ? "Giá (VND)" : "Price (VND)"}</th>
-                        <th className="px-4 py-3 font-semibold">AI Quota</th>
-                        <th className="px-4 py-3 font-semibold">Consults</th>
-                        <th className="px-4 py-3 font-semibold">Care Programs</th>
-                        <th className="px-4 py-3 font-semibold">Family Links</th>
-                        <th className="px-4 py-3 font-semibold">Status</th>
-                        <th className="px-4 py-3 font-semibold text-right">Actions</th>
+                        <th className="px-4 py-3 font-semibold">{isVi ? "Hạn mức AI" : "AI Quota"}</th>
+                        <th className="px-4 py-3 font-semibold">{isVi ? "Lượt khám" : "Consults"}</th>
+                        <th className="px-4 py-3 font-semibold">{isVi ? "Chương trình" : "Care Programs"}</th>
+                        <th className="px-4 py-3 font-semibold">{isVi ? "Liên kết gia đình" : "Family Links"}</th>
+                        <th className="px-4 py-3 font-semibold">{isVi ? "Trạng thái" : "Status"}</th>
+                        <th className="px-4 py-3 font-semibold text-right">{isVi ? "Thao tác" : "Actions"}</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -766,11 +814,17 @@ export function PremiumManagement() {
                           <td className="px-4 py-3 text-slate-600 dark:text-slate-300">{pv.familyLinkLimit}</td>
                           <td className="px-4 py-3">
                             {pv.status === "published" ? (
-                              <Badge className="bg-emerald-600 text-white text-[10px]">published</Badge>
+                              <Badge className="bg-emerald-600 text-white text-[10px]">
+                                {isVi ? "Đang phát hành" : "Published"}
+                              </Badge>
                             ) : pv.status === "draft" ? (
-                              <Badge className="bg-amber-500 text-white text-[10px]">draft</Badge>
+                              <Badge className="bg-amber-500 text-white text-[10px]">
+                                {isVi ? "Bản nháp" : "Draft"}
+                              </Badge>
                             ) : (
-                              <Badge variant="secondary" className="text-[10px]">retired</Badge>
+                              <Badge variant="secondary" className="text-[10px]">
+                                {isVi ? "Ngừng lưu hành" : "Retired"}
+                              </Badge>
                             )}
                           </td>
                           <td className="px-4 py-3 text-right">
@@ -778,29 +832,29 @@ export function PremiumManagement() {
                               <button
                                 onClick={() => handleClonePlanVersion(pv)}
                                 className="px-2 py-1 rounded border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium flex items-center gap-1"
-                                title="Clone Draft (BILL-14)"
+                                title={isVi ? "Nhân bản thành bản nháp" : "Clone Draft"}
                               >
                                 <Copy size={11} />
-                                Clone
+                                {isVi ? "Nhân bản" : "Clone"}
                               </button>
                               {pv.status === "draft" && (
                                 <button
                                   onClick={() => handlePublishPlanVersion(pv.id)}
                                   className="px-2 py-1 rounded bg-emerald-600 hover:bg-emerald-700 text-white font-medium flex items-center gap-1"
-                                  title="Publish Version (BILL-15)"
+                                  title={isVi ? "Phát hành phiên bản" : "Publish Version"}
                                 >
                                   <CheckCircle2 size={11} />
-                                  Publish
+                                  {isVi ? "Phát hành" : "Publish"}
                                 </button>
                               )}
                               {pv.status === "published" && pv.code !== "FREE" && (
                                 <button
                                   onClick={() => handleRetirePlanVersion(pv.id)}
                                   className="px-2 py-1 rounded bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 hover:bg-rose-100 font-medium flex items-center gap-1"
-                                  title="Retire Version (BILL-16)"
+                                  title={isVi ? "Ngừng lưu hành phiên bản" : "Retire Version"}
                                 >
                                   <Archive size={11} />
-                                  Retire
+                                  {isVi ? "Ngừng lưu hành" : "Retire"}
                                 </button>
                               )}
                             </div>
@@ -844,13 +898,13 @@ export function PremiumManagement() {
                   </div>
                   <div className="grid grid-cols-3 gap-4 border-b border-gray-100 dark:border-slate-800 pb-4">
                     <div className="text-gray-500 dark:text-gray-400 font-medium">
-                      {t("premiumManagement.config.limits", "4 Separate Meters (BILL-18)")}
+                      {t("premiumManagement.config.limits", isVi ? "Hạn mức sử dụng" : "Usage Limits")}
                     </div>
                     <div className="col-span-2 text-gray-600 dark:text-gray-300 space-y-1 text-sm">
-                      <p>• AI Turns: {planConfig.aiLimit}</p>
-                      <p>• Consultations: {planConfig.consultsLimit}</p>
-                      <p>• Care Programs: 5 active enrollments</p>
-                      <p>• Family Links: {planConfig.familyLimit}</p>
+                      <p>• {isVi ? "Lượt hỏi đáp AI:" : "AI Turns:"} {planConfig.aiLimit}</p>
+                      <p>• {isVi ? "Lượt tư vấn bác sĩ:" : "Consultations:"} {planConfig.consultsLimit}</p>
+                      <p>• {isVi ? "Chương trình theo dõi:" : "Care Programs:"} 5</p>
+                      <p>• {isVi ? "Liên kết gia đình:" : "Family Links:"} {planConfig.familyLimit}</p>
                     </div>
                   </div>
                   <div className="grid grid-cols-3 gap-4">
@@ -909,7 +963,9 @@ export function PremiumManagement() {
                       {req.amount}
                     </td>
                     <td className="px-6 py-4 text-gray-500 dark:text-gray-400 text-xs font-mono">
-                      Tokens: {req.tokensUsed.toLocaleString()} | Consults: {req.consultsUsed} | Days: {req.daysActive}
+                      {isVi
+                        ? `AI: ${req.tokensUsed.toLocaleString()} | Khám: ${req.consultsUsed} | Số ngày: ${req.daysActive}`
+                        : `Tokens: ${req.tokensUsed.toLocaleString()} | Consults: ${req.consultsUsed} | Days: ${req.daysActive}`}
                     </td>
                     <td className="px-6 py-4">
                       {req.isEligible ? (
@@ -929,11 +985,11 @@ export function PremiumManagement() {
                         </Badge>
                       ) : req.status === "approved" ? (
                         <Badge className="bg-emerald-600 text-white">
-                          Approved
+                          {isVi ? "Đã duyệt" : "Approved"}
                         </Badge>
                       ) : (
                         <Badge variant="secondary" className="bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
-                          Rejected
+                          {isVi ? "Từ chối" : "Rejected"}
                         </Badge>
                       )}
                     </td>

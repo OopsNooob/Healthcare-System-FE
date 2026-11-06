@@ -47,7 +47,8 @@ interface PriorityAlertItem {
 }
 
 export default function DoctorHomeScreen() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isVi = i18n.language === 'vi';
   useThemeContext();
 
   const router = useRouter();
@@ -168,8 +169,10 @@ export default function DoctorHomeScreen() {
     );
     Toast.show({
       type: 'success',
-      text1: t('mobile.alert_acknowledged', 'Đã tiếp nhận cảnh báo (CARE-13)'),
-      text2: `${alertItem.name} • Trạng thái chuyển sang acknowledged`,
+      text1: t('mobile.alert_acknowledged', 'Đã tiếp nhận cảnh báo'),
+      text2: isVi
+          ? `${alertItem.name} • Đã chuyển sang trạng thái tiếp nhận`
+          : `${alertItem.name} • Status changed to acknowledged`,
     });
   };
 
@@ -189,8 +192,10 @@ export default function DoctorHomeScreen() {
     );
     Toast.show({
       type: 'success',
-      text1: t('mobile.consultation_created_from_alert', 'Đã tạo phiên tư vấn từ Cảnh báo (CARE-16)'),
-      text2: `Đã khởi tạo yêu cầu khám cho ${alertItem.name} và gắn kết với CareAlert.`,
+      text1: t('mobile.consultation_created_from_alert', 'Đã tạo phiên tư vấn từ cảnh báo'),
+      text2: isVi
+          ? `Đã khởi tạo yêu cầu khám cho ${alertItem.name} và gắn với cảnh báo này.`
+          : `A consultation request was created for ${alertItem.name} and linked to this alert.`,
     });
   };
 
@@ -212,7 +217,7 @@ export default function DoctorHomeScreen() {
     setResolutionNote('');
     Toast.show({
       type: 'success',
-      text1: t('mobile.success', 'Success (CARE-14)'),
+      text1: t('mobile.success', 'Success'),
       text2: t('mobile.alert_resolved', 'Alert resolved successfully'),
     });
   };
@@ -222,7 +227,7 @@ export default function DoctorHomeScreen() {
       Toast.show({
         type: 'error',
         text1: t('mobile.error', 'Error'),
-        text2: t('mobile.reason_code_required', 'Reason code is required (CARE-15)'),
+        text2: t('mobile.reason_code_required', 'Reason code is required'),
       });
       return;
     }
@@ -233,7 +238,7 @@ export default function DoctorHomeScreen() {
     setReasonCode('');
     Toast.show({
       type: 'success',
-      text1: t('mobile.success', 'Success (CARE-15)'),
+      text1: t('mobile.success', 'Success'),
       text2: t('mobile.alert_dismissed', `Alert dismissed (${reasonCode})`),
     });
   };
@@ -360,7 +365,7 @@ export default function DoctorHomeScreen() {
         <View style={tw('px-6 mb-3 flex-row items-center justify-between')}>
           <View>
             <Text style={tw('text-lg font-bold text-slate-900 dark:text-white')}>
-              {t('mobile.priority_inbox', 'Priority Inbox (CARE-12)')}
+              {t('mobile.priority_inbox', 'Priority Inbox')}
             </Text>
             <Text style={tw('text-sm text-gray-500 dark:text-gray-400')}>
               {t('mobile.needs_attention', 'Cảnh báo vượt ngưỡng & nhiệm vụ cần xử lý')}
@@ -401,7 +406,17 @@ export default function DoctorHomeScreen() {
                       }`
                     )}
                   >
-                    {sev === 'All' ? 'Tất cả mức độ' : sev}
+                    {sev === 'All'
+                      ? isVi
+                        ? 'Tất cả mức độ'
+                        : 'All severities'
+                      : sev === 'Urgent'
+                        ? isVi
+                          ? 'Khẩn cấp'
+                          : 'Urgent'
+                        : isVi
+                          ? 'Cần chú ý'
+                          : 'Attention'}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -424,7 +439,17 @@ export default function DoctorHomeScreen() {
                       }`
                     )}
                   >
-                    {st === 'all' ? 'Mọi trạng thái' : st}
+                    {st === 'all'
+                      ? isVi
+                        ? 'Mọi trạng thái'
+                        : 'All statuses'
+                      : st === 'open'
+                        ? isVi
+                          ? 'Đang mở'
+                          : 'Open'
+                        : isVi
+                          ? 'Đã tiếp nhận'
+                          : 'Acknowledged'}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -576,7 +601,7 @@ export default function DoctorHomeScreen() {
                     </View>
                     {item.linkedConsultationId && (
                       <Text style={tw('text-xs font-bold text-emerald-600 dark:text-emerald-400')}>
-                        Linked: {item.linkedConsultationId}
+                        {isVi ? 'Đã liên kết' : 'Linked'}: {item.linkedConsultationId}
                       </Text>
                     )}
                   </View>
@@ -593,7 +618,7 @@ export default function DoctorHomeScreen() {
                     >
                       <Eye color="#6366f1" size={16} style={tw('mr-1.5')} />
                       <Text style={tw('text-indigo-700 dark:text-indigo-300 font-bold text-xs')}>
-                        {t('mobile.acknowledge_alert', 'Acknowledge (CARE-13)')}
+                        {t('mobile.acknowledge_alert', 'Tiếp nhận')}
                       </Text>
                     </TouchableOpacity>
                   )}
@@ -605,7 +630,7 @@ export default function DoctorHomeScreen() {
                   >
                     <Stethoscope color="#10b981" size={16} style={tw('mr-1.5')} />
                     <Text style={tw('text-emerald-700 dark:text-emerald-300 font-bold text-xs')}>
-                      {t('mobile.create_consult_from_alert', 'Tạo phiên khám (CARE-16)')}
+                      {t('mobile.create_consult_from_alert', 'Tạo phiên khám')}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -668,7 +693,7 @@ export default function DoctorHomeScreen() {
           <View style={tw('bg-white dark:bg-slate-900 rounded-t-3xl p-6')}>
             <View style={tw('flex-row justify-between items-center mb-6')}>
               <Text style={tw('text-xl font-bold text-slate-900 dark:text-white')}>
-                {t('mobile.resolve_alert', 'Resolve Alert (CARE-14)')}
+                {t('mobile.resolve_alert', 'Resolve Alert')}
               </Text>
               <TouchableOpacity onPress={() => setResolveModalVisible(false)}>
                 <X color={twInstance.color('text-slate-400')} size={24} />
@@ -716,7 +741,7 @@ export default function DoctorHomeScreen() {
           <View style={tw('bg-white dark:bg-slate-900 rounded-t-3xl p-6')}>
             <View style={tw('flex-row justify-between items-center mb-6')}>
               <Text style={tw('text-xl font-bold text-slate-900 dark:text-white')}>
-                {t('mobile.dismiss_alert', 'Dismiss Alert (CARE-15)')}
+                {t('mobile.dismiss_alert', 'Dismiss Alert')}
               </Text>
               <TouchableOpacity onPress={() => setDismissModalVisible(false)}>
                 <X color={twInstance.color('text-slate-400')} size={24} />

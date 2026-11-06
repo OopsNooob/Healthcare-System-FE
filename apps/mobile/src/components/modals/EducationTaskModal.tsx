@@ -58,7 +58,6 @@ export const EducationTaskModal: React.FC<EducationTaskModalProps> = ({
   };
 
   const handleAcknowledge = () => {
-    // Contract strictly requires { action: "acknowledge" }
     onAcknowledge({
       action: 'acknowledge',
       contentId: resolvedRef.contentId,
@@ -66,8 +65,11 @@ export const EducationTaskModal: React.FC<EducationTaskModalProps> = ({
     });
     Toast.show({
       type: 'success',
-      text1: t('mobile.acknowledged_title', 'Đã xác nhận đã xem'),
-      text2: t('mobile.acknowledged_desc', 'Nhiệm vụ giáo dục sức khỏe đã được ghi nhận (action: acknowledge).'),
+      text1: t('mobile.acknowledged_title', isVi ? 'Đã xác nhận đã xem' : 'Acknowledged'),
+      text2: t(
+        'mobile.acknowledged_desc',
+        isVi ? 'Nhiệm vụ giáo dục sức khỏe đã được ghi nhận hoàn thành.' : 'Health education task has been marked as completed.'
+      ),
     });
     onClose();
   };
@@ -87,10 +89,10 @@ export const EducationTaskModal: React.FC<EducationTaskModalProps> = ({
               </View>
               <View style={tw('flex-1')}>
                 <Text style={tw('text-lg font-bold text-slate-900 dark:text-white')} numberOfLines={1}>
-                  {t('mobile.education_task_title', 'Tài liệu Giáo dục Sức khỏe')}
+                  {t('mobile.education_task_title', isVi ? 'Tài liệu Giáo dục Sức khỏe' : 'Health Education Material')}
                 </Text>
                 <Text style={tw('text-xs text-slate-500 dark:text-slate-400')}>
-                  ID: {resolvedRef.contentId} • {resolvedRef.version} • {resolvedRef.displayType.toUpperCase()}
+                  {isVi ? 'Phiên bản' : 'Version'}: {resolvedRef.version}
                 </Text>
               </View>
             </View>
@@ -105,15 +107,15 @@ export const EducationTaskModal: React.FC<EducationTaskModalProps> = ({
               <View style={tw('bg-amber-50 dark:bg-amber-950/40 px-3 py-1 rounded-full border border-amber-200 dark:border-amber-800')}>
                 <Text style={tw('text-xs font-bold text-amber-700 dark:text-amber-300')}>
                   {resolvedRef.displayType === 'article'
-                    ? t('mobile.edu_type_article', 'Bài viết (Article)')
+                    ? t('mobile.edu_type_article', isVi ? 'Bài viết y khoa' : 'Medical Article')
                     : resolvedRef.displayType === 'video'
-                    ? t('mobile.edu_type_video', 'Video hướng dẫn')
-                    : t('mobile.edu_type_document', 'Tài liệu (Document)')}
+                    ? t('mobile.edu_type_video', isVi ? 'Video hướng dẫn' : 'Instructional Video')
+                    : t('mobile.edu_type_document', isVi ? 'Tài liệu hướng dẫn' : 'Clinical Document')}
                 </Text>
               </View>
               <View style={tw('bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-full')}>
                 <Text style={tw('text-xs font-semibold text-slate-600 dark:text-slate-300')}>
-                  Locale: {resolvedRef.locale.toUpperCase()}
+                  {isVi ? 'Ngôn ngữ: Tiếng Việt' : 'Language: English'}
                 </Text>
               </View>
             </View>
@@ -130,7 +132,7 @@ export const EducationTaskModal: React.FC<EducationTaskModalProps> = ({
             {resolvedRef.bulletPoints && resolvedRef.bulletPoints.length > 0 && (
               <View style={tw('bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 gap-2.5')}>
                 <Text style={tw('text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1')}>
-                  {t('mobile.key_takeaways', 'Nội dung chính cần lưu ý')}
+                  {t('mobile.key_takeaways', isVi ? 'Nội dung chính cần lưu ý' : 'Key Takeaways')}
                 </Text>
                 {resolvedRef.bulletPoints.map((point, idx) => (
                   <View key={idx} style={tw('flex-row items-start')}>
@@ -147,7 +149,9 @@ export const EducationTaskModal: React.FC<EducationTaskModalProps> = ({
               <Text style={tw('text-xs text-blue-800 dark:text-blue-200 flex-1 leading-4')}>
                 {t(
                   'mobile.education_acknowledge_notice',
-                  'Theo quy định lâm sàng, nút xác nhận dưới đây ghi nhận bạn "Đã xác nhận đã xem" (action: acknowledge) phiên bản tài liệu này.'
+                  isVi
+                    ? 'Nhấn xác nhận dưới đây để ghi nhận bạn đã đọc và nắm rõ hướng dẫn chăm sóc sức khỏe này.'
+                    : 'Tap the button below to confirm you have read and understood this health care guidance.'
                 )}
               </Text>
             </View>
@@ -159,7 +163,9 @@ export const EducationTaskModal: React.FC<EducationTaskModalProps> = ({
               onPress={onClose}
               style={tw('flex-1 py-3.5 rounded-xl bg-slate-100 dark:bg-slate-800 items-center')}
             >
-              <Text style={tw('font-bold text-slate-700 dark:text-slate-300 text-sm')}>{t('mobile.close', 'Đóng')}</Text>
+              <Text style={tw('font-bold text-slate-700 dark:text-slate-300 text-sm')}>
+                {t('mobile.close', isVi ? 'Đóng' : 'Close')}
+              </Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={handleAcknowledge}
@@ -167,7 +173,7 @@ export const EducationTaskModal: React.FC<EducationTaskModalProps> = ({
             >
               <CheckCircle2 color="#0f172a" size={18} style={tw('mr-1.5')} />
               <Text style={tw('font-bold text-slate-900 text-sm')}>
-                {t('mobile.acknowledge_viewed', 'Xác nhận đã xem')}
+                {t('mobile.acknowledge_viewed', isVi ? 'Xác nhận đã xem' : 'Acknowledge')}
               </Text>
             </TouchableOpacity>
           </View>

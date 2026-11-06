@@ -1,15 +1,16 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { View, Text, TouchableOpacity, Image, StatusBar, Modal, ScrollView, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, Image, StatusBar, Modal, ScrollView, TextInput, KeyboardAvoidingView, Platform, PermissionsAndroid } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSafeRouter as useRouter } from '@/utils/useSafeRouter';
-import { MicOff, Video, PhoneOff, Maximize, MessageCircle, FileText, ChevronDown, BrainCircuit, Activity, Save, LineChart, AlertTriangle } from 'lucide-react-native';
+import { Mic, MicOff, Video, VideoOff, PhoneOff, MessageCircle, FileText, ChevronDown, BrainCircuit, Activity, Save, LineChart, AlertTriangle } from 'lucide-react-native';
 import { tw, twInstance } from '@/tw';
 import Toast from 'react-native-toast-message';
 import { AiSummaryModal, HealthChartModal, CareAlertsModal } from '@/components/modals';
 
 export default function DoctorVideoCallScreen() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isVi = i18n.language?.startsWith('vi');
   const router = useRouter();
 
   const [notesVisible, setNotesVisible] = useState(false);
@@ -17,6 +18,93 @@ export default function DoctorVideoCallScreen() {
   const [aiSummaryModalVisible, setAiSummaryModalVisible] = useState(false);
   const [healthChartModalVisible, setHealthChartModalVisible] = useState(false);
   const [careAlertsModalVisible, setCareAlertsModalVisible] = useState(false);
+
+  const [isMuted, setIsMuted] = useState(false);
+  const [isVideoOff, setIsVideoOff] = useState(false);
+
+  const handleToggleMic = async () => {
+    if (isMuted) {
+      if (Platform.OS === 'android') {
+        try {
+          const granted = await PermissionsAndroid.request(
+            PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
+            {
+              title: isVi ? 'Quyền truy cập Microphone' : 'Microphone Permission',
+              message: isVi
+                ? 'Ứng dụng cần quyền sử dụng microphone cho cuộc gọi video.'
+                : 'App needs microphone permission for video consultation.',
+              buttonPositive: 'OK',
+            }
+          );
+          if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
+            Toast.show({
+              type: 'error',
+              text1: isVi ? 'Từ chối quyền Micro' : 'Microphone Permission Denied',
+              text2: isVi
+                ? 'Vui lòng cấp quyền Micro trong cài đặt thiết bị.'
+                : 'Please enable microphone permission in system settings.',
+            });
+            return;
+          }
+        } catch (e) {
+          console.warn('Mic permission error:', e);
+        }
+      }
+      setIsMuted(false);
+      Toast.show({
+        type: 'success',
+        text1: isVi ? 'Đã bật Micro' : 'Microphone on',
+      });
+    } else {
+      setIsMuted(true);
+      Toast.show({
+        type: 'info',
+        text1: isVi ? 'Đã tắt Micro' : 'Microphone muted',
+      });
+    }
+  };
+
+  const handleToggleVideo = async () => {
+    if (isVideoOff) {
+      if (Platform.OS === 'android') {
+        try {
+          const granted = await PermissionsAndroid.request(
+            PermissionsAndroid.PERMISSIONS.CAMERA,
+            {
+              title: isVi ? 'Quyền truy cập Camera' : 'Camera Permission',
+              message: isVi
+                ? 'Ứng dụng cần quyền sử dụng camera cho cuộc gọi video.'
+                : 'App needs camera permission for video consultation.',
+              buttonPositive: 'OK',
+            }
+          );
+          if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
+            Toast.show({
+              type: 'error',
+              text1: isVi ? 'Từ chối quyền Camera' : 'Camera Permission Denied',
+              text2: isVi
+                ? 'Vui lòng cấp quyền Camera trong cài đặt thiết bị.'
+                : 'Please enable camera permission in system settings.',
+            });
+            return;
+          }
+        } catch (e) {
+          console.warn('Camera permission error:', e);
+        }
+      }
+      setIsVideoOff(false);
+      Toast.show({
+        type: 'success',
+        text1: isVi ? 'Đã bật Camera' : 'Camera on',
+      });
+    } else {
+      setIsVideoOff(true);
+      Toast.show({
+        type: 'info',
+        text1: isVi ? 'Đã tắt Camera' : 'Camera off',
+      });
+    }
+  };
 
   return (
     <View style={tw('flex-1 bg-slate-900 relative')}>
@@ -48,9 +136,6 @@ export default function DoctorVideoCallScreen() {
             >
               <FileText color={notesVisible ? "#0f172a" : "#ffffff"} size={20} />
             </TouchableOpacity>
-            <TouchableOpacity style={tw('w-10 h-10 bg-black/40 rounded-full items-center justify-center')}>
-              <Maximize color="#ffffff" size={20} />
-            </TouchableOpacity>
           </View>
         </View>
 
@@ -58,27 +143,57 @@ export default function DoctorVideoCallScreen() {
         {!notesVisible && (
           <View style={tw('px-6 pb-10')}>
             {/* Doctor PIP */}
-            <View style={tw('w-28 h-40 bg-gray-800 rounded-2xl overflow-hidden mb-6 self-end border-2 border-white/20')}>
-              <Image 
-                source={{ uri: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?q=80&w=400&auto=format&fit=crop' }} 
-                style={tw('w-full h-full')}
-              />
+            <View style={tw('w-28 h-40 bg-gray-800 rounded-2xl overflow-hidden mb-6 self-end border-2 border-white/20 items-center justify-center relative')}>
+              {!isVideoOff ? (
+                <Image 
+                  source={{ uri: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?q=80&w=400&auto=format&fit=crop' }} 
+                  style={tw('w-full h-full')}
+                />
+              ) : (
+                <View style={tw('items-center justify-center p-2')}>
+                  <VideoOff color="#94a3b8" size={26} />
+                  <Text style={tw('text-[11px] text-slate-300 font-medium mt-1.5 text-center')}>
+                    {isVi ? 'Đã tắt camera' : 'Camera off'}
+                  </Text>
+                </View>
+              )}
+              {isMuted && (
+                <View style={tw('absolute top-2 right-2 w-6 h-6 rounded-full bg-red-600 items-center justify-center')}>
+                  <MicOff color="#ffffff" size={12} />
+                </View>
+              )}
             </View>
 
             {/* Controls */}
             <View style={tw('flex-row justify-between items-center bg-black/60 p-6 rounded-full')}>
-              <TouchableOpacity style={tw('w-12 h-12 rounded-full bg-white/20 items-center justify-center')}>
-                <MicOff color="#ffffff" size={24} />
+              {/* Mic Toggle */}
+              <TouchableOpacity 
+                onPress={handleToggleMic}
+                style={tw(`w-12 h-12 rounded-full items-center justify-center ${isMuted ? 'bg-red-500' : 'bg-white/20'}`)}
+              >
+                {isMuted ? <MicOff color="#ffffff" size={24} /> : <Mic color="#ffffff" size={24} />}
               </TouchableOpacity>
-              <TouchableOpacity style={tw('w-12 h-12 rounded-full bg-white/20 items-center justify-center')}>
-                <Video color="#ffffff" size={24} />
+
+              {/* Video Toggle */}
+              <TouchableOpacity 
+                onPress={handleToggleVideo}
+                style={tw(`w-12 h-12 rounded-full items-center justify-center ${isVideoOff ? 'bg-red-500' : 'bg-white/20'}`)}
+              >
+                {isVideoOff ? <VideoOff color="#ffffff" size={24} /> : <Video color="#ffffff" size={24} />}
               </TouchableOpacity>
-              <TouchableOpacity style={tw('w-12 h-12 rounded-full bg-white/20 items-center justify-center')}>
+
+              {/* Chat with Patient */}
+              <TouchableOpacity 
+                onPress={() => router.push('/(doctor)/chat/1')}
+                style={tw('w-12 h-12 rounded-full bg-white/20 items-center justify-center')}
+              >
                 <MessageCircle color="#ffffff" size={24} />
               </TouchableOpacity>
+
+              {/* End Call */}
               <TouchableOpacity 
                 style={tw('w-16 h-16 rounded-full bg-red-500 items-center justify-center shadow-lg')}
-                onPress={() => router.back('/(doctor)')}
+                onPress={() => router.back('/(doctor)/consultations')}
               >
                 <PhoneOff color="#ffffff" size={28} />
               </TouchableOpacity>

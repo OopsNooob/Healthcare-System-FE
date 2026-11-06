@@ -26,7 +26,8 @@ export const DoctorReviewsModal: React.FC<DoctorReviewsModalProps> = ({
   onClose,
   doctorName = 'Dr. Sarah Connor',
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isVi = i18n.language?.startsWith('vi');
 
   const [reviews, setReviews] = useState<DoctorReviewItem[]>([
     {
@@ -49,7 +50,7 @@ export const DoctorReviewsModal: React.FC<DoctorReviewsModalProps> = ({
       id: 'rev-103',
       patientName: 'James Smith',
       rating: 4,
-      comment: 'Phản hồi nhanh trong phiên khám on-demand, giải thích rõ nguyên nhân chóng mặt.',
+      comment: 'Phản hồi nhanh trong phiên khám trực tuyến, giải thích rõ nguyên nhân chóng mặt.',
       createdAt: '2026-10-21',
       consultationMode: 'on_demand',
     },
@@ -75,8 +76,13 @@ export const DoctorReviewsModal: React.FC<DoctorReviewsModalProps> = ({
     setAbuseReason('');
     Toast.show({
       type: 'success',
-      text1: t('mobile.abuse_reported_title', 'Đã gửi báo cáo vi phạm (MOD-01)'),
-      text2: t('mobile.abuse_reported_desc', 'Đánh giá đã được chuyển vào hàng đợi kiểm duyệt của Admin.'),
+      text1: t('mobile.abuse_reported_title', isVi ? 'Đã gửi báo cáo vi phạm' : 'Abuse Report Submitted'),
+      text2: t(
+        'mobile.abuse_reported_desc',
+        isVi
+          ? 'Đánh giá đã được chuyển vào hàng đợi kiểm duyệt của Quản trị viên.'
+          : 'The review has been forwarded to the moderation queue.'
+      ),
     });
   };
 
@@ -92,10 +98,10 @@ export const DoctorReviewsModal: React.FC<DoctorReviewsModalProps> = ({
               </View>
               <View style={tw('flex-1')}>
                 <Text style={tw('text-lg font-bold text-slate-900 dark:text-white')}>
-                  {t('mobile.doctor_reviews_title', 'Đánh giá & Nhận xét từ Bệnh nhân (D-08)')}
+                  {t('mobile.doctor_reviews_title', isVi ? 'Đánh giá & Nhận xét từ Bệnh nhân' : 'Patient Ratings & Reviews')}
                 </Text>
                 <Text style={tw('text-xs text-slate-500 dark:text-slate-400')}>
-                  {doctorName} • DOC-02 / MOD-01
+                  {doctorName}
                 </Text>
               </View>
             </View>
@@ -114,7 +120,9 @@ export const DoctorReviewsModal: React.FC<DoctorReviewsModalProps> = ({
                     <Star key={i} color="#f59e0b" fill="#f59e0b" size={13} />
                   ))}
                 </View>
-                <Text style={tw('text-xs text-slate-500 dark:text-slate-400')}>128 {t('mobile.reviews', 'đánh giá')}</Text>
+                <Text style={tw('text-xs text-slate-500 dark:text-slate-400')}>
+                  128 {t('mobile.reviews', isVi ? 'đánh giá' : 'reviews')}
+                </Text>
               </View>
 
               <View style={tw('flex-1 gap-1.5')}>
@@ -137,7 +145,7 @@ export const DoctorReviewsModal: React.FC<DoctorReviewsModalProps> = ({
                   <View style={tw('flex-row items-center')}>
                     <AlertTriangle color="#ef4444" size={16} style={tw('mr-1.5')} />
                     <Text style={tw('text-xs font-bold text-rose-800 dark:text-rose-200')}>
-                      {t('mobile.report_abuse_dialog_title', 'Báo cáo đánh giá vi phạm (MOD-01)')}
+                      {t('mobile.report_abuse_dialog_title', isVi ? 'Báo cáo đánh giá vi phạm' : 'Report Inappropriate Review')}
                     </Text>
                   </View>
                   <TouchableOpacity onPress={() => setReportingReviewId(null)}>
@@ -147,7 +155,12 @@ export const DoctorReviewsModal: React.FC<DoctorReviewsModalProps> = ({
                 <TextInput
                   value={abuseReason}
                   onChangeText={setAbuseReason}
-                  placeholder={t('mobile.report_abuse_placeholder', 'Nhập lý do báo cáo (ngôn từ xúc phạm, sai sự thật, spam)...')}
+                  placeholder={t(
+                    'mobile.report_abuse_placeholder',
+                    isVi
+                      ? 'Nhập lý do báo cáo (ngôn từ xúc phạm, sai sự thật, spam)...'
+                      : 'Enter reason for reporting (offensive language, false info, spam)...'
+                  )}
                   placeholderTextColor="#94a3b8"
                   style={tw('bg-white dark:bg-slate-900 border border-rose-200 dark:border-rose-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 dark:text-white mb-2.5')}
                 />
@@ -156,7 +169,7 @@ export const DoctorReviewsModal: React.FC<DoctorReviewsModalProps> = ({
                   style={tw('bg-rose-600 py-2.5 rounded-xl items-center')}
                 >
                   <Text style={tw('text-xs font-bold text-white')}>
-                    {t('mobile.submit_abuse_report', 'Gửi báo cáo kiểm duyệt')}
+                    {t('mobile.submit_abuse_report', isVi ? 'Gửi báo cáo kiểm duyệt' : 'Submit Report')}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -184,7 +197,14 @@ export const DoctorReviewsModal: React.FC<DoctorReviewsModalProps> = ({
                           ))}
                         </View>
                         <Text style={tw('text-[11px] text-slate-400 dark:text-slate-500')}>
-                          {rev.createdAt} • {rev.consultationMode}
+                          {rev.createdAt} •{' '}
+                          {rev.consultationMode === 'scheduled'
+                            ? isVi
+                              ? 'Đặt lịch'
+                              : 'Scheduled'
+                            : isVi
+                            ? 'Khám ngay'
+                            : 'On-demand'}
                         </Text>
                       </View>
                     </View>
@@ -192,7 +212,7 @@ export const DoctorReviewsModal: React.FC<DoctorReviewsModalProps> = ({
                     {rev.reported ? (
                       <View style={tw('bg-rose-100 dark:bg-rose-900/40 px-2.5 py-1 rounded-full')}>
                         <Text style={tw('text-[10px] font-bold text-rose-700 dark:text-rose-300')}>
-                          {t('mobile.reported_badge', 'Đã báo cáo')}
+                          {t('mobile.reported_badge', isVi ? 'Đã báo cáo' : 'Reported')}
                         </Text>
                       </View>
                     ) : (
@@ -212,7 +232,9 @@ export const DoctorReviewsModal: React.FC<DoctorReviewsModalProps> = ({
 
           <View style={tw('p-4 border-t border-slate-100 dark:border-slate-800')}>
             <TouchableOpacity onPress={onClose} style={tw('py-3.5 rounded-xl bg-slate-900 dark:bg-white items-center')}>
-              <Text style={tw('font-bold text-white dark:text-slate-900 text-sm')}>{t('mobile.close', 'Đóng')}</Text>
+              <Text style={tw('font-bold text-white dark:text-slate-900 text-sm')}>
+                {t('mobile.close', isVi ? 'Đóng' : 'Close')}
+              </Text>
             </TouchableOpacity>
           </View>
         </View>

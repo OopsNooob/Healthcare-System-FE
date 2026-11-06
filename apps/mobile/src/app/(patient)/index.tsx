@@ -40,7 +40,8 @@ import {
 } from '@healthcare/api-client';
 
 export default function PatientHomeScreen() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isVi = i18n.language === 'vi';
   useThemeContext(); // Subscribe to theme changes for reactive re-render
 
   const router = useRouter();
@@ -114,7 +115,7 @@ export default function PatientHomeScreen() {
     {
       id: '5',
       type: 'appointment',
-      title: t('mobile.link_appointment_task', 'Liên kết Lịch tái khám định kỳ'),
+      title: t('mobile.link_appointment_task', 'Liên kết lịch tái khám định kỳ'),
       time: t('mobile.anytime', 'Anytime'),
       status: 'due',
       allowedActions: ['link_appointment'],
@@ -465,16 +466,24 @@ export default function PatientHomeScreen() {
 
         {/* Today's Tasks (DA2 CareTask Policy Contract v1) */}
         <View style={tw('px-6 mb-8')}>
-          <View style={tw('flex-row justify-between items-end mb-4')}>
-            <View>
-              <Text style={tw('text-lg font-bold text-[#313A34] dark:text-slate-100')}>{t('mobile.todays_tasks', "Today's Tasks")}</Text>
-              <Text style={tw('text-xs text-slate-500 dark:text-slate-400 mt-0.5')}>
-                {t('mobile.care_task_contract_subtitle', 'Metric • Check-in v1 • Education • Appointment Link')}
+          <View style={tw('flex-row justify-between items-start mb-4')}>
+            <View style={tw('flex-1 mr-3')}>
+              <Text style={tw('text-lg font-bold text-[#313A34] dark:text-slate-100')}>
+                {t('mobile.todays_tasks', "Today's Tasks")}
+              </Text>
+              <Text style={tw('text-xs text-slate-500 dark:text-slate-400 mt-0.5')} numberOfLines={1}>
+                {t(
+                  'mobile.care_task_contract_subtitle',
+                  isVi ? 'Chỉ số, triệu chứng và lịch theo dõi hôm nay' : 'Daily vitals, symptoms & follow-ups'
+                )}
               </Text>
             </View>
-            <Text style={tw('text-sm font-medium text-emerald-500')}>
-              {todayTasks.filter((task) => task.status === 'completed').length}/{todayTasks.length} {t('mobile.done', 'Done')}
-            </Text>
+            <View style={tw('bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-1 rounded-full shrink-0')}>
+              <Text style={tw('text-xs font-bold text-emerald-600 dark:text-emerald-400')}>
+                {todayTasks.filter((task) => task.status === 'completed').length}/{todayTasks.length}{' '}
+                {t('mobile.done', isVi ? 'Hoàn thành' : 'Done')}
+              </Text>
+            </View>
           </View>
 
           <View style={tw('gap-3')}>

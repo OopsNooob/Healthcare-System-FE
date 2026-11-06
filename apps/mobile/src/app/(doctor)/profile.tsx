@@ -206,7 +206,7 @@ export default function DoctorProfileScreen() {
             >
               <View style={tw('flex-row justify-between items-center mb-2')}>
                 <Text style={tw('text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300')}>
-                  D-02 • Trạng thái xác minh hành nghề
+                  {isVi ? 'Trạng thái xác minh hành nghề' : 'Practice verification status'}
                 </Text>
                 <View style={tw('flex-row gap-1')}>
                   {(['approved', 'pending', 'rejected'] as const).map((st) => (
@@ -238,10 +238,16 @@ export default function DoctorProfileScreen() {
               </View>
               <Text style={tw('text-xs text-slate-700 dark:text-slate-200 leading-4')}>
                 {verificationStatus === 'approved'
-                  ? 'Hồ sơ đã được duyệt (active + approved). Bạn có toàn quyền nhận lịch khám, quản lý CareEnrollment và kích hoạt CareRule (CARE-21).'
+                  ? isVi
+                    ? 'Hồ sơ đã được duyệt. Bạn có toàn quyền nhận lịch khám, quản lý chương trình chăm sóc của bệnh nhân và kích hoạt quy tắc theo dõi.'
+                    : 'Your profile is approved. You can accept appointments, manage patients’ care programs, and activate monitoring rules.'
                   : verificationStatus === 'pending'
-                    ? 'Hồ sơ đang chờ Admin thẩm định (pending). Tạm thời chưa hiển thị công khai trong danh bạ đặt lịch.'
-                    : 'Hồ sơ bị từ chối (rejected): Ảnh chụp chứng chỉ hành nghề bị mờ. Vui lòng tải lại file PDF rõ nét để gửi duyệt lại.'}
+                    ? isVi
+                      ? 'Hồ sơ đang chờ quản trị viên thẩm định. Tạm thời chưa hiển thị công khai trong danh bạ đặt lịch.'
+                      : 'Your profile is awaiting administrator review. It is not yet visible in the public booking directory.'
+                    : isVi
+                      ? 'Hồ sơ bị từ chối: ảnh chụp chứng chỉ hành nghề bị mờ. Vui lòng tải lại tệp PDF rõ nét để gửi duyệt lại.'
+                      : 'Your profile was rejected: the practice certificate photo is blurry. Please upload a clear PDF to resubmit.'}
               </Text>
             </View>
           </View>
@@ -264,10 +270,11 @@ export default function DoctorProfileScreen() {
                 </View>
                 <View>
                   <Text style={tw('text-slate-900 dark:text-white font-bold')}>
-                    {t('mobile.doctor_reviews_link', 'Đánh giá từ Bệnh nhân & Báo cáo lạm dụng (D-08)')}
+                    {t('mobile.doctor_reviews_link', 'Đánh giá từ bệnh nhân và báo cáo lạm dụng')}
                   </Text>
                   <Text style={tw('text-xs text-slate-500 dark:text-slate-400')}>
-                    4.9 ★ (128 đánh giá) • Xem phân bổ sao & Report Abuse (MOD-01)
+                    4.9 ★ (128 {isVi ? 'đánh giá' : 'reviews'}) •{' '}
+                    {isVi ? 'Xem phân bổ sao và báo cáo lạm dụng' : 'View rating breakdown and report abuse'}
                   </Text>
                 </View>
               </View>
@@ -288,14 +295,9 @@ export default function DoctorProfileScreen() {
                 >
                   <Shield color={twInstance.color('text-emerald-500')} size={20} />
                 </View>
-                <View>
-                  <Text style={tw('text-slate-900 dark:text-white font-bold')}>
-                    {t('mobile.security_sessions', 'Bảo mật & Phiên đăng nhập (C-05)')}
-                  </Text>
-                  <Text style={tw('text-xs text-slate-500 dark:text-slate-400')}>
-                    Quản lý phiên thiết bị (AUTH-06/07) & Đổi mật khẩu
-                  </Text>
-                </View>
+                <Text style={tw('text-slate-900 dark:text-white font-bold')}>
+                  {t('mobile.security_sessions', 'Bảo mật & Phiên đăng nhập')}
+                </Text>
               </View>
               <ChevronRight color={twInstance.color('text-slate-400')} size={20} />
             </TouchableOpacity>
@@ -314,14 +316,9 @@ export default function DoctorProfileScreen() {
                 >
                   <Database color={twInstance.color('text-indigo-500')} size={20} />
                 </View>
-                <View>
-                  <Text style={tw('text-slate-900 dark:text-white font-bold')}>
-                    {t('mobile.privacy_and_data', 'Quyền riêng tư & Dữ liệu cá nhân (C-06)')}
-                  </Text>
-                  <Text style={tw('text-xs text-slate-500 dark:text-slate-400')}>
-                    Trích xuất dữ liệu & Yêu cầu xóa tài khoản (USER-07..11)
-                  </Text>
-                </View>
+                <Text style={tw('text-slate-900 dark:text-white font-bold')}>
+                  {t('mobile.privacy_and_data', 'Quyền riêng tư & Dữ liệu cá nhân')}
+                </Text>
               </View>
               <ChevronRight color={twInstance.color('text-slate-400')} size={20} />
             </TouchableOpacity>

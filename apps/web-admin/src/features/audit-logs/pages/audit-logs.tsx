@@ -180,7 +180,8 @@ const INITIAL_FAMILY_LINKS: FamilyLinkAuditRecord[] = [
 ];
 
 export function AuditLogs() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isVi = i18n.language?.startsWith("vi");
   const [activeTab, setActiveTab] = useState<"audit_logs" | "family_audit">("audit_logs");
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -203,14 +204,24 @@ export function AuditLogs() {
     setLoading(true);
     setTimeout(() => {
       setLoading(false);
-      toast.info(t("auditLogs.refreshed", "Đã làm mới dữ liệu nhật ký kiểm toán"));
+      toast.info(
+        t(
+          "auditLogs.refreshed",
+          isVi ? "Đã làm mới dữ liệu nhật ký kiểm toán" : "Audit logs refreshed"
+        )
+      );
     }, 500);
   };
 
   const handleAdminRevokeFamilyLink = () => {
     if (!revokeTargetLink) return;
     if (!revokeReason.trim()) {
-      toast.error(t("auditLogs.revokeReasonRequired", "Vui lòng nhập lý do thu hồi liên kết (FAM-07)"));
+      toast.error(
+        t(
+          "auditLogs.revokeReasonRequired",
+          isVi ? "Vui lòng nhập lý do thu hồi liên kết" : "Please enter a reason for revoking this link"
+        )
+      );
       return;
     }
 
@@ -221,7 +232,7 @@ export function AuditLogs() {
     );
 
     const newLog: AuditLogRecord = {
-      id: `aud_${Date.now()}`,
+      id: `aud_${9001 + logs.length}`,
       timestamp: new Date().toISOString().slice(0, 19).replace("T", " "),
       domain: "family",
       action: "ADMIN_FAMILY_LINK_REVOKED",
@@ -240,7 +251,14 @@ export function AuditLogs() {
     setLogs((prev) => [newLog, ...prev]);
     setRevokeTargetLink(null);
     setRevokeReason("");
-    toast.success(t("auditLogs.familyLinkRevoked", "Đã thu hồi liên kết Family Companion và ghi Audit Log"));
+    toast.success(
+      t(
+        "auditLogs.familyLinkRevoked",
+        isVi
+          ? "Đã thu hồi liên kết gia đình và lưu nhật ký kiểm toán"
+          : "Family link revoked and logged in audit trail"
+      )
+    );
   };
 
   const filteredLogs = logs.filter((log) => {
@@ -264,13 +282,18 @@ export function AuditLogs() {
           <div className="flex items-center gap-2.5">
             <ShieldCheck className="w-7 h-7 text-emerald-600 dark:text-emerald-400" />
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-              {t("auditLogs.title", "Nhật ký Kiểm toán & Liên kết Gia đình (A-10 / A-11)")}
+              {t(
+                "auditLogs.title",
+                isVi ? "Nhật ký Kiểm toán & Liên kết Gia đình" : "System Audit Logs & Family Links"
+              )}
             </h1>
           </div>
           <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">
             {t(
               "auditLogs.subtitle",
-              "Tra cứu sự kiện vận hành không chứa dữ liệu lâm sàng nhạy cảm (PHI-Safe Audit Viewer)"
+              isVi
+                ? "Tra cứu lịch sử thao tác quản trị và trạng thái vận hành hệ thống"
+                : "Monitor administrative actions and system operational events"
             )}
           </p>
         </div>
@@ -281,7 +304,7 @@ export function AuditLogs() {
             className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm font-semibold text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors cursor-pointer"
           >
             <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
-            {t("common.refresh", "Làm mới")}
+            {t("common.refresh", isVi ? "Làm mới" : "Refresh")}
           </button>
         </div>
       </div>
@@ -290,7 +313,12 @@ export function AuditLogs() {
       <div className="bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-900/60 rounded-2xl p-4 flex items-start gap-3">
         <Lock className="w-5 h-5 text-indigo-600 dark:text-indigo-400 shrink-0 mt-0.5" />
         <div className="text-xs text-indigo-900 dark:text-indigo-200 leading-relaxed">
-          <span className="font-bold">Privacy Boundary (ADM-17 / FAM-06):</span> Hệ thống Audit Log chỉ lưu trữ trạng thái chuyển đổi (<code className="font-mono">beforeStatus -&gt; afterStatus</code>), mã lý do (<code className="font-mono">reasonCode</code>) và siêu dữ liệu vận hành (<code className="font-mono">SafeMetadata</code>). Nội dung tin nhắn khám, triệu chứng chi tiết và ghi chú lâm sàng của Bác sĩ được ẩn tuyệt đối khỏi Admin.
+          <span className="font-bold">
+            {isVi ? "Bảo mật dữ liệu y tế:" : "Clinical Privacy Protection:"}
+          </span>{" "}
+          {isVi
+            ? "Nhật ký hệ thống chỉ lưu trữ lịch sử chuyển đổi trạng thái, lý do thao tác và thông tin vận hành. Nội dung tin nhắn khám, triệu chứng chi tiết và ghi chú lâm sàng của Bác sĩ được bảo mật tuyệt đối."
+            : "System audit logs only record status transitions, action reasons, and operational metadata. Consultation messages, patient symptoms, and clinical notes are strictly hidden."}
         </div>
       </div>
 
@@ -305,7 +333,7 @@ export function AuditLogs() {
           }`}
         >
           <FileCode2 className="w-4 h-4" />
-          {t("auditLogs.tabSystemLogs", "Nhật ký Hệ thống (A-10 • ADM-17)")}
+          {t("auditLogs.tabSystemLogs", isVi ? "Nhật ký Hệ thống" : "System Audit Logs")}
         </button>
         <button
           onClick={() => setActiveTab("family_audit")}
@@ -316,7 +344,7 @@ export function AuditLogs() {
           }`}
         >
           <Users className="w-4 h-4" />
-          {t("auditLogs.tabFamilyLinks", "Kiểm toán Family Companion (A-11 • FAM-06/07)")}
+          {t("auditLogs.tabFamilyLinks", isVi ? "Liên kết Gia đình" : "Family Links Audit")}
         </button>
       </div>
 
@@ -330,7 +358,12 @@ export function AuditLogs() {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={t("auditLogs.searchPlaceholder", "Tìm theo mã Audit, Action, Actor, Resource ID...")}
+                placeholder={t(
+                  "auditLogs.searchPlaceholder",
+                  isVi
+                    ? "Tìm theo mã nhật ký, hành động, người thực hiện..."
+                    : "Search by log ID, action, actor, resource..."
+                )}
                 className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
               />
             </div>
@@ -340,13 +373,13 @@ export function AuditLogs() {
               onChange={(e) => setDomainFilter(e.target.value)}
               className="px-4 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-sm text-gray-900 dark:text-white"
             >
-              <option value="all">{t("auditLogs.allDomains", "Tất cả phân hệ (All Domains)")}</option>
-              <option value="billing">Billing & VNPAY IPN</option>
-              <option value="care">Chronic Care & Rules</option>
-              <option value="consultation">Consultation & Queue</option>
-              <option value="ai_kb">AI Knowledge Base</option>
-              <option value="user">User & Verification</option>
-              <option value="family">Family Companion</option>
+              <option value="all">{t("auditLogs.allDomains", isVi ? "Tất cả phân hệ" : "All Domains")}</option>
+              <option value="billing">{isVi ? "Thanh toán & Gói dịch vụ" : "Billing & Subscriptions"}</option>
+              <option value="care">{isVi ? "Chăm sóc bệnh mạn tính" : "Chronic Care & Rules"}</option>
+              <option value="consultation">{isVi ? "Tư vấn & Phòng chờ" : "Consultation & Queue"}</option>
+              <option value="ai_kb">{isVi ? "Kho tri thức AI" : "AI Knowledge Base"}</option>
+              <option value="user">{isVi ? "Người dùng & Xác minh" : "User & Verification"}</option>
+              <option value="family">{isVi ? "Liên kết gia đình" : "Family Companion"}</option>
             </select>
 
             <select
@@ -354,13 +387,13 @@ export function AuditLogs() {
               onChange={(e) => setRoleFilter(e.target.value)}
               className="px-4 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-sm text-gray-900 dark:text-white"
             >
-              <option value="all">{t("auditLogs.allRoles", "Tất cả vai trò (All Actors)")}</option>
-              <option value="super_admin">super_admin</option>
-              <option value="user_admin">user_admin</option>
-              <option value="ai_admin">ai_admin</option>
-              <option value="doctor">doctor</option>
-              <option value="patient">patient</option>
-              <option value="system">system</option>
+              <option value="all">{t("auditLogs.allRoles", isVi ? "Tất cả vai trò" : "All Roles")}</option>
+              <option value="super_admin">Super Admin</option>
+              <option value="user_admin">User Admin</option>
+              <option value="ai_admin">AI Admin</option>
+              <option value="doctor">{isVi ? "Bác sĩ" : "Doctor"}</option>
+              <option value="patient">{isVi ? "Bệnh nhân" : "Patient"}</option>
+              <option value="system">{isVi ? "Hệ thống" : "System"}</option>
             </select>
           </div>
 
@@ -376,13 +409,13 @@ export function AuditLogs() {
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="border-b border-gray-100 dark:border-slate-800 text-xs font-bold uppercase text-gray-400 dark:text-slate-500">
-                    <th className="py-3.5 px-4">Thời gian</th>
-                    <th className="py-3.5 px-4">Phân hệ</th>
-                    <th className="py-3.5 px-4">Hành động (Action)</th>
-                    <th className="py-3.5 px-4">Actor</th>
-                    <th className="py-3.5 px-4">Tài nguyên</th>
-                    <th className="py-3.5 px-4">Chuyển trạng thái</th>
-                    <th className="py-3.5 px-4 text-right">Chi tiết</th>
+                    <th className="py-3.5 px-4">{isVi ? "Thời gian" : "Timestamp"}</th>
+                    <th className="py-3.5 px-4">{isVi ? "Phân hệ" : "Domain"}</th>
+                    <th className="py-3.5 px-4">{isVi ? "Hành động" : "Action"}</th>
+                    <th className="py-3.5 px-4">{isVi ? "Người thực hiện" : "Actor"}</th>
+                    <th className="py-3.5 px-4">{isVi ? "Đối tượng" : "Resource"}</th>
+                    <th className="py-3.5 px-4">{isVi ? "Chuyển trạng thái" : "Status Change"}</th>
+                    <th className="py-3.5 px-4 text-right">{isVi ? "Chi tiết" : "Details"}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 dark:divide-slate-800 text-sm">
@@ -426,7 +459,7 @@ export function AuditLogs() {
                           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-slate-800 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 text-xs font-bold text-gray-700 dark:text-slate-200 cursor-pointer"
                         >
                           <Eye className="w-3.5 h-3.5" />
-                          Inspect
+                          {isVi ? "Xem" : "Inspect"}
                         </button>
                       </td>
                     </tr>
@@ -437,15 +470,20 @@ export function AuditLogs() {
           )}
         </div>
       ) : (
-        /* TAB 2: Family Links Audit (A-11 • FAM-06, FAM-07) */
+        /* TAB 2: Family Links Audit */
         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm p-6 space-y-4">
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-lg font-bold text-gray-900 dark:text-white">
-                {t("auditLogs.familyLinksList", "Danh sách liên kết Family Companion (FAM-06)")}
+                {t(
+                  "auditLogs.familyLinksList",
+                  isVi ? "Danh sách Liên kết Gia đình" : "Family Companion Links"
+                )}
               </h2>
               <p className="text-xs text-gray-500 dark:text-slate-400">
-                Admin chỉ kiểm tra trạng thái đồng thuận (consentVersion) và quyền chia sẻ, hoặc thu hồi khẩn cấp khi có báo cáo lạm dụng (FAM-07).
+                {isVi
+                  ? "Quản trị viên chỉ kiểm tra trạng thái đồng thuận và quyền chia sẻ, hoặc thu hồi khẩn cấp khi có báo cáo lạm dụng."
+                  : "Administrators can inspect consent status and sharing permissions, or revoke links in case of reported abuse."}
               </p>
             </div>
           </div>
@@ -454,13 +492,13 @@ export function AuditLogs() {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-gray-100 dark:border-slate-800 text-xs font-bold uppercase text-gray-400 dark:text-slate-500">
-                  <th className="py-3.5 px-4">Mã Liên kết</th>
-                  <th className="py-3.5 px-4">Bệnh nhân (Inviter)</th>
-                  <th className="py-3.5 px-4">Người đồng hành</th>
-                  <th className="py-3.5 px-4">Quan hệ & Consent</th>
-                  <th className="py-3.5 px-4">Quyền chia sẻ</th>
-                  <th className="py-3.5 px-4">Trạng thái</th>
-                  <th className="py-3.5 px-4 text-right">Thao tác Admin</th>
+                  <th className="py-3.5 px-4">{isVi ? "Mã liên kết" : "Link ID"}</th>
+                  <th className="py-3.5 px-4">{isVi ? "Bệnh nhân" : "Patient"}</th>
+                  <th className="py-3.5 px-4">{isVi ? "Người đồng hành" : "Companion"}</th>
+                  <th className="py-3.5 px-4">{isVi ? "Mối quan hệ" : "Relationship"}</th>
+                  <th className="py-3.5 px-4">{isVi ? "Quyền chia sẻ" : "Permissions"}</th>
+                  <th className="py-3.5 px-4">{isVi ? "Trạng thái" : "Status"}</th>
+                  <th className="py-3.5 px-4 text-right">{isVi ? "Thao tác" : "Actions"}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-slate-800 text-sm">
@@ -470,15 +508,17 @@ export function AuditLogs() {
                     <td className="py-3.5 px-4 font-medium">{fl.patientMasked}</td>
                     <td className="py-3.5 px-4 font-medium">{fl.companionMasked}</td>
                     <td className="py-3.5 px-4">
-                      <span className="uppercase text-xs font-bold px-2 py-0.5 rounded bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 mr-2">
+                      <span className="uppercase text-xs font-bold px-2 py-0.5 rounded bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300">
                         {fl.relationship}
                       </span>
-                      <span className="font-mono text-xs text-gray-500">{fl.consentVersion}</span>
                     </td>
                     <td className="py-3.5 px-4 text-xs text-gray-600 dark:text-slate-300">
-                      Reminders: <b>{fl.permissions.receiveReminders ? "ON" : "OFF"}</b> • Progress:{" "}
-                      <b>{fl.permissions.viewCareProgress ? "ON" : "OFF"}</b> • Alerts:{" "}
-                      <b>{fl.permissions.viewAlertSummary ? "ON" : "OFF"}</b>
+                      {isVi ? "Nhắc lịch:" : "Reminders:"}{" "}
+                      <b>{fl.permissions.receiveReminders ? (isVi ? "Bật" : "ON") : (isVi ? "Tắt" : "OFF")}</b> •{" "}
+                      {isVi ? "Tiến độ:" : "Progress:"}{" "}
+                      <b>{fl.permissions.viewCareProgress ? (isVi ? "Bật" : "ON") : (isVi ? "Tắt" : "OFF")}</b> •{" "}
+                      {isVi ? "Cảnh báo:" : "Alerts:"}{" "}
+                      <b>{fl.permissions.viewAlertSummary ? (isVi ? "Bật" : "ON") : (isVi ? "Tắt" : "OFF")}</b>
                     </td>
                     <td className="py-3.5 px-4">
                       <span
@@ -490,7 +530,21 @@ export function AuditLogs() {
                               : "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300"
                         }`}
                       >
-                        {fl.status}
+                        {fl.status === "active"
+                          ? isVi
+                            ? "Đang hoạt động"
+                            : "Active"
+                          : fl.status === "revoked"
+                            ? isVi
+                              ? "Đã thu hồi"
+                              : "Revoked"
+                            : fl.status === "paused"
+                              ? isVi
+                                ? "Tạm dừng"
+                                : "Paused"
+                              : isVi
+                                ? "Chờ xác nhận"
+                                : "Pending"}
                       </span>
                     </td>
                     <td className="py-3.5 px-4 text-right">
@@ -499,7 +553,7 @@ export function AuditLogs() {
                           onClick={() => setRevokeTargetLink(fl)}
                           className="px-3 py-1.5 rounded-lg bg-red-50 dark:bg-red-900/20 hover:bg-red-100 text-red-600 dark:text-red-400 text-xs font-bold cursor-pointer"
                         >
-                          Thu hồi (FAM-07)
+                          {isVi ? "Thu hồi liên kết" : "Revoke Link"}
                         </button>
                       )}
                     </td>
@@ -511,14 +565,16 @@ export function AuditLogs() {
         </div>
       )}
 
-      {/* Audit Detail Modal (StatusChangeView & SafeMetadataViewer) */}
+      {/* Audit Detail Modal */}
       {selectedLog && (
         <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
           <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-lg w-full p-6 border border-gray-200 dark:border-slate-800 shadow-xl space-y-4">
             <div className="flex items-center justify-between border-b border-gray-100 dark:border-slate-800 pb-3">
               <div>
                 <h3 className="text-lg font-bold text-gray-900 dark:text-white">
-                  Chi tiết Sự kiện Kiểm toán ({selectedLog.id})
+                  {isVi
+                    ? `Chi tiết Sự kiện Kiểm toán (${selectedLog.id})`
+                    : `Audit Event Details (${selectedLog.id})`}
                 </h3>
                 <p className="text-xs text-gray-500 dark:text-slate-400">{selectedLog.timestamp}</p>
               </div>
@@ -530,14 +586,13 @@ export function AuditLogs() {
               </button>
             </div>
 
-            {/* StatusChangeView */}
             <div className="bg-gray-50 dark:bg-slate-800/70 p-4 rounded-xl border border-gray-200 dark:border-slate-700">
               <p className="text-xs font-bold uppercase text-gray-400 mb-2">
-                Status Change View (Chuyển trạng thái)
+                {isVi ? "Chuyển đổi trạng thái" : "Status Transition"}
               </p>
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs text-gray-500">Resource</p>
+                  <p className="text-xs text-gray-500">{isVi ? "Đối tượng" : "Resource"}</p>
                   <p className="font-mono text-sm font-bold text-indigo-600 dark:text-indigo-400">
                     {selectedLog.resourceType} / {selectedLog.resourceId}
                   </p>
@@ -554,15 +609,16 @@ export function AuditLogs() {
               </div>
               {selectedLog.reasonCode && (
                 <p className="text-xs text-amber-600 dark:text-amber-400 font-semibold mt-2">
-                  Reason Code: {selectedLog.reasonCode}
+                  {isVi ? "Mã lý do:" : "Reason:"} {selectedLog.reasonCode}
                 </p>
               )}
             </div>
 
-            {/* SafeMetadataViewer */}
             <div>
               <p className="text-xs font-bold uppercase text-gray-400 mb-2">
-                Safe Metadata Viewer (Đã lọc PHI / Nội dung lâm sàng)
+                {isVi
+                  ? "Thông tin vận hành (Đã ẩn dữ liệu lâm sàng)"
+                  : "Operational Details (Clinical data redacted)"}
               </p>
               <pre className="bg-slate-950 text-emerald-400 p-4 rounded-xl text-xs font-mono overflow-x-auto">
                 {JSON.stringify(selectedLog.safeMetadata, null, 2)}
@@ -574,34 +630,49 @@ export function AuditLogs() {
                 onClick={() => setSelectedLog(null)}
                 className="px-5 py-2.5 rounded-xl bg-gray-900 dark:bg-white text-white dark:text-slate-900 text-sm font-bold cursor-pointer"
               >
-                Đóng
+                {isVi ? "Đóng" : "Close"}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Admin Family Link Revoke Modal (FAM-07) */}
+      {/* Admin Family Link Revoke Modal */}
       {revokeTargetLink && (
         <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
           <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-md w-full p-6 border border-gray-200 dark:border-slate-800 shadow-xl space-y-4">
             <div className="flex items-center gap-2 text-red-600 dark:text-red-400">
               <AlertTriangle className="w-6 h-6" />
-              <h3 className="text-lg font-bold">Thu hồi Liên kết Gia đình (FAM-07)</h3>
+              <h3 className="text-lg font-bold">
+                {isVi ? "Thu hồi Liên kết Gia đình" : "Revoke Family Link"}
+              </h3>
             </div>
             <p className="text-xs text-gray-600 dark:text-slate-300">
-              Bạn đang thu hồi liên kết <span className="font-bold">{revokeTargetLink.id}</span> giữa{" "}
-              <b>{revokeTargetLink.patientMasked}</b> và <b>{revokeTargetLink.companionMasked}</b>.
+              {isVi ? (
+                <>
+                  Bạn đang thu hồi liên kết <span className="font-bold">{revokeTargetLink.id}</span> giữa{" "}
+                  <b>{revokeTargetLink.patientMasked}</b> và <b>{revokeTargetLink.companionMasked}</b>.
+                </>
+              ) : (
+                <>
+                  You are revoking link <span className="font-bold">{revokeTargetLink.id}</span> between{" "}
+                  <b>{revokeTargetLink.patientMasked}</b> and <b>{revokeTargetLink.companionMasked}</b>.
+                </>
+              )}
             </p>
             <div>
               <label className="block text-xs font-bold uppercase text-gray-500 mb-1.5">
-                Lý do thu hồi bắt buộc (Audit Reason)
+                {isVi ? "Lý do thu hồi bắt buộc *" : "Mandatory Revocation Reason *"}
               </label>
               <textarea
                 value={revokeReason}
                 onChange={(e) => setRevokeReason(e.target.value)}
                 rows={3}
-                placeholder="Nhập lý do can thiệp an toàn hoặc theo yêu cầu hỗ trợ..."
+                placeholder={
+                  isVi
+                    ? "Nhập lý do can thiệp an toàn hoặc theo yêu cầu hỗ trợ..."
+                    : "Enter safety intervention or support request reason..."
+                }
                 className="w-full p-3 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-sm text-gray-900 dark:text-white"
               />
             </div>
@@ -613,13 +684,13 @@ export function AuditLogs() {
                 }}
                 className="px-4 py-2 rounded-xl bg-gray-100 dark:bg-slate-800 text-sm font-semibold cursor-pointer"
               >
-                Hủy
+                {isVi ? "Hủy" : "Cancel"}
               </button>
               <button
                 onClick={handleAdminRevokeFamilyLink}
                 className="px-4 py-2 rounded-xl bg-red-600 text-white text-sm font-bold cursor-pointer"
               >
-                Xác nhận thu hồi
+                {isVi ? "Xác nhận thu hồi" : "Confirm Revoke"}
               </button>
             </div>
           </div>
