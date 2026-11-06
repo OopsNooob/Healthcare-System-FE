@@ -9,32 +9,54 @@ import {
   FileCheck,
   Copy,
   ShieldCheck,
+  RefreshCw,
+  CheckCircle,
+  XCircle,
 } from "lucide-react";
 import { Badge } from "@repo/ui/components/ui/badge";
 import { toast } from "react-toastify";
 
+export type PaymentOrderStatus =
+  | "paid"
+  | "pending"
+  | "expired"
+  | "cancelled"
+  | "failed"
+  | "refund_pending"
+  | "refunded"
+  | "Success"
+  | "Pending"
+  | "Failed"
+  | "Refunded";
+
 export interface Transaction {
   id: string;
   user: string;
+  planCode?: "FREE" | "PLUS" | "CARE";
+  planVersion?: string;
   planType: "monthly" | "yearly";
-  amount: number; // Integer MoneyVnd (e.g. 199000)
-  paymentGateway: "momo" | "vnpay" | "card";
+  amount: number; // Integer MoneyVnd (e.g. 99000, 299000)
+  paymentGateway: "vnpay" | "momo" | "card";
   maskedReference: string;
   date: string;
-  status: "Success" | "Pending" | "Failed" | "Refunded";
+  status: PaymentOrderStatus;
   hasInvoiceRequested: boolean;
+  ipnVerifiedAt?: string;
+  subscriptionGranted?: boolean;
 }
 
 interface TransactionDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
   transaction: Transaction | null;
+  onReconcile?: (orderId: string) => void;
 }
 
 export function TransactionDetailModal({
   isOpen,
   onClose,
   transaction,
+  onReconcile,
 }: TransactionDetailModalProps) {
   const { t } = useTranslation();
 
@@ -42,26 +64,31 @@ export function TransactionDetailModal({
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
-    toast.success(t("premiumManagement.toasts.copied", "Copied to clipboard!"));
+    toast.success(t("premiumManagement.toasts.copied"));
   };
 
   const formattedAmount = `${transaction.amount.toLocaleString("vi-VN")} VND`;
+  const normalizedStatus = transaction.status.toLowerCase();
+  const isPaid = normalizedStatus === "paid" || normalizedStatus === "success";
+  const isPending = normalizedStatus === "pending" || normalizedStatus === "refund_pending";
+  const isRefunded = normalizedStatus === "refunded";
+  const canReconcile =
+    normalizedStatus === "pending" ||
+    normalizedStatus === "failed" ||
+    normalizedStatus === "expired";
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm animate-fade-in">
-      <div className="w-full max-w-lg rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-2xl overflow-y-auto max-h-[90vh]">
+      <div className="w-full max-w-xl rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-2xl overflow-y-auto max-h-[90vh]">
         {/* Header */}
         <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800">
           <div>
             <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
               <Receipt className="text-brand" size={22} />
-              {t("premiumManagement.transactionModal.title", "Transaction Details")}
+              {t("premiumManagement.transactionModal.title")}
             </h3>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-              {t(
-                "premiumManagement.transactionModal.desc",
-                "Safe billing audit summary and payment gateway confirmation"
-              )}
+              {t("premiumManagement.transactionModal.subtitle")}
             </p>
           </div>
           <button
@@ -78,32 +105,39 @@ export function TransactionDetailModal({
           <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 p-4 flex items-center justify-between">
             <div>
               <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-                {t("premiumManagement.transactionModal.amount", "Amount")}
+                {t("premiumManagement.transactionModal.amount")}
               </p>
               <h2 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight mt-0.5">
                 {formattedAmount}
               </h2>
+              {transaction.planCode && (
+                <span className="inline-block mt-1 text-[11px] font-bold px-2 py-0.5 rounded bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-300">
+                  {transaction.planCode} • {transaction.planVersion || "v1.0"}
+                </span>
+              )}
             </div>
             <div>
-              {transaction.status === "Success" ? (
+              {isPaid ? (
                 <Badge className="bg-emerald-600 text-white flex items-center gap-1.5 py-1 px-3 text-xs">
                   <CheckCircle2 size={14} />
-                  {t("premiumManagement.status.success", "Success")}
+                  {t("premiumManagement.status.paid", "Đã thanh toán")}
                 </Badge>
-              ) : transaction.status === "Pending" ? (
+              ) : isPending ? (
                 <Badge className="bg-amber-500 text-white flex items-center gap-1.5 py-1 px-3 text-xs">
                   <Clock size={14} />
-                  {t("premiumManagement.status.pending", "Pending")}
+                  {normalizedStatus === "refund_pending"
+                    ? t("premiumManagement.status.refundPending", "Chờ hoàn tiền")
+                    : t("premiumManagement.status.pendingVerification", "Đang chờ xác nhận")}
                 </Badge>
-              ) : transaction.status === "Refunded" ? (
+              ) : isRefunded ? (
                 <Badge className="bg-purple-600 text-white flex items-center gap-1.5 py-1 px-3 text-xs">
                   <AlertTriangle size={14} />
-                  {t("premiumManagement.status.refunded", "Refunded")}
+                  {t("premiumManagement.status.refunded", "Đã hoàn tiền")}
                 </Badge>
               ) : (
                 <Badge variant="destructive" className="flex items-center gap-1.5 py-1 px-3 text-xs">
-                  <AlertTriangle size={14} />
-                  {t("premiumManagement.status.failed", "Failed")}
+                  <XCircle size={14} />
+                  {t("premiumManagement.status.failed", "Thất bại")}
                 </Badge>
               )}
             </div>
@@ -113,7 +147,7 @@ export function TransactionDetailModal({
           <div className="space-y-3 rounded-2xl border border-slate-100 dark:border-slate-800/80 p-4 bg-white dark:bg-slate-950/30">
             <div className="flex items-center justify-between text-xs">
               <span className="text-slate-500 dark:text-slate-400">
-                {t("premiumManagement.transactionModal.transactionId", "Transaction ID")}
+                {t("premiumManagement.transactionModal.transactionId", "Order ID")}
               </span>
               <div className="flex items-center gap-1.5 font-mono font-semibold text-slate-800 dark:text-slate-200">
                 <span>{transaction.id}</span>
@@ -139,12 +173,12 @@ export function TransactionDetailModal({
 
             <div className="flex items-center justify-between text-xs">
               <span className="text-slate-500 dark:text-slate-400">
-                {t("premiumManagement.transactionModal.plan", "Plan Type")}
+                {t("premiumManagement.transactionModal.plan", "Billing Cycle")}
               </span>
               <span className="font-semibold capitalize text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 px-2.5 py-0.5 rounded-full">
                 {transaction.planType === "monthly"
-                  ? t("premiumManagement.planTypes.monthly", "Monthly Plan")
-                  : t("premiumManagement.planTypes.yearly", "Yearly Plan")}
+                  ? t("premiumManagement.planTypes.monthly", "Monthly (30 days)")
+                  : t("premiumManagement.planTypes.yearly", "Yearly (365 days)")}
               </span>
             </div>
 
@@ -171,7 +205,7 @@ export function TransactionDetailModal({
 
             <div className="flex items-center justify-between text-xs">
               <span className="text-slate-500 dark:text-slate-400">
-                {t("premiumManagement.transactionModal.createdAt", "Transaction Time")}
+                {t("premiumManagement.transactionModal.createdAt", "Created Time")}
               </span>
               <span className="text-slate-700 dark:text-slate-300">
                 {transaction.date}
@@ -196,26 +230,102 @@ export function TransactionDetailModal({
             </div>
           </div>
 
-          {/* Privacy Note */}
+          {/* IPN Timeline & Subscription Grant Panel */}
+          <div className="rounded-2xl border border-indigo-100 dark:border-indigo-900/40 bg-indigo-50/40 dark:bg-indigo-950/20 p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-bold uppercase tracking-wider text-indigo-700 dark:text-indigo-300">
+                {t("premiumManagement.transactionModal.verificationTimeline")}
+              </p>
+              <span className="text-[11px] font-medium text-indigo-600 dark:text-indigo-400">
+                {t("premiumManagement.transactionModal.autoSynced")}
+              </span>
+            </div>
+
+            <div className="space-y-2 text-xs">
+              <div className="flex items-center justify-between">
+                <span className="text-slate-600 dark:text-slate-300 flex items-center gap-1.5">
+                  <CheckCircle size={13} className="text-emerald-500" />
+                  {t("premiumManagement.transactionModal.stepCheckout")}
+                </span>
+                <span className="font-mono text-slate-500">{transaction.date}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-slate-600 dark:text-slate-300 flex items-center gap-1.5">
+                  <CheckCircle size={13} className="text-blue-500" />
+                  {t("premiumManagement.transactionModal.stepGatewayReturn")}
+                </span>
+                <span className="text-slate-500">
+                  {t("premiumManagement.transactionModal.awaitingServer")}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-slate-600 dark:text-slate-300 flex items-center gap-1.5">
+                  {isPaid || isRefunded ? (
+                    <CheckCircle size={13} className="text-emerald-500" />
+                  ) : (
+                    <Clock size={13} className="text-amber-500" />
+                  )}
+                  {t("premiumManagement.transactionModal.stepPaymentConfirmed")}
+                </span>
+                <span className="font-mono text-slate-700 dark:text-slate-200 font-semibold">
+                  {transaction.ipnVerifiedAt || (isPaid ? transaction.date : t("premiumManagement.transactionModal.awaitingConfirmation"))}
+                </span>
+              </div>
+            </div>
+
+            {/* SubscriptionGrantPanel */}
+            <div className="pt-2 border-t border-indigo-200/60 dark:border-indigo-800/50 flex items-center justify-between text-xs">
+              <span className="font-semibold text-slate-700 dark:text-slate-300">
+                {t("premiumManagement.transactionModal.entitlementStatus")}
+              </span>
+              {isPaid ? (
+                <Badge className="bg-emerald-600 text-white text-[11px]">
+                  {t("premiumManagement.transactionModal.entitlementGranted")}
+                </Badge>
+              ) : isRefunded ? (
+                <Badge className="bg-purple-600 text-white text-[11px]">
+                  {t("premiumManagement.transactionModal.entitlementRevoked")}
+                </Badge>
+              ) : (
+                <Badge variant="outline" className="text-amber-600 border-amber-300 text-[11px]">
+                  {t("premiumManagement.transactionModal.entitlementPending")}
+                </Badge>
+              )}
+            </div>
+          </div>
+
+          {/* Privacy & Contract Note */}
           <div className="rounded-xl bg-slate-50/70 dark:bg-slate-800/30 p-3 flex items-start gap-2.5 text-xs text-slate-500 dark:text-slate-400 border border-slate-100 dark:border-slate-800">
             <ShieldCheck size={16} className="text-emerald-500 mt-0.5 shrink-0" />
             <p>
               {t(
-                "premiumManagement.transactionModal.securityAuditNote",
-                "In accordance with security standards, customer bank credentials and private tokens are masked. All transactions are logged with idempotent payment webhooks."
+                "premiumManagement.transactionModal.autoActivationNotice",
+                "Hệ thống tự động kích hoạt gói khi nhận phản hồi xác thực từ cổng thanh toán. Nếu phản hồi bị trễ, quản trị viên có thể nhấn Đối soát đơn hàng để đồng bộ trạng thái."
               )}
             </p>
           </div>
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end pt-4 border-t border-slate-100 dark:border-slate-800">
+        <div className="flex items-center justify-between pt-4 border-t border-slate-100 dark:border-slate-800 gap-2">
+          <div>
+            {canReconcile && onReconcile && (
+              <button
+                type="button"
+                onClick={() => onReconcile(transaction.id)}
+                className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs transition-colors flex items-center gap-1.5 shadow-sm"
+              >
+                <RefreshCw size={14} />
+                {t("premiumManagement.actions.reconcile", "Đối soát đơn hàng")}
+              </button>
+            )}
+          </div>
           <button
             type="button"
             onClick={onClose}
             className="px-5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-semibold text-xs transition-colors"
           >
-            {t("premiumManagement.transactionModal.close", "Close")}
+            {t("premiumManagement.transactionModal.close")}
           </button>
         </div>
       </div>

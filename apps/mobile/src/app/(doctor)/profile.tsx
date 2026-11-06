@@ -1,13 +1,21 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { View, Text, ScrollView, TouchableOpacity, Image, TextInput, KeyboardAvoidingView, Platform, useColorScheme as useRNColorScheme, Switch } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Image, TextInput, KeyboardAvoidingView, Platform, Switch, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSafeRouter as useRouter } from '@/utils/useSafeRouter';
-import { Camera, Mail, Phone, MapPin, Stethoscope, LogOut, FileText, Pencil, Trash2, Plus, Radical, Building, ShieldCheck, Eye, CheckCircle2, Clock } from 'lucide-react-native';
+import { Camera, Mail, Phone, MapPin, Stethoscope, LogOut, FileText, Pencil, Trash2, Plus, Radical, Building, ShieldCheck, Eye, CheckCircle2, Clock, Star, Shield, Database, ChevronRight } from 'lucide-react-native';
 import { useThemeContext } from '@/context/ThemeContext';
 import { tw, twInstance } from '@/tw';
 import Toast from 'react-native-toast-message';
-import { AvatarPickerModal, DocUploadModal, DocViewerModal, ImageViewerModal } from '@/components/modals';
+import {
+  AvatarPickerModal,
+  DocUploadModal,
+  DocViewerModal,
+  ImageViewerModal,
+  DoctorReviewsModal,
+  SecuritySessionsModal,
+  PrivacyDataModal,
+} from '@/components/modals';
 import type { VerificationDocument } from '@/components/modals/DocUploadModal';
 import { pickNativePdfDocument, pickNativeImage } from '@/services/nativeMedia';
 
@@ -21,13 +29,18 @@ export default function DoctorProfileScreen() {
 
   const [avatarUri, setAvatarUri] = useState('https://i.pravatar.cc/150?img=1');
   const [avatarModalVisible, setAvatarModalVisible] = useState(false);
+  const [reviewsModalVisible, setReviewsModalVisible] = useState(false);
+  const [securityModalVisible, setSecurityModalVisible] = useState(false);
+  const [privacyModalVisible, setPrivacyModalVisible] = useState(false);
+  const [verificationStatus, setVerificationStatus] = useState<'approved' | 'pending' | 'rejected'>('approved');
+  const [refreshing, setRefreshing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
   const defaultDocs: VerificationDocument[] = [
     {
       id: 'doc-1',
       type: 'license',
-      title: isVi ? 'Chứng chỉ hành nghề Y khoa' : 'Medical Practice License',
+      title: t('mobile.doc_license_title', 'Chứng chỉ hành nghề Y khoa'),
       fileName: 'Medical_License_2023.pdf',
       fileSize: '2.4 MB',
       status: 'pending',
@@ -37,7 +50,7 @@ export default function DoctorProfileScreen() {
     {
       id: 'doc-2',
       type: 'degree',
-      title: isVi ? 'Bằng Bác sĩ Chuyên khoa Tim mạch' : 'Doctor of Medicine - Cardiology Board',
+      title: t('mobile.doc_degree_title', 'Bằng Bác sĩ Chuyên khoa Tim mạch'),
       fileName: 'Cardiology_Board_Diploma_2018.pdf',
       fileSize: '3.8 MB',
       status: 'verified',
@@ -134,7 +147,20 @@ export default function DoctorProfileScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={tw('flex-1')}
       >
-        <ScrollView contentContainerStyle={tw('pb-20')} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          contentContainerStyle={tw('pb-24')}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={() => {
+                setRefreshing(true);
+                setTimeout(() => setRefreshing(false), 700);
+              }}
+              tintColor="#3b82f6"
+            />
+          }
+        >
           {/* Header */}
           <View style={tw('px-6 pt-6 pb-4 flex-row justify-between items-center')}>
             <Text style={tw('text-2xl font-bold text-slate-900 dark:text-white')}>{t('mobile.my_profile', `My Profile`)}</Text>
@@ -144,7 +170,7 @@ export default function DoctorProfileScreen() {
           </View>
 
           {/* Avatar Section */}
-          <View style={tw('items-center mb-8 mt-2')}>
+          <View style={tw('items-center mb-6 mt-2')}>
             <View style={tw('relative')}>
               <Image 
                 source={{ uri: avatarUri }} 
@@ -157,10 +183,141 @@ export default function DoctorProfileScreen() {
                 <Camera color="#ffffff" size={16} />
               </TouchableOpacity>
             </View>
-            <View style={tw('mt-4 bg-blue-50 px-4 py-1.5 rounded-full border border-blue-200 flex-row items-center')}>
+            <View style={tw('mt-4 bg-blue-50 dark:bg-blue-900/30 px-4 py-1.5 rounded-full border border-blue-200 dark:border-blue-800 flex-row items-center')}>
               <Stethoscope color="#3b82f6" size={14} />
-              <Text style={tw('text-blue-700 font-bold text-xs ml-1')}>{t('mobile.doctor', `Doctor`)}</Text>
+              <Text style={tw('text-blue-700 dark:text-blue-300 font-bold text-xs ml-1')}>
+                {t('mobile.doctor', 'Doctor')} • {verificationStatus.toUpperCase()}
+              </Text>
             </View>
+          </View>
+
+          {/* D-02: Verification Status Banner & Capability Notice */}
+          <View style={tw('px-6 mb-6')}>
+            <View
+              style={tw(
+                `p-4 rounded-3xl border ${
+                  verificationStatus === 'approved'
+                    ? 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800/60'
+                    : verificationStatus === 'pending'
+                      ? 'bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800/60'
+                      : 'bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800/60'
+                }`
+              )}
+            >
+              <View style={tw('flex-row justify-between items-center mb-2')}>
+                <Text style={tw('text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300')}>
+                  {t('mobile.practice_verification_status', 'Trạng thái xác minh hành nghề')}
+                </Text>
+                <View
+                  style={tw(
+                    `px-2.5 py-0.5 rounded-full ${
+                      verificationStatus === 'approved'
+                        ? 'bg-emerald-100 dark:bg-emerald-900/50'
+                        : verificationStatus === 'pending'
+                          ? 'bg-amber-100 dark:bg-amber-900/50'
+                          : 'bg-red-100 dark:bg-red-900/50'
+                    }`
+                  )}
+                >
+                  <Text
+                    style={tw(
+                      `text-[10px] font-bold uppercase ${
+                        verificationStatus === 'approved'
+                          ? 'text-emerald-700 dark:text-emerald-300'
+                          : verificationStatus === 'pending'
+                            ? 'text-amber-700 dark:text-amber-400'
+                            : 'text-red-700 dark:text-red-400'
+                      }`
+                    )}
+                  >
+                    {verificationStatus === 'approved'
+                      ? t('mobile.status_approved', 'Đã duyệt')
+                      : verificationStatus === 'pending'
+                        ? t('mobile.status_pending_review', 'Chờ duyệt')
+                        : t('mobile.status_rejected', 'Từ chối')}
+                  </Text>
+                </View>
+              </View>
+              <Text style={tw('text-xs text-slate-700 dark:text-slate-200 leading-4')}>
+                {verificationStatus === 'approved'
+                  ? t('mobile.desc_approved', 'Hồ sơ đã được duyệt. Bạn có toàn quyền nhận lịch khám, quản lý chương trình chăm sóc của bệnh nhân và kích hoạt quy tắc theo dõi.')
+                  : verificationStatus === 'pending'
+                    ? t('mobile.desc_pending', 'Hồ sơ đang chờ quản trị viên thẩm định. Tạm thời chưa hiển thị công khai trong danh bạ đặt lịch.')
+                    : t('mobile.desc_rejected', 'Hồ sơ bị từ chối: ảnh chụp chứng chỉ hành nghề bị mờ. Vui lòng tải lại tệp PDF rõ nét để gửi duyệt lại.')}
+              </Text>
+            </View>
+          </View>
+
+          {/* Quick Links: D-08 Reviews, C-05 Security, C-06 Privacy */}
+          <View style={tw('px-6 mb-6 gap-3')}>
+            <TouchableOpacity
+              onPress={() => setReviewsModalVisible(true)}
+              style={tw(
+                'bg-white dark:bg-slate-900 p-4 rounded-2xl flex-row items-center justify-between shadow-sm border border-slate-100 dark:border-slate-800'
+              )}
+            >
+              <View style={tw('flex-row items-center flex-1 mr-2')}>
+                <View
+                  style={tw(
+                    'w-10 h-10 bg-amber-50 dark:bg-amber-900/30 rounded-xl items-center justify-center mr-3 shrink-0'
+                  )}
+                >
+                  <Star color={twInstance.color('text-amber-500')} size={20} />
+                </View>
+                <View style={tw('flex-1')}>
+                  <Text numberOfLines={1} style={tw('text-slate-900 dark:text-white font-bold')}>
+                    {t('mobile.doctor_reviews_link', 'Đánh giá & báo cáo')}
+                  </Text>
+                </View>
+              </View>
+              <ChevronRight color={twInstance.color('text-slate-400')} size={20} />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => setSecurityModalVisible(true)}
+              style={tw(
+                'bg-white dark:bg-slate-900 p-4 rounded-2xl flex-row items-center justify-between shadow-sm border border-slate-100 dark:border-slate-800'
+              )}
+            >
+              <View style={tw('flex-row items-center flex-1 mr-2')}>
+                <View
+                  style={tw(
+                    'w-10 h-10 bg-emerald-50 dark:bg-emerald-900/30 rounded-xl items-center justify-center mr-3 shrink-0'
+                  )}
+                >
+                  <Shield color={twInstance.color('text-emerald-500')} size={20} />
+                </View>
+                <View style={tw('flex-1')}>
+                  <Text numberOfLines={1} style={tw('text-slate-900 dark:text-white font-bold')}>
+                    {t('mobile.security_sessions', 'Bảo mật & Phiên đăng nhập')}
+                  </Text>
+                </View>
+              </View>
+              <ChevronRight color={twInstance.color('text-slate-400')} size={20} />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => setPrivacyModalVisible(true)}
+              style={tw(
+                'bg-white dark:bg-slate-900 p-4 rounded-2xl flex-row items-center justify-between shadow-sm border border-slate-100 dark:border-slate-800'
+              )}
+            >
+              <View style={tw('flex-row items-center flex-1 mr-2')}>
+                <View
+                  style={tw(
+                    'w-10 h-10 bg-indigo-50 dark:bg-indigo-900/30 rounded-xl items-center justify-center mr-3 shrink-0'
+                  )}
+                >
+                  <Database color={twInstance.color('text-indigo-500')} size={20} />
+                </View>
+                <View style={tw('flex-1')}>
+                  <Text numberOfLines={1} style={tw('text-slate-900 dark:text-white font-bold')}>
+                    {t('mobile.privacy_and_data', 'Quyền riêng tư & Dữ liệu cá nhân')}
+                  </Text>
+                </View>
+              </View>
+              <ChevronRight color={twInstance.color('text-slate-400')} size={20} />
+            </TouchableOpacity>
           </View>
 
           {/* Basic Info Form */}
@@ -543,7 +700,7 @@ export default function DoctorProfileScreen() {
         fileSize={selectedDocPreview?.size}
         fileUri={selectedDocPreview?.uri}
         uploadDate={selectedDocPreview?.uploadDate}
-        summary={isVi ? 'Chứng nhận chuyên môn y khoa hợp lệ đã được Bộ Y Tế và Hội đồng Y khoa xác thực.' : 'Official medical qualification verified by the Ministry of Health and Medical Board.'}
+        summary={t('mobile.qualification_verified_desc', 'Chứng nhận chuyên môn y khoa hợp lệ đã được Bộ Y Tế và Hội đồng Y khoa xác thực.')}
         onClose={() => setSelectedDocPreview(null)}
       />
 
@@ -554,6 +711,29 @@ export default function DoctorProfileScreen() {
         imageName={selectedImagePreview?.name}
         imageSize={selectedImagePreview?.size}
         onClose={() => setSelectedImagePreview(null)}
+      />
+
+      {/* D-08: Doctor Reviews & Report Abuse Modal */}
+      <DoctorReviewsModal
+        visible={reviewsModalVisible}
+        onClose={() => setReviewsModalVisible(false)}
+        doctorName={form.fullName}
+      />
+
+      {/* C-05: Security & Active Sessions Modal */}
+      <SecuritySessionsModal
+        visible={securityModalVisible}
+        onClose={() => setSecurityModalVisible(false)}
+        onNavigateChangePassword={() => {
+          setSecurityModalVisible(false);
+          router.push('/(auth)/change-password');
+        }}
+      />
+
+      {/* C-06: Privacy, Data Export & Deletion Modal */}
+      <PrivacyDataModal
+        visible={privacyModalVisible}
+        onClose={() => setPrivacyModalVisible(false)}
       />
     </SafeAreaView>
   );

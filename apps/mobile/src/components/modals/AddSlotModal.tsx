@@ -92,7 +92,7 @@ export const AddSlotModal: React.FC<AddSlotModalProps> = ({
                 <TouchableOpacity
                   onPress={() => setSessionType('video')}
                   style={tw(
-                    `flex-1 p-3 rounded-2xl border items-center ${
+                    `flex-1 p-2.5 min-h-[82px] justify-center rounded-2xl border items-center ${
                       sessionType === 'video'
                         ? 'border-brand bg-brand/10 dark:bg-brand/20'
                         : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950'
@@ -100,7 +100,7 @@ export const AddSlotModal: React.FC<AddSlotModalProps> = ({
                   )}
                 >
                   <Video color={sessionType === 'video' ? '#0f172a' : '#64748b'} size={20} style={tw('mb-1.5')} />
-                  <Text style={tw(`text-xs font-bold ${sessionType === 'video' ? 'text-slate-900 dark:text-white' : 'text-slate-600 dark:text-slate-400'}`)}>
+                  <Text style={tw(`text-xs font-bold text-center ${sessionType === 'video' ? 'text-slate-900 dark:text-white' : 'text-slate-600 dark:text-slate-400'}`)}>
                     {t('mobile.video_call', 'Video Call')}
                   </Text>
                 </TouchableOpacity>
@@ -108,7 +108,7 @@ export const AddSlotModal: React.FC<AddSlotModalProps> = ({
                 <TouchableOpacity
                   onPress={() => setSessionType('chat')}
                   style={tw(
-                    `flex-1 p-3 rounded-2xl border items-center ${
+                    `flex-1 p-2.5 min-h-[82px] justify-center rounded-2xl border items-center ${
                       sessionType === 'chat'
                         ? 'border-brand bg-brand/10 dark:bg-brand/20'
                         : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950'
@@ -116,7 +116,7 @@ export const AddSlotModal: React.FC<AddSlotModalProps> = ({
                   )}
                 >
                   <MessageCircle color={sessionType === 'chat' ? '#0f172a' : '#64748b'} size={20} style={tw('mb-1.5')} />
-                  <Text style={tw(`text-xs font-bold ${sessionType === 'chat' ? 'text-slate-900 dark:text-white' : 'text-slate-600 dark:text-slate-400'}`)}>
+                  <Text style={tw(`text-xs font-bold text-center ${sessionType === 'chat' ? 'text-slate-900 dark:text-white' : 'text-slate-600 dark:text-slate-400'}`)}>
                     {t('mobile.chat', 'Chat')}
                   </Text>
                 </TouchableOpacity>
@@ -124,7 +124,7 @@ export const AddSlotModal: React.FC<AddSlotModalProps> = ({
                 <TouchableOpacity
                   onPress={() => setSessionType('clinic')}
                   style={tw(
-                    `flex-1 p-3 rounded-2xl border items-center ${
+                    `flex-1 p-2.5 min-h-[82px] justify-center rounded-2xl border items-center ${
                       sessionType === 'clinic'
                         ? 'border-brand bg-brand/10 dark:bg-brand/20'
                         : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950'
@@ -132,7 +132,7 @@ export const AddSlotModal: React.FC<AddSlotModalProps> = ({
                   )}
                 >
                   <Building2 color={sessionType === 'clinic' ? '#0f172a' : '#64748b'} size={20} style={tw('mb-1.5')} />
-                  <Text style={tw(`text-xs font-bold ${sessionType === 'clinic' ? 'text-slate-900 dark:text-white' : 'text-slate-600 dark:text-slate-400'}`)}>
+                  <Text style={tw(`text-xs font-bold text-center ${sessionType === 'clinic' ? 'text-slate-900 dark:text-white' : 'text-slate-600 dark:text-slate-400'}`)}>
                     {t('mobile.clinic_visit', 'In-Person')}
                   </Text>
                 </TouchableOpacity>

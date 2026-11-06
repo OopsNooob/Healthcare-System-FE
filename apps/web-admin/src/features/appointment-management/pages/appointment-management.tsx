@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Calendar,
   Clock,
@@ -8,6 +8,7 @@ import {
   Filter,
   Database,
   Eye,
+  X,
 } from "lucide-react";
 import { Badge } from "@repo/ui/components/ui/badge";
 import { Skeleton } from "@repo/ui/components/ui/skeleton";
@@ -23,6 +24,11 @@ export function AppointmentManagement() {
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
 
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [selectedStatus, setSelectedStatus] = useState<string>("all");
+  const [selectedType, setSelectedType] = useState<string>("all");
+  const [selectedDoctor, setSelectedDoctor] = useState<string>("all");
+
   useEffect(() => {
     // Simulate loading data
     const timer = setTimeout(() => {
@@ -33,9 +39,12 @@ export function AppointmentManagement() {
           patient: "Vu Quoc Huy",
           doctor: "Dr. Sarah Connor",
           type: "Video Call",
+          mode: "scheduled",
+          requestStatus: "accepted",
+          sessionStatus: "completed",
           status: "Completed",
-          symptoms: "Persistent elevated systolic pressure (145 mmHg) accompanied by lightheadedness.",
-          clinicalNotes: "Patient prescribed dietary adjustments, low-sodium protocol, and a follow-up appointment in 14 days.",
+          queuePosition: null,
+          calledAt: "08:59 AM",
           duration: "18 mins",
         },
         {
@@ -44,9 +53,12 @@ export function AppointmentManagement() {
           patient: "Do Dinh Khang",
           doctor: "Dr. John Doe",
           type: "Video Call",
+          mode: "scheduled",
+          requestStatus: "accepted",
+          sessionStatus: "in_consultation",
           status: "In Progress",
-          symptoms: "Fasting glucose spikes above 160 mg/dL after carbohydrate intake.",
-          clinicalNotes: "Reviewing continuous glucose logs and insulin sensitivity ratios.",
+          queuePosition: null,
+          calledAt: "10:02 AM",
           duration: "Active (12m)",
         },
         {
@@ -55,9 +67,12 @@ export function AppointmentManagement() {
           patient: "Nguyen Van A",
           doctor: "Dr. John Doe",
           type: "Chat",
+          mode: "on_demand",
+          requestStatus: "accepted",
+          sessionStatus: "waiting",
           status: "Waiting",
-          symptoms: "Seasonal allergy flare-up and persistent coughing at night.",
-          clinicalNotes: "Awaiting consultation intake room start.",
+          queuePosition: 1,
+          calledAt: "10:14 AM",
           duration: "Queued (4m)",
         },
         {
@@ -66,9 +81,12 @@ export function AppointmentManagement() {
           patient: "Tran Thi B",
           doctor: "Dr. Sarah Connor",
           type: "Video Call",
+          mode: "scheduled",
+          requestStatus: "accepted",
+          sessionStatus: "scheduled",
           status: "Scheduled",
-          symptoms: "Routine quarterly chronic hypertension maintenance review.",
-          clinicalNotes: "Scheduled routine session.",
+          queuePosition: null,
+          calledAt: null,
           duration: "Estimated 15 mins",
         },
         {
@@ -77,9 +95,11 @@ export function AppointmentManagement() {
           patient: "Le Van C",
           doctor: "Dr. Emily Chen",
           type: "Chat",
+          mode: "scheduled",
+          requestStatus: "accepted",
+          sessionStatus: "no_show",
           status: "Canceled",
-          symptoms: "Mild fever resolved before appointment time.",
-          clinicalNotes: "Patient canceled 30 minutes prior to scheduled session.",
+          noShowReasonCode: "patient_absent",
           duration: "0 mins",
         },
       ]);
@@ -88,11 +108,46 @@ export function AppointmentManagement() {
     return () => clearTimeout(timer);
   }, []);
 
-  const filteredAppointments = appointments.filter(
-    (apt) =>
-      apt.patient.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      apt.doctor.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const doctorOptions = useMemo(() => {
+    return Array.from(new Set(appointments.map((a) => a.doctor))).filter(Boolean);
+  }, [appointments]);
+
+  const activeFiltersCount =
+    (selectedStatus !== "all" ? 1 : 0) +
+    (selectedType !== "all" ? 1 : 0) +
+    (selectedDoctor !== "all" ? 1 : 0);
+
+  const handleResetFilters = () => {
+    setSelectedStatus("all");
+    setSelectedType("all");
+    setSelectedDoctor("all");
+  };
+
+  const filteredAppointments = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    return appointments.filter((apt) => {
+      const matchesSearch =
+        query === "" ||
+        apt.patient.toLowerCase().includes(query) ||
+        apt.doctor.toLowerCase().includes(query) ||
+        apt.id.toLowerCase().includes(query);
+
+      const matchesStatus =
+        selectedStatus === "all" ||
+        apt.status.toLowerCase() === selectedStatus.toLowerCase() ||
+        apt.sessionStatus?.toLowerCase() === selectedStatus.toLowerCase();
+
+      const matchesType =
+        selectedType === "all" ||
+        apt.type.toLowerCase() === selectedType.toLowerCase();
+
+      const matchesDoctor =
+        selectedDoctor === "all" ||
+        apt.doctor === selectedDoctor;
+
+      return matchesSearch && matchesStatus && matchesType && matchesDoctor;
+    });
+  }, [appointments, searchQuery, selectedStatus, selectedType, selectedDoctor]);
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
@@ -162,39 +217,213 @@ export function AppointmentManagement() {
       </div>
 
       <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-gray-100 dark:border-slate-800 overflow-hidden">
-        <div className="border-b border-gray-100 dark:border-slate-800 px-6 py-4 flex flex-col sm:flex-row justify-between items-start sm:items-center">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 sm:mb-0">
+        <div className="border-b border-gray-100 dark:border-slate-800 px-6 py-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
             {t("appointmentManagement.queue.title")}
           </h2>
 
-          <div className="flex space-x-3">
-            <div className="relative">
+          <div className="flex items-center space-x-3 w-full sm:w-auto">
+            <div className="relative flex-1 sm:flex-initial">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input
                 type="text"
                 placeholder={t("appointmentManagement.queue.searchPlaceholder")}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 pr-4 py-2 border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 rounded-lg text-sm text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent w-56"
+                className="pl-9 pr-4 py-2 border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 rounded-lg text-sm text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent w-full sm:w-56"
               />
             </div>
-            <button className="flex items-center px-3 py-2 border border-gray-200 dark:border-slate-700 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors">
+
+            <button
+              type="button"
+              onClick={() => setIsFilterOpen((prev) => !prev)}
+              className={`flex items-center px-3 py-2 border rounded-lg text-sm font-medium transition-colors cursor-pointer ${
+                activeFiltersCount > 0 || isFilterOpen
+                  ? "border-brand bg-brand/10 text-slate-900 dark:text-brand font-semibold"
+                  : "border-gray-200 dark:border-slate-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800"
+              }`}
+            >
               <Filter className="w-4 h-4 mr-2" />
               {t("appointmentManagement.queue.filter")}
+              {activeFiltersCount > 0 && (
+                <span className="ml-1.5 w-5 h-5 rounded-full bg-brand text-slate-900 text-xs font-bold flex items-center justify-center">
+                  {activeFiltersCount}
+                </span>
+              )}
             </button>
           </div>
         </div>
+
+        {/* Expandable Filter Bar */}
+        {isFilterOpen && (
+          <div className="border-b border-gray-100 dark:border-slate-800 bg-slate-50/75 dark:bg-slate-800/40 px-6 py-4 space-y-3.5 transition-all">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Filter className="w-4 h-4 text-brand" />
+                <span className="font-semibold text-sm text-gray-900 dark:text-gray-100">
+                  {t("appointmentManagement.filters.title", "Bộ lọc nâng cao")}
+                </span>
+                {activeFiltersCount > 0 && (
+                  <span className="px-2 py-0.5 rounded-full bg-brand/20 text-brand text-xs font-bold">
+                    {activeFiltersCount}
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-3">
+                {activeFiltersCount > 0 && (
+                  <button
+                    type="button"
+                    onClick={handleResetFilters}
+                    className="text-xs text-rose-500 hover:text-rose-600 font-semibold cursor-pointer"
+                  >
+                    {t("appointmentManagement.filters.reset", "Đặt lại")}
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setIsFilterOpen(false)}
+                  className="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 cursor-pointer"
+                  title={t("common.close", "Đóng")}
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {/* Trạng thái (Status) */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                  {t("appointmentManagement.filters.status", "Trạng thái")}
+                </label>
+                <select
+                  value={selectedStatus}
+                  onChange={(e) => setSelectedStatus(e.target.value)}
+                  className="w-full text-xs rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 py-2 px-2.5 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-brand"
+                >
+                  <option value="all">{t("appointmentManagement.filters.allStatuses", "Tất cả trạng thái")}</option>
+                  <option value="In Progress">{t("appointmentManagement.status.inProgress", "Đang khám")}</option>
+                  <option value="Waiting">{t("appointmentManagement.status.waiting", "Đang chờ")}</option>
+                  <option value="Scheduled">{t("appointmentManagement.status.scheduled", "Đã lên lịch")}</option>
+                  <option value="Completed">{t("appointmentManagement.status.completed", "Hoàn thành")}</option>
+                  <option value="Canceled">{t("appointmentManagement.status.canceled", "Đã huỷ")}</option>
+                </select>
+              </div>
+
+              {/* Hình thức (Type) */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                  {t("appointmentManagement.filters.type", "Hình thức")}
+                </label>
+                <select
+                  value={selectedType}
+                  onChange={(e) => setSelectedType(e.target.value)}
+                  className="w-full text-xs rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 py-2 px-2.5 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-brand"
+                >
+                  <option value="all">{t("appointmentManagement.filters.allTypes", "Tất cả hình thức")}</option>
+                  <option value="Video Call">{t("appointmentManagement.types.videoCall", "Cuộc gọi Video")}</option>
+                  <option value="Chat">{t("appointmentManagement.types.chat", "Nhắn tin Chat")}</option>
+                </select>
+              </div>
+
+              {/* Bác sĩ (Doctor) */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                  {t("appointmentManagement.filters.doctor", "Bác sĩ phụ trách")}
+                </label>
+                <select
+                  value={selectedDoctor}
+                  onChange={(e) => setSelectedDoctor(e.target.value)}
+                  className="w-full text-xs rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 py-2 px-2.5 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-brand"
+                >
+                  <option value="all">{t("appointmentManagement.filters.allDoctors", "Tất cả bác sĩ")}</option>
+                  {doctorOptions.map((doc) => (
+                    <option key={doc} value={doc}>
+                      {doc}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Filter tags row */}
+        {activeFiltersCount > 0 && (
+          <div className="flex flex-wrap items-center gap-2 px-6 py-2.5 bg-slate-50 dark:bg-slate-800/40 border-b border-gray-100 dark:border-slate-800 text-xs">
+            <span className="text-gray-500 dark:text-gray-400 font-medium">
+              {t("appointmentManagement.filters.filteringBy", "Đang lọc theo")}:
+            </span>
+            {selectedStatus !== "all" && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-brand/20 text-slate-800 dark:text-brand font-medium">
+                {selectedStatus === "In Progress"
+                  ? t("appointmentManagement.status.inProgress")
+                  : selectedStatus === "Waiting"
+                  ? t("appointmentManagement.status.waiting")
+                  : selectedStatus === "Scheduled"
+                  ? t("appointmentManagement.status.scheduled")
+                  : selectedStatus === "Completed"
+                  ? t("appointmentManagement.status.completed")
+                  : selectedStatus === "Canceled"
+                  ? t("appointmentManagement.status.canceled")
+                  : selectedStatus}
+                <button
+                  type="button"
+                  onClick={() => setSelectedStatus("all")}
+                  className="hover:text-rose-500 ml-0.5 cursor-pointer"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            )}
+            {selectedType !== "all" && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-brand/20 text-slate-800 dark:text-brand font-medium">
+                {selectedType === "Video Call"
+                  ? t("appointmentManagement.types.videoCall")
+                  : selectedType === "Chat"
+                  ? t("appointmentManagement.types.chat")
+                  : selectedType}
+                <button
+                  type="button"
+                  onClick={() => setSelectedType("all")}
+                  className="hover:text-rose-500 ml-0.5 cursor-pointer"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            )}
+            {selectedDoctor !== "all" && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-brand/20 text-slate-800 dark:text-brand font-medium">
+                {selectedDoctor}
+                <button
+                  type="button"
+                  onClick={() => setSelectedDoctor("all")}
+                  className="hover:text-rose-500 ml-0.5 cursor-pointer"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={handleResetFilters}
+              className="text-xs text-rose-500 hover:underline ml-auto font-medium cursor-pointer"
+            >
+              {t("appointmentManagement.filters.clearAll", "Xoá tất cả lọc")}
+            </button>
+          </div>
+        )}
 
         <div className="overflow-x-auto max-h-[500px] overflow-y-auto">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-gray-50 dark:bg-slate-800 text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wider sticky top-0 z-10 shadow-sm">
-                <th className="px-6 py-3 font-medium">{t("appointmentManagement.table.timePos")}</th>
-                <th className="px-6 py-3 font-medium">{t("appointmentManagement.table.patient")}</th>
-                <th className="px-6 py-3 font-medium">{t("appointmentManagement.table.doctor")}</th>
-                <th className="px-6 py-3 font-medium">{t("appointmentManagement.table.type")}</th>
-                <th className="px-6 py-3 font-medium">{t("appointmentManagement.table.status")}</th>
-                <th className="px-6 py-3 font-medium text-right">{t("appointmentManagement.table.actions", "Actions")}</th>
+                <th className="px-6 py-3 font-medium whitespace-nowrap">{t("appointmentManagement.table.timePos")}</th>
+                <th className="px-6 py-3 font-medium whitespace-nowrap">{t("appointmentManagement.table.patient")}</th>
+                <th className="px-6 py-3 font-medium whitespace-nowrap">{t("appointmentManagement.table.doctor")}</th>
+                <th className="px-6 py-3 font-medium whitespace-nowrap">{t("appointmentManagement.table.type")}</th>
+                <th className="px-6 py-3 font-medium whitespace-nowrap">{t("appointmentManagement.table.status")}</th>
+                <th className="px-6 py-3 font-medium text-right whitespace-nowrap">{t("appointmentManagement.table.actions", "Actions")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-slate-800 text-sm">
@@ -212,15 +441,15 @@ export function AppointmentManagement() {
               ) : filteredAppointments.length > 0 ? (
                 filteredAppointments.map((apt) => (
                   <tr key={apt.id} className="hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors">
-                    <td className="px-6 py-4 font-medium text-gray-900 dark:text-gray-100">{apt.time}</td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-4 font-medium text-gray-900 dark:text-gray-100 whitespace-nowrap">{apt.time}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">
                       <div className="font-medium text-gray-900 dark:text-gray-100">{apt.patient}</div>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-gray-600 dark:text-gray-300">{apt.doctor}</div>
                     </td>
-                    <td className="px-6 py-4">
-                      <span className="inline-flex items-center text-gray-600 dark:text-gray-300">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="inline-flex items-center text-gray-600 dark:text-gray-300 whitespace-nowrap">
                         {apt.type === "Video Call" ? <Video className="w-3 h-3 mr-1 text-gray-400" /> : null}
                         {apt.type === "Video Call"
                           ? t("appointmentManagement.types.videoCall", "Video Call")
@@ -233,7 +462,7 @@ export function AppointmentManagement() {
                           : apt.type}
                       </span>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-4 whitespace-nowrap">
                       <Badge
                         variant={
                           apt.status === "Completed"
@@ -244,13 +473,13 @@ export function AppointmentManagement() {
                             ? "secondary"
                             : "destructive"
                         }
-                        className={
+                        className={`whitespace-nowrap inline-flex items-center ${
                           apt.status === "Completed"
                             ? "bg-green-500 hover:bg-green-600 dark:bg-green-600 dark:hover:bg-green-700"
                             : apt.status === "Waiting" || apt.status === "Scheduled"
                             ? "bg-amber-500 hover:bg-amber-600 dark:bg-amber-600 dark:hover:bg-amber-700 text-white"
                             : ""
-                        }
+                        }`}
                       >
                         {apt.status === "Completed"
                           ? t("appointmentManagement.status.completed")
@@ -263,13 +492,13 @@ export function AppointmentManagement() {
                           : t("appointmentManagement.status.canceled")}
                       </Badge>
                     </td>
-                    <td className="px-6 py-4 text-right">
+                    <td className="px-6 py-4 text-right whitespace-nowrap">
                       <button
                         onClick={() => {
                           setSelectedAppointment(apt);
                           setIsDetailOpen(true);
                         }}
-                        className="p-1.5 text-gray-400 hover:text-brand hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                        className="p-1.5 text-gray-400 hover:text-brand hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
                         title="View Details"
                       >
                         <Eye className="w-4 h-4" />
@@ -290,6 +519,15 @@ export function AppointmentManagement() {
                       <p className="text-gray-500 dark:text-gray-400 text-sm">
                         {t("appointmentManagement.table.tryAdjusting")}
                       </p>
+                      {activeFiltersCount > 0 && (
+                        <button
+                          type="button"
+                          onClick={handleResetFilters}
+                          className="mt-3 px-3 py-1.5 text-xs font-semibold text-brand bg-brand/10 hover:bg-brand/20 rounded-lg transition-colors cursor-pointer"
+                        >
+                          {t("appointmentManagement.filters.reset", "Đặt lại bộ lọc")}
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>

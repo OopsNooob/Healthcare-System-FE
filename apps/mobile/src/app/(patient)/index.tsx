@@ -1,13 +1,36 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { View, Text, ScrollView, TouchableOpacity, Image, TextInput, RefreshControl, Dimensions } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Image, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeRouter as useRouter } from '@/utils/useSafeRouter';
-import { Search, Bell, Calendar, ChevronRight, Star, Heart, Activity, Crown, MessageSquare, Droplet, Flame, CheckCircle2, Circle, XCircle, ClipboardList, Sparkles } from 'lucide-react-native';
+import Toast from 'react-native-toast-message';
+import {
+  Bell,
+  Calendar,
+  ChevronRight,
+  Activity,
+  Crown,
+  MessageSquare,
+  Droplet,
+  Flame,
+  CheckCircle2,
+  Circle,
+  XCircle,
+  ClipboardList,
+  Sparkles,
+  ClipboardCheck,
+  Link2,
+  Pill,
+} from 'lucide-react-native';
 import { tw, twInstance } from '@/tw';
 import { useThemeContext } from '@/context/ThemeContext';
-import { PauseProgramModal } from '@/components/modals';
+import {
+  PauseProgramModal,
+  HealthCheckInTaskModal,
+  EducationTaskModal,
+  AppointmentTaskLinkModal,
+} from '@/components/modals';
 import {
   careTaskTasks,
   careTaskCompletionRate,
@@ -17,7 +40,8 @@ import {
 } from '@healthcare/api-client';
 
 export default function PatientHomeScreen() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isVi = i18n.language === 'vi';
   useThemeContext(); // Subscribe to theme changes for reactive re-render
 
   const router = useRouter();
@@ -29,6 +53,12 @@ export default function PatientHomeScreen() {
   const [activeEnrollmentId, setActiveEnrollmentId] = useState<string | null>(null);
   const [expectedRevision, setExpectedRevision] = useState(1);
 
+  // CareTask Policy Contract v1 Modals state
+  const [selectedTask, setSelectedTask] = useState<any | null>(null);
+  const [checkInModalVisible, setCheckInModalVisible] = useState(false);
+  const [educationModalVisible, setEducationModalVisible] = useState(false);
+  const [appointmentLinkModalVisible, setAppointmentLinkModalVisible] = useState(false);
+
   // --- NEW DA2 MOCK / DYNAMIC DATA ---
   const [careProgram, setCareProgram] = useState({
     name: t('mobile.hypertension_program', 'Hypertension Management'),
@@ -37,18 +67,81 @@ export default function PatientHomeScreen() {
     daysLeft: 45,
   });
 
-  const [todayTasks, setTodayTasks] = useState([
-    { id: '1', type: 'metric', title: t('mobile.measure_bp', 'Measure Blood Pressure'), time: '08:00 AM', status: 'missed', icon: Activity, color: twInstance.color('text-rose-500'), bg: 'bg-rose-100 dark:bg-rose-900/30' },
-    { id: '2', type: 'metric', title: t('mobile.measure_bg', 'Measure Blood Sugar'), time: '01:00 PM', status: 'completed', icon: Droplet, color: twInstance.color('text-emerald-500'), bg: 'bg-emerald-100 dark:bg-emerald-900/30' },
-    { id: '3', type: 'education', title: t('mobile.read_diet', 'Diet for Hypertension'), time: t('mobile.anytime', 'Anytime'), status: 'due', icon: Flame, color: twInstance.color('text-amber-500'), bg: 'bg-amber-100 dark:bg-amber-900/30' },
-    { id: '4', type: 'metric', title: t('mobile.measure_bp', 'Measure Blood Pressure'), time: '08:00 PM', status: 'scheduled', icon: Activity, color: twInstance.color('text-blue-500'), bg: 'bg-blue-100 dark:bg-blue-900/30' },
+  const [todayTasks, setTodayTasks] = useState<any[]>([
+    {
+      id: '1',
+      type: 'metric',
+      title: t('mobile.measure_bp', 'Measure Blood Pressure'),
+      time: '08:00 AM',
+      status: 'missed',
+      allowedActions: [],
+      icon: Activity,
+      color: twInstance.color('text-rose-500'),
+      bg: 'bg-rose-100 dark:bg-rose-900/30',
+    },
+    {
+      id: '2',
+      type: 'metric',
+      title: t('mobile.measure_bg', 'Measure Blood Sugar'),
+      time: '01:00 PM',
+      status: 'completed',
+      allowedActions: [],
+      icon: Droplet,
+      color: twInstance.color('text-emerald-500'),
+      bg: 'bg-emerald-100 dark:bg-emerald-900/30',
+    },
+    {
+      id: '3',
+      type: 'check_in',
+      title: t('mobile.health_check_in_title', 'Kiểm tra triệu chứng định kỳ'),
+      time: t('mobile.anytime', 'Anytime'),
+      status: 'due',
+      allowedActions: ['submit_check_in'],
+      icon: ClipboardCheck,
+      color: twInstance.color('text-indigo-500'),
+      bg: 'bg-indigo-100 dark:bg-indigo-900/30',
+    },
+    {
+      id: '4',
+      type: 'education',
+      title: t('mobile.read_diet', 'Diet for Hypertension'),
+      time: t('mobile.anytime', 'Anytime'),
+      status: 'due',
+      allowedActions: ['acknowledge'],
+      icon: Flame,
+      color: twInstance.color('text-amber-500'),
+      bg: 'bg-amber-100 dark:bg-amber-900/30',
+    },
+    {
+      id: '5',
+      type: 'appointment',
+      title: t('mobile.link_appointment_task', 'Liên kết lịch tái khám định kỳ'),
+      time: t('mobile.anytime', 'Anytime'),
+      status: 'due',
+      allowedActions: ['link_appointment'],
+      linkedConsultationId: null,
+      icon: Link2,
+      color: twInstance.color('text-blue-500'),
+      bg: 'bg-blue-100 dark:bg-blue-900/30',
+    },
+    {
+      id: '6',
+      type: 'medication',
+      title: t('mobile.medication_task_title', 'Uống thuốc hạ áp buổi tối (Amlodipine 5mg)'),
+      time: '08:00 PM',
+      status: 'due',
+      allowedActions: ['confirm_medication'],
+      icon: Pill,
+      color: twInstance.color('text-purple-500'),
+      bg: 'bg-purple-100 dark:bg-purple-900/30',
+    },
   ]);
 
   const quotas = {
     aiRemaining: 15,
     aiTotal: 20,
     consultsRemaining: 2,
-    consultsTotal: 3
+    consultsTotal: 3,
   };
 
   const upcomingAppointment = {
@@ -67,7 +160,6 @@ export default function PatientHomeScreen() {
         setActiveEnrollmentId(enrollmentId);
         setHasPendingProgram(false);
 
-        // Fetch tasks
         const tasksRes: any = await careTaskTasks({
           path: { id: enrollmentId },
         }).catch(() => null);
@@ -82,6 +174,18 @@ export default function PatientHomeScreen() {
               icon = Flame;
               color = twInstance.color('text-amber-500');
               bg = 'bg-amber-100 dark:bg-amber-900/30';
+            } else if (item.taskType === 'check_in') {
+              icon = ClipboardCheck;
+              color = twInstance.color('text-indigo-500');
+              bg = 'bg-indigo-100 dark:bg-indigo-900/30';
+            } else if (item.taskType === 'appointment') {
+              icon = Link2;
+              color = twInstance.color('text-blue-500');
+              bg = 'bg-blue-100 dark:bg-blue-900/30';
+            } else if (item.taskType === 'medication') {
+              icon = Pill;
+              color = twInstance.color('text-purple-500');
+              bg = 'bg-purple-100 dark:bg-purple-900/30';
             } else if (item.templateKey?.includes('glucose') || item.templateKey?.includes('sugar')) {
               icon = Droplet;
               color = twInstance.color('text-emerald-500');
@@ -101,6 +205,8 @@ export default function PatientHomeScreen() {
               title: item.templateKey || t('mobile.measure_bp', 'Measure Blood Pressure'),
               time,
               status: item.status || 'scheduled',
+              allowedActions: item.allowedActions || [],
+              linkedConsultationId: item.linkedConsultationId || null,
               icon,
               color,
               bg,
@@ -109,7 +215,6 @@ export default function PatientHomeScreen() {
           setTodayTasks(mappedTasks);
         }
 
-        // Fetch completion rate
         const rateRes: any = await careTaskCompletionRate({
           path: { id: enrollmentId },
         }).catch(() => null);
@@ -137,6 +242,28 @@ export default function PatientHomeScreen() {
   const onRefresh = () => {
     setRefreshing(true);
     loadHomeData();
+  };
+
+  const handleTaskPress = (task: any) => {
+    setSelectedTask(task);
+    if (task.type === 'check_in') {
+      setCheckInModalVisible(true);
+    } else if (task.type === 'education') {
+      setEducationModalVisible(true);
+    } else if (task.type === 'appointment') {
+      setAppointmentLinkModalVisible(true);
+    } else if (task.type === 'medication') {
+      setTodayTasks((prev) =>
+        prev.map((item) => (item.id === task.id ? { ...item, status: 'completed' } : item))
+      );
+      Toast.show({
+        type: 'success',
+        text1: t('mobile.medication_confirmed_title', 'Đã xác nhận uống thuốc'),
+        text2: task.title,
+      });
+    } else {
+      router.push('/(patient)/health-metric');
+    }
   };
 
   const handlePauseConfirm = async (reason: string, _durationDays: number) => {
@@ -180,12 +307,29 @@ export default function PatientHomeScreen() {
     setIsPaused(false);
   };
 
+  const renderTaskSkeleton = () => (
+    <View style={tw('flex-row items-center rounded-2xl p-4 bg-white dark:bg-slate-900 border border-gray-100 dark:border-gray-800')}>
+      <View style={tw('w-12 h-12 rounded-xl bg-slate-200 dark:bg-slate-700 mr-4')} />
+      <View style={tw('flex-1')}>
+        <View style={tw('w-40 h-5 bg-slate-200 dark:bg-slate-700 rounded mb-2')} />
+        <View style={tw('w-24 h-4 bg-slate-200 dark:bg-slate-700 rounded')} />
+      </View>
+      <View style={tw('w-16 h-7 rounded-full bg-slate-200 dark:bg-slate-700')} />
+    </View>
+  );
+
   return (
     <SafeAreaView style={tw('flex-1 bg-slate-50 dark:bg-slate-950')}>
-      <ScrollView 
-        contentContainerStyle={tw('pb-20')} 
+      <ScrollView
+        contentContainerStyle={tw('pb-20')}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={twInstance.color('text-slate-900 dark:text-slate-100')} />}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={twInstance.color('text-slate-900 dark:text-slate-100')}
+          />
+        }
       >
         {/* Header */}
         <View style={tw('flex-row justify-between items-center px-6 pt-6 pb-4')}>
@@ -193,7 +337,7 @@ export default function PatientHomeScreen() {
             <Text style={tw('text-gray-500 dark:text-gray-400 text-sm')}>{t('mobile.good_morning', 'Good morning,')}</Text>
             <Text style={tw('text-2xl font-bold text-[#313A34] dark:text-slate-100')}>{t('mobile.alex_johnson', 'Alex Johnson')}</Text>
           </View>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={tw('p-2 bg-white dark:bg-slate-900 rounded-full shadow-sm border border-gray-100 dark:border-gray-800 relative')}
             onPress={() => router.push('/(patient)/notifications')}
           >
@@ -204,14 +348,24 @@ export default function PatientHomeScreen() {
 
         {/* Quotas Bar (DA2) */}
         <View style={tw('px-6 mb-6 flex-row gap-3')}>
-          <View style={tw('flex-row items-center bg-emerald-50 dark:bg-emerald-900/30 px-3 py-2 rounded-full border border-emerald-100 dark:border-emerald-800/50 flex-1')}>
-             <MessageSquare size={16} color={twInstance.color('text-emerald-600 dark:text-emerald-400')} />
-             <Text style={tw('ml-2 text-xs font-medium text-emerald-800 dark:text-emerald-300')}>{t('mobile.ai_tokens', 'AI Tokens')}: {quotas.aiRemaining}/{quotas.aiTotal}</Text>
-          </View>
-          <View style={tw('flex-row items-center bg-blue-50 dark:bg-blue-900/30 px-3 py-2 rounded-full border border-blue-100 dark:border-blue-800/50 flex-1')}>
-             <Activity size={16} color={twInstance.color('text-blue-600 dark:text-blue-400')} />
-             <Text style={tw('ml-2 text-xs font-medium text-blue-800 dark:text-blue-300')}>Call: {quotas.consultsRemaining}/{quotas.consultsTotal} {t('mobile.left', 'left')}</Text>
-          </View>
+          <TouchableOpacity
+            onPress={() => router.push('/(patient)/premium')}
+            style={tw('flex-row items-center bg-emerald-50 dark:bg-emerald-900/30 px-3 py-2 rounded-full border border-emerald-100 dark:border-emerald-800/50 flex-1')}
+          >
+            <MessageSquare size={16} color={twInstance.color('text-emerald-600 dark:text-emerald-400')} />
+            <Text style={tw('ml-2 text-xs font-medium text-emerald-800 dark:text-emerald-300')}>
+              {t('mobile.ai_tokens', 'AI Tokens')}: {quotas.aiRemaining}/{quotas.aiTotal}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => router.push('/(patient)/premium')}
+            style={tw('flex-row items-center bg-blue-50 dark:bg-blue-900/30 px-3 py-2 rounded-full border border-blue-100 dark:border-blue-800/50 flex-1')}
+          >
+            <Activity size={16} color={twInstance.color('text-blue-600 dark:text-blue-400')} />
+            <Text style={tw('ml-2 text-xs font-medium text-blue-800 dark:text-blue-300')}>
+              Call: {quotas.consultsRemaining}/{quotas.consultsTotal} {t('mobile.left', 'left')}
+            </Text>
+          </TouchableOpacity>
         </View>
 
         {/* Pending Care Program Assessment Banner (DA2) */}
@@ -264,15 +418,19 @@ export default function PatientHomeScreen() {
           <View style={tw('bg-indigo-600 dark:bg-indigo-700 rounded-3xl p-5 shadow-sm')}>
             <View style={tw('flex-row justify-between items-start mb-4')}>
               <View style={tw('flex-1')}>
-                <Text style={tw('text-indigo-100 text-xs font-medium uppercase tracking-wider mb-1')}>{t('mobile.active_program', 'Active Program')}</Text>
+                <Text style={tw('text-indigo-100 text-xs font-medium uppercase tracking-wider mb-1')}>
+                  {isPaused ? t('mobile.program_paused', 'Paused Program') : t('mobile.active_program', 'Active Program')}
+                </Text>
                 <Text style={tw('text-white font-bold text-lg leading-tight')}>{careProgram.name}</Text>
               </View>
               <View style={tw('bg-white/20 px-3 py-1.5 rounded-full flex-row items-center')}>
                 <Flame size={14} color="#fca5a5" />
-                <Text style={tw('text-white text-xs font-bold ml-1')}>{careProgram.streak} {t('mobile.days', 'days')}</Text>
+                <Text style={tw('text-white text-xs font-bold ml-1')}>
+                  {careProgram.streak} {t('mobile.days', 'days')}
+                </Text>
               </View>
             </View>
-            
+
             {/* Progress bar */}
             <View style={tw('mb-4')}>
               <View style={tw('flex-row justify-between mb-1')}>
@@ -285,8 +443,10 @@ export default function PatientHomeScreen() {
             </View>
 
             <View style={tw('flex-row justify-between items-center')}>
-              <Text style={tw('text-indigo-200 text-xs')}>{careProgram.daysLeft} {t('mobile.days_remaining', 'days remaining')}</Text>
-              <TouchableOpacity 
+              <Text style={tw('text-indigo-200 text-xs')}>
+                {careProgram.daysLeft} {t('mobile.days_remaining', 'days remaining')}
+              </Text>
+              <TouchableOpacity
                 onPress={() => {
                   if (isPaused) {
                     handleResume();
@@ -304,71 +464,127 @@ export default function PatientHomeScreen() {
           </View>
         </View>
 
-        {/* Today's Tasks (DA2) */}
+        {/* Today's Tasks (DA2 CareTask Policy Contract v1) */}
         <View style={tw('px-6 mb-8')}>
-          <View style={tw('flex-row justify-between items-end mb-4')}>
-            <Text style={tw('text-lg font-bold text-[#313A34] dark:text-slate-100')}>{t('mobile.todays_tasks', "Today's Tasks")}</Text>
-            <Text style={tw('text-sm font-medium text-emerald-500')}>
-              {todayTasks.filter((task) => task.status === 'completed').length}/{todayTasks.length} {t('mobile.done', 'Done')}
-            </Text>
+          <View style={tw('flex-row justify-between items-start mb-4')}>
+            <View style={tw('flex-1 mr-3')}>
+              <Text style={tw('text-lg font-bold text-[#313A34] dark:text-slate-100')}>
+                {t('mobile.todays_tasks', "Today's Tasks")}
+              </Text>
+              <Text style={tw('text-xs text-slate-500 dark:text-slate-400 mt-0.5')} numberOfLines={1}>
+                {t(
+                  'mobile.care_task_contract_subtitle',
+                  isVi ? 'Chỉ số, triệu chứng và lịch theo dõi hôm nay' : 'Daily vitals, symptoms & follow-ups'
+                )}
+              </Text>
+            </View>
+            <View style={tw('bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-1 rounded-full shrink-0')}>
+              <Text style={tw('text-xs font-bold text-emerald-600 dark:text-emerald-400')}>
+                {todayTasks.filter((task) => task.status === 'completed').length}/{todayTasks.length}{' '}
+                {t('mobile.done', isVi ? 'Hoàn thành' : 'Done')}
+              </Text>
+            </View>
           </View>
 
           <View style={tw('gap-3')}>
-            {todayTasks.map((task) => {
-              const Icon = task.icon;
-              const isTerminal = task.status === 'completed' || task.status === 'missed' || task.status === 'cancelled';
-              const isDisabled = isTerminal || task.status === 'scheduled';
-              
-              return (
-                <TouchableOpacity 
-                  key={task.id} 
-                  disabled={isDisabled}
-                  style={tw(`flex-row items-center rounded-2xl p-4 shadow-sm border ${isTerminal ? 'opacity-60' : ''} ${task.status === 'due' ? 'bg-indigo-50 dark:bg-indigo-900/20 border-indigo-200 dark:border-indigo-800/50' : 'bg-white dark:bg-slate-900 border-gray-100 dark:border-gray-800'}`)}
-                  onPress={() => router.push('/(patient)/health-metric')}
-                >
-                  <View style={tw(`w-12 h-12 rounded-xl items-center justify-center mr-4 ${task.bg}`)}>
-                    <Icon size={24} color={task.color as string} />
-                  </View>
-                  <View style={tw('flex-1')}>
-                    <Text style={tw(`text-base font-bold dark:text-slate-100 ${isTerminal ? 'text-gray-400 dark:text-gray-500 line-through' : 'text-[#313A34]'}`)}>{task.title}</Text>
-                    {task.status === 'scheduled' && (
-                      <Text style={tw('text-sm text-indigo-500 dark:text-indigo-400 font-medium mt-0.5')}>{t('mobile.task_scheduled', 'Scheduled for')} {task.time}</Text>
+            {loading ? (
+              <>
+                {renderTaskSkeleton()}
+                {renderTaskSkeleton()}
+                {renderTaskSkeleton()}
+              </>
+            ) : (
+              todayTasks.map((task) => {
+                const Icon = task.icon;
+                const isTerminal = task.status === 'completed' || task.status === 'missed' || task.status === 'cancelled';
+                const isDisabled = isTerminal || task.status === 'scheduled';
+
+                return (
+                  <TouchableOpacity
+                    key={task.id}
+                    disabled={isDisabled}
+                    style={tw(
+                      `flex-row items-center rounded-2xl p-4 shadow-sm border ${isTerminal ? 'opacity-60' : ''} ${
+                        task.status === 'due'
+                          ? 'bg-indigo-50 dark:bg-indigo-900/20 border-indigo-200 dark:border-indigo-800/50'
+                          : 'bg-white dark:bg-slate-900 border-gray-100 dark:border-gray-800'
+                      }`
                     )}
-                    {task.status === 'due' && (
-                      <Text style={tw('text-sm text-amber-500 dark:text-amber-400 font-medium mt-0.5')}>{t('mobile.task_due', 'Due now')} • {task.time}</Text>
-                    )}
-                    {task.status === 'missed' && (
-                      <Text style={tw('text-sm text-rose-500 dark:text-rose-400 font-medium mt-0.5')}>{t('mobile.task_missed', 'Missed')}</Text>
-                    )}
-                    {task.status === 'cancelled' && (
-                      <Text style={tw('text-sm text-gray-500 dark:text-gray-400 mt-0.5')}>{t('mobile.task_cancelled', 'Cancelled')}</Text>
-                    )}
-                    {task.status === 'completed' && (
-                      <Text style={tw('text-sm text-emerald-500 dark:text-emerald-400 font-medium mt-0.5')}>{t('mobile.task_completed', 'Completed')}</Text>
-                    )}
-                  </View>
-                  <View style={tw('ml-2')}>
-                    {task.status === 'completed' ? (
-                      <CheckCircle2 size={24} color={twInstance.color('text-emerald-500')} />
-                    ) : task.status === 'missed' ? (
-                      <XCircle size={24} color={twInstance.color('text-rose-500')} />
-                    ) : task.status === 'due' ? (
-                      <View style={tw('bg-indigo-600 px-4 py-1.5 rounded-full')}>
-                        <Text style={tw('text-white text-xs font-bold')}>{t('mobile.start', 'Start')}</Text>
-                      </View>
-                    ) : (
-                      <Circle size={24} color={twInstance.color('text-gray-300 dark:text-gray-600')} />
-                    )}
-                  </View>
-                </TouchableOpacity>
-              )
-            })}
+                    onPress={() => handleTaskPress(task)}
+                  >
+                    <View style={tw(`w-12 h-12 rounded-xl items-center justify-center mr-4 ${task.bg}`)}>
+                      <Icon size={24} color={task.color as string} />
+                    </View>
+                    <View style={tw('flex-1')}>
+                      <Text
+                        style={tw(
+                          `text-base font-bold dark:text-slate-100 ${
+                            isTerminal ? 'text-gray-400 dark:text-gray-500 line-through' : 'text-[#313A34]'
+                          }`
+                        )}
+                      >
+                        {task.title}
+                      </Text>
+                      {task.linkedConsultationId && task.status !== 'completed' && (
+                        <Text style={tw('text-xs font-semibold text-blue-600 dark:text-blue-400 mt-0.5')}>
+                          {t('mobile.linked_to_consultation', 'Đã liên kết lịch khám')}: {task.linkedConsultationId} ({t('mobile.waiting_for_completion', 'Chờ buổi khám hoàn tất')})
+                        </Text>
+                      )}
+                      {task.status === 'scheduled' && (
+                        <Text style={tw('text-sm text-indigo-500 dark:text-indigo-400 font-medium mt-0.5')}>
+                          {t('mobile.task_scheduled', 'Scheduled for')} {task.time}
+                        </Text>
+                      )}
+                      {task.status === 'due' && (
+                        <Text style={tw('text-sm text-amber-500 dark:text-amber-400 font-medium mt-0.5')}>
+                          {t('mobile.task_due', 'Due now')} • {task.time}
+                        </Text>
+                      )}
+                      {task.status === 'missed' && (
+                        <Text style={tw('text-sm text-rose-500 dark:text-rose-400 font-medium mt-0.5')}>
+                          {t('mobile.task_missed', 'Missed')}
+                        </Text>
+                      )}
+                      {task.status === 'cancelled' && (
+                        <Text style={tw('text-sm text-gray-500 dark:text-gray-400 mt-0.5')}>
+                          {t('mobile.task_cancelled', 'Cancelled')}
+                        </Text>
+                      )}
+                      {task.status === 'completed' && (
+                        <Text style={tw('text-sm text-emerald-500 dark:text-emerald-400 font-medium mt-0.5')}>
+                          {t('mobile.task_completed', 'Completed')}
+                        </Text>
+                      )}
+                    </View>
+                    <View style={tw('ml-2')}>
+                      {task.status === 'completed' ? (
+                        <CheckCircle2 size={24} color={twInstance.color('text-emerald-500')} />
+                      ) : task.status === 'missed' ? (
+                        <XCircle size={24} color={twInstance.color('text-rose-500')} />
+                      ) : task.status === 'due' ? (
+                        <View style={tw('bg-indigo-600 px-3.5 py-1.5 rounded-full')}>
+                          <Text style={tw('text-white text-xs font-bold')}>
+                            {task.type === 'education'
+                              ? t('mobile.view_and_ack', 'Xem')
+                              : task.type === 'appointment'
+                              ? t('mobile.link_btn', 'Liên kết')
+                              : t('mobile.start', 'Start')}
+                          </Text>
+                        </View>
+                      ) : (
+                        <Circle size={24} color={twInstance.color('text-gray-300 dark:text-gray-600')} />
+                      )}
+                    </View>
+                  </TouchableOpacity>
+                );
+              })
+            )}
           </View>
         </View>
 
         {/* Premium Banner */}
         <View style={tw('px-6 mb-8')}>
-          <TouchableOpacity 
+          <TouchableOpacity
             onPress={() => router.push('/(patient)/premium')}
             style={tw('bg-amber-500 rounded-3xl p-5 flex-row items-center justify-between shadow-md')}
           >
@@ -377,7 +593,9 @@ export default function PatientHomeScreen() {
                 <Crown color="#ffffff" size={20} style={tw('mr-2')} />
                 <Text style={tw('text-white font-bold text-lg')}>{t('mobile.upgrade_premium', 'Upgrade Premium')}</Text>
               </View>
-              <Text style={tw('text-amber-50 text-sm leading-tight')}>{t('mobile.unlimited_ai_chats_priority_do', 'Unlimited AI chats & priority doctor queue')}</Text>
+              <Text style={tw('text-amber-50 text-sm leading-tight')}>
+                {t('mobile.unlimited_ai_chats_priority_do', 'Unlimited AI chats & priority doctor queue')}
+              </Text>
             </View>
             <View style={tw('bg-white dark:bg-slate-900/20 p-2 rounded-full')}>
               <ChevronRight color={twInstance.color('text-amber-500 dark:text-white')} size={24} />
@@ -388,23 +606,25 @@ export default function PatientHomeScreen() {
         {/* Upcoming Appointment */}
         <View style={tw('px-6 mb-8')}>
           <View style={tw('flex-row justify-between items-end mb-4')}>
-            <Text style={tw('text-lg font-bold text-[#313A34] dark:text-slate-100')}>{t('mobile.upcoming_appointment', 'Upcoming Appointment')}</Text>
-            <TouchableOpacity onPress={() => router.push('/(patient)/chat-hub')}>
+            <Text style={tw('text-lg font-bold text-[#313A34] dark:text-slate-100')}>
+              {t('mobile.upcoming_appointment', 'Upcoming Appointment')}
+            </Text>
+            <TouchableOpacity onPress={() => router.push('/(patient)/appointments')}>
               <Text style={tw('text-sm font-medium text-emerald-500')}>{t('mobile.see_all', 'See all')}</Text>
             </TouchableOpacity>
           </View>
 
           <View style={tw('bg-emerald-500 dark:bg-emerald-600 rounded-3xl p-5 shadow-sm')}>
             <View style={tw('flex-row items-center mb-4')}>
-              <Image 
-                source={{ uri: upcomingAppointment.image }} 
-                style={tw('w-14 h-14 rounded-2xl bg-emerald-400')} 
-              />
+              <Image source={{ uri: upcomingAppointment.image }} style={tw('w-14 h-14 rounded-2xl bg-emerald-400')} />
               <View style={tw('ml-3 flex-1')}>
                 <Text style={tw('text-white font-bold text-lg')}>{upcomingAppointment.doctorName}</Text>
                 <Text style={tw('text-emerald-100 text-sm')}>{upcomingAppointment.specialty}</Text>
               </View>
-              <TouchableOpacity style={tw('w-10 h-10 bg-white dark:bg-slate-900/20 rounded-full items-center justify-center')} onPress={() => router.push('/(patient)/video-call')}>
+              <TouchableOpacity
+                style={tw('w-10 h-10 bg-white dark:bg-slate-900/20 rounded-full items-center justify-center')}
+                onPress={() => router.push('/(patient)/video-call')}
+              >
                 <View style={tw('w-10 h-10 bg-white dark:bg-slate-900 rounded-full items-center justify-center')}>
                   <Activity color="#10b981" size={20} />
                 </View>
@@ -423,13 +643,58 @@ export default function PatientHomeScreen() {
             </View>
           </View>
         </View>
-
       </ScrollView>
+
       <PauseProgramModal
         visible={pauseModalVisible}
         onClose={() => setPauseModalVisible(false)}
         programName={careProgram.name}
         onConfirmPause={handlePauseConfirm}
+      />
+
+      {/* CareTask Policy v1: Check-in Modal */}
+      <HealthCheckInTaskModal
+        visible={checkInModalVisible}
+        onClose={() => setCheckInModalVisible(false)}
+        taskTitle={selectedTask?.title}
+        onSubmit={() => {
+          if (selectedTask) {
+            setTodayTasks((prev) =>
+              prev.map((item) => (item.id === selectedTask.id ? { ...item, status: 'completed' } : item))
+            );
+          }
+        }}
+      />
+
+      {/* CareTask Policy v1: Education Acknowledge Modal */}
+      <EducationTaskModal
+        visible={educationModalVisible}
+        onClose={() => setEducationModalVisible(false)}
+        onAcknowledge={() => {
+          if (selectedTask) {
+            setTodayTasks((prev) =>
+              prev.map((item) => (item.id === selectedTask.id ? { ...item, status: 'completed' } : item))
+            );
+          }
+        }}
+      />
+
+      {/* CareTask Policy v1: Appointment Task Link Modal */}
+      <AppointmentTaskLinkModal
+        visible={appointmentLinkModalVisible}
+        onClose={() => setAppointmentLinkModalVisible(false)}
+        taskTitle={selectedTask?.title}
+        linkedConsultationId={selectedTask?.linkedConsultationId}
+        onLinkConsultation={(consultationId) => {
+          if (selectedTask) {
+            setTodayTasks((prev) =>
+              prev.map((item) =>
+                item.id === selectedTask.id ? { ...item, linkedConsultationId: consultationId } : item
+              )
+            );
+          }
+        }}
+        onBookNewSlot={() => router.push('/(patient)/my-doctors')}
       />
     </SafeAreaView>
   );

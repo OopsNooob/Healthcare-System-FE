@@ -109,7 +109,7 @@ export const DocViewerModal: React.FC<DocViewerModalProps> = ({
                   {t('mobile.doc_verified_moh', 'MOH Digital Certificate Verified')}
                 </Text>
                 <Text style={tw('text-[11px] text-emerald-700/80 dark:text-emerald-300/80')}>
-                  {isVi ? 'Đã được ký điện tử bởi Bác sĩ chuyên khoa phụ trách' : 'Digitally certified by consulting physician'}
+                  {t('mobile.digitally_certified_physician', 'Đã được ký điện tử bởi Bác sĩ chuyên khoa phụ trách')}
                 </Text>
               </View>
             </View>
@@ -117,7 +117,7 @@ export const DocViewerModal: React.FC<DocViewerModalProps> = ({
             {/* Document Abstract / Content Preview */}
             <View style={tw('gap-2')}>
               <Text style={tw('text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider')}>
-                {isVi ? 'Tóm Tắt Hồ Sơ Lâm Sàng' : 'Clinical Summary & Directives'}
+                {t('mobile.clinical_summary_and_directives', 'Tóm Tắt Hồ Sơ Lâm Sàng')}
               </Text>
               <View style={tw('p-4 rounded-2xl bg-indigo-50/60 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-800/30')}>
                 <Text style={tw('text-xs leading-5 text-indigo-950 dark:text-indigo-200')}>
@@ -137,7 +137,7 @@ export const DocViewerModal: React.FC<DocViewerModalProps> = ({
               style={tw('flex-1 bg-brand py-3.5 rounded-xl items-center flex-row justify-center')}
             >
               <Share2 color="#0f172a" size={16} style={tw('mr-2')} />
-              <Text style={tw('text-slate-900 font-bold text-sm')}>{isVi ? 'Mở / Chia sẻ' : 'Share / Open'}</Text>
+              <Text style={tw('text-slate-900 font-bold text-sm')}>{t('mobile.share_or_open', 'Mở / Chia sẻ')}</Text>
             </TouchableOpacity>
           </View>
         </View>

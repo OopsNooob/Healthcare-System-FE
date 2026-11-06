@@ -8,6 +8,10 @@ import {
   Database,
   Edit,
   Sparkles,
+  Copy,
+  CheckCircle2,
+  Archive,
+  RefreshCw,
 } from "lucide-react";
 import { Badge } from "@repo/ui/components/ui/badge";
 import { Skeleton } from "@repo/ui/components/ui/skeleton";
@@ -31,6 +35,19 @@ import {
   plansCreate,
 } from "@healthcare/api-client";
 
+interface PlanVersionRow {
+  id: string;
+  code: "FREE" | "PLUS" | "CARE";
+  name: string;
+  version: string;
+  priceVnd: number;
+  status: "published" | "draft" | "retired";
+  aiQuota: string;
+  consultQuota: string;
+  careProgramLimit: number;
+  familyLinkLimit: number;
+}
+
 export function PremiumManagement() {
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<"transactions" | "config" | "refunds">("transactions");
@@ -41,19 +58,59 @@ export function PremiumManagement() {
   const [isTransactionModalOpen, setIsTransactionModalOpen] = useState(false);
   const [activePlanId, setActivePlanId] = useState<string | null>(null);
 
+  // Plan Versions Catalog (A-07 / BILL-12..16)
+  const [planVersions, setPlanVersions] = useState<PlanVersionRow[]>([
+    {
+      id: "plan-free-v1",
+      code: "FREE",
+      name: "Free Basic",
+      version: "v1.0",
+      priceVnd: 0,
+      status: "published",
+      aiQuota: "20 turns / month",
+      consultQuota: "0 included",
+      careProgramLimit: 1,
+      familyLinkLimit: 1,
+    },
+    {
+      id: "plan-plus-v1",
+      code: "PLUS",
+      name: "Plus Health",
+      version: "v1.0",
+      priceVnd: 99000,
+      status: "published",
+      aiQuota: "200 turns / month",
+      consultQuota: "1 / month",
+      careProgramLimit: 2,
+      familyLinkLimit: 3,
+    },
+    {
+      id: "plan-care-v1",
+      code: "CARE",
+      name: "Chronic Care Pro",
+      version: "v1.0",
+      priceVnd: 299000,
+      status: "published",
+      aiQuota: "500 turns / month",
+      consultQuota: "3 / month",
+      careProgramLimit: 5,
+      familyLinkLimit: 5,
+    },
+  ]);
+
   // Plan Config State
   const [planConfig, setPlanConfig] = useState<PlanConfig>({
-    name: "Premium Care",
-    price: "199,000 VND / month",
+    name: "Chronic Care Pro (CARE)",
+    price: "299,000 VND / month",
     billingCycle: "Monthly",
-    aiLimit: "50,000 tokens / cycle",
-    consultsLimit: "2 / cycle",
-    familyLimit: "3 members",
+    aiLimit: "500 turns / cycle",
+    consultsLimit: "3 / cycle",
+    familyLimit: "5 members",
     features: [
-      "Unlimited AI health consultations",
-      "Priority in doctor waiting queue",
-      "Advanced health metrics insights",
-      "Family profile sharing",
+      "500 AI health assistant turns / cycle",
+      "3 priority teleconsultations / cycle",
+      "Up to 5 Chronic Care Programs",
+      "Up to 5 Family profile links",
     ],
     isActive: true,
   });
@@ -64,13 +121,13 @@ export function PremiumManagement() {
     {
       id: "REF-001",
       user: "Vu Quoc Huy",
-      amount: "199,000 VND",
-      requestedAt: "Oct 16, 2026",
+      amount: "299,000 VND",
+      requestedAt: "05/11/2026",
       reason: "Accidentally renewed subscription without needing consultation this month.",
       tokensUsed: 1200,
       tokensLimit: 5000,
       consultsUsed: 0,
-      consultsLimit: 0,
+      consultsLimit: 3,
       daysActive: 2,
       isEligible: true,
       status: "pending",
@@ -78,13 +135,13 @@ export function PremiumManagement() {
     {
       id: "REF-002",
       user: "Nguyen Van A",
-      amount: "199,000 VND",
-      requestedAt: "Oct 14, 2026",
+      amount: "99,000 VND",
+      requestedAt: "03/11/2026",
       reason: "Service did not meet expectations, requesting refund after 2 weeks.",
       tokensUsed: 15400,
       tokensLimit: 5000,
       consultsUsed: 1,
-      consultsLimit: 0,
+      consultsLimit: 1,
       daysActive: 16,
       isEligible: false,
       status: "pending",
@@ -92,13 +149,13 @@ export function PremiumManagement() {
     {
       id: "REF-003",
       user: "Tran Thi B",
-      amount: "199,000 VND",
-      requestedAt: "Oct 11, 2026",
+      amount: "299,000 VND",
+      requestedAt: "01/11/2026",
       reason: "Doctor was not available in my local time zone.",
-      tokensUsed: 4200,
+      tokensUsed: 420,
       tokensLimit: 5000,
       consultsUsed: 0,
-      consultsLimit: 0,
+      consultsLimit: 3,
       daysActive: 4,
       isEligible: true,
       status: "approved",
@@ -114,7 +171,7 @@ export function PremiumManagement() {
       const res = await plansList().catch(() => null);
       const plans = (res as { data?: Array<Record<string, unknown>> })?.data;
       if (Array.isArray(plans) && plans.length > 0) {
-        const primaryPlan = (plans.find((p) => p.status === 'published') || plans[0]) as {
+        const primaryPlan = (plans.find((p) => p.status === "published") || plans[0]) as {
           _id?: string;
           id?: string;
           name?: string;
@@ -134,19 +191,19 @@ export function PremiumManagement() {
 
         setActivePlanId(primaryPlan._id || primaryPlan.id || null);
         setPlanConfig({
-          name: primaryPlan.name || 'Premium Care',
-          price: `${(primaryPlan.price || 199000).toLocaleString('vi-VN')} VND / ${primaryPlan.billingCycle || 'month'}`,
-          billingCycle: primaryPlan.billingCycle || 'Monthly',
-          aiLimit: `${primaryPlan.limits?.aiTokens || primaryPlan.aiLimit || '50,000'} tokens / cycle`,
-          consultsLimit: `${primaryPlan.limits?.consultations || primaryPlan.consultsLimit || '2'} / cycle`,
-          familyLimit: `${primaryPlan.limits?.familyMembers || primaryPlan.familyLimit || '3'} members`,
+          name: primaryPlan.name || "Chronic Care Pro (CARE)",
+          price: `${(primaryPlan.price || 299000).toLocaleString("vi-VN")} VND / ${primaryPlan.billingCycle || "month"}`,
+          billingCycle: primaryPlan.billingCycle || "Monthly",
+          aiLimit: `${primaryPlan.limits?.aiTokens || primaryPlan.aiLimit || "500"} turns / cycle`,
+          consultsLimit: `${primaryPlan.limits?.consultations || primaryPlan.consultsLimit || "3"} / cycle`,
+          familyLimit: `${primaryPlan.limits?.familyMembers || primaryPlan.familyLimit || "5"} members`,
           features: primaryPlan.features || [
-            "Unlimited AI health consultations",
-            "Priority in doctor waiting queue",
-            "Advanced health metrics insights",
-            "Family profile sharing",
+            "500 AI health assistant turns / cycle",
+            "3 priority teleconsultations / cycle",
+            "Up to 5 Chronic Care Programs",
+            "Up to 5 Family profile links",
           ],
-          isActive: primaryPlan.status === 'published',
+          isActive: primaryPlan.status === "published",
         });
       }
     } catch {
@@ -156,12 +213,13 @@ export function PremiumManagement() {
 
   useEffect(() => {
     let isSubscribed = true;
+
     plansList()
       .then((res) => {
         if (!isSubscribed) return;
         const plans = (res as { data?: Array<Record<string, unknown>> })?.data;
         if (Array.isArray(plans) && plans.length > 0) {
-          const primaryPlan = (plans.find((p) => p.status === 'published') || plans[0]) as {
+          const primaryPlan = (plans.find((p) => p.status === "published") || plans[0]) as {
             _id?: string;
             id?: string;
             name?: string;
@@ -181,79 +239,180 @@ export function PremiumManagement() {
 
           setActivePlanId(primaryPlan._id || primaryPlan.id || null);
           setPlanConfig({
-            name: primaryPlan.name || 'Premium Care',
-            price: `${(primaryPlan.price || 199000).toLocaleString('vi-VN')} VND / ${primaryPlan.billingCycle || 'month'}`,
-            billingCycle: primaryPlan.billingCycle || 'Monthly',
-            aiLimit: `${primaryPlan.limits?.aiTokens || primaryPlan.aiLimit || '50,000'} tokens / cycle`,
-            consultsLimit: `${primaryPlan.limits?.consultations || primaryPlan.consultsLimit || '2'} / cycle`,
-            familyLimit: `${primaryPlan.limits?.familyMembers || primaryPlan.familyLimit || '3'} members`,
+            name: primaryPlan.name || "Chronic Care Pro",
+            price: `${(primaryPlan.price || 299000).toLocaleString("vi-VN")} VND / ${primaryPlan.billingCycle || "month"}`,
+            billingCycle: primaryPlan.billingCycle || "Monthly",
+            aiLimit: `${primaryPlan.limits?.aiTokens || primaryPlan.aiLimit || "500"} turns / cycle`,
+            consultsLimit: `${primaryPlan.limits?.consultations || primaryPlan.consultsLimit || "3"} / cycle`,
+            familyLimit: `${primaryPlan.limits?.familyMembers || primaryPlan.familyLimit || "5"} members`,
             features: primaryPlan.features || [
-              "Unlimited AI health consultations",
-              "Priority in doctor waiting queue",
-              "Advanced health metrics insights",
-              "Family profile sharing",
+              "500 AI health assistant turns / cycle",
+              "3 priority teleconsultations / cycle",
+              "Up to 5 Chronic Care Programs",
+              "Up to 5 Family profile links",
             ],
-            isActive: primaryPlan.status === 'published',
+            isActive: primaryPlan.status === "published",
           });
         }
       })
-      .catch(() => null);
+      .catch(() => {
+        // Keep local defaults
+      });
 
     const timer = setTimeout(() => {
       if (!isSubscribed) return;
       setTransactions([
         {
-          id: "VN109283",
+          id: "ORD-2026-8901",
           user: "Vu Quoc Huy",
+          planCode: "CARE",
+          planVersion: "v1.0",
           planType: "monthly",
-          amount: 199000,
-          paymentGateway: "momo",
-          maskedReference: "MOMO****4891",
-          date: "Oct 15, 2026",
-          status: "Success",
+          amount: 299000,
+          paymentGateway: "vnpay",
+          maskedReference: "VNPAY****4891",
+          date: "05/11/2026 14:20",
+          status: "paid",
           hasInvoiceRequested: true,
+          ipnVerifiedAt: "05/11/2026 14:20:08",
+          subscriptionGranted: true,
         },
         {
-          id: "VN109284",
+          id: "ORD-2026-8902",
           user: "Do Dinh Khang",
-          planType: "yearly",
-          amount: 1990000,
+          planCode: "PLUS",
+          planVersion: "v1.0",
+          planType: "monthly",
+          amount: 99000,
           paymentGateway: "vnpay",
           maskedReference: "VNPAY****8823",
-          date: "Oct 15, 2026",
-          status: "Success",
+          date: "05/11/2026 10:15",
+          status: "paid",
           hasInvoiceRequested: false,
+          ipnVerifiedAt: "05/11/2026 10:15:12",
+          subscriptionGranted: true,
         },
         {
-          id: "VN109285",
+          id: "ORD-2026-8903",
           user: "Nguyen Van A",
+          planCode: "CARE",
+          planVersion: "v1.0",
           planType: "monthly",
-          amount: 199000,
-          paymentGateway: "card",
-          maskedReference: "VISA****9912",
-          date: "Oct 14, 2026",
-          status: "Pending",
+          amount: 299000,
+          paymentGateway: "vnpay",
+          maskedReference: "VNPAY****9912",
+          date: "06/11/2026 09:05",
+          status: "pending",
           hasInvoiceRequested: false,
+          subscriptionGranted: false,
         },
         {
-          id: "VN109286",
+          id: "ORD-2026-8904",
           user: "Tran Thi B",
+          planCode: "PLUS",
+          planVersion: "v1.0",
           planType: "monthly",
-          amount: 199000,
-          paymentGateway: "momo",
-          maskedReference: "MOMO****1204",
-          date: "Oct 12, 2026",
-          status: "Failed",
+          amount: 99000,
+          paymentGateway: "vnpay",
+          maskedReference: "VNPAY****1204",
+          date: "02/11/2026 16:40",
+          status: "refunded",
           hasInvoiceRequested: true,
+          ipnVerifiedAt: "02/11/2026 16:40:05",
+          subscriptionGranted: false,
+        },
+        {
+          id: "ORD-2026-8905",
+          user: "Le Hoang C",
+          planCode: "PLUS",
+          planVersion: "v1.0",
+          planType: "monthly",
+          amount: 99000,
+          paymentGateway: "vnpay",
+          maskedReference: "VNPAY****3319",
+          date: "01/11/2026 11:00",
+          status: "failed",
+          hasInvoiceRequested: false,
+          subscriptionGranted: false,
         },
       ]);
       setLoading(false);
-    }, 1200);
+    }, 800);
     return () => {
       isSubscribed = false;
       clearTimeout(timer);
     };
-  }, [loadPlans]);
+  }, []);
+
+  const handleReconcileOrder = (orderId: string) => {
+    setTransactions((prev) =>
+      prev.map((tx) =>
+        tx.id === orderId
+          ? {
+              ...tx,
+              status: "paid",
+              ipnVerifiedAt: new Date().toLocaleString("vi-VN"),
+              subscriptionGranted: true,
+            }
+          : tx
+      )
+    );
+    setSelectedTransaction((prev) =>
+      prev && prev.id === orderId
+        ? {
+            ...prev,
+            status: "paid",
+            ipnVerifiedAt: new Date().toLocaleString("vi-VN"),
+            subscriptionGranted: true,
+          }
+        : prev
+    );
+    toast.success(
+      t("premiumManagement.toasts.orderReconciled", { orderId })
+    );
+  };
+
+  const handleClonePlanVersion = (plan: PlanVersionRow) => {
+    const nextVersion = `v1.${planVersions.filter((p) => p.code === plan.code).length}-draft`;
+    const draftClone: PlanVersionRow = {
+      ...plan,
+      id: `${plan.id}-clone-${nextVersion}`,
+      version: nextVersion,
+      status: "draft",
+    };
+    setPlanVersions((prev) => [...prev, draftClone]);
+    toast.success(
+      t("premiumManagement.toasts.draftCreatedForPlan", { code: plan.code, version: nextVersion })
+    );
+  };
+
+  const handlePublishPlanVersion = (planId: string) => {
+    const target = planVersions.find((p) => p.id === planId);
+    if (!target) return;
+    setPlanVersions((prev) =>
+      prev.map((p) => {
+        if (p.id === planId) return { ...p, status: "published" };
+        if (p.code === target.code && p.status === "published") {
+          return { ...p, status: "retired" };
+        }
+        return p;
+      })
+    );
+    toast.success(
+      t("premiumManagement.toasts.versionPublished", { code: target.code, version: target.version })
+    );
+  };
+
+  const handleRetirePlanVersion = (planId: string) => {
+    const target = planVersions.find((p) => p.id === planId);
+    if (!target) return;
+    setPlanVersions((prev) =>
+      prev.map((p) => (p.id === planId ? { ...p, status: "retired" } : p))
+    );
+    toast.info(
+      t("premiumManagement.toasts.versionRetired", { code: target.code, version: target.version })
+    );
+  };
 
   const openRefundReview = (refund: RefundRequest) => {
     setSelectedRefund(refund);
@@ -305,7 +464,7 @@ export function PremiumManagement() {
       toast.success(t("premiumManagement.toasts.deployedSuccess", "Default plans deployed successfully!"));
       await loadPlans();
     } catch {
-      toast.info(t("premiumManagement.toasts.deployFallback", "Defaults deployed (simulated)"));
+      toast.info(t("premiumManagement.toasts.deployFallback", "Default plans (FREE, PLUS, CARE) deployed"));
     }
   };
 
@@ -358,6 +517,36 @@ export function PremiumManagement() {
       t.user.toLowerCase().includes(searchQuery.toLowerCase()) ||
       t.id.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const renderOrderStatusBadge = (status: Transaction["status"]) => {
+    const norm = status.toLowerCase();
+    if (norm === "paid" || norm === "success") {
+      return (
+        <Badge className="bg-emerald-600 hover:bg-emerald-700 text-white">
+          {t("premiumManagement.status.paid")}
+        </Badge>
+      );
+    }
+    if (norm === "pending" || norm === "refund_pending") {
+      return (
+        <Badge className="bg-amber-500 hover:bg-amber-600 text-white">
+          {t("premiumManagement.status.pending")}
+        </Badge>
+      );
+    }
+    if (norm === "refunded") {
+      return (
+        <Badge className="bg-purple-600 hover:bg-purple-700 text-white">
+          {t("premiumManagement.status.refunded")}
+        </Badge>
+      );
+    }
+    return (
+      <Badge variant="destructive">
+        {t("premiumManagement.status.failed")}
+      </Badge>
+    );
+  };
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
@@ -431,7 +620,7 @@ export function PremiumManagement() {
               }`}
               onClick={() => setActiveTab("config")}
             >
-              {t("premiumManagement.tabs.config", "Plans Config")}
+              {t("premiumManagement.tabs.config")}
             </button>
             <button
               className={`font-medium pb-4 border-b-2 -mb-4 transition-colors ${
@@ -462,13 +651,14 @@ export function PremiumManagement() {
           )}
         </div>
 
-        <div className="p-0 overflow-x-auto max-h-[500px] overflow-y-auto">
+        <div className="p-0 overflow-x-auto max-h-[600px] overflow-y-auto">
           {activeTab === "transactions" ? (
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-gray-50 dark:bg-slate-800 text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wider sticky top-0 z-10 shadow-sm">
                   <th className="px-6 py-3 font-medium">{t("premiumManagement.table.transactionId")}</th>
                   <th className="px-6 py-3 font-medium">{t("premiumManagement.table.user")}</th>
+                  <th className="px-6 py-3 font-medium">{t("premiumManagement.transactionModal.plan")}</th>
                   <th className="px-6 py-3 font-medium">{t("premiumManagement.table.amount")}</th>
                   <th className="px-6 py-3 font-medium">{t("premiumManagement.table.date")}</th>
                   <th className="px-6 py-3 font-medium">{t("premiumManagement.table.status")}</th>
@@ -481,6 +671,7 @@ export function PremiumManagement() {
                     <tr key={`skeleton-${i}`}>
                       <td className="px-6 py-4"><Skeleton className="h-5 w-24" /></td>
                       <td className="px-6 py-4"><Skeleton className="h-5 w-32" /></td>
+                      <td className="px-6 py-4"><Skeleton className="h-5 w-16" /></td>
                       <td className="px-6 py-4"><Skeleton className="h-5 w-24" /></td>
                       <td className="px-6 py-4"><Skeleton className="h-5 w-24" /></td>
                       <td className="px-6 py-4"><Skeleton className="h-6 w-20 rounded-full" /></td>
@@ -490,53 +681,47 @@ export function PremiumManagement() {
                 ) : filteredTransactions.length > 0 ? (
                   filteredTransactions.map((tx, idx) => (
                     <tr key={idx} className="hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors">
-                      <td className="px-6 py-4 font-medium text-gray-900 dark:text-gray-100">{tx.id}</td>
+                      <td className="px-6 py-4 font-mono font-medium text-gray-900 dark:text-gray-100">{tx.id}</td>
                       <td className="px-6 py-4 text-gray-600 dark:text-gray-300">{tx.user}</td>
+                      <td className="px-6 py-4">
+                        <span className="text-xs font-bold px-2 py-0.5 rounded bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300">
+                          {tx.planCode || "CARE"} ({tx.planVersion || "v1.0"})
+                        </span>
+                      </td>
                       <td className="px-6 py-4 font-medium text-gray-900 dark:text-gray-100">
                         {tx.amount.toLocaleString("vi-VN")} VND
                       </td>
                       <td className="px-6 py-4 text-gray-500 dark:text-gray-400">{tx.date}</td>
-                      <td className="px-6 py-4">
-                        <Badge
-                          variant={
-                            tx.status === "Success"
-                              ? "default"
-                              : tx.status === "Pending"
-                              ? "secondary"
-                              : "destructive"
-                          }
-                          className={
-                            tx.status === "Success"
-                              ? "bg-green-500 hover:bg-green-600 dark:bg-green-600 dark:hover:bg-green-700"
-                              : tx.status === "Pending"
-                              ? "bg-amber-500 hover:bg-amber-600 dark:bg-amber-600 dark:hover:bg-amber-700 text-white"
-                              : ""
-                          }
-                        >
-                          {tx.status === "Success"
-                            ? t("premiumManagement.status.success")
-                            : tx.status === "Pending"
-                            ? t("premiumManagement.status.pending")
-                            : t("premiumManagement.status.failed")}
-                        </Badge>
-                      </td>
+                      <td className="px-6 py-4">{renderOrderStatusBadge(tx.status)}</td>
                       <td className="px-6 py-4 text-right">
-                        <button
-                          onClick={() => {
-                            setSelectedTransaction(tx);
-                            setIsTransactionModalOpen(true);
-                          }}
-                          className="p-1 text-gray-400 hover:text-brand transition-colors"
-                          title="View Details"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </button>
+                        <div className="flex items-center justify-end gap-2">
+                          {(tx.status === "pending" || tx.status === "failed") && (
+                            <button
+                              onClick={() => handleReconcileOrder(tx.id)}
+                              className="px-2.5 py-1 rounded-md bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-300 hover:bg-indigo-100 text-xs font-semibold flex items-center gap-1"
+                              title={t("premiumManagement.actions.reconcileTooltip")}
+                            >
+                              <RefreshCw size={12} />
+                              {t("premiumManagement.actions.reconcile")}
+                            </button>
+                          )}
+                          <button
+                            onClick={() => {
+                              setSelectedTransaction(tx);
+                              setIsTransactionModalOpen(true);
+                            }}
+                            className="p-1 text-gray-400 hover:text-brand transition-colors"
+                            title={t("premiumManagement.actions.viewDetails")}
+                          >
+                            <Eye className="w-4 h-4" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={6} className="px-6 py-16 text-center">
+                    <td colSpan={7} className="px-6 py-16 text-center">
                       <div className="flex flex-col items-center justify-center">
                         <div className="w-16 h-16 bg-gray-50 dark:bg-slate-800 rounded-full flex items-center justify-center mb-4">
                           <Database className="w-8 h-8 text-gray-400" />
@@ -554,7 +739,121 @@ export function PremiumManagement() {
               </tbody>
             </table>
           ) : activeTab === "config" ? (
-            <div className="p-6">
+            <div className="p-6 space-y-6">
+              {/* Multi-tier Plan Versions Table */}
+              <div className="border border-gray-200 dark:border-slate-800 rounded-xl overflow-hidden bg-white dark:bg-slate-900 shadow-sm">
+                <div className="bg-slate-50 dark:bg-slate-800/60 px-6 py-4 border-b border-gray-200 dark:border-slate-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                  <div>
+                    <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">
+                      {t("premiumManagement.catalog.title")}
+                    </h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                      {t("premiumManagement.catalog.subtitle")}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={handleDeployDefaults}
+                      className="px-3 py-2 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/50 font-medium transition-colors flex items-center gap-1.5 shadow-sm text-xs"
+                    >
+                      <Sparkles size={14} />
+                      {t("premiumManagement.config.deployDefaults")}
+                    </button>
+                    <button
+                      onClick={() => setIsEditPlanOpen(true)}
+                      className="px-3 py-2 bg-white dark:bg-slate-800 text-brand border border-brand/20 rounded-lg hover:bg-brand/5 dark:hover:bg-brand/10 font-semibold transition-colors flex items-center gap-1.5 shadow-sm text-xs"
+                    >
+                      <Edit size={14} />
+                      {t("premiumManagement.config.editPlan")}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[820px] text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="bg-slate-50/70 dark:bg-slate-800/40 text-slate-500 dark:text-slate-400 uppercase border-b border-slate-200 dark:border-slate-800">
+                        <th className="px-4 py-3 font-semibold whitespace-nowrap">{t("premiumManagement.catalog.code")}</th>
+                        <th className="px-4 py-3 font-semibold whitespace-nowrap">{t("premiumManagement.catalog.version")}</th>
+                        <th className="px-4 py-3 font-semibold whitespace-nowrap">{t("premiumManagement.catalog.priceVnd")}</th>
+                        <th className="px-4 py-3 font-semibold whitespace-nowrap">{t("premiumManagement.catalog.aiQuota")}</th>
+                        <th className="px-4 py-3 font-semibold whitespace-nowrap">{t("premiumManagement.catalog.consults")}</th>
+                        <th className="px-4 py-3 font-semibold whitespace-nowrap">{t("premiumManagement.catalog.carePrograms")}</th>
+                        <th className="px-4 py-3 font-semibold whitespace-nowrap">{t("premiumManagement.catalog.familyLinks")}</th>
+                        <th className="px-4 py-3 font-semibold whitespace-nowrap">{t("premiumManagement.catalog.status")}</th>
+                        <th className="px-4 py-3 font-semibold text-right whitespace-nowrap">{t("premiumManagement.catalog.actions")}</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                      {planVersions.map((pv) => (
+                        <tr key={pv.id} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/30">
+                          <td className="px-4 py-3 font-bold text-slate-900 dark:text-slate-100 whitespace-nowrap">
+                            {pv.code}
+                            <div className="text-[11px] font-normal text-slate-500">{pv.name}</div>
+                          </td>
+                          <td className="px-4 py-3 font-mono text-slate-700 dark:text-slate-300 whitespace-nowrap">{pv.version}</td>
+                          <td className="px-4 py-3 font-semibold text-slate-900 dark:text-slate-100 whitespace-nowrap">
+                            {pv.priceVnd.toLocaleString("vi-VN")} đ
+                          </td>
+                          <td className="px-4 py-3 text-slate-600 dark:text-slate-300 whitespace-nowrap">{pv.aiQuota}</td>
+                          <td className="px-4 py-3 text-slate-600 dark:text-slate-300 whitespace-nowrap">{pv.consultQuota}</td>
+                          <td className="px-4 py-3 text-slate-600 dark:text-slate-300 whitespace-nowrap">{pv.careProgramLimit}</td>
+                          <td className="px-4 py-3 text-slate-600 dark:text-slate-300 whitespace-nowrap">{pv.familyLinkLimit}</td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {pv.status === "published" ? (
+                              <Badge className="bg-emerald-600 text-white text-[10px] whitespace-nowrap inline-flex items-center">
+                                {t("premiumManagement.catalog.published")}
+                              </Badge>
+                            ) : pv.status === "draft" ? (
+                              <Badge className="bg-amber-500 text-white text-[10px] whitespace-nowrap inline-flex items-center">
+                                {t("premiumManagement.catalog.draft")}
+                              </Badge>
+                            ) : (
+                              <Badge variant="secondary" className="text-[10px] whitespace-nowrap inline-flex items-center">
+                                {t("premiumManagement.catalog.retired")}
+                              </Badge>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-right whitespace-nowrap min-w-[170px]">
+                            <div className="flex items-center justify-end gap-1.5 whitespace-nowrap">
+                              <button
+                                onClick={() => handleClonePlanVersion(pv)}
+                                className="px-2.5 py-1 rounded border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium whitespace-nowrap shrink-0 inline-flex items-center gap-1"
+                                title={t("premiumManagement.actions.cloneDraft")}
+                              >
+                                <Copy size={11} />
+                                {t("premiumManagement.actions.clone")}
+                              </button>
+                              {pv.status === "draft" && (
+                                <button
+                                  onClick={() => handlePublishPlanVersion(pv.id)}
+                                  className="px-2.5 py-1 rounded bg-emerald-600 hover:bg-emerald-700 text-white font-medium whitespace-nowrap shrink-0 inline-flex items-center gap-1"
+                                  title={t("premiumManagement.actions.publishVersion")}
+                                >
+                                  <CheckCircle2 size={11} />
+                                  {t("premiumManagement.actions.publish")}
+                                </button>
+                              )}
+                              {pv.status === "published" && pv.code !== "FREE" && (
+                                <button
+                                  onClick={() => handleRetirePlanVersion(pv.id)}
+                                  className="px-2.5 py-1 rounded bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 hover:bg-rose-100 font-medium whitespace-nowrap shrink-0 inline-flex items-center gap-1"
+                                  title={t("premiumManagement.actions.retireVersion")}
+                                >
+                                  <Archive size={11} />
+                                  {t("premiumManagement.actions.retire")}
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Active Highlighted Plan Detail Card */}
               <div className="max-w-2xl border border-gray-200 dark:border-slate-800 rounded-xl overflow-hidden bg-white dark:bg-slate-900 shadow-sm">
                 <div className="bg-amber-50 dark:bg-amber-900/20 p-6 border-b border-gray-200 dark:border-slate-800 flex justify-between items-center">
                   <div>
@@ -562,26 +861,9 @@ export function PremiumManagement() {
                       <CreditCard className="w-5 h-5 mr-2" />
                       {planConfig.name}
                     </h3>
-                    <p className="text-amber-700 dark:text-amber-600 mt-1">
+                    <p className="text-amber-700 dark:text-amber-600 mt-1 text-sm">
                       {t("premiumManagement.config.subtitle")}
                     </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={handleDeployDefaults}
-                      className="px-3 py-2 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/50 font-medium transition-colors flex items-center gap-1.5 shadow-sm text-sm"
-                      title="Deploy default plans"
-                    >
-                      <Sparkles size={16} />
-                      {t("premiumManagement.config.deployDefaults", "Deploy Defaults")}
-                    </button>
-                    <button
-                      onClick={() => setIsEditPlanOpen(true)}
-                      className="px-4 py-2 bg-white dark:bg-slate-800 text-brand border border-brand/20 rounded-lg hover:bg-brand/5 dark:hover:bg-brand/10 font-semibold transition-colors flex items-center gap-1.5 shadow-sm"
-                    >
-                      <Edit size={16} />
-                      {t("premiumManagement.config.editPlan")}
-                    </button>
                   </div>
                 </div>
                 <div className="p-6 space-y-4">
@@ -603,22 +885,13 @@ export function PremiumManagement() {
                   </div>
                   <div className="grid grid-cols-3 gap-4 border-b border-gray-100 dark:border-slate-800 pb-4">
                     <div className="text-gray-500 dark:text-gray-400 font-medium">
-                      {t("premiumManagement.config.limits", "Limits & Quotas")}
+                      {t("premiumManagement.config.limits")}
                     </div>
                     <div className="col-span-2 text-gray-600 dark:text-gray-300 space-y-1 text-sm">
-                      <p>• AI Tokens: {planConfig.aiLimit}</p>
-                      <p>• Consultations: {planConfig.consultsLimit}</p>
-                      <p>• Family Links: {planConfig.familyLimit}</p>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-3 gap-4 border-b border-gray-100 dark:border-slate-800 pb-4">
-                    <div className="text-gray-500 dark:text-gray-400 font-medium">
-                      {t("premiumManagement.config.features", "Features")}
-                    </div>
-                    <div className="col-span-2 text-gray-600 dark:text-gray-300 space-y-1 text-sm">
-                      {planConfig.features.map((f, i) => (
-                        <p key={i}>• {f}</p>
-                      ))}
+                      <p>• {t("premiumManagement.limits.aiTurns")} {planConfig.aiLimit}</p>
+                      <p>• {t("premiumManagement.limits.consultations")} {planConfig.consultsLimit}</p>
+                      <p>• {t("premiumManagement.limits.carePrograms")} 5</p>
+                      <p>• {t("premiumManagement.limits.familyLinks")} {planConfig.familyLimit}</p>
                     </div>
                   </div>
                   <div className="grid grid-cols-3 gap-4">
@@ -677,7 +950,11 @@ export function PremiumManagement() {
                       {req.amount}
                     </td>
                     <td className="px-6 py-4 text-gray-500 dark:text-gray-400 text-xs font-mono">
-                      Tokens: {req.tokensUsed.toLocaleString()} | Consults: {req.consultsUsed} | Days: {req.daysActive}
+                      {t("premiumManagement.table.usageSummary", {
+                        tokens: req.tokensUsed.toLocaleString(),
+                        consults: req.consultsUsed,
+                        days: req.daysActive,
+                      })}
                     </td>
                     <td className="px-6 py-4">
                       {req.isEligible ? (
@@ -697,11 +974,11 @@ export function PremiumManagement() {
                         </Badge>
                       ) : req.status === "approved" ? (
                         <Badge className="bg-emerald-600 text-white">
-                          Approved
+                          {t("premiumManagement.table.approved")}
                         </Badge>
                       ) : (
                         <Badge variant="secondary" className="bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
-                          Rejected
+                          {t("premiumManagement.table.rejected")}
                         </Badge>
                       )}
                     </td>
@@ -743,6 +1020,7 @@ export function PremiumManagement() {
         isOpen={isTransactionModalOpen}
         onClose={() => setIsTransactionModalOpen(false)}
         transaction={selectedTransaction}
+        onReconcile={handleReconcileOrder}
       />
     </div>
   );

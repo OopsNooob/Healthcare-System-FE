@@ -1,9 +1,9 @@
 import React from 'react';
-import { View, Text, Modal, TouchableOpacity, ScrollView, Linking } from 'react-native';
+import { View, Text, Modal, TouchableOpacity, ScrollView } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { X, Building2, MapPin, Phone, Navigation, Clock, ShieldCheck, HeartPulse } from 'lucide-react-native';
-import Toast from 'react-native-toast-message';
 import { tw, twInstance } from '@/tw';
+import { openMapsDirections, openPhoneCall } from '@/utils/externalLinks';
 
 interface FacilityDetailModalProps {
   visible: boolean;
@@ -29,29 +29,21 @@ export const FacilityDetailModal: React.FC<FacilityDetailModalProps> = ({
 
   const currentFacility = facility || {
     id: '1',
-    name: 'Metropolis General Hospital',
-    specialty: 'Multispecialty • Emergency Care',
-    address: '100 Healthcare Blvd, District 1, Metropolis',
-    distance: '1.2 km',
+    name: 'Central Heart Hospital',
+    specialty: 'Cardiology • Emergency Care',
+    address: '123 Health Ave, District 1',
+    distance: '2.5 km',
     verified: true,
-    phone: '+1 800 555 0199',
+    phone: '028 3835 4409',
     hours: '24/7 Emergency Care',
   };
 
   const handleCall = () => {
-    Toast.show({
-      type: 'info',
-      text1: t('mobile.calling_facility', 'Calling Medical Facility'),
-      text2: `${currentFacility.name}: ${currentFacility.phone || '+1 800 555 0199'}`,
-    });
+    openPhoneCall(currentFacility.phone || '028 3835 4409');
   };
 
   const handleDirections = () => {
-    Toast.show({
-      type: 'info',
-      text1: t('mobile.launching_navigation', 'Opening Navigation Map'),
-      text2: `${t('mobile.destination', 'Route to')}: ${currentFacility.address}`,
-    });
+    openMapsDirections(currentFacility.name, currentFacility.address);
   };
 
   return (

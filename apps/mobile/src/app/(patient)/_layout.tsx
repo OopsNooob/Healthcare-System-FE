@@ -16,9 +16,17 @@ export default function PatientLayout() {
         headerShown: false, 
         tabBarActiveTintColor: "#10b981",
         tabBarInactiveTintColor: isDark ? "#94a3b8" : "#64748b",
+        tabBarLabelStyle: {
+          fontSize: 10,
+          fontWeight: '600',
+          marginTop: -2,
+        },
         tabBarStyle: {
           backgroundColor: isDark ? "#0f172a" : "#ffffff",
           borderTopColor: isDark ? "#1e293b" : "#f1f5f9",
+          height: 58,
+          paddingBottom: 6,
+          paddingTop: 4,
         }
       }}
     >
@@ -35,13 +43,13 @@ export default function PatientLayout() {
       {/* Hide these from tab bar, but keep them in the layout for routing */}
       <Tabs.Screen name="reports" options={{ href: null, headerShown: false }} />
       <Tabs.Screen name="premium" options={{ href: null, headerShown: false }} />
-      <Tabs.Screen name="ai-chat/index" options={{ href: null, headerShown: false }} />
-      <Tabs.Screen name="ai-chat/[id]" options={{ href: null, headerShown: false }} />
-      <Tabs.Screen name="doctor-chat" options={{ href: null, headerShown: false }} />
+      <Tabs.Screen name="ai-chat/index" options={{ href: null, headerShown: false, tabBarStyle: { display: 'none' } }} />
+      <Tabs.Screen name="ai-chat/[id]" options={{ href: null, headerShown: false, tabBarStyle: { display: 'none' } }} />
+      <Tabs.Screen name="doctor-chat" options={{ href: null, headerShown: false, tabBarStyle: { display: 'none' } }} />
       <Tabs.Screen name="notifications" options={{ href: null, headerShown: false }} />
-      <Tabs.Screen name="video-call" options={{ href: null, headerShown: false }} />
-      <Tabs.Screen name="incoming-call" options={{ href: null, headerShown: false }} />
-      <Tabs.Screen name="baseline-assessment" options={{ href: null, headerShown: false }} />
+      <Tabs.Screen name="video-call" options={{ href: null, headerShown: false, tabBarStyle: { display: 'none' } }} />
+      <Tabs.Screen name="incoming-call" options={{ href: null, headerShown: false, tabBarStyle: { display: 'none' } }} />
+      <Tabs.Screen name="baseline-assessment" options={{ href: null, headerShown: false, tabBarStyle: { display: 'none' } }} />
     </Tabs>
   );
 }

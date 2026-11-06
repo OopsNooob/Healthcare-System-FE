@@ -7,6 +7,7 @@ import { useSafeRouter as useRouter } from '@/utils/useSafeRouter';
 import Toast from 'react-native-toast-message';
 import { ArrowLeft, Send, Activity, X, Info, ImagePlus, Paperclip, AlertTriangle, CheckCircle, Phone, Video, FileText, ZoomIn, Eye } from 'lucide-react-native';
 import { tw, twInstance } from '@/tw';
+import { useThemeContext } from '@/context/ThemeContext';
 import { AttachmentPickerModal, ImageViewerModal, DocViewerModal } from '@/components/modals';
 
 interface ChatMessage {
@@ -24,6 +25,7 @@ interface ChatMessage {
 export default function DoctorChatSessionScreen() {
   const { t, i18n } = useTranslation();
   const isVi = i18n.language === 'vi';
+  useThemeContext();
 
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -103,8 +105,8 @@ export default function DoctorChatSessionScreen() {
       {
         id: Date.now().toString(),
         text: item.type === 'image'
-          ? (isVi ? 'Đã gửi hình ảnh y tế đính kèm.' : 'Medical image attachment sent.')
-          : (isVi ? 'Đã gửi tài liệu y khoa đính kèm.' : 'Medical document attachment sent.'),
+          ? t('mobile.medical_image_sent', 'Đã gửi hình ảnh y tế đính kèm.')
+          : t('mobile.medical_doc_sent', 'Đã gửi tài liệu y khoa đính kèm.'),
         sender: 'doctor',
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         hasAttachment: true,
@@ -194,7 +196,7 @@ export default function DoctorChatSessionScreen() {
           <View style={tw('flex-row items-center flex-1 mr-3')}>
             <View style={tw('w-2 h-2 rounded-full bg-emerald-500 mr-2')} />
             <Text style={tw('text-xs text-emerald-900 dark:text-emerald-200 font-semibold')} numberOfLines={1}>
-              {isVi ? 'Phòng khám trực tuyến sẵn sàng' : 'Teleconsultation room ready'}
+              {t('mobile.teleconsult_room_ready', 'Phòng khám trực tuyến sẵn sàng')}
             </Text>
           </View>
           <TouchableOpacity
@@ -278,7 +280,7 @@ export default function DoctorChatSessionScreen() {
                         {msg.attachmentName || 'Document.pdf'}
                       </Text>
                       <Text style={tw('text-[10px] text-slate-500 dark:text-slate-400 mt-0.5')}>
-                        {msg.attachmentSize || 'PDF Document'} • {isVi ? 'Nhấn để xem' : 'Tap to view'}
+                        {msg.attachmentSize || 'PDF Document'} • {t('mobile.tap_to_view', 'Nhấn để xem')}
                       </Text>
                     </View>
                     <Eye color={msg.sender === 'doctor' ? '#0f172a' : '#64748b'} size={18} />
@@ -317,15 +319,15 @@ export default function DoctorChatSessionScreen() {
           >
             <Paperclip color="#64748b" size={20} />
           </TouchableOpacity>
-          <View style={tw('flex-1 bg-slate-100 dark:bg-slate-800 rounded-2xl px-4 py-1 mr-3 flex-row items-center min-h-[48px] max-h-32')}>
+          <View style={tw('flex-1 bg-slate-100 dark:bg-slate-800 rounded-2xl px-3.5 py-2 mr-3 justify-center min-h-[46px] max-h-32')}>
             <TextInput
-              style={tw('flex-1 text-base text-slate-900 dark:text-white py-1.5 min-h-[36px] max-h-28')}
+              style={[tw('text-base text-slate-900 dark:text-white max-h-28 p-0'), { textAlignVertical: 'center' }]}
               placeholder={t('mobile.type_a_message', 'Type a message...')}
               placeholderTextColor="#94a3b8"
               value={message}
               onChangeText={setMessage}
               multiline
-              textAlignVertical="top"
+              scrollEnabled
             />
           </View>
           <TouchableOpacity 

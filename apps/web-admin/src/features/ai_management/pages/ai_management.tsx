@@ -84,13 +84,6 @@ function getStatusClassName(status: DocumentStatus) {
   return "border-red-200 bg-red-50 text-red-600";
 }
 
-function getStatusLabel(status: DocumentStatus) {
-  if (status === "active") return "Active";
-  if (status === "inactive") return "Inactive";
-  if (status === "processing") return "Processing";
-  return "Error";
-}
-
 export function AIManagement() {
   const { t } = useTranslation();
   const [tab, setTab] = useState<TabSwitch>("doc");
@@ -107,6 +100,14 @@ export function AIManagement() {
   const [chunksDoc, setChunksDoc] = useState<DocumentItem | null>(null);
   const [isChunksModalOpen, setIsChunksModalOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+
+  // ADM-19 Review & ADM-13 Archive state
+  const [reviewOverrides, setReviewOverrides] = useState<
+    Record<string, { processingStatus: string; reviewStatus: string; note?: string }>
+  >({});
+  const [reviewModalDoc, setReviewModalDoc] = useState<DocumentItem | null>(null);
+  const [reviewModalMode, setReviewModalMode] = useState<"approve" | "reject" | "archive">("approve");
+  const [reviewReasonInput, setReviewReasonInput] = useState("");
 
   const [searchWord, setSearchWord] = useState("");
   const [newWord, setNewWord] = useState("");
@@ -291,19 +292,19 @@ export function AIManagement() {
     return [
       {
         id: `view-${doc.id}`,
-        title: "View",
+        title: t("aiManagement.actions.view"),
         icon: <Eye className="h-4 w-4" />,
         onHandle: () => openPreview(doc),
       },
       {
         id: `download-${doc.id}`,
-        title: "Download",
+        title: t("aiManagement.actions.download"),
         icon: <Download className="h-4 w-4" />,
         onHandle: () => handleDownload(doc),
       },
       {
         id: `delete-${doc.id}`,
-        title: "Delete",
+        title: t("aiManagement.actions.delete"),
         icon: <Trash2 className="h-4 w-4" />,
         iconColor: "text-red-600",
         disabled: !canDelete,
@@ -311,18 +312,58 @@ export function AIManagement() {
       },
       {
         id: `toggle-${doc.id}`,
-        title: doc.isEnabled ? "Deactivate" : "Activate",
+        title: doc.isEnabled
+          ? t("aiManagement.actions.deactivate")
+          : t("aiManagement.actions.activate"),
         icon: <CircleSlash className="h-4 w-4" />,
         disabled: !canMutate,
         onHandle: () => handleToggleEnable(doc.id),
       },
       {
         id: `chunks-${doc.id}`,
-        title: "Manage Chunks",
+        title: t("aiManagement.actions.manageChunks"),
         icon: <Layers className="h-4 w-4" />,
         onHandle: () => {
           setChunksDoc(doc);
           setIsChunksModalOpen(true);
+          setOpenActionFor(null);
+        },
+      },
+      {
+        id: `approve-${doc.id}`,
+        title: t("aiManagement.actions.review"),
+        icon: <Check className="h-4 w-4" />,
+        onHandle: () => {
+          setReviewModalDoc(doc);
+          setReviewModalMode("approve");
+          setReviewReasonInput("");
+          setOpenActionFor(null);
+        },
+      },
+      {
+        id: `reingest-${doc.id}`,
+        title: t("aiManagement.actions.reindex"),
+        icon: <Upload className="h-4 w-4" />,
+        onHandle: () => {
+          setReviewOverrides((prev) => ({
+            ...prev,
+            [doc.id]: {
+              processingStatus: "indexed",
+              reviewStatus: prev[doc.id]?.reviewStatus || "pending_review",
+            },
+          }));
+          showToast.success(t("aiManagement.actions.reindexSuccess"));
+          setOpenActionFor(null);
+        },
+      },
+      {
+        id: `archive-${doc.id}`,
+        title: t("aiManagement.actions.archive"),
+        icon: <Ban className="h-4 w-4" />,
+        onHandle: () => {
+          setReviewModalDoc(doc);
+          setReviewModalMode("archive");
+          setReviewReasonInput("");
           setOpenActionFor(null);
         },
       },
@@ -650,12 +691,36 @@ export function AIManagement() {
                             {doc.createdAt}
                           </TableCell>
                           <TableCell className="px-3">
-                            <Badge
-                              variant="outline"
-                              className={`h-5 rounded-full border px-2 text-[10px] font-medium ${getStatusClassName(doc.status)}`}
-                            >
-                              {getStatusLabel(doc.status)}
-                            </Badge>
+                            <div className="flex flex-col gap-1">
+                              <Badge
+                                variant="outline"
+                                className={`h-5 w-fit rounded-full border px-2 text-[10px] font-medium ${getStatusClassName(doc.status)}`}
+                              >
+                                {(() => {
+                                  const proc =
+                                    reviewOverrides[doc.id]?.processingStatus ||
+                                    (doc.status === "active"
+                                      ? "indexed"
+                                      : doc.status === "processing"
+                                        ? "processing"
+                                        : "uploaded");
+                                  if (proc === "indexed") return t("aiManagement.ingestionStatus.indexed");
+                                  if (proc === "processing") return t("aiManagement.ingestionStatus.processing");
+                                  return t("aiManagement.ingestionStatus.uploaded");
+                                })()}
+                              </Badge>
+                              <span className="text-[10px] font-medium text-indigo-600 dark:text-indigo-400">
+                                {(() => {
+                                  const rev =
+                                    reviewOverrides[doc.id]?.reviewStatus ||
+                                    (doc.status === "active" ? "approved" : "pending_review");
+                                  if (rev === "approved") return t("aiManagement.reviewStatus.approved");
+                                  if (rev === "rejected") return t("aiManagement.reviewStatus.rejected");
+                                  if (rev === "archived") return t("aiManagement.reviewStatus.archived");
+                                  return t("aiManagement.reviewStatus.pending");
+                                })()}
+                              </span>
+                            </div>
                           </TableCell>
                           <TableCell className="px-3">
                             <div className="relative inline-flex items-center gap-2">
@@ -872,6 +937,110 @@ export function AIManagement() {
             setChunksDoc(null);
           }}
         />
+
+        {/* Approve/Reject & Archive Modal */}
+        {reviewModalDoc && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+            <div className="w-full max-w-md rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-xl space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                  {reviewModalMode === "archive"
+                    ? t("aiManagement.reviewModal.archiveTitle")
+                    : t("aiManagement.reviewModal.reviewTitle")}
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setReviewModalDoc(null)}
+                  className="p-1 text-slate-400 hover:text-slate-600"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              <p className="text-xs text-slate-600 dark:text-slate-300">
+                {t("aiManagement.reviewModal.documentLabel")} <b>{reviewModalDoc.title}</b>
+              </p>
+
+              {reviewModalMode !== "archive" && (
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setReviewModalMode("approve")}
+                    className={`flex-1 py-2 rounded-xl text-xs font-bold border ${
+                      reviewModalMode === "approve"
+                        ? "bg-emerald-600 text-white border-emerald-600"
+                        : "bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700"
+                    }`}
+                  >
+                    {t("aiManagement.reviewModal.approve")}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setReviewModalMode("reject")}
+                    className={`flex-1 py-2 rounded-xl text-xs font-bold border ${
+                      reviewModalMode === "reject"
+                        ? "bg-red-600 text-white border-red-600"
+                        : "bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700"
+                    }`}
+                  >
+                    {t("aiManagement.reviewModal.reject")}
+                  </button>
+                </div>
+              )}
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
+                  {t("aiManagement.reviewModal.notesLabel")} {reviewModalMode !== "approve" ? "*" : ""}
+                </label>
+                <textarea
+                  rows={3}
+                  value={reviewReasonInput}
+                  onChange={(e) => setReviewReasonInput(e.target.value)}
+                  placeholder={t("aiManagement.reviewModal.notesPlaceholder")}
+                  className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-3 text-xs text-slate-900 dark:text-white"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setReviewModalDoc(null)}
+                  className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300"
+                >
+                  {t("common.cancel")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (reviewModalMode !== "approve" && !reviewReasonInput.trim()) {
+                      showToast.error(t("aiManagement.reviewModal.reasonRequired"));
+                      return;
+                    }
+                    const nextReviewStatus =
+                      reviewModalMode === "approve"
+                        ? "approved"
+                        : reviewModalMode === "reject"
+                          ? "rejected"
+                          : "archived";
+                    setReviewOverrides((prev) => ({
+                      ...prev,
+                      [reviewModalDoc.id]: {
+                        processingStatus: "indexed",
+                        reviewStatus: nextReviewStatus,
+                        note: reviewReasonInput.trim(),
+                      },
+                    }));
+                    showToast.success(t("aiManagement.reviewModal.statusUpdated"));
+                    setReviewModalDoc(null);
+                  }}
+                  className="px-4 py-2 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-xs font-bold"
+                >
+                  {t("common.confirm")}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

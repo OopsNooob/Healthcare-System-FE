@@ -18,6 +18,7 @@ import {
   Calendar,
   Activity,
   Building2,
+  ClipboardList,
 } from "lucide-react";
 import { cn } from "../lib/utils";
 import { UserAvatar } from "../components/ui/user-avatar";
@@ -122,6 +123,12 @@ const adminMenuItems = {
       icon: ShieldAlert,
       path: "/violation-reports",
     },
+    {
+      id: "audit_logs",
+      label: "sidebar.auditLogs",
+      icon: ClipboardList,
+      path: "/audit-logs",
+    },
     { id: "profile", label: "sidebar.profile", icon: CircleUser, path: "/profile" },
   ],
   ai_admin: [
@@ -131,6 +138,12 @@ const adminMenuItems = {
       label: "sidebar.aiKnowledgeBase",
       icon: BookOpen,
       path: "/ai-knowledge-base",
+    },
+    {
+      id: "audit_logs",
+      label: "sidebar.auditLogs",
+      icon: ClipboardList,
+      path: "/audit-logs",
     },
     { id: "profile", label: "sidebar.profile", icon: CircleUser, path: "/profile" },
   ],
@@ -165,6 +178,12 @@ const adminMenuItems = {
       label: "sidebar.violationReports",
       icon: ShieldAlert,
       path: "/violation-reports",
+    },
+    {
+      id: "audit_logs",
+      label: "sidebar.auditLogs",
+      icon: ClipboardList,
+      path: "/audit-logs",
     },
     { id: "profile", label: "sidebar.profile", icon: CircleUser, path: "/profile" },
   ],

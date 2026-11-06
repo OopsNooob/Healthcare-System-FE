@@ -8,9 +8,10 @@ export interface MedicalFacilityItem {
   name: string;
   address: string;
   specialty: string;
-  status: "verified" | "pending" | "rejected";
+  status: "verified" | "pending" | "rejected" | "retired";
   submittedBy: string;
   submittedDate: string;
+  lastCheckedAt?: string;
   phone?: string;
   operatingHours?: string;
 }

@@ -312,15 +312,15 @@ export default function AiChatSessionScreen() {
           >
             <Camera color={twInstance.color('text-indigo-600 dark:text-indigo-400')} size={20} />
           </TouchableOpacity>
-          <View style={tw('flex-1 bg-slate-100 dark:bg-slate-800 rounded-2xl px-4 py-1 mr-2 flex-row items-center min-h-[48px] max-h-32')}>
+          <View style={tw('flex-1 bg-slate-100 dark:bg-slate-800 rounded-2xl px-3.5 py-2 mr-2 justify-center min-h-[46px] max-h-32')}>
             <TextInput
-              style={tw('flex-1 text-base text-slate-900 dark:text-white py-1.5 min-h-[36px] max-h-28')}
+              style={[tw('text-base text-slate-900 dark:text-white max-h-28 p-0'), { textAlignVertical: 'center' }]}
               placeholder={t('mobile.ask_anything', 'Hỏi AI... (Thử gõ "kê đơn")')}
               placeholderTextColor="#94a3b8"
               value={message}
               onChangeText={setMessage}
               multiline
-              textAlignVertical="top"
+              scrollEnabled
             />
           </View>
           <TouchableOpacity 

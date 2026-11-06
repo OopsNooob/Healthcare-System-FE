@@ -7,6 +7,7 @@ import { ArrowLeft, MapPin, Search, ShieldCheck, Navigation, Phone, HeartPulse, 
 import { tw, twInstance } from '@/tw';
 import { useThemeContext } from '@/context/ThemeContext';
 import { FacilityDetailModal } from '@/components/modals';
+import { openMapsDirections, openPhoneCall } from '@/utils/externalLinks';
 
 export default function MedicalFacilitiesScreen() {
   const { t } = useTranslation();
@@ -38,6 +39,7 @@ export default function MedicalFacilitiesScreen() {
       address: '123 Health Ave, District 1',
       distance: '2.5 km',
       specialty: 'Cardiology',
+      phone: '028 3835 4409',
       verified: true
     },
     {
@@ -46,6 +48,7 @@ export default function MedicalFacilitiesScreen() {
       address: '45 Wellness Blvd, District 3',
       distance: '5.0 km',
       specialty: 'General',
+      phone: '028 3929 1100',
       verified: true
     },
     {
@@ -54,6 +57,7 @@ export default function MedicalFacilitiesScreen() {
       address: '78 Sugar Free St, District 5',
       distance: '8.2 km',
       specialty: 'Endocrinology',
+      phone: '028 3855 8899',
       verified: true
     }
   ];
@@ -181,20 +185,14 @@ export default function MedicalFacilitiesScreen() {
 
               <View style={tw('flex-row gap-3')}>
                 <TouchableOpacity 
-                  onPress={() => {
-                    setSelectedFacility(facility);
-                    setFacilityModalVisible(true);
-                  }}
+                  onPress={() => openMapsDirections(facility.name, facility.address)}
                   style={tw('flex-1 bg-brand/10 dark:bg-brand/20 py-3 rounded-xl flex-row items-center justify-center active:opacity-80')}
                 >
                   <Navigation color={twInstance.color('text-brand-dark dark:text-brand-light')} size={18} />
                   <Text style={tw('text-brand-dark dark:text-brand-light font-bold ml-2')}>{t('mobile.directions', 'Directions')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity 
-                  onPress={() => {
-                    setSelectedFacility(facility);
-                    setFacilityModalVisible(true);
-                  }}
+                  onPress={() => openPhoneCall(facility.phone)}
                   style={tw('flex-1 bg-slate-100 dark:bg-slate-800 py-3 rounded-xl flex-row items-center justify-center active:opacity-80')}
                 >
                   <Phone color={twInstance.color('text-slate-700 dark:text-slate-300')} size={18} />
@@ -219,6 +217,7 @@ export default function MedicalFacilitiesScreen() {
                 specialty: selectedFacility.specialty,
                 address: selectedFacility.address,
                 distance: selectedFacility.distance,
+                phone: selectedFacility.phone,
                 verified: selectedFacility.verified,
               }
             : undefined

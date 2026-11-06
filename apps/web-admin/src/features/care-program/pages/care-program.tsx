@@ -130,7 +130,7 @@ export function CareProgram() {
       const code = data.name.trim().toLowerCase().replace(/[^a-z0-9]/g, "-");
       const res = await careProgramRuleCreateProgram({
         body: {
-          programCode: code || `prog-${Date.now()}`,
+          programCode: code || `prog-${programsList.length + 1}`,
           name: data.name.trim(),
           diseaseKey: data.name.toLowerCase().includes("diabetes") ? "diabetes" : "hypertension",
           description: data.completion,
@@ -164,12 +164,12 @@ export function CareProgram() {
     }
 
     const newProg: ProgramItem = {
-      id: Date.now(),
+      id: programsList.length + 10,
       name: data.name.trim(),
       version: data.version.trim() || "v1.0",
       status,
       patients: 0,
-      lastUpdated: new Date().toISOString().split("T")[0],
+      lastUpdated: "2024-05-20",
       baseline: data.baseline,
       tasks: data.tasks,
       completion: data.completion,
@@ -209,7 +209,7 @@ export function CareProgram() {
 
     const conditionStr = `${data.metric} ${data.operator} ${data.threshold}`;
     const newRule: RuleItem = {
-      id: Date.now(),
+      id: rulesList.length + 10,
       program: data.program,
       metric: data.metric,
       operator: data.operator,
@@ -471,102 +471,104 @@ export function CareProgram() {
 
         {/* Rules Tab Content */}
         {activeTab === "rules" && (
-          <div className="rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
-            <table className="w-full text-left text-sm text-slate-600 dark:text-slate-400">
-              <thead className="bg-slate-50 dark:bg-slate-800/50 text-xs font-semibold uppercase text-slate-500 dark:text-slate-400">
-                <tr>
-                  <th className="px-6 py-4">{t("careProgram.rules.program", "PROGRAM")}</th>
-                  <th className="px-6 py-4">{t("careProgram.rules.condition", "CONDITION")}</th>
-                  <th className="px-6 py-4">{t("careProgram.rules.severity", "SEVERITY")}</th>
-                  <th className="px-6 py-4">{t("careProgram.rules.status", "STATUS")}</th>
-                  <th className="px-6 py-4">{t("careProgram.rules.action", "ACTION")}</th>
-                  <th className="px-6 py-4 text-right">
-                    {t("careProgram.rules.edit", "ACTIONS")}
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-200 dark:divide-slate-800 bg-white dark:bg-slate-900">
-                {rulesList.map((rule) => (
-                  <tr
-                    key={rule.id}
-                    className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
-                  >
-                    <td className="px-6 py-4 font-medium text-slate-900 dark:text-slate-100">
-                      {rule.program}
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="font-mono text-xs bg-slate-100 dark:bg-slate-950 px-2.5 py-1 rounded-md text-indigo-600 dark:text-indigo-400 border border-slate-200 dark:border-slate-800">
-                        {rule.condition}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      {rule.severity === "Urgent" ? (
-                        <span className="text-rose-600 font-bold bg-rose-50 px-2.5 py-1 rounded-full text-xs dark:bg-rose-900/30 dark:text-rose-400 border border-rose-200 dark:border-rose-900/50">
-                          {t("careProgram.modals.severityUrgent", "Urgent")}
-                        </span>
-                      ) : (
-                        <span className="text-amber-600 font-bold bg-amber-50 px-2.5 py-1 rounded-full text-xs dark:bg-amber-900/30 dark:text-amber-400 border border-amber-200 dark:border-amber-900/50">
-                          {t("careProgram.modals.severityAttention", "Attention")}
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4">
-                      {rule.status === "active" ? (
-                        <Badge
-                          variant="default"
-                          className="bg-emerald-50 text-emerald-700 border-none dark:bg-emerald-900/30 dark:text-emerald-400 hover:bg-emerald-50"
-                        >
-                          {t("careProgram.rules.active", "Active")}
-                        </Badge>
-                      ) : rule.status === "retired" ? (
-                        <Badge
-                          variant="outline"
-                          className="bg-slate-100 text-slate-600 border-none dark:bg-slate-800 dark:text-slate-400 hover:bg-slate-100"
-                        >
-                          {t("careProgram.rules.retired", "Retired")}
-                        </Badge>
-                      ) : (
-                        <Badge
-                          variant="outline"
-                          className="bg-amber-50 text-amber-600 border-none dark:bg-amber-900/30 dark:text-amber-400 hover:bg-amber-50"
-                        >
-                          {t("careProgram.rules.draft", "Draft")}
-                        </Badge>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 text-slate-700 dark:text-slate-300">
-                      {rule.action}
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        {rule.status !== "active" ? (
-                          <button
-                            onClick={() => handleActivateRule(rule.id)}
-                            className="px-3 py-1 text-xs font-semibold rounded-md bg-brand text-slate-900 hover:bg-brand/90 transition-colors"
-                          >
-                            {t("careProgram.rules.activate", "Activate")}
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() => handleRetireRule(rule.id)}
-                            className="px-3 py-1 text-xs font-semibold rounded-md bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400 hover:bg-rose-200 dark:hover:bg-rose-900/50 transition-colors"
-                          >
-                            {t("careProgram.rules.retire", "Retire")}
-                          </button>
-                        )}
-                        <button
-                          onClick={() => openSimulation(rule)}
-                          className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded transition-colors"
-                          title={t("careProgram.modals.simTitle", "Simulate Dry-Run")}
-                        >
-                          <Play size={16} />
-                        </button>
-                      </div>
-                    </td>
+          <div className="rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden bg-white dark:bg-slate-900">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[850px] text-left text-sm text-slate-600 dark:text-slate-400">
+                <thead className="bg-slate-50 dark:bg-slate-800/50 text-xs font-semibold uppercase text-slate-500 dark:text-slate-400">
+                  <tr>
+                    <th className="px-6 py-4 whitespace-nowrap">{t("careProgram.rules.program", "PROGRAM")}</th>
+                    <th className="px-6 py-4 whitespace-nowrap">{t("careProgram.rules.condition", "CONDITION")}</th>
+                    <th className="px-6 py-4 whitespace-nowrap">{t("careProgram.rules.severity", "SEVERITY")}</th>
+                    <th className="px-6 py-4 whitespace-nowrap">{t("careProgram.rules.status", "STATUS")}</th>
+                    <th className="px-6 py-4 whitespace-nowrap">{t("careProgram.rules.action", "ACTION")}</th>
+                    <th className="px-6 py-4 text-right whitespace-nowrap">
+                      {t("careProgram.rules.edit", "ACTIONS")}
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-slate-200 dark:divide-slate-800 bg-white dark:bg-slate-900">
+                  {rulesList.map((rule) => (
+                    <tr
+                      key={rule.id}
+                      className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+                    >
+                      <td className="px-6 py-4 font-medium text-slate-900 dark:text-slate-100 whitespace-nowrap">
+                        {rule.program}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className="font-mono text-xs bg-slate-100 dark:bg-slate-950 px-2.5 py-1 rounded-md text-indigo-600 dark:text-indigo-400 border border-slate-200 dark:border-slate-800 whitespace-nowrap inline-block">
+                          {rule.condition}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {rule.severity === "Urgent" ? (
+                          <span className="text-rose-600 font-bold bg-rose-50 px-2.5 py-1 rounded-full text-xs dark:bg-rose-900/30 dark:text-rose-400 border border-rose-200 dark:border-rose-900/50 whitespace-nowrap inline-flex items-center">
+                            {t("careProgram.modals.severityUrgent", "Urgent")}
+                          </span>
+                        ) : (
+                          <span className="text-amber-600 font-bold bg-amber-50 px-2.5 py-1 rounded-full text-xs dark:bg-amber-900/30 dark:text-amber-400 border border-amber-200 dark:border-amber-900/50 whitespace-nowrap inline-flex items-center">
+                            {t("careProgram.modals.severityAttention", "Attention")}
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {rule.status === "active" ? (
+                          <Badge
+                            variant="default"
+                            className="bg-emerald-50 text-emerald-700 border-none dark:bg-emerald-900/30 dark:text-emerald-400 hover:bg-emerald-50 whitespace-nowrap inline-flex items-center"
+                          >
+                            {t("careProgram.rules.active", "Active")}
+                          </Badge>
+                        ) : rule.status === "retired" ? (
+                          <Badge
+                            variant="outline"
+                            className="bg-slate-100 text-slate-600 border-none dark:bg-slate-800 dark:text-slate-400 hover:bg-slate-100 whitespace-nowrap inline-flex items-center"
+                          >
+                            {t("careProgram.rules.retired", "Retired")}
+                          </Badge>
+                        ) : (
+                          <Badge
+                            variant="outline"
+                            className="bg-amber-50 text-amber-600 border-none dark:bg-amber-900/30 dark:text-amber-400 hover:bg-amber-50 whitespace-nowrap inline-flex items-center"
+                          >
+                            {t("careProgram.rules.draft", "Draft")}
+                          </Badge>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 text-slate-700 dark:text-slate-300 min-w-[200px]">
+                        {rule.action}
+                      </td>
+                      <td className="px-6 py-4 text-right whitespace-nowrap">
+                        <div className="flex items-center justify-end gap-2 whitespace-nowrap">
+                          {rule.status !== "active" ? (
+                            <button
+                              onClick={() => handleActivateRule(rule.id)}
+                              className="px-3 py-1.5 text-xs font-semibold rounded-md bg-brand text-slate-900 hover:bg-brand/90 transition-colors whitespace-nowrap shrink-0 inline-flex items-center justify-center"
+                            >
+                              {t("careProgram.rules.activate", "Activate")}
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => handleRetireRule(rule.id)}
+                              className="px-3 py-1.5 text-xs font-semibold rounded-md bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400 hover:bg-rose-200 dark:hover:bg-rose-900/50 transition-colors whitespace-nowrap shrink-0 inline-flex items-center justify-center"
+                            >
+                              {t("careProgram.rules.retire", "Retire")}
+                            </button>
+                          )}
+                          <button
+                            onClick={() => openSimulation(rule)}
+                            className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded transition-colors whitespace-nowrap shrink-0 inline-flex items-center justify-center"
+                            title={t("careProgram.modals.simTitle", "Simulate Dry-Run")}
+                          >
+                            <Play size={16} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </div>

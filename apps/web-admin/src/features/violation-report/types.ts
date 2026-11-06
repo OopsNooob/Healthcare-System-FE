@@ -18,9 +18,16 @@ export type ReportType =
   | "ai_hallucination"
   | "other";
 
-export type ReportStatus = "pending" | "resolved" | "dismissed";
+export type ReportStatus = "pending" | "processing" | "resolved" | "dismissed";
 export type AccountStatus = "active" | "banned";
-export type ResolutionAction = "warning" | "suspend" | "ban" | "none";
+export type ResolutionAction =
+  | "none"
+  | "warning_sent"
+  | "user_locked"
+  | "content_hidden"
+  | "warning"
+  | "suspend"
+  | "ban";
 
 export type ViolationReportItem = {
   id: string;
@@ -32,6 +39,9 @@ export type ViolationReportItem = {
   status: ReportStatus;
   accountStatus: AccountStatus;
   createdAt: string;
+  severity?: "low" | "medium" | "high" | "critical";
+  assignee?: string;
+  actionTaken?: ResolutionAction;
 };
 
 export const REPORT_TYPE_META: Record<
