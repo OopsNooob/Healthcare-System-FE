@@ -49,8 +49,7 @@ interface PlanVersionRow {
 }
 
 export function PremiumManagement() {
-  const { t, i18n } = useTranslation();
-  const isVi = i18n.language?.startsWith("vi");
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<"transactions" | "config" | "refunds">("transactions");
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -369,9 +368,7 @@ export function PremiumManagement() {
         : prev
     );
     toast.success(
-      isVi
-        ? `Đối soát đơn hàng ${orderId} thành công: Đã xác nhận thanh toán và kích hoạt quyền lợi gói.`
-        : `Order ${orderId} reconciled successfully: Payment verified & subscription activated.`
+      t("premiumManagement.toasts.orderReconciled", { orderId })
     );
   };
 
@@ -385,9 +382,7 @@ export function PremiumManagement() {
     };
     setPlanVersions((prev) => [...prev, draftClone]);
     toast.success(
-      isVi
-        ? `Đã tạo phiên bản nháp mới cho gói ${plan.code} (${nextVersion})`
-        : `Created new draft version for ${plan.code} (${nextVersion})`
+      t("premiumManagement.toasts.draftCreatedForPlan", { code: plan.code, version: nextVersion })
     );
   };
 
@@ -404,9 +399,7 @@ export function PremiumManagement() {
       })
     );
     toast.success(
-      isVi
-        ? `Đã phát hành phiên bản ${target.code} ${target.version}`
-        : `Published ${target.code} ${target.version}`
+      t("premiumManagement.toasts.versionPublished", { code: target.code, version: target.version })
     );
   };
 
@@ -417,9 +410,7 @@ export function PremiumManagement() {
       prev.map((p) => (p.id === planId ? { ...p, status: "retired" } : p))
     );
     toast.info(
-      isVi
-        ? `Đã ngừng lưu hành phiên bản ${target.code} ${target.version}`
-        : `Retired ${target.code} ${target.version}`
+      t("premiumManagement.toasts.versionRetired", { code: target.code, version: target.version })
     );
   };
 
@@ -532,27 +523,27 @@ export function PremiumManagement() {
     if (norm === "paid" || norm === "success") {
       return (
         <Badge className="bg-emerald-600 hover:bg-emerald-700 text-white">
-          {isVi ? "Đã thanh toán" : "Paid"}
+          {t("premiumManagement.status.paid")}
         </Badge>
       );
     }
     if (norm === "pending" || norm === "refund_pending") {
       return (
         <Badge className="bg-amber-500 hover:bg-amber-600 text-white">
-          {isVi ? "Chờ xử lý" : "Pending"}
+          {t("premiumManagement.status.pending")}
         </Badge>
       );
     }
     if (norm === "refunded") {
       return (
         <Badge className="bg-purple-600 hover:bg-purple-700 text-white">
-          {isVi ? "Đã hoàn tiền" : "Refunded"}
+          {t("premiumManagement.status.refunded")}
         </Badge>
       );
     }
     return (
       <Badge variant="destructive">
-        {isVi ? "Thất bại" : "Failed"}
+        {t("premiumManagement.status.failed")}
       </Badge>
     );
   };
@@ -629,7 +620,7 @@ export function PremiumManagement() {
               }`}
               onClick={() => setActiveTab("config")}
             >
-              {t("premiumManagement.tabs.config", isVi ? "Gói & Phiên bản" : "Plans & Versions")}
+              {t("premiumManagement.tabs.config")}
             </button>
             <button
               className={`font-medium pb-4 border-b-2 -mb-4 transition-colors ${
@@ -667,7 +658,7 @@ export function PremiumManagement() {
                 <tr className="bg-gray-50 dark:bg-slate-800 text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wider sticky top-0 z-10 shadow-sm">
                   <th className="px-6 py-3 font-medium">{t("premiumManagement.table.transactionId")}</th>
                   <th className="px-6 py-3 font-medium">{t("premiumManagement.table.user")}</th>
-                  <th className="px-6 py-3 font-medium">{isVi ? "Gói dịch vụ" : "Plan"}</th>
+                  <th className="px-6 py-3 font-medium">{t("premiumManagement.transactionModal.plan")}</th>
                   <th className="px-6 py-3 font-medium">{t("premiumManagement.table.amount")}</th>
                   <th className="px-6 py-3 font-medium">{t("premiumManagement.table.date")}</th>
                   <th className="px-6 py-3 font-medium">{t("premiumManagement.table.status")}</th>
@@ -708,10 +699,10 @@ export function PremiumManagement() {
                             <button
                               onClick={() => handleReconcileOrder(tx.id)}
                               className="px-2.5 py-1 rounded-md bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-300 hover:bg-indigo-100 text-xs font-semibold flex items-center gap-1"
-                              title={isVi ? "Đối soát giao dịch với cổng thanh toán" : "Reconcile payment order"}
+                              title={t("premiumManagement.actions.reconcileTooltip")}
                             >
                               <RefreshCw size={12} />
-                              {isVi ? "Đối soát" : "Reconcile"}
+                              {t("premiumManagement.actions.reconcile")}
                             </button>
                           )}
                           <button
@@ -720,7 +711,7 @@ export function PremiumManagement() {
                               setIsTransactionModalOpen(true);
                             }}
                             className="p-1 text-gray-400 hover:text-brand transition-colors"
-                            title={isVi ? "Xem chi tiết" : "View Details"}
+                            title={t("premiumManagement.actions.viewDetails")}
                           >
                             <Eye className="w-4 h-4" />
                           </button>
@@ -754,14 +745,10 @@ export function PremiumManagement() {
                 <div className="bg-slate-50 dark:bg-slate-800/60 px-6 py-4 border-b border-gray-200 dark:border-slate-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                   <div>
                     <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">
-                      {isVi
-                        ? "Danh mục Gói & Phiên bản"
-                        : "Subscription Plan Versions Catalog"}
+                      {t("premiumManagement.catalog.title")}
                     </h3>
                     <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                      {isVi
-                        ? "Mỗi gói chỉ có tối đa 1 phiên bản đang phát hành. Tạo bản nháp mới để chỉnh sửa hạn mức trước khi phát hành."
-                        : "Each plan code has at most 1 published version. Clone a draft to modify quotas before publishing."}
+                      {t("premiumManagement.catalog.subtitle")}
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
@@ -770,14 +757,14 @@ export function PremiumManagement() {
                       className="px-3 py-2 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/50 font-medium transition-colors flex items-center gap-1.5 shadow-sm text-xs"
                     >
                       <Sparkles size={14} />
-                      {t("premiumManagement.config.deployDefaults", isVi ? "Khởi tạo gói mặc định" : "Deploy Default Plans")}
+                      {t("premiumManagement.config.deployDefaults")}
                     </button>
                     <button
                       onClick={() => setIsEditPlanOpen(true)}
                       className="px-3 py-2 bg-white dark:bg-slate-800 text-brand border border-brand/20 rounded-lg hover:bg-brand/5 dark:hover:bg-brand/10 font-semibold transition-colors flex items-center gap-1.5 shadow-sm text-xs"
                     >
                       <Edit size={14} />
-                      {t("premiumManagement.config.editPlan", isVi ? "Chỉnh sửa cấu hình gói" : "Edit Draft Config")}
+                      {t("premiumManagement.config.editPlan")}
                     </button>
                   </div>
                 </div>
@@ -786,15 +773,15 @@ export function PremiumManagement() {
                   <table className="w-full text-left text-xs border-collapse">
                     <thead>
                       <tr className="bg-slate-50/70 dark:bg-slate-800/40 text-slate-500 dark:text-slate-400 uppercase border-b border-slate-200 dark:border-slate-800">
-                        <th className="px-4 py-3 font-semibold">{isVi ? "Mã gói" : "Code"}</th>
-                        <th className="px-4 py-3 font-semibold">{isVi ? "Phiên bản" : "Version"}</th>
-                        <th className="px-4 py-3 font-semibold">{isVi ? "Giá (VND)" : "Price (VND)"}</th>
-                        <th className="px-4 py-3 font-semibold">{isVi ? "Hạn mức AI" : "AI Quota"}</th>
-                        <th className="px-4 py-3 font-semibold">{isVi ? "Lượt khám" : "Consults"}</th>
-                        <th className="px-4 py-3 font-semibold">{isVi ? "Chương trình" : "Care Programs"}</th>
-                        <th className="px-4 py-3 font-semibold">{isVi ? "Liên kết gia đình" : "Family Links"}</th>
-                        <th className="px-4 py-3 font-semibold">{isVi ? "Trạng thái" : "Status"}</th>
-                        <th className="px-4 py-3 font-semibold text-right">{isVi ? "Thao tác" : "Actions"}</th>
+                        <th className="px-4 py-3 font-semibold">{t("premiumManagement.catalog.code")}</th>
+                        <th className="px-4 py-3 font-semibold">{t("premiumManagement.catalog.version")}</th>
+                        <th className="px-4 py-3 font-semibold">{t("premiumManagement.catalog.priceVnd")}</th>
+                        <th className="px-4 py-3 font-semibold">{t("premiumManagement.catalog.aiQuota")}</th>
+                        <th className="px-4 py-3 font-semibold">{t("premiumManagement.catalog.consults")}</th>
+                        <th className="px-4 py-3 font-semibold">{t("premiumManagement.catalog.carePrograms")}</th>
+                        <th className="px-4 py-3 font-semibold">{t("premiumManagement.catalog.familyLinks")}</th>
+                        <th className="px-4 py-3 font-semibold">{t("premiumManagement.catalog.status")}</th>
+                        <th className="px-4 py-3 font-semibold text-right">{t("premiumManagement.catalog.actions")}</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -815,15 +802,15 @@ export function PremiumManagement() {
                           <td className="px-4 py-3">
                             {pv.status === "published" ? (
                               <Badge className="bg-emerald-600 text-white text-[10px]">
-                                {isVi ? "Đang phát hành" : "Published"}
+                                {t("premiumManagement.catalog.published")}
                               </Badge>
                             ) : pv.status === "draft" ? (
                               <Badge className="bg-amber-500 text-white text-[10px]">
-                                {isVi ? "Bản nháp" : "Draft"}
+                                {t("premiumManagement.catalog.draft")}
                               </Badge>
                             ) : (
                               <Badge variant="secondary" className="text-[10px]">
-                                {isVi ? "Ngừng lưu hành" : "Retired"}
+                                {t("premiumManagement.catalog.retired")}
                               </Badge>
                             )}
                           </td>
@@ -832,29 +819,29 @@ export function PremiumManagement() {
                               <button
                                 onClick={() => handleClonePlanVersion(pv)}
                                 className="px-2 py-1 rounded border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium flex items-center gap-1"
-                                title={isVi ? "Nhân bản thành bản nháp" : "Clone Draft"}
+                                title={t("premiumManagement.actions.cloneDraft")}
                               >
                                 <Copy size={11} />
-                                {isVi ? "Nhân bản" : "Clone"}
+                                {t("premiumManagement.actions.clone")}
                               </button>
                               {pv.status === "draft" && (
                                 <button
                                   onClick={() => handlePublishPlanVersion(pv.id)}
                                   className="px-2 py-1 rounded bg-emerald-600 hover:bg-emerald-700 text-white font-medium flex items-center gap-1"
-                                  title={isVi ? "Phát hành phiên bản" : "Publish Version"}
+                                  title={t("premiumManagement.actions.publishVersion")}
                                 >
                                   <CheckCircle2 size={11} />
-                                  {isVi ? "Phát hành" : "Publish"}
+                                  {t("premiumManagement.actions.publish")}
                                 </button>
                               )}
                               {pv.status === "published" && pv.code !== "FREE" && (
                                 <button
                                   onClick={() => handleRetirePlanVersion(pv.id)}
                                   className="px-2 py-1 rounded bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 hover:bg-rose-100 font-medium flex items-center gap-1"
-                                  title={isVi ? "Ngừng lưu hành phiên bản" : "Retire Version"}
+                                  title={t("premiumManagement.actions.retireVersion")}
                                 >
                                   <Archive size={11} />
-                                  {isVi ? "Ngừng lưu hành" : "Retire"}
+                                  {t("premiumManagement.actions.retire")}
                                 </button>
                               )}
                             </div>
@@ -898,13 +885,13 @@ export function PremiumManagement() {
                   </div>
                   <div className="grid grid-cols-3 gap-4 border-b border-gray-100 dark:border-slate-800 pb-4">
                     <div className="text-gray-500 dark:text-gray-400 font-medium">
-                      {t("premiumManagement.config.limits", isVi ? "Hạn mức sử dụng" : "Usage Limits")}
+                      {t("premiumManagement.config.limits")}
                     </div>
                     <div className="col-span-2 text-gray-600 dark:text-gray-300 space-y-1 text-sm">
-                      <p>• {isVi ? "Lượt hỏi đáp AI:" : "AI Turns:"} {planConfig.aiLimit}</p>
-                      <p>• {isVi ? "Lượt tư vấn bác sĩ:" : "Consultations:"} {planConfig.consultsLimit}</p>
-                      <p>• {isVi ? "Chương trình theo dõi:" : "Care Programs:"} 5</p>
-                      <p>• {isVi ? "Liên kết gia đình:" : "Family Links:"} {planConfig.familyLimit}</p>
+                      <p>• {t("premiumManagement.limits.aiTurns")} {planConfig.aiLimit}</p>
+                      <p>• {t("premiumManagement.limits.consultations")} {planConfig.consultsLimit}</p>
+                      <p>• {t("premiumManagement.limits.carePrograms")} 5</p>
+                      <p>• {t("premiumManagement.limits.familyLinks")} {planConfig.familyLimit}</p>
                     </div>
                   </div>
                   <div className="grid grid-cols-3 gap-4">
@@ -963,9 +950,11 @@ export function PremiumManagement() {
                       {req.amount}
                     </td>
                     <td className="px-6 py-4 text-gray-500 dark:text-gray-400 text-xs font-mono">
-                      {isVi
-                        ? `AI: ${req.tokensUsed.toLocaleString()} | Khám: ${req.consultsUsed} | Số ngày: ${req.daysActive}`
-                        : `Tokens: ${req.tokensUsed.toLocaleString()} | Consults: ${req.consultsUsed} | Days: ${req.daysActive}`}
+                      {t("premiumManagement.table.usageSummary", {
+                        tokens: req.tokensUsed.toLocaleString(),
+                        consults: req.consultsUsed,
+                        days: req.daysActive,
+                      })}
                     </td>
                     <td className="px-6 py-4">
                       {req.isEligible ? (
@@ -985,11 +974,11 @@ export function PremiumManagement() {
                         </Badge>
                       ) : req.status === "approved" ? (
                         <Badge className="bg-emerald-600 text-white">
-                          {isVi ? "Đã duyệt" : "Approved"}
+                          {t("premiumManagement.table.approved")}
                         </Badge>
                       ) : (
                         <Badge variant="secondary" className="bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
-                          {isVi ? "Từ chối" : "Rejected"}
+                          {t("premiumManagement.table.rejected")}
                         </Badge>
                       )}
                     </td>

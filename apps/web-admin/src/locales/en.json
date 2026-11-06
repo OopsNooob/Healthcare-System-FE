@@ -150,7 +150,8 @@
       "actions": {
         "viewProfile": "View profile",
         "lockUser": "Lock user",
-        "unlockUser": "Unlock user"
+        "unlockUser": "Unlock user",
+        "operationalSummary": "Operational Summary"
       },
       "roles": {
         "superAdmin": "Super admin",
@@ -177,8 +178,32 @@
       },
       "toasts": {
         "reportSuccess": "Report submitted successfully",
-        "defaultBanReason": "System policy violation"
-      }
+        "defaultBanReason": "System policy violation",
+        "reasonRequired": "Please enter a reason for locking the account",
+        "unlockedSuccess": "User unlocked successfully",
+        "lockedSuccess": "User locked & all active sessions revoked"
+      },
+      "lockModal": {
+        "title": "Lock User Account",
+        "desc": "Locking this account immediately revokes all active login sessions and blocks new token refresh.",
+        "reasonLabel": "Reason for locking *",
+        "reasonPlaceholder": "Enter mandatory audit reason for locking this account..."
+      },
+      "operationalSummary": {
+        "title": "Account Operational Summary"
+      },
+      "accountStatus": "Account Status",
+      "statusActive": "Active",
+      "statusLocked": "Locked",
+      "roleVerification": "Role / Verification",
+      "doctorApproved": "Doctor (Approved)",
+      "patient": "Patient",
+      "activeTier": "Active Subscription Tier",
+      "deviceSessions": "Active Device Sessions",
+      "sessionsCount": "{{count}} active sessions",
+      "sessionsRevoked": "0 (Revoked)",
+      "privacyBoundaryTitle": "Clinical Privacy Boundary:",
+      "privacyBoundaryDesc": "Clinical records (care enrollments, care tasks, vital readings, symptoms, and AI transcripts) are strictly protected and excluded from the administrator view."
     },
     "medicalFacilities": {
       "description": "Review and manage medical facilities on the map.",
@@ -254,7 +279,44 @@
         "added": "Facility added successfully",
         "verified": "Facility verified and published to map",
         "rejected": "Facility submission rejected"
-      }
+      },
+      "diseaseSpecialty": {
+        "title": "Disease-Specialty Mapping",
+        "addTitle": "Add Disease-Specialty Mapping",
+        "editTitle": "Update Disease-Specialty Mapping",
+        "code": "Disease Code",
+        "name": "Disease Name",
+        "specialties": "Target Specialties",
+        "urgency": "Urgency Guidance",
+        "status": "Active Status",
+        "active": "Active",
+        "inactive": "Inactive",
+        "codeAndNameRequired": "Please enter disease code and name",
+        "updatedSuccess": "Updated Disease-Specialty Mapping",
+        "createdSuccess": "Created Disease-Specialty Mapping",
+        "statusUpdatedSuccess": "Updated mapping active status",
+        "retiredSuccess": "Retired medical facility",
+        "tableDiseaseCode": "DISEASE CODE",
+        "tableRecommendedSpecialties": "RECOMMENDED SPECIALTIES",
+        "tableUrgencyGuidance": "URGENCY GUIDANCE",
+        "tableStatus": "STATUS",
+        "tableActions": "ACTIONS",
+        "fieldCode": "Disease / Program Code *",
+        "fieldNameVi": "Disease Name (VI) *",
+        "fieldNameEn": "Disease Name (EN)",
+        "fieldSpecialties": "Specialties (comma-separated)",
+        "fieldUrgencyVi": "Urgency Guidance (VI)",
+        "saveMapping": "Save Mapping"
+      },
+      "subtitle": "Manage directory facilities on map and configure disease-to-specialty routing rules for care programs.",
+      "tabFacilities": "Facilities Directory",
+      "tabMappings": "Disease-Specialty Mappings",
+      "retired": "Retired",
+      "retire": "Retire",
+      "retireTooltip": "Retire facility",
+      "tableLastChecked": "LAST CHECKED",
+      "enable": "Enable",
+      "disable": "Disable"
     },
     "docVerification": {
       "title": "Document Verification",
@@ -342,7 +404,10 @@
         "tryAdjusting": "Try adjusting your search criteria",
         "requestId": "Request ID",
         "usageSnapshot": "Final Usage Snapshot",
-        "eligibility": "Eligibility"
+        "eligibility": "Eligibility",
+        "usageSummary": "Tokens: {{tokens}} | Consults: {{consults}} | Days: {{days}}",
+        "approved": "Approved",
+        "rejected": "Rejected"
       },
       "status": {
         "success": "Success",
@@ -350,7 +415,10 @@
         "failed": "Failed",
         "refunded": "Refunded",
         "eligible": "Eligible",
-        "ineligible": "Ineligible"
+        "ineligible": "Ineligible",
+        "paid": "Paid",
+        "refundPending": "Refund Pending",
+        "pendingVerification": "Pending Verification"
       },
       "planTypes": {
         "monthly": "Monthly Plan",
@@ -359,7 +427,16 @@
       "actions": {
         "review": "Review",
         "approve": "Approve Refund",
-        "reject": "Reject Refund"
+        "reject": "Reject Refund",
+        "reconcile": "Reconcile",
+        "reconcileTooltip": "Reconcile payment order",
+        "clone": "Clone",
+        "cloneDraft": "Clone Draft",
+        "publish": "Publish",
+        "publishVersion": "Publish Version",
+        "retire": "Retire",
+        "retireVersion": "Retire Version",
+        "viewDetails": "View Details"
       },
       "config": {
         "title": "Premium Subscription",
@@ -375,7 +452,10 @@
         "feature3": "• Advanced health metrics insights",
         "status": "Status",
         "active": "Active",
-        "limits": "Limits & Quotas"
+        "limits": "Limits & Quotas",
+        "deployDefaults": "Deploy Default Configurations",
+        "retirePlan": "Retire Plan",
+        "publishPlan": "Publish Plan"
       },
       "refundModal": {
         "title": "Review Refund Request",
@@ -445,13 +525,57 @@
         "invoiceNotRequested": "Not requested",
         "copyId": "Copy ID",
         "securityAuditNote": "In accordance with security standards, customer bank credentials and private tokens are masked. All transactions are logged with idempotent payment webhooks.",
-        "close": "Close"
+        "close": "Close",
+        "subtitle": "Transaction metadata, payment verification progress, and entitlement activation",
+        "autoActivationNotice": "The system automatically activates the tier upon payment gateway callback. If delayed, admins can trigger manual order reconciliation.",
+        "verificationTimeline": "Payment Verification Timeline & Subscription",
+        "autoSynced": "Auto-synced",
+        "stepCheckout": "1. Checkout Created",
+        "stepGatewayReturn": "2. Gateway Return Redirect",
+        "awaitingServer": "Awaiting server confirmation",
+        "stepPaymentConfirmed": "3. VNPAY Payment Confirmed",
+        "awaitingConfirmation": "Awaiting confirmation",
+        "entitlementStatus": "Subscription Entitlement:",
+        "entitlementGranted": "Entitlement Granted",
+        "entitlementRevoked": "Revoked (Refunded)",
+        "entitlementPending": "Pending Payment Verification"
       },
       "toasts": {
         "overrideRequired": "Ineligible requests require checking Admin Override.",
         "reasonRequired": "Please provide an override reason for audit logging.",
         "planNameRequired": "Please enter a valid plan name.",
-        "copied": "Copied to clipboard!"
+        "copied": "Copied to clipboard!",
+        "deployedSuccess": "Default packages successfully deployed",
+        "deployFallback": "Default packages deployed via fallback mode",
+        "planRetired": "Subscription plan retired successfully",
+        "planPublished": "Subscription plan published successfully",
+        "draftCreated": "Draft version created successfully",
+        "orderReconciled": "Order {{orderId}} reconciled successfully: Payment verified & subscription activated.",
+        "draftCreatedForPlan": "Created new draft version for {{code}} ({{version}})",
+        "versionPublished": "Published {{code}} {{version}}",
+        "versionRetired": "Retired {{code}} {{version}}"
+      },
+      "catalog": {
+        "title": "Subscription Plan Versions Catalog",
+        "subtitle": "Each plan code has at most 1 published version. Clone a draft to modify quotas before publishing.",
+        "code": "Code",
+        "version": "Version",
+        "priceVnd": "Price (VND)",
+        "aiQuota": "AI Quota",
+        "consults": "Consults",
+        "carePrograms": "Care Programs",
+        "familyLinks": "Family Links",
+        "status": "Status",
+        "actions": "Actions",
+        "published": "Published",
+        "draft": "Draft",
+        "retired": "Retired"
+      },
+      "limits": {
+        "aiTurns": "AI Turns:",
+        "consultations": "Consultations:",
+        "carePrograms": "Care Programs:",
+        "familyLinks": "Family Links:"
       }
     },
     "appointmentManagement": {
@@ -521,7 +645,27 @@
         "duration": "Duration",
         "quality": "Connection Quality",
         "encryptedWebRTC": "End-to-End Encrypted WebRTC",
-        "close": "Close"
+        "close": "Close",
+        "privacyTitle": "Clinical Privacy Notice:",
+        "privacyDesc": "Clinical symptoms, chat messages, and doctor diagnostic notes are strictly confidential and hidden from administrators.",
+        "modeOnDemand": "On-demand",
+        "modeScheduled": "Scheduled",
+        "sessionId": "Session:",
+        "operationalStatus": "Operational State & Queue Info",
+        "requestStatus": "Request Status:",
+        "accepted": "Accepted",
+        "sessionStatus": "Session Status:",
+        "inConsultation": "In Consultation",
+        "waiting": "Waiting",
+        "scheduled": "Scheduled",
+        "noShow": "No-show",
+        "completed": "Completed",
+        "queuePosition": "Queue Position:",
+        "calledAt": "Called At:",
+        "noShowReason": "No-show Reason:",
+        "patientAbsent": "Patient absent",
+        "clinicalDataRedacted": "Clinical Data Redacted",
+        "viewAuditLogs": "View Audit Logs"
       }
     },
     "aiManagement": {
@@ -565,7 +709,17 @@
       },
       "actions": {
         "upload": "Upload New Document",
-        "addWord": "Add Word"
+        "addWord": "Add Word",
+        "view": "View",
+        "download": "Download",
+        "delete": "Delete",
+        "activate": "Activate",
+        "deactivate": "Deactivate",
+        "manageChunks": "Manage Chunks",
+        "review": "Approve / Reject",
+        "reindex": "Re-index Document",
+        "reindexSuccess": "Document re-indexed successfully",
+        "archive": "Archive Document"
       },
       "table": {
         "docName": "DOCUMENT NAME",
@@ -622,6 +776,30 @@
         "addKeywordSuccess": "Keyword added successfully",
         "removeKeywordFailed": "Failed to remove keyword. Please login and try again.",
         "removeKeywordSuccess": "Keyword removed successfully"
+      },
+      "ingestionStatus": {
+        "indexed": "Indexed",
+        "processing": "Processing",
+        "uploaded": "Uploaded"
+      },
+      "reviewStatus": {
+        "approved": "Approved",
+        "rejected": "Rejected",
+        "archived": "Archived",
+        "pending": "Pending review"
+      },
+      "reviewModal": {
+        "archiveTitle": "Archive Medical Document",
+        "reviewTitle": "Review AI Knowledge Document",
+        "documentLabel": "Document:",
+        "approve": "Approve",
+        "reject": "Reject",
+        "notesLabel": "Review Notes / Archive Reason",
+        "notesPlaceholder": "Enter medical review notes...",
+        "reasonRequired": "Please enter a reason for rejection or archiving",
+        "statusUpdated": "Document review status updated",
+        "confirm": "Confirm",
+        "cancel": "Cancel"
       }
     },
     "violationReport": {
@@ -665,7 +843,22 @@
         "dismissReport": "Dismiss Report",
         "applyResolution": "Apply Resolution",
         "dismissed": "Dismissed",
-        "notesRequired": "Please enter resolution notes/justification before applying action."
+        "notesRequired": "Please enter resolution notes/justification before applying action.",
+        "processing": "Processing",
+        "warningSent": "Warning Sent",
+        "contentHidden": "Content Hidden",
+        "accountLocked": "Account Locked",
+        "noPenalty": "No Penalty",
+        "sendWarning": "Send Warning",
+        "hideContent": "Hide Content",
+        "lockAccount": "Lock Account",
+        "startProcessing": "Start Processing",
+        "dismissReasonRequired": "Please enter dismissal reason.",
+        "decisionTitle": "Moderation Resolution Decision",
+        "decisionDesc": "Select an appropriate enforcement action based on report findings",
+        "severityLabel": "Severity:",
+        "assigneeLabel": "Assignee:",
+        "actionTakenLabel": "Action taken:"
       },
       "table": {
         "type": "TYPE",
@@ -689,7 +882,8 @@
         "resolved": "Resolved",
         "dismissed": "Dismissed",
         "noTypeFound": "No type found.",
-        "noStatusFound": "No status found."
+        "noStatusFound": "No status found.",
+        "processing": "Processing"
       },
       "loading": "Loading violation reports...",
       "pagination": {
@@ -698,6 +892,7 @@
       "toasts": {
         "loadFailed": "Failed to load violation reports",
         "cannotBan": "Cannot ban this user!",
+        "processingStarted": "Report moved to processing",
         "resolutionApplied": "Resolution applied ({{action}})",
         "dismissSuccess": "Report dismissed."
       }
@@ -1081,7 +1276,76 @@
       "search": "Search",
       "confirm": "Confirm",
       "loading": "Loading...",
-      "failed": "Failed"
+      "failed": "Failed",
+      "refresh": "Refresh"
+    },
+    "auditLogs": {
+      "tabSystemLogs": "System Audit Logs",
+      "tabFamilyLinks": "Family Links",
+      "allDomains": "All Domains",
+      "allRoles": "All Roles",
+      "title": "System Audit Logs & Family Links",
+      "subtitle": "Track administrative actions and system operational health",
+      "searchPlaceholder": "Search by log ID, action, actor...",
+      "privacyTitle": "Clinical Privacy Protection:",
+      "privacyDesc": "System audit logs only record status transitions, action reasons, and operational metadata. Consultation messages, patient symptoms, and clinical notes are strictly hidden.",
+      "familyNotice": "Admins only audit consent state & sharing scopes, or execute emergency revocation on violation reports.",
+      "familyLinksList": "Family Links Directory",
+      "operationalDetailsRedacted": "Operational Information (Clinical Data Redacted)",
+      "domains": {
+        "billing": "Billing & Subscriptions",
+        "chronicCare": "Chronic Care & Rules",
+        "consultation": "Consultation & Queue",
+        "ai": "AI Knowledge Base",
+        "user": "User & Verification",
+        "family": "Family Companion"
+      },
+      "roles": {
+        "doctor": "Doctor",
+        "patient": "Patient",
+        "system": "System"
+      },
+      "table": {
+        "timestamp": "Timestamp",
+        "domain": "Domain",
+        "action": "Action",
+        "actor": "Actor",
+        "resource": "Resource",
+        "statusChange": "Status Change",
+        "details": "Details",
+        "inspect": "Inspect",
+        "status": "Status",
+        "relationship": "Relationship",
+        "permissions": "Permissions",
+        "revoke": "Revoke"
+      },
+      "status": {
+        "active": "Active",
+        "revoked": "Revoked",
+        "paused": "Paused",
+        "pending": "Pending"
+      },
+      "permissions": {
+        "reminders": "Reminders",
+        "progress": "Progress",
+        "alerts": "Alert Summary",
+        "on": "ON",
+        "off": "OFF"
+      },
+      "modal": {
+        "eventDetails": "Audit Event Details",
+        "revokeTitle": "Emergency Family Link Revocation",
+        "revokeDesc": "This action immediately terminates member access and appends an audit event.",
+        "revokeReasonLabel": "Revocation Reason:",
+        "revokeReasonPlaceholder": "Enter mandatory reason for audit logging...",
+        "cancel": "Cancel",
+        "confirmRevoke": "Confirm Revocation"
+      },
+      "toasts": {
+        "refreshed": "Audit logs refreshed",
+        "reasonRequired": "Please enter a reason for revoking this link",
+        "revokeSuccess": "Family link revoked and audit logged successfully"
+      }
     }
   }
 }

@@ -36,8 +36,7 @@ export function ReportDetailModal({
   onDismissReport,
   isUpdating,
 }: ReportDetailModalProps) {
-  const { t, i18n } = useTranslation();
-  const isVi = i18n.language?.startsWith("vi");
+  const { t } = useTranslation();
   const [selectedAction, setSelectedAction] = useState<ResolutionAction>(
     report?.actionTaken || "warning_sent"
   );
@@ -51,14 +50,14 @@ export function ReportDetailModal({
   const getActionLabel = (action?: ResolutionAction) => {
     switch (action) {
       case "warning_sent":
-        return isVi ? "Đã gửi cảnh báo" : "Warning Sent";
+        return t("violationReport.modal.warningSent");
       case "content_hidden":
-        return isVi ? "Đã ẩn nội dung" : "Content Hidden";
+        return t("violationReport.modal.contentHidden");
       case "user_locked":
       case "ban":
-        return isVi ? "Đã khóa tài khoản" : "Account Locked";
+        return t("violationReport.modal.accountLocked");
       case "none":
-        return isVi ? "Không xử phạt" : "No Penalty";
+        return t("violationReport.modal.noPenalty");
       default:
         return action || "";
     }
@@ -66,14 +65,7 @@ export function ReportDetailModal({
 
   const handleApply = () => {
     if (!notes.trim()) {
-      showToast.error(
-        t(
-          "violationReport.modal.notesRequired",
-          isVi
-            ? "Vui lòng nhập ghi chú kết luận trước khi áp dụng hướng xử lý."
-            : "Please enter resolution notes/justification before applying action."
-        )
-      );
+      showToast.error(t("violationReport.modal.notesRequired"));
       return;
     }
     onApplyResolution(report.id, selectedAction, notes.trim());
@@ -81,11 +73,7 @@ export function ReportDetailModal({
 
   const handleDismiss = () => {
     if (!notes.trim()) {
-      showToast.error(
-        isVi
-          ? "Vui lòng nhập lý do bác bỏ báo cáo."
-          : "Please enter dismissal reason."
-      );
+      showToast.error(t("violationReport.modal.dismissReasonRequired"));
       return;
     }
     onDismissReport(report.id, notes.trim());
@@ -131,29 +119,27 @@ export function ReportDetailModal({
             }`}
           >
             {report.status === "resolved"
-              ? t("violationReport.modal.resolved", isVi ? "Đã giải quyết" : "Resolved")
+              ? t("violationReport.modal.resolved")
               : report.status === "processing"
-              ? isVi
-                ? "Đang xử lý"
-                : "Processing"
+              ? t("violationReport.modal.processing")
               : report.status === "dismissed"
-              ? t("violationReport.modal.dismissed", isVi ? "Đã bác bỏ" : "Dismissed")
-              : t("violationReport.modal.pending", isVi ? "Đang chờ" : "Pending")}
+              ? t("violationReport.modal.dismissed")
+              : t("violationReport.modal.pending")}
           </Badge>
 
           <Badge variant="outline" className="rounded-full text-xs">
-            {isVi ? "Mức độ:" : "Severity:"}{" "}
+            {t("violationReport.modal.severityLabel")}{" "}
             <strong className="ml-1 uppercase">{report.severity || "high"}</strong>
           </Badge>
 
           <Badge variant="outline" className="rounded-full text-xs">
-            {isVi ? "Người phụ trách:" : "Assignee:"}{" "}
+            {t("violationReport.modal.assigneeLabel")}{" "}
             <strong className="ml-1">{report.assignee || assignee}</strong>
           </Badge>
 
           {report.actionTaken && (
             <Badge className="bg-indigo-600 text-white rounded-full text-xs">
-              {isVi ? "Biện pháp xử lý:" : "Action taken:"} {getActionLabel(report.actionTaken)}
+              {t("violationReport.modal.actionTakenLabel")} {getActionLabel(report.actionTaken)}
             </Badge>
           )}
         </div>
@@ -226,19 +212,15 @@ export function ReportDetailModal({
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div>
               <p className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200">
-                {isVi
-                  ? "Quyết định xử lý vi phạm"
-                  : "Moderation Resolution Decision"}
+                {t("violationReport.modal.decisionTitle")}
               </p>
               <p className="text-[11px] text-slate-500">
-                {isVi
-                  ? "Chọn biện pháp chế tài phù hợp với mức độ vi phạm"
-                  : "Select an appropriate enforcement action based on report findings"}
+                {t("violationReport.modal.decisionDesc")}
               </p>
             </div>
             <div className="flex items-center gap-2">
               <span className="text-xs text-slate-500">
-                {isVi ? "Người phụ trách:" : "Assignee:"}
+                {t("violationReport.modal.assigneeLabel")}
               </span>
               <input
                 type="text"
@@ -253,19 +235,19 @@ export function ReportDetailModal({
             {[
               {
                 id: "warning_sent",
-                label: isVi ? "Gửi cảnh báo" : "Send Warning",
+                label: t("violationReport.modal.sendWarning"),
               },
               {
                 id: "content_hidden",
-                label: isVi ? "Ẩn nội dung" : "Hide Content",
+                label: t("violationReport.modal.hideContent"),
               },
               {
                 id: "user_locked",
-                label: isVi ? "Khóa tài khoản" : "Lock Account",
+                label: t("violationReport.modal.lockAccount"),
               },
               {
                 id: "none",
-                label: isVi ? "Không xử phạt" : "No Penalty",
+                label: t("violationReport.modal.noPenalty"),
               },
             ].map((action) => (
               <button
@@ -285,22 +267,14 @@ export function ReportDetailModal({
 
           <div>
             <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-              {t(
-                "violationReport.modal.resolutionNotes",
-                isVi ? "Ghi chú kết luận / Lý do xử lý" : "Resolution / Dismissal Notes"
-              )}
+              {t("violationReport.modal.resolutionNotes")}
               <span className="text-red-500 ml-1">*</span>
             </label>
             <textarea
               rows={2}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder={t(
-                "violationReport.modal.resolutionNotesPlaceholder",
-                isVi
-                  ? "Nhập kết luận kiểm tra và lý do xử lý hoặc bác bỏ báo cáo..."
-                  : "Enter findings and justification for resolution or dismissal..."
-              )}
+              placeholder={t("violationReport.modal.resolutionNotesPlaceholder")}
               className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 p-2.5 text-xs text-slate-900 dark:text-slate-100 outline-none focus:border-brand resize-none"
             />
           </div>
@@ -317,7 +291,7 @@ export function ReportDetailModal({
                 disabled={isUpdating}
               >
                 <PlayCircle className="mr-1.5 h-4 w-4" />
-                {isVi ? "Bắt đầu xử lý" : "Start Processing"}
+                {t("violationReport.modal.startProcessing")}
               </Button>
             )}
           </div>
@@ -337,7 +311,7 @@ export function ReportDetailModal({
               onClick={handleDismiss}
               disabled={isUpdating}
             >
-              {t("violationReport.modal.dismissReport", isVi ? "Bác bỏ báo cáo" : "Dismiss Report")}
+              {t("violationReport.modal.dismissReport")}
             </Button>
             <Button
               type="button"
@@ -346,7 +320,7 @@ export function ReportDetailModal({
               disabled={isUpdating}
             >
               <CheckCircle className="mr-2 h-4 w-4" />
-              {t("violationReport.modal.applyResolution", isVi ? "Xác nhận xử lý" : "Resolve Report")}
+              {t("violationReport.modal.applyResolution")}
             </Button>
           </div>
         </div>

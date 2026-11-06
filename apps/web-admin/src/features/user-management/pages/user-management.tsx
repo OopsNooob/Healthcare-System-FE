@@ -127,8 +127,7 @@ function mergeUsers(baseUsers: UserRecord[], localUsers: UserRecord[]) {
 }
 
 export function UserManagement() {
-  const { t, i18n } = useTranslation();
-  const isVi = i18n.language?.startsWith("vi");
+  const { t } = useTranslation();
   const { users: usersData, isLoading, error, refresh } = useUsers();
   const { submitBanUser, isLoading: isBanning, error: banError } = useBanUser();
   const {
@@ -441,21 +440,14 @@ export function UserManagement() {
       await refresh();
       setOpenActionUserId(null);
       setOpenActionRect(null);
-      showToast.success(
-        isVi ? "Đã mở khóa tài khoản thành công" : "User unlocked successfully"
-      );
+      showToast.success(t("userManagement.toasts.unlockedSuccess"));
     }
   };
 
   const handleConfirmLockUser = async () => {
     if (!lockModalUser) return;
     if (!lockReason.trim()) {
-      showToast.error(
-        t(
-          "userManagement.toasts.reasonRequired",
-          isVi ? "Vui lòng nhập lý do khóa tài khoản" : "Please enter a reason for locking the account"
-        )
-      );
+      showToast.error(t("userManagement.toasts.reasonRequired"));
       return;
     }
     const result = await submitBanUser({
@@ -464,21 +456,13 @@ export function UserManagement() {
     });
     if (result) {
       await refresh();
-      showToast.success(
-        isVi
-          ? "Đã khóa tài khoản và thu hồi toàn bộ phiên đăng nhập"
-          : "User locked & all active sessions revoked"
-      );
+      showToast.success(t("userManagement.toasts.lockedSuccess"));
     } else {
       setLocalUsers((prev) => [
         ...prev.filter((u) => u.id !== lockModalUser.id),
         { ...lockModalUser, status: "banned" },
       ]);
-      showToast.success(
-        isVi
-          ? "Đã khóa tài khoản và thu hồi toàn bộ phiên đăng nhập"
-          : "User locked & all active sessions revoked"
-      );
+      showToast.success(t("userManagement.toasts.lockedSuccess"));
     }
     setLockModalUser(null);
     setLockReason("");
@@ -536,10 +520,7 @@ export function UserManagement() {
       },
       {
         id: `${user.id}-operational-summary`,
-        title: t(
-          "userManagement.actions.operationalSummary",
-          isVi ? "Tóm tắt vận hành" : "Operational Summary"
-        ),
+        title: t("userManagement.actions.operationalSummary"),
         icon: <ShieldCheck className="h-4 w-4" />,
         iconColor: "text-blue-600",
         onHandle: () => {
@@ -970,18 +951,10 @@ export function UserManagement() {
             <div className="w-full max-w-md rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-2xl">
               <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
                 <Lock className="h-5 w-5 text-red-600" />
-                {t(
-                  "userManagement.lockModal.title",
-                  isVi ? "Khóa tài khoản người dùng" : "Lock User Account"
-                )}
+                {t("userManagement.lockModal.title")}
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                {t(
-                  "userManagement.lockModal.desc",
-                  isVi
-                    ? "Khóa tài khoản sẽ ngay lập tức thu hồi toàn bộ phiên đăng nhập hiện hành và chặn làm mới phiên."
-                    : "Locking this account immediately revokes all active login sessions and blocks new token refresh."
-                )}
+                {t("userManagement.lockModal.desc")}
               </p>
 
               <div className="my-4 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 text-xs">
@@ -992,21 +965,13 @@ export function UserManagement() {
               </div>
 
               <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                {t(
-                  "userManagement.lockModal.reasonLabel",
-                  isVi ? "Lý do khóa tài khoản *" : "Reason for locking *"
-                )}
+                {t("userManagement.lockModal.reasonLabel")}
               </label>
               <textarea
                 rows={3}
                 value={lockReason}
                 onChange={(e) => setLockReason(e.target.value)}
-                placeholder={t(
-                  "userManagement.lockModal.reasonPlaceholder",
-                  isVi
-                    ? "Nhập lý do bắt buộc để lưu nhật ký kiểm toán..."
-                    : "Enter mandatory audit reason for locking this account..."
-                )}
+                placeholder={t("userManagement.lockModal.reasonPlaceholder")}
                 className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 p-2.5 text-xs text-slate-900 dark:text-slate-100 outline-none focus:border-red-500"
               />
 
@@ -1017,7 +982,7 @@ export function UserManagement() {
                   size="sm"
                   onClick={() => setLockModalUser(null)}
                 >
-                  {t("common.cancel", isVi ? "Hủy" : "Cancel")}
+                  {t("common.cancel")}
                 </Button>
                 <Button
                   type="button"
@@ -1026,7 +991,7 @@ export function UserManagement() {
                   onClick={() => void handleConfirmLockUser()}
                   disabled={isBanning}
                 >
-                  {t("userManagement.actions.lockUser", isVi ? "Khóa tài khoản" : "Lock Account")}
+                  {t("userManagement.actions.lockUser")}
                 </Button>
               </div>
             </div>
@@ -1041,10 +1006,7 @@ export function UserManagement() {
                 <div>
                   <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
                     <ShieldCheck className="h-5 w-5 text-blue-600" />
-                    {t(
-                      "userManagement.operationalSummary.title",
-                      isVi ? "Tóm tắt vận hành tài khoản" : "Account Operational Summary"
-                    )}
+                    {t("userManagement.operationalSummary.title")}
                   </h3>
                   <p className="text-xs text-slate-500 dark:text-slate-400">
                     {operationalSummaryUser.name} • {operationalSummaryUser.email}
@@ -1064,37 +1026,29 @@ export function UserManagement() {
                 <div className="grid grid-cols-2 gap-3">
                   <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
                     <div className="text-slate-400 uppercase text-[10px] font-bold">
-                      {isVi ? "Trạng thái tài khoản" : "Account Status"}
+                      {t("userManagement.accountStatus")}
                     </div>
                     <div className="text-sm font-bold text-slate-900 dark:text-slate-100 mt-1 capitalize">
                       {operationalSummaryUser.status === "active"
-                        ? isVi
-                          ? "Đang hoạt động"
-                          : "Active"
-                        : isVi
-                        ? "Đã khóa"
-                        : "Locked"}
+                        ? t("userManagement.statusActive")
+                        : t("userManagement.statusLocked")}
                     </div>
                   </div>
                   <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
                     <div className="text-slate-400 uppercase text-[10px] font-bold">
-                      {isVi ? "Vai trò / Xác minh" : "Role / Verification"}
+                      {t("userManagement.roleVerification")}
                     </div>
                     <div className="text-sm font-bold text-slate-900 dark:text-slate-100 mt-1">
                       {operationalSummaryUser.role === "doctor"
-                        ? isVi
-                          ? "Bác sĩ (Đã duyệt)"
-                          : "Doctor (Approved)"
+                        ? t("userManagement.doctorApproved")
                         : operationalSummaryUser.role === "admin"
                         ? `${getAdminRoleLabel(operationalSummaryUser.assigned_role)}`
-                        : isVi
-                        ? "Bệnh nhân"
-                        : "Patient"}
+                        : t("userManagement.patient")}
                     </div>
                   </div>
                   <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
                     <div className="text-slate-400 uppercase text-[10px] font-bold">
-                      {isVi ? "Gói dịch vụ đang dùng" : "Active Subscription Tier"}
+                      {t("userManagement.activeTier")}
                     </div>
                     <div className="text-sm font-bold text-indigo-600 dark:text-indigo-400 mt-1">
                       {operationalSummaryUser.role === "patient" ? "CARE (v1.0)" : "—"}
@@ -1102,27 +1056,21 @@ export function UserManagement() {
                   </div>
                   <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
                     <div className="text-slate-400 uppercase text-[10px] font-bold">
-                      {isVi ? "Phiên thiết bị hoạt động" : "Active Device Sessions"}
+                      {t("userManagement.deviceSessions")}
                     </div>
                     <div className="text-sm font-bold text-slate-900 dark:text-slate-100 mt-1">
                       {operationalSummaryUser.status === "active"
-                        ? isVi
-                          ? "2 phiên đang hoạt động"
-                          : "2 active sessions"
-                        : isVi
-                        ? "0 (Đã thu hồi)"
-                        : "0 (Revoked)"}
+                        ? t("userManagement.sessionsCount", { count: 2 })
+                        : t("userManagement.sessionsRevoked")}
                     </div>
                   </div>
                 </div>
 
                 <div className="p-3 rounded-xl border border-amber-200/70 dark:border-amber-900/40 bg-amber-50/50 dark:bg-amber-950/20 text-amber-800 dark:text-amber-300">
                   <strong>
-                    {isVi ? "Giới hạn bảo mật dữ liệu y tế:" : "Clinical Privacy Boundary:"}
+                    {t("userManagement.privacyBoundaryTitle")}
                   </strong>{" "}
-                  {isVi
-                    ? "Dữ liệu lâm sàng (hồ sơ bệnh án, nhiệm vụ chăm sóc, chỉ số sinh hiệu, triệu chứng, lịch sử trò chuyện AI) được bảo mật và không hiển thị đối với Quản trị viên."
-                    : "Clinical records (care enrollments, care tasks, vital readings, symptoms, and AI transcripts) are strictly protected and excluded from the administrator view."}
+                  {t("userManagement.privacyBoundaryDesc")}
                 </div>
               </div>
 
@@ -1133,7 +1081,7 @@ export function UserManagement() {
                   size="sm"
                   onClick={() => setOperationalSummaryUser(null)}
                 >
-                  {t("common.close", isVi ? "Đóng" : "Close")}
+                  {t("common.close")}
                 </Button>
               </div>
             </div>

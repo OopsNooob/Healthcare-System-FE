@@ -58,14 +58,13 @@ export function TransactionDetailModal({
   transaction,
   onReconcile,
 }: TransactionDetailModalProps) {
-  const { t, i18n } = useTranslation();
-  const isVi = i18n.language?.startsWith("vi");
+  const { t } = useTranslation();
 
   if (!isOpen || !transaction) return null;
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
-    toast.success(t("premiumManagement.toasts.copied", "Copied to clipboard!"));
+    toast.success(t("premiumManagement.toasts.copied"));
   };
 
   const formattedAmount = `${transaction.amount.toLocaleString("vi-VN")} VND`;
@@ -86,15 +85,10 @@ export function TransactionDetailModal({
           <div>
             <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
               <Receipt className="text-brand" size={22} />
-              {t("premiumManagement.transactionModal.title", isVi ? "Chi tiết đơn hàng" : "Order Details")}
+              {t("premiumManagement.transactionModal.title")}
             </h3>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-              {t(
-                "premiumManagement.transactionModal.desc",
-                isVi
-                  ? "Thông tin giao dịch, tiến trình xác thực thanh toán và kích hoạt quyền lợi gói"
-                  : "Transaction details, payment verification timeline & subscription activation"
-              )}
+              {t("premiumManagement.transactionModal.subtitle")}
             </p>
           </div>
           <button
@@ -111,7 +105,7 @@ export function TransactionDetailModal({
           <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 p-4 flex items-center justify-between">
             <div>
               <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-                {t("premiumManagement.transactionModal.amount", isVi ? "Số tiền thanh toán" : "Amount")}
+                {t("premiumManagement.transactionModal.amount")}
               </p>
               <h2 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight mt-0.5">
                 {formattedAmount}
@@ -126,28 +120,24 @@ export function TransactionDetailModal({
               {isPaid ? (
                 <Badge className="bg-emerald-600 text-white flex items-center gap-1.5 py-1 px-3 text-xs">
                   <CheckCircle2 size={14} />
-                  {isVi ? "Đã thanh toán" : "Paid"}
+                  {t("premiumManagement.status.paid", "Đã thanh toán")}
                 </Badge>
               ) : isPending ? (
                 <Badge className="bg-amber-500 text-white flex items-center gap-1.5 py-1 px-3 text-xs">
                   <Clock size={14} />
                   {normalizedStatus === "refund_pending"
-                    ? isVi
-                      ? "Chờ hoàn tiền"
-                      : "Refund Pending"
-                    : isVi
-                    ? "Đang chờ xác nhận"
-                    : "Pending Verification"}
+                    ? t("premiumManagement.status.refundPending", "Chờ hoàn tiền")
+                    : t("premiumManagement.status.pendingVerification", "Đang chờ xác nhận")}
                 </Badge>
               ) : isRefunded ? (
                 <Badge className="bg-purple-600 text-white flex items-center gap-1.5 py-1 px-3 text-xs">
                   <AlertTriangle size={14} />
-                  {isVi ? "Đã hoàn tiền" : "Refunded"}
+                  {t("premiumManagement.status.refunded", "Đã hoàn tiền")}
                 </Badge>
               ) : (
                 <Badge variant="destructive" className="flex items-center gap-1.5 py-1 px-3 text-xs">
                   <XCircle size={14} />
-                  {isVi ? "Thất bại" : "Failed"}
+                  {t("premiumManagement.status.failed", "Thất bại")}
                 </Badge>
               )}
             </div>
@@ -244,10 +234,10 @@ export function TransactionDetailModal({
           <div className="rounded-2xl border border-indigo-100 dark:border-indigo-900/40 bg-indigo-50/40 dark:bg-indigo-950/20 p-4 space-y-3">
             <div className="flex items-center justify-between">
               <p className="text-xs font-bold uppercase tracking-wider text-indigo-700 dark:text-indigo-300">
-                {isVi ? "Tiến trình xác thực thanh toán & Cấp gói" : "Payment Verification Timeline & Subscription"}
+                {t("premiumManagement.transactionModal.verificationTimeline")}
               </p>
               <span className="text-[11px] font-medium text-indigo-600 dark:text-indigo-400">
-                {isVi ? "Tự động đồng bộ" : "Auto-synced"}
+                {t("premiumManagement.transactionModal.autoSynced")}
               </span>
             </div>
 
@@ -255,17 +245,17 @@ export function TransactionDetailModal({
               <div className="flex items-center justify-between">
                 <span className="text-slate-600 dark:text-slate-300 flex items-center gap-1.5">
                   <CheckCircle size={13} className="text-emerald-500" />
-                  {isVi ? "1. Khởi tạo đơn hàng" : "1. Checkout Created"}
+                  {t("premiumManagement.transactionModal.stepCheckout")}
                 </span>
                 <span className="font-mono text-slate-500">{transaction.date}</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-slate-600 dark:text-slate-300 flex items-center gap-1.5">
                   <CheckCircle size={13} className="text-blue-500" />
-                  {isVi ? "2. Chuyển hướng từ cổng thanh toán" : "2. Gateway Return Redirect"}
+                  {t("premiumManagement.transactionModal.stepGatewayReturn")}
                 </span>
                 <span className="text-slate-500">
-                  {isVi ? "Chờ xác thực máy chủ" : "Awaiting server confirmation"}
+                  {t("premiumManagement.transactionModal.awaitingServer")}
                 </span>
               </div>
               <div className="flex items-center justify-between">
@@ -275,10 +265,10 @@ export function TransactionDetailModal({
                   ) : (
                     <Clock size={13} className="text-amber-500" />
                   )}
-                  {isVi ? "3. Xác nhận thanh toán từ cổng VNPAY" : "3. VNPAY Payment Confirmed"}
+                  {t("premiumManagement.transactionModal.stepPaymentConfirmed")}
                 </span>
                 <span className="font-mono text-slate-700 dark:text-slate-200 font-semibold">
-                  {transaction.ipnVerifiedAt || (isPaid ? transaction.date : isVi ? "Đang chờ xác nhận" : "Awaiting confirmation")}
+                  {transaction.ipnVerifiedAt || (isPaid ? transaction.date : t("premiumManagement.transactionModal.awaitingConfirmation"))}
                 </span>
               </div>
             </div>
@@ -286,19 +276,19 @@ export function TransactionDetailModal({
             {/* SubscriptionGrantPanel */}
             <div className="pt-2 border-t border-indigo-200/60 dark:border-indigo-800/50 flex items-center justify-between text-xs">
               <span className="font-semibold text-slate-700 dark:text-slate-300">
-                {isVi ? "Trạng thái quyền lợi gói:" : "Subscription Entitlement:"}
+                {t("premiumManagement.transactionModal.entitlementStatus")}
               </span>
               {isPaid ? (
                 <Badge className="bg-emerald-600 text-white text-[11px]">
-                  {isVi ? "Đã kích hoạt quyền lợi" : "Entitlement Granted"}
+                  {t("premiumManagement.transactionModal.entitlementGranted")}
                 </Badge>
               ) : isRefunded ? (
                 <Badge className="bg-purple-600 text-white text-[11px]">
-                  {isVi ? "Đã thu hồi do hoàn tiền" : "Revoked (Refunded)"}
+                  {t("premiumManagement.transactionModal.entitlementRevoked")}
                 </Badge>
               ) : (
                 <Badge variant="outline" className="text-amber-600 border-amber-300 text-[11px]">
-                  {isVi ? "Chờ xác nhận thanh toán" : "Pending Payment Verification"}
+                  {t("premiumManagement.transactionModal.entitlementPending")}
                 </Badge>
               )}
             </div>
@@ -308,9 +298,10 @@ export function TransactionDetailModal({
           <div className="rounded-xl bg-slate-50/70 dark:bg-slate-800/30 p-3 flex items-start gap-2.5 text-xs text-slate-500 dark:text-slate-400 border border-slate-100 dark:border-slate-800">
             <ShieldCheck size={16} className="text-emerald-500 mt-0.5 shrink-0" />
             <p>
-              {isVi
-                ? "Hệ thống tự động kích hoạt gói khi nhận phản hồi xác thực từ cổng thanh toán. Nếu phản hồi bị trễ, quản trị viên có thể nhấn Đối soát đơn hàng để đồng bộ trạng thái."
-                : "Subscriptions are automatically activated upon gateway verification. If delayed, use Reconcile Order to synchronize payment status."}
+              {t(
+                "premiumManagement.transactionModal.autoActivationNotice",
+                "Hệ thống tự động kích hoạt gói khi nhận phản hồi xác thực từ cổng thanh toán. Nếu phản hồi bị trễ, quản trị viên có thể nhấn Đối soát đơn hàng để đồng bộ trạng thái."
+              )}
             </p>
           </div>
         </div>
@@ -325,7 +316,7 @@ export function TransactionDetailModal({
                 className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs transition-colors flex items-center gap-1.5 shadow-sm"
               >
                 <RefreshCw size={14} />
-                {isVi ? "Đối soát đơn hàng" : "Reconcile Order"}
+                {t("premiumManagement.actions.reconcile", "Đối soát đơn hàng")}
               </button>
             )}
           </div>
@@ -334,7 +325,7 @@ export function TransactionDetailModal({
             onClick={onClose}
             className="px-5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-semibold text-xs transition-colors"
           >
-            {t("premiumManagement.transactionModal.close", isVi ? "Đóng" : "Close")}
+            {t("premiumManagement.transactionModal.close")}
           </button>
         </div>
       </div>

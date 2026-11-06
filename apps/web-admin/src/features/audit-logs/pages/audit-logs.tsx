@@ -180,8 +180,7 @@ const INITIAL_FAMILY_LINKS: FamilyLinkAuditRecord[] = [
 ];
 
 export function AuditLogs() {
-  const { t, i18n } = useTranslation();
-  const isVi = i18n.language?.startsWith("vi");
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<"audit_logs" | "family_audit">("audit_logs");
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -204,24 +203,14 @@ export function AuditLogs() {
     setLoading(true);
     setTimeout(() => {
       setLoading(false);
-      toast.info(
-        t(
-          "auditLogs.refreshed",
-          isVi ? "Đã làm mới dữ liệu nhật ký kiểm toán" : "Audit logs refreshed"
-        )
-      );
+      toast.info(t("auditLogs.toasts.refreshed", "Đã làm mới dữ liệu nhật ký kiểm toán"));
     }, 500);
   };
 
   const handleAdminRevokeFamilyLink = () => {
     if (!revokeTargetLink) return;
     if (!revokeReason.trim()) {
-      toast.error(
-        t(
-          "auditLogs.revokeReasonRequired",
-          isVi ? "Vui lòng nhập lý do thu hồi liên kết" : "Please enter a reason for revoking this link"
-        )
-      );
+      toast.error(t("auditLogs.toasts.reasonRequired", "Vui lòng nhập lý do thu hồi liên kết"));
       return;
     }
 
@@ -251,14 +240,7 @@ export function AuditLogs() {
     setLogs((prev) => [newLog, ...prev]);
     setRevokeTargetLink(null);
     setRevokeReason("");
-    toast.success(
-      t(
-        "auditLogs.familyLinkRevoked",
-        isVi
-          ? "Đã thu hồi liên kết gia đình và lưu nhật ký kiểm toán"
-          : "Family link revoked and logged in audit trail"
-      )
-    );
+    toast.success(t("auditLogs.toasts.revokeSuccess", "Đã thu hồi liên kết gia đình và lưu nhật ký kiểm toán"));
   };
 
   const filteredLogs = logs.filter((log) => {
@@ -282,19 +264,11 @@ export function AuditLogs() {
           <div className="flex items-center gap-2.5">
             <ShieldCheck className="w-7 h-7 text-emerald-600 dark:text-emerald-400" />
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-              {t(
-                "auditLogs.title",
-                isVi ? "Nhật ký Kiểm toán & Liên kết Gia đình" : "System Audit Logs & Family Links"
-              )}
+              {t("auditLogs.title", "Nhật ký Kiểm toán & Liên kết Gia đình")}
             </h1>
           </div>
           <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">
-            {t(
-              "auditLogs.subtitle",
-              isVi
-                ? "Tra cứu lịch sử thao tác quản trị và trạng thái vận hành hệ thống"
-                : "Monitor administrative actions and system operational events"
-            )}
+            {t("auditLogs.subtitle", "Tra cứu lịch sử thao tác quản trị và trạng thái vận hành hệ thống")}
           </p>
         </div>
 
@@ -304,7 +278,7 @@ export function AuditLogs() {
             className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm font-semibold text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors cursor-pointer"
           >
             <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
-            {t("common.refresh", isVi ? "Làm mới" : "Refresh")}
+            {t("common.refresh", "Làm mới")}
           </button>
         </div>
       </div>
@@ -314,11 +288,12 @@ export function AuditLogs() {
         <Lock className="w-5 h-5 text-indigo-600 dark:text-indigo-400 shrink-0 mt-0.5" />
         <div className="text-xs text-indigo-900 dark:text-indigo-200 leading-relaxed">
           <span className="font-bold">
-            {isVi ? "Bảo mật dữ liệu y tế:" : "Clinical Privacy Protection:"}
+            {t("auditLogs.privacyTitle", "Bảo mật dữ liệu y tế:")}
           </span>{" "}
-          {isVi
-            ? "Nhật ký hệ thống chỉ lưu trữ lịch sử chuyển đổi trạng thái, lý do thao tác và thông tin vận hành. Nội dung tin nhắn khám, triệu chứng chi tiết và ghi chú lâm sàng của Bác sĩ được bảo mật tuyệt đối."
-            : "System audit logs only record status transitions, action reasons, and operational metadata. Consultation messages, patient symptoms, and clinical notes are strictly hidden."}
+          {t(
+            "auditLogs.privacyDesc",
+            "Nhật ký hệ thống chỉ lưu trữ lịch sử chuyển đổi trạng thái, lý do thao tác và thông tin vận hành. Nội dung tin nhắn khám, triệu chứng chi tiết và ghi chú lâm sàng của Bác sĩ được bảo mật tuyệt đối."
+          )}
         </div>
       </div>
 
@@ -333,7 +308,7 @@ export function AuditLogs() {
           }`}
         >
           <FileCode2 className="w-4 h-4" />
-          {t("auditLogs.tabSystemLogs", isVi ? "Nhật ký Hệ thống" : "System Audit Logs")}
+          {t("auditLogs.tabSystemLogs", "Nhật ký Hệ thống")}
         </button>
         <button
           onClick={() => setActiveTab("family_audit")}
@@ -344,7 +319,7 @@ export function AuditLogs() {
           }`}
         >
           <Users className="w-4 h-4" />
-          {t("auditLogs.tabFamilyLinks", isVi ? "Liên kết Gia đình" : "Family Links Audit")}
+          {t("auditLogs.tabFamilyLinks", "Liên kết Gia đình")}
         </button>
       </div>
 
@@ -360,9 +335,7 @@ export function AuditLogs() {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder={t(
                   "auditLogs.searchPlaceholder",
-                  isVi
-                    ? "Tìm theo mã nhật ký, hành động, người thực hiện..."
-                    : "Search by log ID, action, actor, resource..."
+                  "Tìm theo mã nhật ký, hành động, người thực hiện..."
                 )}
                 className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
               />
@@ -373,13 +346,13 @@ export function AuditLogs() {
               onChange={(e) => setDomainFilter(e.target.value)}
               className="px-4 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-sm text-gray-900 dark:text-white"
             >
-              <option value="all">{t("auditLogs.allDomains", isVi ? "Tất cả phân hệ" : "All Domains")}</option>
-              <option value="billing">{isVi ? "Thanh toán & Gói dịch vụ" : "Billing & Subscriptions"}</option>
-              <option value="care">{isVi ? "Chăm sóc bệnh mạn tính" : "Chronic Care & Rules"}</option>
-              <option value="consultation">{isVi ? "Tư vấn & Phòng chờ" : "Consultation & Queue"}</option>
-              <option value="ai_kb">{isVi ? "Kho tri thức AI" : "AI Knowledge Base"}</option>
-              <option value="user">{isVi ? "Người dùng & Xác minh" : "User & Verification"}</option>
-              <option value="family">{isVi ? "Liên kết gia đình" : "Family Companion"}</option>
+              <option value="all">{t("auditLogs.allDomains", "Tất cả phân hệ")}</option>
+              <option value="billing">{t("auditLogs.domains.billing", "Thanh toán & Gói dịch vụ")}</option>
+              <option value="care">{t("auditLogs.domains.chronicCare", "Chăm sóc bệnh mạn tính")}</option>
+              <option value="consultation">{t("auditLogs.domains.consultation", "Tư vấn & Phòng chờ")}</option>
+              <option value="ai_kb">{t("auditLogs.domains.ai", "Kho tri thức AI")}</option>
+              <option value="user">{t("auditLogs.domains.user", "Người dùng & Xác minh")}</option>
+              <option value="family">{t("auditLogs.domains.family", "Liên kết gia đình")}</option>
             </select>
 
             <select
@@ -387,13 +360,13 @@ export function AuditLogs() {
               onChange={(e) => setRoleFilter(e.target.value)}
               className="px-4 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-sm text-gray-900 dark:text-white"
             >
-              <option value="all">{t("auditLogs.allRoles", isVi ? "Tất cả vai trò" : "All Roles")}</option>
+              <option value="all">{t("auditLogs.allRoles", "Tất cả vai trò")}</option>
               <option value="super_admin">Super Admin</option>
               <option value="user_admin">User Admin</option>
               <option value="ai_admin">AI Admin</option>
-              <option value="doctor">{isVi ? "Bác sĩ" : "Doctor"}</option>
-              <option value="patient">{isVi ? "Bệnh nhân" : "Patient"}</option>
-              <option value="system">{isVi ? "Hệ thống" : "System"}</option>
+              <option value="doctor">{t("auditLogs.roles.doctor", "Bác sĩ")}</option>
+              <option value="patient">{t("auditLogs.roles.patient", "Bệnh nhân")}</option>
+              <option value="system">{t("auditLogs.roles.system", "Hệ thống")}</option>
             </select>
           </div>
 
@@ -409,13 +382,13 @@ export function AuditLogs() {
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="border-b border-gray-100 dark:border-slate-800 text-xs font-bold uppercase text-gray-400 dark:text-slate-500">
-                    <th className="py-3.5 px-4">{isVi ? "Thời gian" : "Timestamp"}</th>
-                    <th className="py-3.5 px-4">{isVi ? "Phân hệ" : "Domain"}</th>
-                    <th className="py-3.5 px-4">{isVi ? "Hành động" : "Action"}</th>
-                    <th className="py-3.5 px-4">{isVi ? "Người thực hiện" : "Actor"}</th>
-                    <th className="py-3.5 px-4">{isVi ? "Đối tượng" : "Resource"}</th>
-                    <th className="py-3.5 px-4">{isVi ? "Chuyển trạng thái" : "Status Change"}</th>
-                    <th className="py-3.5 px-4 text-right">{isVi ? "Chi tiết" : "Details"}</th>
+                    <th className="py-3.5 px-4">{t("auditLogs.table.timestamp", "Thời gian")}</th>
+                    <th className="py-3.5 px-4">{t("auditLogs.table.domain", "Phân hệ")}</th>
+                    <th className="py-3.5 px-4">{t("auditLogs.table.action", "Hành động")}</th>
+                    <th className="py-3.5 px-4">{t("auditLogs.table.actor", "Người thực hiện")}</th>
+                    <th className="py-3.5 px-4">{t("auditLogs.table.resource", "Đối tượng")}</th>
+                    <th className="py-3.5 px-4">{t("auditLogs.table.statusChange", "Chuyển trạng thái")}</th>
+                    <th className="py-3.5 px-4 text-right">{t("auditLogs.table.details", "Chi tiết")}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 dark:divide-slate-800 text-sm">
@@ -459,7 +432,7 @@ export function AuditLogs() {
                           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-slate-800 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 text-xs font-bold text-gray-700 dark:text-slate-200 cursor-pointer"
                         >
                           <Eye className="w-3.5 h-3.5" />
-                          {isVi ? "Xem" : "Inspect"}
+                          {t("auditLogs.table.inspect", "Xem")}
                         </button>
                       </td>
                     </tr>
@@ -475,15 +448,10 @@ export function AuditLogs() {
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-lg font-bold text-gray-900 dark:text-white">
-                {t(
-                  "auditLogs.familyLinksList",
-                  isVi ? "Danh sách Liên kết Gia đình" : "Family Companion Links"
-                )}
+                {t("auditLogs.familyLinksList")}
               </h2>
               <p className="text-xs text-gray-500 dark:text-slate-400">
-                {isVi
-                  ? "Quản trị viên chỉ kiểm tra trạng thái đồng thuận và quyền chia sẻ, hoặc thu hồi khẩn cấp khi có báo cáo lạm dụng."
-                  : "Administrators can inspect consent status and sharing permissions, or revoke links in case of reported abuse."}
+                {t("auditLogs.familyNotice")}
               </p>
             </div>
           </div>
@@ -492,13 +460,13 @@ export function AuditLogs() {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-gray-100 dark:border-slate-800 text-xs font-bold uppercase text-gray-400 dark:text-slate-500">
-                  <th className="py-3.5 px-4">{isVi ? "Mã liên kết" : "Link ID"}</th>
-                  <th className="py-3.5 px-4">{isVi ? "Bệnh nhân" : "Patient"}</th>
-                  <th className="py-3.5 px-4">{isVi ? "Người đồng hành" : "Companion"}</th>
-                  <th className="py-3.5 px-4">{isVi ? "Mối quan hệ" : "Relationship"}</th>
-                  <th className="py-3.5 px-4">{isVi ? "Quyền chia sẻ" : "Permissions"}</th>
-                  <th className="py-3.5 px-4">{isVi ? "Trạng thái" : "Status"}</th>
-                  <th className="py-3.5 px-4 text-right">{isVi ? "Thao tác" : "Actions"}</th>
+                  <th className="py-3.5 px-4">{t("auditLogs.table.resource", "Mã liên kết")}</th>
+                  <th className="py-3.5 px-4">{t("auditLogs.roles.patient", "Bệnh nhân")}</th>
+                  <th className="py-3.5 px-4">{t("auditLogs.domains.family", "Người đồng hành")}</th>
+                  <th className="py-3.5 px-4">{t("auditLogs.table.relationship", "Mối quan hệ")}</th>
+                  <th className="py-3.5 px-4">{t("auditLogs.table.permissions", "Quyền chia sẻ")}</th>
+                  <th className="py-3.5 px-4">{t("auditLogs.table.status", "Trạng thái")}</th>
+                  <th className="py-3.5 px-4 text-right">{t("auditLogs.table.action", "Thao tác")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-slate-800 text-sm">
@@ -513,12 +481,12 @@ export function AuditLogs() {
                       </span>
                     </td>
                     <td className="py-3.5 px-4 text-xs text-gray-600 dark:text-slate-300">
-                      {isVi ? "Nhắc lịch:" : "Reminders:"}{" "}
-                      <b>{fl.permissions.receiveReminders ? (isVi ? "Bật" : "ON") : (isVi ? "Tắt" : "OFF")}</b> •{" "}
-                      {isVi ? "Tiến độ:" : "Progress:"}{" "}
-                      <b>{fl.permissions.viewCareProgress ? (isVi ? "Bật" : "ON") : (isVi ? "Tắt" : "OFF")}</b> •{" "}
-                      {isVi ? "Cảnh báo:" : "Alerts:"}{" "}
-                      <b>{fl.permissions.viewAlertSummary ? (isVi ? "Bật" : "ON") : (isVi ? "Tắt" : "OFF")}</b>
+                      {t("auditLogs.permissions.reminders")}:{" "}
+                      <b>{fl.permissions.receiveReminders ? t("auditLogs.permissions.on") : t("auditLogs.permissions.off")}</b> •{" "}
+                      {t("auditLogs.permissions.progress")}:{" "}
+                      <b>{fl.permissions.viewCareProgress ? t("auditLogs.permissions.on") : t("auditLogs.permissions.off")}</b> •{" "}
+                      {t("auditLogs.permissions.alerts")}:{" "}
+                      <b>{fl.permissions.viewAlertSummary ? t("auditLogs.permissions.on") : t("auditLogs.permissions.off")}</b>
                     </td>
                     <td className="py-3.5 px-4">
                       <span
@@ -531,20 +499,12 @@ export function AuditLogs() {
                         }`}
                       >
                         {fl.status === "active"
-                          ? isVi
-                            ? "Đang hoạt động"
-                            : "Active"
+                          ? t("auditLogs.status.active", "Đang hoạt động")
                           : fl.status === "revoked"
-                            ? isVi
-                              ? "Đã thu hồi"
-                              : "Revoked"
+                            ? t("auditLogs.status.revoked", "Đã thu hồi")
                             : fl.status === "paused"
-                              ? isVi
-                                ? "Tạm dừng"
-                                : "Paused"
-                              : isVi
-                                ? "Chờ xác nhận"
-                                : "Pending"}
+                              ? t("auditLogs.status.paused", "Tạm dừng")
+                              : t("auditLogs.status.pending", "Chờ xác nhận")}
                       </span>
                     </td>
                     <td className="py-3.5 px-4 text-right">
@@ -553,7 +513,7 @@ export function AuditLogs() {
                           onClick={() => setRevokeTargetLink(fl)}
                           className="px-3 py-1.5 rounded-lg bg-red-50 dark:bg-red-900/20 hover:bg-red-100 text-red-600 dark:text-red-400 text-xs font-bold cursor-pointer"
                         >
-                          {isVi ? "Thu hồi liên kết" : "Revoke Link"}
+                          {t("auditLogs.table.revoke", "Thu hồi")}
                         </button>
                       )}
                     </td>
@@ -572,9 +532,7 @@ export function AuditLogs() {
             <div className="flex items-center justify-between border-b border-gray-100 dark:border-slate-800 pb-3">
               <div>
                 <h3 className="text-lg font-bold text-gray-900 dark:text-white">
-                  {isVi
-                    ? `Chi tiết Sự kiện Kiểm toán (${selectedLog.id})`
-                    : `Audit Event Details (${selectedLog.id})`}
+                  {t("auditLogs.modal.eventDetails", "Chi tiết Sự kiện Kiểm toán")} ({selectedLog.id})
                 </h3>
                 <p className="text-xs text-gray-500 dark:text-slate-400">{selectedLog.timestamp}</p>
               </div>
@@ -588,11 +546,11 @@ export function AuditLogs() {
 
             <div className="bg-gray-50 dark:bg-slate-800/70 p-4 rounded-xl border border-gray-200 dark:border-slate-700">
               <p className="text-xs font-bold uppercase text-gray-400 mb-2">
-                {isVi ? "Chuyển đổi trạng thái" : "Status Transition"}
+                {t("auditLogs.table.statusChange", "Chuyển đổi trạng thái")}
               </p>
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs text-gray-500">{isVi ? "Đối tượng" : "Resource"}</p>
+                  <p className="text-xs text-gray-500">{t("auditLogs.table.resource", "Đối tượng")}</p>
                   <p className="font-mono text-sm font-bold text-indigo-600 dark:text-indigo-400">
                     {selectedLog.resourceType} / {selectedLog.resourceId}
                   </p>
@@ -609,16 +567,14 @@ export function AuditLogs() {
               </div>
               {selectedLog.reasonCode && (
                 <p className="text-xs text-amber-600 dark:text-amber-400 font-semibold mt-2">
-                  {isVi ? "Mã lý do:" : "Reason:"} {selectedLog.reasonCode}
+                  {t("auditLogs.modal.revokeReasonLabel", "Lý do:")} {selectedLog.reasonCode}
                 </p>
               )}
             </div>
 
             <div>
               <p className="text-xs font-bold uppercase text-gray-400 mb-2">
-                {isVi
-                  ? "Thông tin vận hành (Đã ẩn dữ liệu lâm sàng)"
-                  : "Operational Details (Clinical data redacted)"}
+                {t("auditLogs.operationalDetailsRedacted")}
               </p>
               <pre className="bg-slate-950 text-emerald-400 p-4 rounded-xl text-xs font-mono overflow-x-auto">
                 {JSON.stringify(selectedLog.safeMetadata, null, 2)}
@@ -630,7 +586,7 @@ export function AuditLogs() {
                 onClick={() => setSelectedLog(null)}
                 className="px-5 py-2.5 rounded-xl bg-gray-900 dark:bg-white text-white dark:text-slate-900 text-sm font-bold cursor-pointer"
               >
-                {isVi ? "Đóng" : "Close"}
+                {t("common.close", "Đóng")}
               </button>
             </div>
           </div>
@@ -644,35 +600,21 @@ export function AuditLogs() {
             <div className="flex items-center gap-2 text-red-600 dark:text-red-400">
               <AlertTriangle className="w-6 h-6" />
               <h3 className="text-lg font-bold">
-                {isVi ? "Thu hồi Liên kết Gia đình" : "Revoke Family Link"}
+                {t("auditLogs.modal.revokeTitle", "Thu hồi Liên kết Gia đình")}
               </h3>
             </div>
             <p className="text-xs text-gray-600 dark:text-slate-300">
-              {isVi ? (
-                <>
-                  Bạn đang thu hồi liên kết <span className="font-bold">{revokeTargetLink.id}</span> giữa{" "}
-                  <b>{revokeTargetLink.patientMasked}</b> và <b>{revokeTargetLink.companionMasked}</b>.
-                </>
-              ) : (
-                <>
-                  You are revoking link <span className="font-bold">{revokeTargetLink.id}</span> between{" "}
-                  <b>{revokeTargetLink.patientMasked}</b> and <b>{revokeTargetLink.companionMasked}</b>.
-                </>
-              )}
+              {t("auditLogs.modal.revokeDesc", "Hành động này sẽ hủy bỏ ngay lập tức quyền truy cập của người thân và ghi nhận vào nhật ký kiểm toán.")}
             </p>
             <div>
               <label className="block text-xs font-bold uppercase text-gray-500 mb-1.5">
-                {isVi ? "Lý do thu hồi bắt buộc *" : "Mandatory Revocation Reason *"}
+                {t("auditLogs.modal.revokeReasonLabel", "Lý do thu hồi bắt buộc *")}
               </label>
               <textarea
                 value={revokeReason}
                 onChange={(e) => setRevokeReason(e.target.value)}
                 rows={3}
-                placeholder={
-                  isVi
-                    ? "Nhập lý do can thiệp an toàn hoặc theo yêu cầu hỗ trợ..."
-                    : "Enter safety intervention or support request reason..."
-                }
+                placeholder={t("auditLogs.modal.revokeReasonPlaceholder")}
                 className="w-full p-3 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-sm text-gray-900 dark:text-white"
               />
             </div>
@@ -684,13 +626,13 @@ export function AuditLogs() {
                 }}
                 className="px-4 py-2 rounded-xl bg-gray-100 dark:bg-slate-800 text-sm font-semibold cursor-pointer"
               >
-                {isVi ? "Hủy" : "Cancel"}
+                {t("common.cancel", "Hủy")}
               </button>
               <button
                 onClick={handleAdminRevokeFamilyLink}
                 className="px-4 py-2 rounded-xl bg-red-600 text-white text-sm font-bold cursor-pointer"
               >
-                {isVi ? "Xác nhận thu hồi" : "Confirm Revoke"}
+                {t("auditLogs.modal.confirmRevoke", "Xác nhận thu hồi")}
               </button>
             </div>
           </div>

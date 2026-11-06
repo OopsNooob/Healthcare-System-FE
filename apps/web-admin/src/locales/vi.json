@@ -150,7 +150,8 @@
       "actions": {
         "viewProfile": "Xem hồ sơ",
         "lockUser": "Khoá tài khoản",
-        "unlockUser": "Mở khoá tài khoản"
+        "unlockUser": "Mở khoá tài khoản",
+        "operationalSummary": "Tóm tắt vận hành"
       },
       "roles": {
         "superAdmin": "Quản trị cấp cao",
@@ -177,8 +178,32 @@
       },
       "toasts": {
         "reportSuccess": "Gửi báo cáo thành công",
-        "defaultBanReason": "Vi phạm quy định hệ thống"
-      }
+        "defaultBanReason": "Vi phạm quy định hệ thống",
+        "reasonRequired": "Vui lòng nhập lý do khóa tài khoản",
+        "unlockedSuccess": "Đã mở khóa tài khoản thành công",
+        "lockedSuccess": "Đã khóa tài khoản và thu hồi toàn bộ phiên đăng nhập"
+      },
+      "lockModal": {
+        "title": "Khóa tài khoản người dùng",
+        "desc": "Khóa tài khoản sẽ ngay lập tức thu hồi toàn bộ phiên đăng nhập hiện hành và chặn làm mới phiên.",
+        "reasonLabel": "Lý do khóa tài khoản *",
+        "reasonPlaceholder": "Nhập lý do bắt buộc để lưu nhật ký kiểm toán..."
+      },
+      "operationalSummary": {
+        "title": "Tóm tắt vận hành tài khoản"
+      },
+      "accountStatus": "Trạng thái tài khoản",
+      "statusActive": "Đang hoạt động",
+      "statusLocked": "Đã khóa",
+      "roleVerification": "Vai trò / Xác minh",
+      "doctorApproved": "Bác sĩ (Đã duyệt)",
+      "patient": "Bệnh nhân",
+      "activeTier": "Gói dịch vụ đang dùng",
+      "deviceSessions": "Phiên thiết bị hoạt động",
+      "sessionsCount": "{{count}} phiên đang hoạt động",
+      "sessionsRevoked": "0 (Đã thu hồi)",
+      "privacyBoundaryTitle": "Giới hạn bảo mật dữ liệu y tế:",
+      "privacyBoundaryDesc": "Dữ liệu lâm sàng (hồ sơ bệnh án, nhiệm vụ chăm sóc, chỉ số sinh hiệu, triệu chứng, lịch sử trò chuyện AI) được bảo mật và không hiển thị đối với Quản trị viên."
     },
     "medicalFacilities": {
       "description": "Xem xét và quản lý các cơ sở y tế trên bản đồ.",
@@ -254,7 +279,44 @@
         "added": "Thêm cơ sở y tế thành công",
         "verified": "Đã xác minh và công bố cơ sở y tế lên bản đồ",
         "rejected": "Đã từ chối đề xuất cơ sở y tế"
-      }
+      },
+      "diseaseSpecialty": {
+        "title": "Ánh xạ Bệnh - Chuyên khoa",
+        "addTitle": "Thêm Ánh xạ Bệnh - Chuyên khoa",
+        "editTitle": "Cập nhật Ánh xạ Bệnh - Chuyên khoa",
+        "code": "Mã bệnh",
+        "name": "Tên bệnh",
+        "specialties": "Chuyên khoa tiếp nhận",
+        "urgency": "Hướng dẫn khẩn cấp",
+        "status": "Trạng thái hoạt động",
+        "active": "Đang áp dụng",
+        "inactive": "Tạm ngưng",
+        "codeAndNameRequired": "Vui lòng nhập mã bệnh và tên bệnh",
+        "updatedSuccess": "Đã cập nhật ánh xạ Bệnh - Chuyên khoa",
+        "createdSuccess": "Đã tạo ánh xạ Bệnh - Chuyên khoa mới",
+        "statusUpdatedSuccess": "Đã cập nhật trạng thái ánh xạ",
+        "retiredSuccess": "Đã ngừng hiển thị cơ sở y tế này",
+        "tableDiseaseCode": "MÃ BỆNH / CHƯƠNG TRÌNH",
+        "tableRecommendedSpecialties": "CHUYÊN KHOA GỢI Ý",
+        "tableUrgencyGuidance": "HƯỚNG DẪN MỨC ĐỘ KHẨN",
+        "tableStatus": "TRẠNG THÁI",
+        "tableActions": "THAO TÁC",
+        "fieldCode": "Mã bệnh lý / Chương trình *",
+        "fieldNameVi": "Tên bệnh (Tiếng Việt) *",
+        "fieldNameEn": "Tên bệnh (Tiếng Anh)",
+        "fieldSpecialties": "Danh sách Chuyên khoa (cách nhau bởi dấu phẩy)",
+        "fieldUrgencyVi": "Hướng dẫn mức độ khẩn (VI)",
+        "saveMapping": "Lưu ánh xạ"
+      },
+      "subtitle": "Quản lý cơ sở y tế hiển thị trên bản đồ và cấu hình quy tắc gợi ý chuyên khoa theo bệnh lý/chương trình chăm sóc.",
+      "tabFacilities": "Danh mục Cơ sở Y tế",
+      "tabMappings": "Ánh xạ Bệnh - Chuyên khoa",
+      "retired": "Đã ngừng hiển thị",
+      "retire": "Ngừng hiển thị",
+      "retireTooltip": "Ngừng hiển thị cơ sở y tế",
+      "tableLastChecked": "KIỂM TRA GẦN NHẤT",
+      "enable": "Bật",
+      "disable": "Tắt"
     },
     "docVerification": {
       "title": "Xác thực Tài liệu",
@@ -342,7 +404,10 @@
         "tryAdjusting": "Thử điều chỉnh bộ lọc tìm kiếm",
         "requestId": "Mã Yêu cầu",
         "usageSnapshot": "Ảnh chụp sử dụng (Cuối)",
-        "eligibility": "Điều kiện"
+        "eligibility": "Điều kiện",
+        "usageSummary": "AI: {{tokens}} | Khám: {{consults}} | Số ngày: {{days}}",
+        "approved": "Đã duyệt",
+        "rejected": "Từ chối"
       },
       "status": {
         "success": "Thành công",
@@ -350,7 +415,10 @@
         "failed": "Thất bại",
         "refunded": "Đã hoàn tiền",
         "eligible": "Đủ điều kiện",
-        "ineligible": "Không đủ đ.kiện"
+        "ineligible": "Không đủ đ.kiện",
+        "paid": "Đã thanh toán",
+        "refundPending": "Chờ hoàn tiền",
+        "pendingVerification": "Đang chờ xác nhận"
       },
       "planTypes": {
         "monthly": "Gói Hàng tháng",
@@ -359,7 +427,16 @@
       "actions": {
         "review": "Xem xét",
         "approve": "Phê duyệt Hoàn tiền",
-        "reject": "Từ chối Hoàn tiền"
+        "reject": "Từ chối Hoàn tiền",
+        "reconcile": "Đối soát",
+        "reconcileTooltip": "Đối soát giao dịch với cổng thanh toán",
+        "clone": "Nhân bản",
+        "cloneDraft": "Nhân bản thành bản nháp",
+        "publish": "Phát hành",
+        "publishVersion": "Phát hành phiên bản",
+        "retire": "Ngừng lưu hành",
+        "retireVersion": "Ngừng lưu hành phiên bản",
+        "viewDetails": "Xem chi tiết"
       },
       "config": {
         "title": "Gói Premium",
@@ -375,7 +452,10 @@
         "feature3": "• Phân tích chỉ số sức khoẻ nâng cao",
         "status": "Trạng thái",
         "active": "Hoạt động",
-        "limits": "Giới hạn & Định mức"
+        "limits": "Giới hạn & Định mức",
+        "deployDefaults": "Triển khai cấu hình mặc định",
+        "retirePlan": "Ngừng lưu hành",
+        "publishPlan": "Phát hành gói"
       },
       "refundModal": {
         "title": "Xem xét Phê duyệt Hoàn tiền",
@@ -445,13 +525,57 @@
         "invoiceNotRequested": "Không yêu cầu",
         "copyId": "Sao chép mã",
         "securityAuditNote": "Theo quy chuẩn bảo mật an toàn thông tin thanh toán, thông tin tài khoản ngân hàng và thẻ được mã hóa che dấu. Toàn bộ giao dịch đều được ghi nhận nhật ký với cơ chế idempotent webhook chống trùng lặp.",
-        "close": "Đóng"
+        "close": "Đóng",
+        "subtitle": "Thông tin giao dịch, tiến trình xác thực thanh toán và kích hoạt quyền lợi gói",
+        "autoActivationNotice": "Hệ thống tự động kích hoạt gói khi nhận phản hồi xác thực từ cổng thanh toán. Nếu phản hồi bị trễ, quản trị viên có thể nhấn Đối soát đơn hàng để đồng bộ trạng thái.",
+        "verificationTimeline": "Tiến trình xác thực thanh toán & Cấp gói",
+        "autoSynced": "Tự động đồng bộ",
+        "stepCheckout": "1. Khởi tạo đơn hàng",
+        "stepGatewayReturn": "2. Chuyển hướng từ cổng thanh toán",
+        "awaitingServer": "Chờ xác thực máy chủ",
+        "stepPaymentConfirmed": "3. Xác nhận thanh toán từ cổng VNPAY",
+        "awaitingConfirmation": "Đang chờ xác nhận",
+        "entitlementStatus": "Trạng thái quyền lợi gói:",
+        "entitlementGranted": "Đã kích hoạt quyền lợi",
+        "entitlementRevoked": "Đã thu hồi do hoàn tiền",
+        "entitlementPending": "Chờ xác nhận thanh toán"
       },
       "toasts": {
         "overrideRequired": "Yêu cầu không đủ điều kiện cần chọn Ghi đè bởi Quản trị viên.",
         "reasonRequired": "Vui lòng nhập lý do ghi đè để lưu vết kiểm toán.",
         "planNameRequired": "Vui lòng nhập tên gói hợp lệ.",
-        "copied": "Đã sao chép vào bộ nhớ tạm!"
+        "copied": "Đã sao chép vào bộ nhớ tạm!",
+        "deployedSuccess": "Đã triển khai gói mặc định thành công",
+        "deployFallback": "Đã triển khai gói mặc định ở chế độ dự phòng",
+        "planRetired": "Đã ngừng lưu hành gói thành công",
+        "planPublished": "Đã phát hành gói thành công",
+        "draftCreated": "Đã tạo phiên bản nháp thành công",
+        "orderReconciled": "Đối soát đơn hàng {{orderId}} thành công: Đã xác nhận thanh toán và kích hoạt quyền lợi gói.",
+        "draftCreatedForPlan": "Đã tạo phiên bản nháp mới cho gói {{code}} ({{version}})",
+        "versionPublished": "Đã phát hành phiên bản {{code}} {{version}}",
+        "versionRetired": "Đã ngừng lưu hành phiên bản {{code}} {{version}}"
+      },
+      "catalog": {
+        "title": "Danh mục Gói & Phiên bản",
+        "subtitle": "Mỗi gói chỉ có tối đa 1 phiên bản đang phát hành. Tạo bản nháp mới để chỉnh sửa hạn mức trước khi phát hành.",
+        "code": "Mã gói",
+        "version": "Phiên bản",
+        "priceVnd": "Giá (VND)",
+        "aiQuota": "Hạn mức AI",
+        "consults": "Lượt khám",
+        "carePrograms": "Chương trình",
+        "familyLinks": "Liên kết gia đình",
+        "status": "Trạng thái",
+        "actions": "Thao tác",
+        "published": "Đang phát hành",
+        "draft": "Bản nháp",
+        "retired": "Ngừng lưu hành"
+      },
+      "limits": {
+        "aiTurns": "Lượt hỏi đáp AI:",
+        "consultations": "Lượt tư vấn bác sĩ:",
+        "carePrograms": "Chương trình theo dõi:",
+        "familyLinks": "Liên kết gia đình:"
       }
     },
     "appointmentManagement": {
@@ -521,7 +645,27 @@
         "duration": "Thời lượng",
         "quality": "Chất lượng kết nối",
         "encryptedWebRTC": "Mã hóa Đầu-Cuối WebRTC",
-        "close": "Đóng"
+        "close": "Đóng",
+        "privacyTitle": "Bảo mật thông tin y tế:",
+        "privacyDesc": "Triệu chứng lâm sàng, tin nhắn trao đổi và ghi chú chẩn đoán của Bác sĩ được bảo mật tuyệt đối và không hiển thị cho Quản trị viên.",
+        "modeOnDemand": "Khám ngay",
+        "modeScheduled": "Đặt lịch trước",
+        "sessionId": "Mã phiên:",
+        "operationalStatus": "Trạng thái vận hành & Hàng đợi",
+        "requestStatus": "Trạng thái yêu cầu:",
+        "accepted": "Đã chấp nhận",
+        "sessionStatus": "Trạng thái phiên:",
+        "inConsultation": "Đang khám",
+        "waiting": "Đang chờ",
+        "scheduled": "Đã lên lịch",
+        "noShow": "Vắng mặt",
+        "completed": "Đã hoàn thành",
+        "queuePosition": "Vị trí hàng đợi:",
+        "calledAt": "Thời điểm gọi:",
+        "noShowReason": "Lý do vắng mặt:",
+        "patientAbsent": "Bệnh nhân không có mặt",
+        "clinicalDataRedacted": "Đã ẩn dữ liệu lâm sàng",
+        "viewAuditLogs": "Xem Nhật ký Kiểm toán"
       }
     },
     "aiManagement": {
@@ -565,7 +709,17 @@
       },
       "actions": {
         "upload": "Tải Tài liệu Mới",
-        "addWord": "Thêm Từ"
+        "addWord": "Thêm Từ",
+        "view": "Xem tài liệu",
+        "download": "Tải xuống",
+        "delete": "Xóa tài liệu",
+        "activate": "Kích hoạt sử dụng",
+        "deactivate": "Tạm ngưng sử dụng",
+        "manageChunks": "Quản lý phân đoạn dữ liệu",
+        "review": "Phê duyệt / Từ chối",
+        "reindex": "Lập chỉ mục lại",
+        "reindexSuccess": "Đã lập chỉ mục lại tài liệu thành công",
+        "archive": "Lưu trữ tài liệu"
       },
       "table": {
         "docName": "TÊN TÀI LIỆU",
@@ -622,6 +776,30 @@
         "addKeywordSuccess": "Thêm từ khóa thành công",
         "removeKeywordFailed": "Xóa từ khóa thất bại. Vui lòng đăng nhập lại.",
         "removeKeywordSuccess": "Xóa từ khóa thành công"
+      },
+      "ingestionStatus": {
+        "indexed": "Đã lập chỉ mục",
+        "processing": "Đang xử lý",
+        "uploaded": "Đã tải lên"
+      },
+      "reviewStatus": {
+        "approved": "Đã duyệt",
+        "rejected": "Đã từ chối",
+        "archived": "Đã lưu trữ",
+        "pending": "Chờ thẩm định"
+      },
+      "reviewModal": {
+        "archiveTitle": "Lưu trữ tài liệu y khoa",
+        "reviewTitle": "Thẩm định tài liệu tri thức AI",
+        "documentLabel": "Tài liệu:",
+        "approve": "Phê duyệt",
+        "reject": "Từ chối",
+        "notesLabel": "Ghi chú thẩm định / Lý do lưu trữ",
+        "notesPlaceholder": "Nhập ghi chú kiểm duyệt y khoa...",
+        "reasonRequired": "Vui lòng nhập lý do từ chối hoặc lưu trữ",
+        "statusUpdated": "Đã cập nhật trạng thái thẩm định tài liệu",
+        "confirm": "Xác nhận",
+        "cancel": "Hủy"
       }
     },
     "violationReport": {
@@ -665,7 +843,22 @@
         "dismissReport": "Bác bỏ / Huỷ báo cáo",
         "applyResolution": "Áp dụng Xử lý",
         "dismissed": "Đã bác bỏ",
-        "notesRequired": "Vui lòng nhập lý do / ghi chú xử lý trước khi tiếp tục."
+        "notesRequired": "Vui lòng nhập lý do / ghi chú xử lý trước khi tiếp tục.",
+        "processing": "Đang xử lý",
+        "warningSent": "Đã gửi cảnh báo",
+        "contentHidden": "Đã ẩn nội dung",
+        "accountLocked": "Đã khóa tài khoản",
+        "noPenalty": "Không xử phạt",
+        "sendWarning": "Gửi cảnh báo",
+        "hideContent": "Ẩn nội dung",
+        "lockAccount": "Khóa tài khoản",
+        "startProcessing": "Bắt đầu xử lý",
+        "dismissReasonRequired": "Vui lòng nhập lý do bác bỏ báo cáo.",
+        "decisionTitle": "Quyết định xử lý vi phạm",
+        "decisionDesc": "Chọn biện pháp chế tài phù hợp với mức độ vi phạm",
+        "severityLabel": "Mức độ:",
+        "assigneeLabel": "Người phụ trách:",
+        "actionTakenLabel": "Biện pháp xử lý:"
       },
       "table": {
         "type": "LOẠI",
@@ -689,7 +882,8 @@
         "resolved": "Đã xử lý",
         "dismissed": "Đã bác bỏ",
         "noTypeFound": "Không tìm thấy loại vi phạm",
-        "noStatusFound": "Không tìm thấy trạng thái"
+        "noStatusFound": "Không tìm thấy trạng thái",
+        "processing": "Đang xử lý"
       },
       "loading": "Đang tải danh sách báo cáo vi phạm...",
       "pagination": {
@@ -698,6 +892,7 @@
       "toasts": {
         "loadFailed": "Không thể tải danh sách báo cáo vi phạm",
         "cannotBan": "Không thể khóa tài khoản người dùng này!",
+        "processingStarted": "Đã chuyển báo cáo sang trạng thái đang xử lý",
         "resolutionApplied": "Đã áp dụng biện pháp xử lý ({{action}})",
         "dismissSuccess": "Đã bác bỏ báo cáo."
       }
@@ -1081,7 +1276,76 @@
       "search": "Tìm kiếm",
       "confirm": "Xác nhận",
       "loading": "Đang tải...",
-      "failed": "Thất bại"
+      "failed": "Thất bại",
+      "refresh": "Làm mới"
+    },
+    "auditLogs": {
+      "tabSystemLogs": "Nhật ký Hệ thống",
+      "tabFamilyLinks": "Liên kết Gia đình",
+      "allDomains": "Tất cả Phân hệ",
+      "allRoles": "Tất cả Vai trò",
+      "title": "Nhật ký Kiểm toán & Liên kết Gia đình",
+      "subtitle": "Tra cứu lịch sử thao tác quản trị và trạng thái vận hành hệ thống",
+      "searchPlaceholder": "Tìm theo mã nhật ký, hành động, người thực hiện...",
+      "privacyTitle": "Bảo mật dữ liệu y tế:",
+      "privacyDesc": "Nhật ký hệ thống chỉ lưu trữ lịch sử chuyển đổi trạng thái, lý do thao tác và thông tin vận hành. Nội dung tin nhắn khám, triệu chứng chi tiết và ghi chú lâm sàng của Bác sĩ được bảo mật tuyệt đối.",
+      "familyNotice": "Quản trị viên chỉ kiểm tra trạng thái đồng thuận và quyền chia sẻ, hoặc thu hồi khẩn cấp khi có báo cáo lạm dụng.",
+      "familyLinksList": "Danh sách Liên kết Gia đình",
+      "operationalDetailsRedacted": "Thông tin vận hành (Đã ẩn dữ liệu lâm sàng)",
+      "domains": {
+        "billing": "Thanh toán & Gói dịch vụ",
+        "chronicCare": "Chăm sóc bệnh mạn tính",
+        "consultation": "Tư vấn & Phòng chờ",
+        "ai": "Kho tri thức AI",
+        "user": "Người dùng & Xác minh",
+        "family": "Liên kết gia đình"
+      },
+      "roles": {
+        "doctor": "Bác sĩ",
+        "patient": "Bệnh nhân",
+        "system": "Hệ thống"
+      },
+      "table": {
+        "timestamp": "Thời gian",
+        "domain": "Phân hệ",
+        "action": "Hành động",
+        "actor": "Người thực hiện",
+        "resource": "Đối tượng",
+        "statusChange": "Chuyển trạng thái",
+        "details": "Chi tiết",
+        "inspect": "Xem",
+        "status": "Trạng thái",
+        "relationship": "Quan hệ",
+        "permissions": "Quyền chia sẻ",
+        "revoke": "Thu hồi"
+      },
+      "status": {
+        "active": "Đang hoạt động",
+        "revoked": "Đã thu hồi",
+        "paused": "Tạm dừng",
+        "pending": "Chờ xác nhận"
+      },
+      "permissions": {
+        "reminders": "Nhắc nhở",
+        "progress": "Tiến độ",
+        "alerts": "Tóm tắt cảnh báo",
+        "on": "Bật",
+        "off": "Tắt"
+      },
+      "modal": {
+        "eventDetails": "Chi tiết Sự kiện Kiểm toán",
+        "revokeTitle": "Thu hồi liên kết gia đình khẩn cấp",
+        "revokeDesc": "Hành động này sẽ hủy bỏ ngay lập tức quyền truy cập của người thân và ghi nhận vào nhật ký kiểm toán.",
+        "revokeReasonLabel": "Lý do thu hồi:",
+        "revokeReasonPlaceholder": "Nhập lý do bắt buộc để lưu nhật ký kiểm toán...",
+        "cancel": "Hủy",
+        "confirmRevoke": "Xác nhận thu hồi"
+      },
+      "toasts": {
+        "refreshed": "Đã làm mới dữ liệu nhật ký kiểm toán",
+        "reasonRequired": "Vui lòng nhập lý do thu hồi liên kết",
+        "revokeSuccess": "Đã thu hồi liên kết gia đình và lưu nhật ký kiểm toán"
+      }
     }
   }
 }

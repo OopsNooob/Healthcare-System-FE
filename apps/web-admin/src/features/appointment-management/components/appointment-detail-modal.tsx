@@ -42,8 +42,7 @@ export function AppointmentDetailModal({
   onClose,
   appointment,
 }: AppointmentDetailModalProps) {
-  const { t, i18n } = useTranslation();
-  const isVi = i18n.language?.startsWith("vi");
+  const { t } = useTranslation();
   const navigate = useNavigate();
 
   if (!isOpen || !appointment) return null;
@@ -56,18 +55,10 @@ export function AppointmentDetailModal({
           <div>
             <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
               <Calendar className="text-brand" size={22} />
-              {t(
-                "appointmentManagement.detailModal.title",
-                isVi ? "Thông tin vận hành phiên khám" : "Session Operational Details"
-              )}
+              {t("appointmentManagement.detailModal.title")}
             </h3>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-              {t(
-                "appointmentManagement.detailModal.desc",
-                isVi
-                  ? "Trạng thái phiên khám, vị trí hàng đợi và lịch sử vận hành (ẩn nội dung lâm sàng)"
-                  : "Session state, queue position, and operational trail (clinical content hidden)"
-              )}
+              {t("appointmentManagement.detailModal.desc")}
             </p>
           </div>
           <button
@@ -84,10 +75,11 @@ export function AppointmentDetailModal({
           <div className="rounded-2xl border border-indigo-200 dark:border-indigo-900/60 bg-indigo-50/70 dark:bg-indigo-950/30 p-3.5 flex items-start gap-2.5">
             <ShieldAlert size={18} className="text-indigo-600 dark:text-indigo-400 shrink-0 mt-0.5" />
             <p className="text-xs text-indigo-900 dark:text-indigo-200 leading-relaxed">
-              <b>{isVi ? "Bảo mật thông tin y tế:" : "Clinical Privacy Notice:"}</b>{" "}
-              {isVi
-                ? "Triệu chứng lâm sàng, tin nhắn trao đổi và ghi chú chẩn đoán của Bác sĩ được bảo mật tuyệt đối và không hiển thị cho Quản trị viên."
-                : "Clinical symptoms, chat messages, and doctor diagnostic notes are strictly confidential and hidden from administrators."}
+              <b>{t("appointmentManagement.detailModal.privacyTitle", "Bảo mật thông tin y tế:")}</b>{" "}
+              {t(
+                "appointmentManagement.detailModal.privacyDesc",
+                "Triệu chứng lâm sàng, tin nhắn trao đổi và ghi chú chẩn đoán của Bác sĩ được bảo mật tuyệt đối và không hiển thị cho Quản trị viên."
+              )}
             </p>
           </div>
 
@@ -108,12 +100,8 @@ export function AppointmentDetailModal({
                   {appointment.type} •{" "}
                   <span>
                     {appointment.mode === "on_demand"
-                      ? isVi
-                        ? "Khám ngay"
-                        : "On-demand"
-                      : isVi
-                        ? "Đặt lịch trước"
-                        : "Scheduled"}
+                      ? t("appointmentManagement.detailModal.modeOnDemand", "Khám ngay")
+                      : t("appointmentManagement.detailModal.modeScheduled", "Đặt lịch trước")}
                   </span>
                 </p>
                 <p className="text-[11px] text-slate-400">{appointment.time}</p>
@@ -149,29 +137,26 @@ export function AppointmentDetailModal({
             <div className="p-3.5 rounded-2xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-950/40">
               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 flex items-center gap-1 mb-1">
                 <User size={12} />
-                {t("appointmentManagement.detailModal.patient", isVi ? "Bệnh nhân" : "Patient")}
+                {t("appointmentManagement.detailModal.patient")}
               </span>
               <p className="font-bold text-slate-900 dark:text-slate-100 text-sm">
                 {appointment.patient}
               </p>
               <p className="text-[11px] text-slate-500 mt-0.5">
-                {isVi ? "Mã phiên:" : "Session:"} {appointment.id}
+                {t("appointmentManagement.detailModal.sessionId", "Mã phiên:")} {appointment.id}
               </p>
             </div>
 
             <div className="p-3.5 rounded-2xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-950/40">
               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 flex items-center gap-1 mb-1">
                 <Stethoscope size={12} />
-                {t("appointmentManagement.detailModal.doctor", isVi ? "Bác sĩ phụ trách" : "Assigned Doctor")}
+                {t("appointmentManagement.detailModal.doctor")}
               </span>
               <p className="font-bold text-slate-900 dark:text-slate-100 text-sm">
                 {appointment.doctor}
               </p>
               <p className="text-[11px] text-slate-500 mt-0.5">
-                {t(
-                  "appointmentManagement.detailModal.providerType",
-                  isVi ? "Bác sĩ chuyên khoa đã xác minh" : "Verified Specialist"
-                )}
+                {t("appointmentManagement.detailModal.providerType")}
               </p>
             </div>
           </div>
@@ -180,51 +165,39 @@ export function AppointmentDetailModal({
           <div className="rounded-2xl border border-slate-100 dark:border-slate-800 p-4 bg-slate-50/70 dark:bg-slate-800/20 space-y-2">
             <p className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
               <ListOrdered size={14} className="text-brand" />
-              {isVi ? "Trạng thái vận hành & Hàng đợi" : "Operational State & Queue Info"}
+              {t("appointmentManagement.detailModal.operationalStatus", "Trạng thái vận hành & Hàng đợi")}
             </p>
             <div className="grid grid-cols-2 gap-2 text-xs text-slate-600 dark:text-slate-300 pt-1">
               <div>
-                {isVi ? "Trạng thái yêu cầu:" : "Request Status:"}{" "}
+                {t("appointmentManagement.detailModal.requestStatus", "Trạng thái yêu cầu:")}{" "}
                 <span className="font-bold text-slate-900 dark:text-white">
                   {appointment.requestStatus === "accepted" || !appointment.requestStatus
-                    ? isVi
-                      ? "Đã chấp nhận"
-                      : "Accepted"
+                    ? t("appointmentManagement.detailModal.accepted", "Đã chấp nhận")
                     : appointment.requestStatus}
                 </span>
               </div>
               <div>
-                {isVi ? "Trạng thái phiên:" : "Session Status:"}{" "}
+                {t("appointmentManagement.detailModal.sessionStatus", "Trạng thái phiên:")}{" "}
                 <span className="font-bold text-slate-900 dark:text-white">
                   {appointment.sessionStatus === "in_consultation"
-                    ? isVi
-                      ? "Đang khám"
-                      : "In Consultation"
+                    ? t("appointmentManagement.detailModal.inConsultation", "Đang khám")
                     : appointment.sessionStatus === "waiting"
-                      ? isVi
-                        ? "Đang chờ"
-                        : "Waiting"
+                      ? t("appointmentManagement.detailModal.waiting", "Đang chờ")
                       : appointment.sessionStatus === "scheduled"
-                        ? isVi
-                          ? "Đã lên lịch"
-                          : "Scheduled"
+                        ? t("appointmentManagement.detailModal.scheduled", "Đã lên lịch")
                         : appointment.sessionStatus === "no_show"
-                          ? isVi
-                            ? "Vắng mặt"
-                            : "No-show"
-                          : isVi
-                            ? "Đã hoàn thành"
-                            : "Completed"}
+                          ? t("appointmentManagement.detailModal.noShow", "Vắng mặt")
+                          : t("appointmentManagement.detailModal.completed", "Đã hoàn thành")}
                 </span>
               </div>
               <div>
-                {isVi ? "Vị trí hàng đợi:" : "Queue Position:"}{" "}
+                {t("appointmentManagement.detailModal.queuePosition", "Vị trí hàng đợi:")}{" "}
                 <span className="font-bold">
                   {appointment.queuePosition ? `#${appointment.queuePosition}` : "—"}
                 </span>
               </div>
               <div>
-                {isVi ? "Thời điểm gọi:" : "Called At:"}{" "}
+                {t("appointmentManagement.detailModal.calledAt", "Thời điểm gọi:")}{" "}
                 <span className="font-bold">
                   {appointment.calledAt || "—"}
                 </span>
@@ -232,12 +205,10 @@ export function AppointmentDetailModal({
             </div>
             {appointment.noShowReasonCode && (
               <p className="text-xs text-red-600 dark:text-red-400 font-semibold pt-1">
-                {isVi ? "Lý do vắng mặt:" : "No-show Reason:"}{" "}
+                {t("appointmentManagement.detailModal.noShowReason", "Lý do vắng mặt:")}{" "}
                 <span>
                   {appointment.noShowReasonCode === "patient_absent"
-                    ? isVi
-                      ? "Bệnh nhân không có mặt"
-                      : "Patient absent"
+                    ? t("appointmentManagement.detailModal.patientAbsent", "Bệnh nhân không có mặt")
                     : appointment.noShowReasonCode}
                 </span>
               </p>
@@ -248,12 +219,12 @@ export function AppointmentDetailModal({
           <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 pt-1">
             <span className="flex items-center gap-1">
               <Clock size={13} />
-              {t("appointmentManagement.detailModal.duration", isVi ? "Thời lượng" : "Duration")}:{" "}
+              {t("appointmentManagement.detailModal.duration")}:{" "}
               {appointment.duration || "15 mins"}
             </span>
             <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-semibold">
               <CheckCircle2 size={13} />
-              {isVi ? "Đã ẩn dữ liệu lâm sàng" : "Clinical Data Redacted"}
+              {t("appointmentManagement.detailModal.clinicalDataRedacted", "Đã ẩn dữ liệu lâm sàng")}
             </span>
           </div>
         </div>
@@ -269,14 +240,14 @@ export function AppointmentDetailModal({
             className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 font-bold text-xs hover:bg-indigo-100 transition-colors cursor-pointer"
           >
             <ExternalLink size={14} />
-            {isVi ? "Xem Nhật ký Kiểm toán" : "View Audit Logs"}
+            {t("appointmentManagement.detailModal.viewAuditLogs", "Xem Nhật ký Kiểm toán")}
           </button>
           <button
             type="button"
             onClick={onClose}
             className="px-5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-semibold text-xs transition-colors cursor-pointer"
           >
-            {t("appointmentManagement.detailModal.close", isVi ? "Đóng" : "Close")}
+            {t("appointmentManagement.detailModal.close")}
           </button>
         </div>
       </div>

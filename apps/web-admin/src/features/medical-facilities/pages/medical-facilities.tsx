@@ -161,11 +161,7 @@ export function MedicalFacilities() {
     setFacilities((prev) =>
       prev.map((f) => (f.id === fac.id ? { ...f, status: "retired" } : f))
     );
-    toast.info(
-      isVi
-        ? `Đã ngừng hiển thị cơ sở "${fac.name}"`
-        : `Facility "${fac.name}" retired from public directory`
-    );
+    toast.info(t("medicalFacilities.diseaseSpecialty.retiredSuccess"));
   };
 
   const handleSaveFacility = (
@@ -260,7 +256,7 @@ export function MedicalFacilities() {
 
   const handleSaveMapping = () => {
     if (!mapCode.trim() || !mapNameVi.trim()) {
-      toast.warning(isVi ? "Vui lòng nhập mã bệnh và tên bệnh" : "Please enter disease code and name");
+      toast.warning(t("medicalFacilities.diseaseSpecialty.codeAndNameRequired"));
       return;
     }
     const today = new Date().toISOString().split("T")[0] || "2026-11-06";
@@ -286,7 +282,7 @@ export function MedicalFacilities() {
             : m
         )
       );
-      toast.success(isVi ? "Đã cập nhật ánh xạ Bệnh - Chuyên khoa" : "Updated Disease-Specialty Mapping");
+      toast.success(t("medicalFacilities.diseaseSpecialty.updatedSuccess"));
     } else {
       const created: DiseaseSpecialtyMappingItem = {
         id: `MAP-00${mappings.length + 1}`,
@@ -300,7 +296,7 @@ export function MedicalFacilities() {
         updatedAt: today,
       };
       setMappings((prev) => [created, ...prev]);
-      toast.success(isVi ? "Đã tạo ánh xạ Bệnh - Chuyên khoa mới" : "Created Disease-Specialty Mapping");
+      toast.success(t("medicalFacilities.diseaseSpecialty.createdSuccess"));
     }
     setIsMappingModalOpen(false);
   };
@@ -309,7 +305,7 @@ export function MedicalFacilities() {
     setMappings((prev) =>
       prev.map((m) => (m.id === id ? { ...m, isActive: !m.isActive } : m))
     );
-    toast.info(isVi ? "Đã cập nhật trạng thái ánh xạ" : "Updated mapping active status");
+    toast.info(t("medicalFacilities.diseaseSpecialty.statusUpdatedSuccess"));
   };
 
   return (
@@ -319,15 +315,10 @@ export function MedicalFacilities() {
         <div className="mb-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div>
             <h1 className="text-3xl font-semibold text-slate-900 dark:text-slate-100">
-              {t("sidebar.medicalFacilities", isVi ? "Cơ sở Y tế & Chuyên khoa" : "Medical Facilities & Specialty Mapping")}
+              {t("sidebar.medicalFacilities")}
             </h1>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-              {t(
-                "medicalFacilities.description",
-                isVi
-                  ? "Quản lý danh mục cơ sở y tế và cấu hình gợi ý chuyên khoa theo bệnh lý."
-                  : "Manage medical facilities and disease-to-specialty recommendation mappings."
-              )}
+              {t("medicalFacilities.subtitle")}
             </p>
           </div>
           {activeTab === "facilities" ? (
@@ -336,7 +327,7 @@ export function MedicalFacilities() {
               className="flex items-center gap-2 rounded-xl bg-brand px-4 py-2.5 font-bold text-slate-900 transition-colors hover:bg-brand/90 shadow-sm"
             >
               <Plus size={18} />
-              <span>{t("medicalFacilities.formModal.addTitle", isVi ? "Thêm Cơ sở Y tế" : "Add Medical Facility")}</span>
+              <span>{t("medicalFacilities.formModal.addTitle")}</span>
             </button>
           ) : (
             <button
@@ -344,7 +335,7 @@ export function MedicalFacilities() {
               className="flex items-center gap-2 rounded-xl bg-brand px-4 py-2.5 font-bold text-slate-900 transition-colors hover:bg-brand/90 shadow-sm"
             >
               <Plus size={18} />
-              <span>{isVi ? "Thêm Ánh xạ Bệnh - Chuyên khoa" : "Add Disease-Specialty Mapping"}</span>
+              <span>{t("medicalFacilities.diseaseSpecialty.addTitle")}</span>
             </button>
           )}
         </div>
@@ -361,7 +352,7 @@ export function MedicalFacilities() {
             }`}
           >
             <Building2 size={15} />
-            {isVi ? "Danh mục Cơ sở Y tế" : "Facilities Directory"}
+            {t("medicalFacilities.tabFacilities")}
           </button>
           <button
             type="button"
@@ -373,7 +364,7 @@ export function MedicalFacilities() {
             }`}
           >
             <GitBranch size={15} />
-            {isVi ? "Ánh xạ Bệnh - Chuyên khoa" : "Disease-Specialty Mappings"}
+            {t("medicalFacilities.tabMappings")}
           </button>
         </div>
 
@@ -403,7 +394,7 @@ export function MedicalFacilities() {
                 <option value="pending">{t("medicalFacilities.status.pending", "Pending")}</option>
                 <option value="verified">{t("medicalFacilities.status.verified", "Verified")}</option>
                 <option value="rejected">{t("medicalFacilities.status.rejected", "Rejected")}</option>
-                <option value="retired">{isVi ? "Đã ngừng hiển thị" : "Retired"}</option>
+                <option value="retired">{t("medicalFacilities.retired")}</option>
               </select>
             </div>
 
@@ -414,7 +405,7 @@ export function MedicalFacilities() {
                   <tr>
                     <th className="px-6 py-4">{t("medicalFacilities.table.facility", "FACILITY")}</th>
                     <th className="px-6 py-4">{t("medicalFacilities.table.location", "LOCATION")}</th>
-                    <th className="px-6 py-4">{isVi ? "KIỂM TRA GẦN NHẤT" : "LAST CHECKED"}</th>
+                    <th className="px-6 py-4">{t("medicalFacilities.tableLastChecked")}</th>
                     <th className="px-6 py-4">{t("medicalFacilities.table.status", "STATUS")}</th>
                     <th className="px-6 py-4 text-right">{t("medicalFacilities.table.actions", "ACTIONS")}</th>
                   </tr>
@@ -484,7 +475,7 @@ export function MedicalFacilities() {
                             className="bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border-none"
                           >
                             <Archive size={12} className="mr-1" />{" "}
-                            {isVi ? "Đã ẩn" : "Retired"}
+                            {t("medicalFacilities.retired")}
                           </Badge>
                         )}
                       </td>
@@ -516,10 +507,10 @@ export function MedicalFacilities() {
                               <button
                                 onClick={() => handleRetireFacility(fac)}
                                 className="px-3 py-1.5 text-xs font-semibold text-rose-600 dark:text-rose-400 bg-rose-50 hover:bg-rose-100 dark:bg-rose-900/30 rounded-lg transition-colors flex items-center gap-1"
-                                title={isVi ? "Ngừng hiển thị cơ sở y tế" : "Retire facility"}
+                                title={t("medicalFacilities.retireTooltip")}
                               >
                                 <Archive size={13} />
-                                {isVi ? "Ngừng hiển thị" : "Retire"}
+                                {t("medicalFacilities.retire")}
                               </button>
                             )}
                           </div>
@@ -537,11 +528,11 @@ export function MedicalFacilities() {
             <table className="w-full text-left text-sm text-slate-600 dark:text-slate-400">
               <thead className="bg-slate-50 dark:bg-slate-800/50 text-xs font-semibold uppercase text-slate-500 dark:text-slate-400">
                 <tr>
-                  <th className="px-6 py-4">{isVi ? "MÃ BỆNH / CHƯƠNG TRÌNH" : "DISEASE CODE"}</th>
-                  <th className="px-6 py-4">{isVi ? "CHUYÊN KHOA GỢI Ý" : "RECOMMENDED SPECIALTIES"}</th>
-                  <th className="px-6 py-4">{isVi ? "HƯỚNG DẪN MỨC ĐỘ KHẨN" : "URGENCY GUIDANCE"}</th>
-                  <th className="px-6 py-4">{isVi ? "TRẠNG THÁI" : "STATUS"}</th>
-                  <th className="px-6 py-4 text-right">{isVi ? "THAO TÁC" : "ACTIONS"}</th>
+                  <th className="px-6 py-4">{t("medicalFacilities.diseaseSpecialty.tableDiseaseCode")}</th>
+                  <th className="px-6 py-4">{t("medicalFacilities.diseaseSpecialty.tableRecommendedSpecialties")}</th>
+                  <th className="px-6 py-4">{t("medicalFacilities.diseaseSpecialty.tableUrgencyGuidance")}</th>
+                  <th className="px-6 py-4">{t("medicalFacilities.diseaseSpecialty.tableStatus")}</th>
+                  <th className="px-6 py-4 text-right">{t("medicalFacilities.diseaseSpecialty.tableActions")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200 dark:divide-slate-700 bg-white dark:bg-slate-900">
@@ -552,7 +543,7 @@ export function MedicalFacilities() {
                         {m.diseaseCode}
                       </div>
                       <div className="font-semibold text-slate-900 dark:text-slate-100 mt-0.5">
-                        {isVi ? m.diseaseNameVi : m.diseaseNameEn}
+                        {isVi ? m.diseaseNameVi : (m.diseaseNameEn || m.diseaseNameVi)}
                       </div>
                     </td>
                     <td className="px-6 py-4">
@@ -565,16 +556,16 @@ export function MedicalFacilities() {
                       </div>
                     </td>
                     <td className="px-6 py-4 max-w-xs text-xs text-slate-600 dark:text-slate-300">
-                      {isVi ? m.urgencyGuidanceVi : m.urgencyGuidanceEn}
+                      {isVi ? m.urgencyGuidanceVi : (m.urgencyGuidanceEn || m.urgencyGuidanceVi)}
                     </td>
                     <td className="px-6 py-4">
                       {m.isActive ? (
                         <Badge className="bg-emerald-600 text-white text-xs">
-                          {isVi ? "Đang bật" : "Active"}
+                          {t("medicalFacilities.diseaseSpecialty.active")}
                         </Badge>
                       ) : (
                         <Badge variant="secondary" className="text-xs">
-                          {isVi ? "Đang tắt" : "Inactive"}
+                          {t("medicalFacilities.diseaseSpecialty.inactive")}
                         </Badge>
                       )}
                     </td>
@@ -585,13 +576,13 @@ export function MedicalFacilities() {
                           className="px-2.5 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-semibold flex items-center gap-1 hover:bg-slate-200"
                         >
                           <Edit size={12} />
-                          {isVi ? "Sửa" : "Edit"}
+                          {t("medicalFacilities.actions.edit")}
                         </button>
                         <button
                           onClick={() => handleToggleMappingActive(m.id)}
                           className="px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-800"
                         >
-                          {m.isActive ? (isVi ? "Tắt" : "Disable") : (isVi ? "Bật" : "Enable")}
+                          {m.isActive ? t("medicalFacilities.disable") : t("medicalFacilities.enable")}
                         </button>
                       </div>
                     </td>
@@ -629,12 +620,8 @@ export function MedicalFacilities() {
               <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
                 <GitBranch className="text-brand" size={20} />
                 {editingMapping
-                  ? isVi
-                    ? "Cập nhật Ánh xạ Bệnh - Chuyên khoa"
-                    : "Edit Disease-Specialty Mapping"
-                  : isVi
-                  ? "Thêm Ánh xạ Bệnh - Chuyên khoa"
-                  : "Create Disease-Specialty Mapping"}
+                  ? t("medicalFacilities.diseaseSpecialty.editTitle")
+                  : t("medicalFacilities.diseaseSpecialty.addTitle")}
               </h3>
               <button
                 onClick={() => setIsMappingModalOpen(false)}
@@ -647,7 +634,7 @@ export function MedicalFacilities() {
             <div className="space-y-4 py-4 text-sm">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  {isVi ? "Mã bệnh lý / Chương trình *" : "Disease / Program Code *"}
+                  {t("medicalFacilities.diseaseSpecialty.fieldCode")}
                 </label>
                 <input
                   type="text"
@@ -660,7 +647,7 @@ export function MedicalFacilities() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    {isVi ? "Tên bệnh (Tiếng Việt) *" : "Disease Name (VI) *"}
+                    {t("medicalFacilities.diseaseSpecialty.fieldNameVi")}
                   </label>
                   <input
                     type="text"
@@ -671,7 +658,7 @@ export function MedicalFacilities() {
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    {isVi ? "Tên bệnh (Tiếng Anh)" : "Disease Name (EN)"}
+                    {t("medicalFacilities.diseaseSpecialty.fieldNameEn")}
                   </label>
                   <input
                     type="text"
@@ -683,7 +670,7 @@ export function MedicalFacilities() {
               </div>
               <div>
                 <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  {isVi ? "Danh sách Chuyên khoa (cách nhau bởi dấu phẩy)" : "Specialties (comma-separated)"}
+                  {t("medicalFacilities.diseaseSpecialty.fieldSpecialties")}
                 </label>
                 <input
                   type="text"
@@ -695,7 +682,7 @@ export function MedicalFacilities() {
               </div>
               <div>
                 <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  {isVi ? "Hướng dẫn mức độ khẩn (VI)" : "Urgency Guidance (VI)"}
+                  {t("medicalFacilities.diseaseSpecialty.fieldUrgencyVi")}
                 </label>
                 <textarea
                   rows={2}
@@ -712,14 +699,14 @@ export function MedicalFacilities() {
                 onClick={() => setIsMappingModalOpen(false)}
                 className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
               >
-                {isVi ? "Hủy" : "Cancel"}
+                {t("common.cancel")}
               </button>
               <button
                 type="button"
                 onClick={handleSaveMapping}
                 className="px-5 py-2 rounded-xl bg-brand text-slate-900 text-xs font-bold hover:bg-brand/90"
               >
-                {isVi ? "Lưu ánh xạ" : "Save Mapping"}
+                {t("medicalFacilities.diseaseSpecialty.saveMapping")}
               </button>
             </div>
           </div>
