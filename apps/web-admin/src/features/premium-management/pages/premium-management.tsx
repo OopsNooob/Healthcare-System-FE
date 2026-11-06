@@ -770,55 +770,55 @@ export function PremiumManagement() {
                 </div>
 
                 <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs border-collapse">
+                  <table className="w-full min-w-[820px] text-left text-xs border-collapse">
                     <thead>
                       <tr className="bg-slate-50/70 dark:bg-slate-800/40 text-slate-500 dark:text-slate-400 uppercase border-b border-slate-200 dark:border-slate-800">
-                        <th className="px-4 py-3 font-semibold">{t("premiumManagement.catalog.code")}</th>
-                        <th className="px-4 py-3 font-semibold">{t("premiumManagement.catalog.version")}</th>
-                        <th className="px-4 py-3 font-semibold">{t("premiumManagement.catalog.priceVnd")}</th>
-                        <th className="px-4 py-3 font-semibold">{t("premiumManagement.catalog.aiQuota")}</th>
-                        <th className="px-4 py-3 font-semibold">{t("premiumManagement.catalog.consults")}</th>
-                        <th className="px-4 py-3 font-semibold">{t("premiumManagement.catalog.carePrograms")}</th>
-                        <th className="px-4 py-3 font-semibold">{t("premiumManagement.catalog.familyLinks")}</th>
-                        <th className="px-4 py-3 font-semibold">{t("premiumManagement.catalog.status")}</th>
-                        <th className="px-4 py-3 font-semibold text-right">{t("premiumManagement.catalog.actions")}</th>
+                        <th className="px-4 py-3 font-semibold whitespace-nowrap">{t("premiumManagement.catalog.code")}</th>
+                        <th className="px-4 py-3 font-semibold whitespace-nowrap">{t("premiumManagement.catalog.version")}</th>
+                        <th className="px-4 py-3 font-semibold whitespace-nowrap">{t("premiumManagement.catalog.priceVnd")}</th>
+                        <th className="px-4 py-3 font-semibold whitespace-nowrap">{t("premiumManagement.catalog.aiQuota")}</th>
+                        <th className="px-4 py-3 font-semibold whitespace-nowrap">{t("premiumManagement.catalog.consults")}</th>
+                        <th className="px-4 py-3 font-semibold whitespace-nowrap">{t("premiumManagement.catalog.carePrograms")}</th>
+                        <th className="px-4 py-3 font-semibold whitespace-nowrap">{t("premiumManagement.catalog.familyLinks")}</th>
+                        <th className="px-4 py-3 font-semibold whitespace-nowrap">{t("premiumManagement.catalog.status")}</th>
+                        <th className="px-4 py-3 font-semibold text-right whitespace-nowrap">{t("premiumManagement.catalog.actions")}</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                       {planVersions.map((pv) => (
                         <tr key={pv.id} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/30">
-                          <td className="px-4 py-3 font-bold text-slate-900 dark:text-slate-100">
+                          <td className="px-4 py-3 font-bold text-slate-900 dark:text-slate-100 whitespace-nowrap">
                             {pv.code}
                             <div className="text-[11px] font-normal text-slate-500">{pv.name}</div>
                           </td>
-                          <td className="px-4 py-3 font-mono text-slate-700 dark:text-slate-300">{pv.version}</td>
-                          <td className="px-4 py-3 font-semibold text-slate-900 dark:text-slate-100">
+                          <td className="px-4 py-3 font-mono text-slate-700 dark:text-slate-300 whitespace-nowrap">{pv.version}</td>
+                          <td className="px-4 py-3 font-semibold text-slate-900 dark:text-slate-100 whitespace-nowrap">
                             {pv.priceVnd.toLocaleString("vi-VN")} đ
                           </td>
-                          <td className="px-4 py-3 text-slate-600 dark:text-slate-300">{pv.aiQuota}</td>
-                          <td className="px-4 py-3 text-slate-600 dark:text-slate-300">{pv.consultQuota}</td>
-                          <td className="px-4 py-3 text-slate-600 dark:text-slate-300">{pv.careProgramLimit}</td>
-                          <td className="px-4 py-3 text-slate-600 dark:text-slate-300">{pv.familyLinkLimit}</td>
-                          <td className="px-4 py-3">
+                          <td className="px-4 py-3 text-slate-600 dark:text-slate-300 whitespace-nowrap">{pv.aiQuota}</td>
+                          <td className="px-4 py-3 text-slate-600 dark:text-slate-300 whitespace-nowrap">{pv.consultQuota}</td>
+                          <td className="px-4 py-3 text-slate-600 dark:text-slate-300 whitespace-nowrap">{pv.careProgramLimit}</td>
+                          <td className="px-4 py-3 text-slate-600 dark:text-slate-300 whitespace-nowrap">{pv.familyLinkLimit}</td>
+                          <td className="px-4 py-3 whitespace-nowrap">
                             {pv.status === "published" ? (
-                              <Badge className="bg-emerald-600 text-white text-[10px]">
+                              <Badge className="bg-emerald-600 text-white text-[10px] whitespace-nowrap inline-flex items-center">
                                 {t("premiumManagement.catalog.published")}
                               </Badge>
                             ) : pv.status === "draft" ? (
-                              <Badge className="bg-amber-500 text-white text-[10px]">
+                              <Badge className="bg-amber-500 text-white text-[10px] whitespace-nowrap inline-flex items-center">
                                 {t("premiumManagement.catalog.draft")}
                               </Badge>
                             ) : (
-                              <Badge variant="secondary" className="text-[10px]">
+                              <Badge variant="secondary" className="text-[10px] whitespace-nowrap inline-flex items-center">
                                 {t("premiumManagement.catalog.retired")}
                               </Badge>
                             )}
                           </td>
-                          <td className="px-4 py-3 text-right">
-                            <div className="flex items-center justify-end gap-1.5">
+                          <td className="px-4 py-3 text-right whitespace-nowrap min-w-[170px]">
+                            <div className="flex items-center justify-end gap-1.5 whitespace-nowrap">
                               <button
                                 onClick={() => handleClonePlanVersion(pv)}
-                                className="px-2 py-1 rounded border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium flex items-center gap-1"
+                                className="px-2.5 py-1 rounded border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium whitespace-nowrap shrink-0 inline-flex items-center gap-1"
                                 title={t("premiumManagement.actions.cloneDraft")}
                               >
                                 <Copy size={11} />
@@ -827,7 +827,7 @@ export function PremiumManagement() {
                               {pv.status === "draft" && (
                                 <button
                                   onClick={() => handlePublishPlanVersion(pv.id)}
-                                  className="px-2 py-1 rounded bg-emerald-600 hover:bg-emerald-700 text-white font-medium flex items-center gap-1"
+                                  className="px-2.5 py-1 rounded bg-emerald-600 hover:bg-emerald-700 text-white font-medium whitespace-nowrap shrink-0 inline-flex items-center gap-1"
                                   title={t("premiumManagement.actions.publishVersion")}
                                 >
                                   <CheckCircle2 size={11} />
@@ -837,7 +837,7 @@ export function PremiumManagement() {
                               {pv.status === "published" && pv.code !== "FREE" && (
                                 <button
                                   onClick={() => handleRetirePlanVersion(pv.id)}
-                                  className="px-2 py-1 rounded bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 hover:bg-rose-100 font-medium flex items-center gap-1"
+                                  className="px-2.5 py-1 rounded bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 hover:bg-rose-100 font-medium whitespace-nowrap shrink-0 inline-flex items-center gap-1"
                                   title={t("premiumManagement.actions.retireVersion")}
                                 >
                                   <Archive size={11} />

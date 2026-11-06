@@ -608,6 +608,19 @@
         "searchPlaceholder": "Tìm bệnh nhân hoặc bác sĩ...",
         "filter": "Lọc"
       },
+      "filters": {
+        "title": "Bộ lọc nâng cao",
+        "status": "Trạng thái",
+        "allStatuses": "Tất cả trạng thái",
+        "type": "Hình thức khám",
+        "allTypes": "Tất cả hình thức",
+        "doctor": "Bác sĩ phụ trách",
+        "allDoctors": "Tất cả bác sĩ",
+        "reset": "Đặt lại",
+        "apply": "Áp dụng",
+        "filteringBy": "Đang lọc theo",
+        "clearAll": "Xoá tất cả lọc"
+      },
       "table": {
         "timePos": "Thời gian / STT",
         "patient": "Bệnh nhân",

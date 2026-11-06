@@ -457,30 +457,30 @@ export function AuditLogs() {
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
+            <table className="w-full min-w-[850px] text-left border-collapse">
               <thead>
                 <tr className="border-b border-gray-100 dark:border-slate-800 text-xs font-bold uppercase text-gray-400 dark:text-slate-500">
-                  <th className="py-3.5 px-4">{t("auditLogs.table.resource", "Mã liên kết")}</th>
-                  <th className="py-3.5 px-4">{t("auditLogs.roles.patient", "Bệnh nhân")}</th>
-                  <th className="py-3.5 px-4">{t("auditLogs.domains.family", "Người đồng hành")}</th>
-                  <th className="py-3.5 px-4">{t("auditLogs.table.relationship", "Mối quan hệ")}</th>
-                  <th className="py-3.5 px-4">{t("auditLogs.table.permissions", "Quyền chia sẻ")}</th>
-                  <th className="py-3.5 px-4">{t("auditLogs.table.status", "Trạng thái")}</th>
-                  <th className="py-3.5 px-4 text-right">{t("auditLogs.table.action", "Thao tác")}</th>
+                  <th className="py-3.5 px-4 whitespace-nowrap">{t("auditLogs.table.resource", "Mã liên kết")}</th>
+                  <th className="py-3.5 px-4 whitespace-nowrap">{t("auditLogs.roles.patient", "Bệnh nhân")}</th>
+                  <th className="py-3.5 px-4 whitespace-nowrap">{t("auditLogs.domains.family", "Người đồng hành")}</th>
+                  <th className="py-3.5 px-4 whitespace-nowrap">{t("auditLogs.table.relationship", "Mối quan hệ")}</th>
+                  <th className="py-3.5 px-4 whitespace-nowrap">{t("auditLogs.table.permissions", "Quyền chia sẻ")}</th>
+                  <th className="py-3.5 px-4 whitespace-nowrap">{t("auditLogs.table.status", "Trạng thái")}</th>
+                  <th className="py-3.5 px-4 text-right whitespace-nowrap">{t("auditLogs.table.action", "Thao tác")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-slate-800 text-sm">
                 {familyLinks.map((fl) => (
                   <tr key={fl.id} className="hover:bg-gray-50/80 dark:hover:bg-slate-800/50">
-                    <td className="py-3.5 px-4 font-mono text-xs font-bold">{fl.id}</td>
-                    <td className="py-3.5 px-4 font-medium">{fl.patientMasked}</td>
-                    <td className="py-3.5 px-4 font-medium">{fl.companionMasked}</td>
-                    <td className="py-3.5 px-4">
-                      <span className="uppercase text-xs font-bold px-2 py-0.5 rounded bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300">
+                    <td className="py-3.5 px-4 font-mono text-xs font-bold whitespace-nowrap">{fl.id}</td>
+                    <td className="py-3.5 px-4 font-medium whitespace-nowrap">{fl.patientMasked}</td>
+                    <td className="py-3.5 px-4 font-medium whitespace-nowrap">{fl.companionMasked}</td>
+                    <td className="py-3.5 px-4 whitespace-nowrap">
+                      <span className="uppercase text-xs font-bold px-2 py-0.5 rounded bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 whitespace-nowrap inline-flex items-center">
                         {fl.relationship}
                       </span>
                     </td>
-                    <td className="py-3.5 px-4 text-xs text-gray-600 dark:text-slate-300">
+                    <td className="py-3.5 px-4 text-xs text-gray-600 dark:text-slate-300 whitespace-nowrap">
                       {t("auditLogs.permissions.reminders")}:{" "}
                       <b>{fl.permissions.receiveReminders ? t("auditLogs.permissions.on") : t("auditLogs.permissions.off")}</b> •{" "}
                       {t("auditLogs.permissions.progress")}:{" "}
@@ -488,9 +488,9 @@ export function AuditLogs() {
                       {t("auditLogs.permissions.alerts")}:{" "}
                       <b>{fl.permissions.viewAlertSummary ? t("auditLogs.permissions.on") : t("auditLogs.permissions.off")}</b>
                     </td>
-                    <td className="py-3.5 px-4">
+                    <td className="py-3.5 px-4 whitespace-nowrap">
                       <span
-                        className={`px-2.5 py-1 rounded-full text-xs font-bold uppercase ${
+                        className={`px-2.5 py-1 rounded-full text-xs font-bold uppercase whitespace-nowrap inline-flex items-center ${
                           fl.status === "active"
                             ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300"
                             : fl.status === "revoked"
@@ -507,11 +507,11 @@ export function AuditLogs() {
                               : t("auditLogs.status.pending", "Chờ xác nhận")}
                       </span>
                     </td>
-                    <td className="py-3.5 px-4 text-right">
+                    <td className="py-3.5 px-4 text-right whitespace-nowrap">
                       {fl.status !== "revoked" && (
                         <button
                           onClick={() => setRevokeTargetLink(fl)}
-                          className="px-3 py-1.5 rounded-lg bg-red-50 dark:bg-red-900/20 hover:bg-red-100 text-red-600 dark:text-red-400 text-xs font-bold cursor-pointer"
+                          className="px-3 py-1.5 rounded-lg bg-red-50 dark:bg-red-900/20 hover:bg-red-100 text-red-600 dark:text-red-400 text-xs font-bold cursor-pointer whitespace-nowrap inline-flex items-center"
                         >
                           {t("auditLogs.table.revoke", "Thu hồi")}
                         </button>

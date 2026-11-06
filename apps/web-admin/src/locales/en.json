@@ -608,6 +608,19 @@
         "searchPlaceholder": "Search patient or doctor...",
         "filter": "Filter"
       },
+      "filters": {
+        "title": "Advanced Filters",
+        "status": "Status",
+        "allStatuses": "All Statuses",
+        "type": "Consultation Type",
+        "allTypes": "All Types",
+        "doctor": "Doctor in Charge",
+        "allDoctors": "All Doctors",
+        "reset": "Reset",
+        "apply": "Apply",
+        "filteringBy": "Filtering by",
+        "clearAll": "Clear all filters"
+      },
       "table": {
         "timePos": "Time / Pos",
         "patient": "Patient",
