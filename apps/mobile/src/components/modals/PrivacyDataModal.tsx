@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, Modal, TouchableOpacity, ScrollView, TextInput } from 'react-native';
+import { View, Text, Modal, TouchableOpacity, ScrollView, TextInput, Platform } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { X, FileDown, Trash2, ShieldAlert, CheckCircle2, Clock, Download, Info } from 'lucide-react-native';
 import Toast from 'react-native-toast-message';
@@ -94,8 +94,51 @@ export const PrivacyDataModal: React.FC<PrivacyDataModalProps> = ({ visible, onC
         retentionPolicy: 'Medical records retained securely per healthcare compliance regulations.',
       };
 
-      const fileUri = `${FileSystem.cacheDirectory}${fileName}`;
-      await FileSystem.writeAsStringAsync(fileUri, JSON.stringify(exportData, null, 2), {
+      const jsonString = JSON.stringify(exportData, null, 2);
+
+      // On Android: Use Storage Access Framework so the user can choose the exact directory/folder
+      if (Platform.OS === 'android' && FileSystem.StorageAccessFramework) {
+        try {
+          const permissions = await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync();
+          if (permissions.granted) {
+            const directoryUri = permissions.directoryUri;
+            const newFileUri = await FileSystem.StorageAccessFramework.createFileAsync(
+              directoryUri,
+              fileName,
+              'application/json'
+            );
+            await FileSystem.writeAsStringAsync(newFileUri, jsonString, {
+              encoding: FileSystem.EncodingType.UTF8,
+            });
+
+            Toast.show({
+              type: 'success',
+              text1: t(
+                'mobile.file_saved_to_folder',
+                isVi ? 'Đã lưu tệp JSON vào thư mục đã chọn' : 'JSON file saved to selected folder'
+              ),
+              text2: fileName,
+            });
+            return;
+          } else {
+            Toast.show({
+              type: 'info',
+              text1: t(
+                'mobile.folder_pick_cancelled',
+                isVi ? 'Đã hủy chọn thư mục lưu' : 'Folder selection cancelled'
+              ),
+            });
+            return;
+          }
+        } catch (safErr) {
+          console.warn('StorageAccessFramework error, falling back to document/share:', safErr);
+        }
+      }
+
+      // iOS or fallback: Write to documentDirectory and open share sheet
+      const localDirectory = FileSystem.documentDirectory || FileSystem.cacheDirectory;
+      const fileUri = `${localDirectory}${fileName}`;
+      await FileSystem.writeAsStringAsync(fileUri, jsonString, {
         encoding: FileSystem.EncodingType.UTF8,
       });
 
@@ -103,15 +146,19 @@ export const PrivacyDataModal: React.FC<PrivacyDataModalProps> = ({ visible, onC
       if (isShareAvailable) {
         await Sharing.shareAsync(fileUri, {
           mimeType: 'application/json',
-          dialogTitle: isVi ? 'Tải tệp dữ liệu cá nhân (JSON)' : 'Save Personal Data Export (JSON)',
+          dialogTitle: t(
+            'mobile.select_save_folder',
+            isVi ? 'Chọn thư mục lưu tệp dữ liệu (JSON)' : 'Select folder to save JSON archive'
+          ),
         });
-      } else {
-        await saveReportToDevice(fileUri, fileName, 'application/json');
       }
 
       Toast.show({
         type: 'success',
-        text1: isVi ? 'Đã xuất và tải tệp JSON thành công' : 'JSON file exported successfully',
+        text1: t(
+          'mobile.file_saved_to_folder',
+          isVi ? 'Đã tải tệp JSON thành công' : 'JSON file saved successfully'
+        ),
         text2: fileName,
       });
     } catch (err) {

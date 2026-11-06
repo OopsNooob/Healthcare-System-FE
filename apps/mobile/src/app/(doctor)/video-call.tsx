@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { View, Text, TouchableOpacity, Image, StatusBar, Modal, ScrollView, TextInput, KeyboardAvoidingView, Platform, PermissionsAndroid } from 'react-native';
+import { View, Text, TouchableOpacity, Image, StatusBar, Modal, ScrollView, TextInput, KeyboardAvoidingView, Platform, PermissionsAndroid, Alert, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSafeRouter as useRouter } from '@/utils/useSafeRouter';
 import { Mic, MicOff, Video, VideoOff, PhoneOff, MessageCircle, FileText, ChevronDown, BrainCircuit, Activity, Save, LineChart, AlertTriangle } from 'lucide-react-native';
@@ -9,8 +9,7 @@ import Toast from 'react-native-toast-message';
 import { AiSummaryModal, HealthChartModal, CareAlertsModal } from '@/components/modals';
 
 export default function DoctorVideoCallScreen() {
-  const { t, i18n } = useTranslation();
-  const isVi = i18n.language?.startsWith('vi');
+  const { t } = useTranslation();
   const router = useRouter();
 
   const [notesVisible, setNotesVisible] = useState(false);
@@ -22,87 +21,85 @@ export default function DoctorVideoCallScreen() {
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOff, setIsVideoOff] = useState(false);
 
+  const checkAndRequestMicPermission = async (): Promise<boolean> => {
+    if (Platform.OS !== 'android') return true;
+    try {
+      const isAlreadyGranted = await PermissionsAndroid.check(PermissionsAndroid.PERMISSIONS.RECORD_AUDIO);
+      if (isAlreadyGranted) return true;
+
+      const granted = await PermissionsAndroid.request(
+        PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
+        {
+          title: t('mobile.mic_perm_title', 'Microphone Permission'),
+          message: t('mobile.mic_perm_desc', 'App needs microphone access for the video call.'),
+          buttonPositive: 'OK',
+        }
+      );
+      return granted === PermissionsAndroid.RESULTS.GRANTED;
+    } catch (e) {
+      console.warn('Mic permission error:', e);
+      return false;
+    }
+  };
+
+  const checkAndRequestCameraPermission = async (): Promise<boolean> => {
+    if (Platform.OS !== 'android') return true;
+    try {
+      const isAlreadyGranted = await PermissionsAndroid.check(PermissionsAndroid.PERMISSIONS.CAMERA);
+      if (isAlreadyGranted) return true;
+
+      const granted = await PermissionsAndroid.request(
+        PermissionsAndroid.PERMISSIONS.CAMERA,
+        {
+          title: t('mobile.camera_perm_title', 'Camera Permission'),
+          message: t('mobile.video_camera_perm_desc', 'App needs camera access for video consultation.'),
+          buttonPositive: 'OK',
+        }
+      );
+      return granted === PermissionsAndroid.RESULTS.GRANTED;
+    } catch (e) {
+      console.warn('Camera permission error:', e);
+      return false;
+    }
+  };
+
   const handleToggleMic = async () => {
     if (isMuted) {
-      if (Platform.OS === 'android') {
-        try {
-          const granted = await PermissionsAndroid.request(
-            PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
-            {
-              title: isVi ? 'Quyền truy cập Microphone' : 'Microphone Permission',
-              message: isVi
-                ? 'Ứng dụng cần quyền sử dụng microphone cho cuộc gọi video.'
-                : 'App needs microphone permission for video consultation.',
-              buttonPositive: 'OK',
-            }
-          );
-          if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
-            Toast.show({
-              type: 'error',
-              text1: isVi ? 'Từ chối quyền Micro' : 'Microphone Permission Denied',
-              text2: isVi
-                ? 'Vui lòng cấp quyền Micro trong cài đặt thiết bị.'
-                : 'Please enable microphone permission in system settings.',
-            });
-            return;
-          }
-        } catch (e) {
-          console.warn('Mic permission error:', e);
-        }
+      const hasPerm = await checkAndRequestMicPermission();
+      if (!hasPerm) {
+        Alert.alert(
+          t('mobile.permission_required', 'Permission Required'),
+          t('mobile.mic_perm_denied_desc', 'Please enable microphone permission in device settings to speak.'),
+          [
+            { text: t('mobile.cancel', 'Cancel'), style: 'cancel' },
+            { text: t('mobile.settings', 'Settings'), onPress: () => Linking.openSettings() },
+          ]
+        );
+        return;
       }
       setIsMuted(false);
-      Toast.show({
-        type: 'success',
-        text1: isVi ? 'Đã bật Micro' : 'Microphone on',
-      });
     } else {
       setIsMuted(true);
-      Toast.show({
-        type: 'info',
-        text1: isVi ? 'Đã tắt Micro' : 'Microphone muted',
-      });
     }
   };
 
   const handleToggleVideo = async () => {
     if (isVideoOff) {
-      if (Platform.OS === 'android') {
-        try {
-          const granted = await PermissionsAndroid.request(
-            PermissionsAndroid.PERMISSIONS.CAMERA,
-            {
-              title: isVi ? 'Quyền truy cập Camera' : 'Camera Permission',
-              message: isVi
-                ? 'Ứng dụng cần quyền sử dụng camera cho cuộc gọi video.'
-                : 'App needs camera permission for video consultation.',
-              buttonPositive: 'OK',
-            }
-          );
-          if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
-            Toast.show({
-              type: 'error',
-              text1: isVi ? 'Từ chối quyền Camera' : 'Camera Permission Denied',
-              text2: isVi
-                ? 'Vui lòng cấp quyền Camera trong cài đặt thiết bị.'
-                : 'Please enable camera permission in system settings.',
-            });
-            return;
-          }
-        } catch (e) {
-          console.warn('Camera permission error:', e);
-        }
+      const hasPerm = await checkAndRequestCameraPermission();
+      if (!hasPerm) {
+        Alert.alert(
+          t('mobile.permission_required', 'Permission Required'),
+          t('mobile.camera_perm_denied_desc', 'Please enable camera permission in device settings to show video.'),
+          [
+            { text: t('mobile.cancel', 'Cancel'), style: 'cancel' },
+            { text: t('mobile.settings', 'Settings'), onPress: () => Linking.openSettings() },
+          ]
+        );
+        return;
       }
       setIsVideoOff(false);
-      Toast.show({
-        type: 'success',
-        text1: isVi ? 'Đã bật Camera' : 'Camera on',
-      });
     } else {
       setIsVideoOff(true);
-      Toast.show({
-        type: 'info',
-        text1: isVi ? 'Đã tắt Camera' : 'Camera off',
-      });
     }
   };
 
@@ -153,7 +150,7 @@ export default function DoctorVideoCallScreen() {
                 <View style={tw('items-center justify-center p-2')}>
                   <VideoOff color="#94a3b8" size={26} />
                   <Text style={tw('text-[11px] text-slate-300 font-medium mt-1.5 text-center')}>
-                    {isVi ? 'Đã tắt camera' : 'Camera off'}
+                    {t('mobile.camera_off', 'Camera off')}
                   </Text>
                 </View>
               )}
@@ -284,7 +281,7 @@ export default function DoctorVideoCallScreen() {
         visible={aiSummaryModalVisible}
         onClose={() => setAiSummaryModalVisible(false)}
         patientName="Alex Johnson"
-        programName="Hypertension Care Program"
+        programName={t('mobile.hypertension_program', 'Hypertension Management')}
         baseline="145/95 mmHg"
         current="165/100 mmHg"
         adherence={75}
