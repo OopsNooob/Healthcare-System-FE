@@ -48,39 +48,50 @@ interface PatientItem {
   trend: string | null;
   baseline: string | null;
   current: string | null;
-  lastDoctorReview?: string;
+  lastDoctorReviewCode?: string;
+  lastDoctorReviewWhenKey?: string;
 }
 
 export default function PatientsManagementScreen() {
-  const { t, i18n } = useTranslation();
-  const isVi = i18n.language === 'vi';
-
-  const reviewLabel = (raw?: string) => {
-    if (!raw) return '';
-    const m = raw.match(/^(\w+)\s*(?:\((.*)\))?$/);
-    if (!m) return raw;
-    const codes: Record<string, [string, string]> = {
-      reviewed_no_action: ['Đã rà soát, không cần xử lý', 'Reviewed, no action needed'],
-      follow_up_needed: ['Cần theo dõi thêm', 'Follow-up needed'],
-      consultation_recommended: ['Đề nghị tư vấn', 'Consultation recommended'],
-      care_plan_adjustment_needed: ['Cần điều chỉnh kế hoạch chăm sóc', 'Care plan adjustment needed'],
-    };
-    const whens: Record<string, string> = {
-      '2 ngày trước': '2 days ago',
-      'Hôm qua': 'Yesterday',
-      'Vừa xong': 'Just now',
-    };
-    const label = codes[m[1]] ? (isVi ? codes[m[1]][0] : codes[m[1]][1]) : m[1];
-    const when = m[2] ? (isVi ? m[2] : whens[m[2]] || m[2]) : '';
-    return when ? `${label} (${when})` : label;
-  };
+  const { t } = useTranslation();
   useThemeContext();
+
+  const reviewLabel = (code?: string, whenKey?: string) => {
+    if (!code) return '';
+    const codeKeyMap: Record<string, string> = {
+      reviewed_no_action: 'mobile.doc_rev_no_action',
+      follow_up_needed: 'mobile.doc_rev_follow_up',
+      consultation_recommended: 'mobile.doc_rev_consult_rec',
+      care_plan_adjustment_needed: 'mobile.doc_rev_adjust_plan',
+    };
+    const label = codeKeyMap[code] ? t(codeKeyMap[code]) : code;
+    const when = whenKey ? t(whenKey) : '';
+    return when ? `${label} • ${when}` : label;
+  };
+
+  const localizeProgramName = (program?: string | null) => {
+    if (!program) return '';
+    if (program === 'Hypertension Management') return t('mobile.hypertension_management');
+    if (program === 'Diabetes Care') return t('mobile.diabetes_care');
+    return program;
+  };
+
+  const enrollmentStatusLabel = (status: PatientItem['enrollmentStatus']) => {
+    if (!status) return '';
+    const map: Record<NonNullable<PatientItem['enrollmentStatus']>, string> = {
+      active: t('mobile.enrollment_status_active'),
+      paused: t('mobile.enrollment_status_paused'),
+      completed: t('mobile.enrollment_status_completed'),
+      cancelled: t('mobile.enrollment_status_cancelled'),
+      pending_activation: t('mobile.enroll_status_pending'),
+    };
+    return map[status] || status;
+  };
 
   const [searchQuery, setSearchQuery] = useState('');
   const [enrollModalVisible, setEnrollModalVisible] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState<PatientItem | null>(null);
 
-  // Clinical Modals States
   const [aiSummaryVisible, setAiSummaryVisible] = useState(false);
   const [clinicalNotesVisible, setClinicalNotesVisible] = useState(false);
   const [programRulePreviewVisible, setProgramRulePreviewVisible] = useState(false);
@@ -89,18 +100,18 @@ export default function PatientsManagementScreen() {
   const [patientProfileVisible, setPatientProfileVisible] = useState(false);
   const [activePatientData, setActivePatientData] = useState<PatientItem | null>(null);
 
-  // Enrollment Lifecycle Modal State (CARE-17)
   const [lifecycleModalVisible, setLifecycleModalVisible] = useState(false);
   const [lifecycleAction, setLifecycleAction] = useState<'pause' | 'resume' | 'complete' | 'cancel'>(
     'pause'
   );
   const [lifecycleReason, setLifecycleReason] = useState('');
+  const [isSubmittingLifecycle, setIsSubmittingLifecycle] = useState(false);
 
-  // Enroll Modal States
   const [selectedProgram, setSelectedProgram] = useState<string | null>(null);
   const [eligibilityStatus, setEligibilityStatus] = useState<
     'idle' | 'checking' | 'passed' | 'failed'
   >('idle');
+  const [isSendingConsent, setIsSendingConsent] = useState(false);
 
   const [patients, setPatients] = useState<PatientItem[]>([
     {
@@ -112,7 +123,8 @@ export default function PatientsManagementScreen() {
       trend: 'Stable',
       baseline: '150/95',
       current: '135/85',
-      lastDoctorReview: 'reviewed_no_action (2 ngày trước)',
+      lastDoctorReviewCode: 'reviewed_no_action',
+      lastDoctorReviewWhenKey: 'mobile.two_days_ago',
     },
     {
       id: 2,
@@ -123,7 +135,8 @@ export default function PatientsManagementScreen() {
       trend: 'Warning',
       baseline: '180 mg/dL',
       current: '210 mg/dL',
-      lastDoctorReview: 'follow_up_needed (Hôm qua)',
+      lastDoctorReviewCode: 'follow_up_needed',
+      lastDoctorReviewWhenKey: 'mobile.yesterday',
     },
     {
       id: 3,
@@ -148,66 +161,76 @@ export default function PatientsManagementScreen() {
     setEligibilityStatus('checking');
     setTimeout(() => {
       setEligibilityStatus('passed');
-    }, 1000);
+    }, 600);
   };
 
-  const handleSendConsent = () => {
-    setEnrollModalVisible(false);
-    Toast.show({
-      type: 'success',
-      text1: t('mobile.success', 'Success'),
-      text2: t(
-        'mobile.consent_sent',
-        'Đã tạo hồ sơ pending_activation. Chờ Bệnh nhân ký Consent và hoàn tất Baseline.'
-      ),
-    });
+  const handleSendConsent = async () => {
+    if (isSendingConsent) return;
+    setIsSendingConsent(true);
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 260));
+      setEnrollModalVisible(false);
+      Toast.show({
+        type: 'success',
+        text1: t('mobile.success'),
+        text2: t('mobile.consent_sent'),
+      });
+    } finally {
+      setIsSendingConsent(false);
+    }
   };
 
-  const handleLifecycleSubmit = () => {
-    if (!activePatientData) return;
+  const handleLifecycleSubmit = async () => {
+    if (!activePatientData || isSubmittingLifecycle) return;
     if (!lifecycleReason.trim()) {
       Toast.show({
         type: 'error',
-        text1: t('mobile.reason_required', 'Cần nhập lý do'),
-        text2: t('mobile.lifecycle_reason_desc', 'Mọi thao tác đổi trạng thái đăng ký đều cần lý do để lưu nhật ký.'),
+        text1: t('mobile.reason_required'),
+        text2: t('mobile.lifecycle_reason_desc'),
       });
       return;
     }
 
-    const nextStatusMap: Record<typeof lifecycleAction, PatientItem['enrollmentStatus']> = {
-      pause: 'paused',
-      resume: 'active',
-      complete: 'completed',
-      cancel: 'cancelled',
-    };
+    setIsSubmittingLifecycle(true);
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 260));
+      const nextStatusMap: Record<typeof lifecycleAction, PatientItem['enrollmentStatus']> = {
+        pause: 'paused',
+        resume: 'active',
+        complete: 'completed',
+        cancel: 'cancelled',
+      };
 
-    setPatients((prev) =>
-      prev.map((p) =>
-        p.id === activePatientData.id
-          ? { ...p, enrollmentStatus: nextStatusMap[lifecycleAction] }
-          : p
-      )
-    );
-    setLifecycleModalVisible(false);
-    setLifecycleReason('');
-    Toast.show({
-      type: 'success',
-      text1: t('mobile.enrollment_updated', 'Đã cập nhật đăng ký chương trình'),
-      text2: `${activePatientData.name} -> ${nextStatusMap[lifecycleAction]}`,
-    });
+      setPatients((prev) =>
+        prev.map((p) =>
+          p.id === activePatientData.id
+            ? { ...p, enrollmentStatus: nextStatusMap[lifecycleAction] }
+            : p
+        )
+      );
+      setLifecycleModalVisible(false);
+      setLifecycleReason('');
+      Toast.show({
+        type: 'success',
+        text1: t('mobile.enrollment_updated'),
+        text2: `${activePatientData.name} • ${enrollmentStatusLabel(nextStatusMap[lifecycleAction])}`,
+      });
+    } finally {
+      setIsSubmittingLifecycle(false);
+    }
   };
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
-    const timer = setTimeout(() => setLoading(false), 800);
+    const timer = setTimeout(() => setLoading(false), 600);
     return () => clearTimeout(timer);
   }, []);
 
   const onRefresh = () => {
     setRefreshing(true);
-    setTimeout(() => setRefreshing(false), 800);
+    setTimeout(() => setRefreshing(false), 600);
   };
 
   const filteredPatients = patients.filter(
@@ -244,10 +267,10 @@ export default function PatientsManagementScreen() {
         <UserPlus color={twInstance.color('text-slate-400')} size={32} />
       </View>
       <Text style={tw('text-lg font-bold text-slate-900 dark:text-white mb-2')}>
-        {t('mobile.no_patients_found', 'No patients found')}
+        {t('mobile.no_patients_found')}
       </Text>
       <Text style={tw('text-slate-500 text-center px-6')}>
-        {t('mobile.try_different_search_patients', 'Try adjusting your search by name or ID.')}
+        {t('mobile.try_different_search_patients')}
       </Text>
     </View>
   );
@@ -260,7 +283,7 @@ export default function PatientsManagementScreen() {
         )}
       >
         <Text style={tw('text-2xl font-bold text-slate-900 dark:text-white mb-4')}>
-          {t('mobile.patient_management', 'Patient Management')}
+          {t('mobile.patient_management')}
         </Text>
         <View
           style={tw(
@@ -270,7 +293,7 @@ export default function PatientsManagementScreen() {
           <Search color={twInstance.color('text-slate-400')} size={20} style={tw('mr-2')} />
           <TextInput
             style={tw('flex-1 text-base text-slate-900 dark:text-white')}
-            placeholder={t('mobile.search_patients', 'Search by name or ID...')}
+            placeholder={t('mobile.search_patients')}
             placeholderTextColor={twInstance.color('text-slate-400')}
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -316,7 +339,7 @@ export default function PatientsManagementScreen() {
                         )}
                       >
                         <Text style={tw('text-xs font-bold text-indigo-600 dark:text-indigo-400')}>
-                          {patient.program}
+                          {localizeProgramName(patient.program)}
                         </Text>
                       </View>
                       <View
@@ -341,7 +364,7 @@ export default function PatientsManagementScreen() {
                             }`
                           )}
                         >
-                          {patient.enrollmentStatus}
+                          {enrollmentStatusLabel(patient.enrollmentStatus)}
                         </Text>
                       </View>
                     </View>
@@ -352,7 +375,7 @@ export default function PatientsManagementScreen() {
                       )}
                     >
                       <Text style={tw('text-xs font-medium text-slate-500 dark:text-slate-400')}>
-                        {t('mobile.no_active_program', 'No Active Program')}
+                        {t('mobile.no_active_program')}
                       </Text>
                     </View>
                   )}
@@ -364,7 +387,7 @@ export default function PatientsManagementScreen() {
                   >
                     <UserPlus color="#0f172a" size={16} />
                     <Text style={tw('text-slate-900 font-bold ml-1.5 text-sm')} numberOfLines={1}>
-                      {t('mobile.enroll', 'Enroll')}
+                      {t('mobile.enroll')}
                     </Text>
                   </TouchableOpacity>
                 ) : (
@@ -382,7 +405,7 @@ export default function PatientsManagementScreen() {
                   >
                     <RefreshCw size={14} color={twInstance.color('text-slate-600 dark:text-slate-300')} />
                     <Text style={tw('text-xs font-bold text-slate-700 dark:text-slate-300 ml-1')}>
-                      {t('mobile.status_label', 'Trạng thái')}
+                      {t('mobile.status_label')}
                     </Text>
                   </TouchableOpacity>
                 )}
@@ -397,7 +420,7 @@ export default function PatientsManagementScreen() {
                   <View style={tw('flex-row justify-between mb-3')}>
                     <View>
                       <Text style={tw('text-xs text-slate-500')}>
-                        {t('mobile.baseline', 'Baseline')}
+                        {t('mobile.baseline')}
                       </Text>
                       <Text style={tw('font-bold text-slate-700 dark:text-slate-300')}>
                         {patient.baseline}
@@ -405,7 +428,7 @@ export default function PatientsManagementScreen() {
                     </View>
                     <View>
                       <Text style={tw('text-xs text-slate-500')}>
-                        {t('mobile.current', 'Current')}
+                        {t('mobile.current')}
                       </Text>
                       <Text style={tw('font-bold text-slate-900 dark:text-white')}>
                         {patient.current}
@@ -413,7 +436,7 @@ export default function PatientsManagementScreen() {
                     </View>
                     <View>
                       <Text style={tw('text-xs text-slate-500')}>
-                        {t('mobile.adherence', 'Adherence')}
+                        {t('mobile.adherence')}
                       </Text>
                       <Text
                         style={tw(
@@ -427,13 +450,14 @@ export default function PatientsManagementScreen() {
                     </View>
                   </View>
 
-                  {patient.lastDoctorReview && (
+                  {patient.lastDoctorReviewCode && (
                     <Text style={tw('text-[11px] text-indigo-600 dark:text-indigo-400 font-semibold mb-2')}>
-                      {t('mobile.last_review_label', 'Rà soát gần nhất')}: {reviewLabel(patient.lastDoctorReview)}
+                      {t('mobile.last_review_label')}:{' '}
+                      {reviewLabel(patient.lastDoctorReviewCode, patient.lastDoctorReviewWhenKey)}
                     </Text>
                   )}
 
-                  {/* Row 1 Actions: AI Summary + Doctor Review Task (CARE-35) */}
+                  {/* Row 1 Actions: AI Summary + Doctor Review Task */}
                   <View
                     style={tw(
                       'flex-row gap-2 mt-2 pt-3 border-t border-slate-200 dark:border-slate-800'
@@ -450,7 +474,7 @@ export default function PatientsManagementScreen() {
                     >
                       <BrainCircuit color={twInstance.color('text-purple-500')} size={16} />
                       <Text style={tw('text-xs font-bold text-slate-700 dark:text-slate-300 ml-1')}>
-                        {t('mobile.ai_summary', 'AI Summary')}
+                        {t('mobile.ai_summary')}
                       </Text>
                     </TouchableOpacity>
                     <TouchableOpacity
@@ -464,12 +488,12 @@ export default function PatientsManagementScreen() {
                     >
                       <ClipboardCheck color={twInstance.color('text-emerald-600')} size={16} />
                       <Text style={tw('text-xs font-bold text-emerald-700 dark:text-emerald-300 ml-1')}>
-                        {t('mobile.doctor_review_task', 'Rà soát')}
+                        {t('mobile.doctor_review_task')}
                       </Text>
                     </TouchableOpacity>
                   </View>
 
-                  {/* Row 2 Actions: Clinical Notes + Active CareRule Preview (CARE-18/21) + Void Data */}
+                  {/* Row 2 Actions: Clinical Notes + Active CareRule Preview + Void Data */}
                   <View style={tw('flex-row gap-2 mt-2')}>
                     <TouchableOpacity
                       onPress={() => {
@@ -482,7 +506,7 @@ export default function PatientsManagementScreen() {
                     >
                       <Stethoscope color={twInstance.color('text-blue-500')} size={15} />
                       <Text style={tw('text-xs font-bold text-slate-700 dark:text-slate-300 ml-1')}>
-                        {t('mobile.clinical_notes', 'Notes')}
+                        {t('mobile.clinical_notes')}
                       </Text>
                     </TouchableOpacity>
                     <TouchableOpacity
@@ -496,7 +520,7 @@ export default function PatientsManagementScreen() {
                     >
                       <FileCode2 color={twInstance.color('text-amber-500')} size={15} />
                       <Text style={tw('text-xs font-bold text-slate-700 dark:text-slate-300 ml-1')}>
-                        {t('mobile.active_rule_preview', 'Quy tắc')}
+                        {t('mobile.active_rule_preview')}
                       </Text>
                     </TouchableOpacity>
                     <TouchableOpacity
@@ -522,7 +546,7 @@ export default function PatientsManagementScreen() {
                 style={tw('flex-row justify-between items-center px-2')}
               >
                 <Text style={tw('text-sm font-bold text-brand-dark dark:text-brand-light')}>
-                  {t('mobile.view_full_profile', 'View Full Profile')}
+                  {t('mobile.view_full_profile')}
                 </Text>
                 <ChevronRight
                   color={twInstance.color('text-brand-dark dark:text-brand-light')}
@@ -541,10 +565,10 @@ export default function PatientsManagementScreen() {
         <View style={tw('flex-1 justify-end bg-black/60')}>
           <View style={tw('bg-white dark:bg-slate-900 rounded-t-3xl p-6')}>
             <Text style={tw('text-xl font-bold text-slate-900 dark:text-white mb-2')}>
-              {t('mobile.enroll_in_program', 'Enroll in Care Program')}
+              {t('mobile.enroll_in_program')}
             </Text>
             <Text style={tw('text-slate-500 mb-6')}>
-              {t('mobile.select_program_for', 'Select a program for')} {selectedPatient?.name}
+              {t('mobile.select_program_for')} {selectedPatient?.name}
             </Text>
 
             <TouchableOpacity
@@ -566,10 +590,10 @@ export default function PatientsManagementScreen() {
                   }`
                 )}
               >
-                {t('mobile.hypertension_management', 'Hypertension Management')}
+                {t('mobile.hypertension_management')}
               </Text>
               <Text style={tw('text-sm text-slate-500 mt-1')}>
-                {t('mobile.hypertension_desc', 'BP tracking, medication reminders, diet tasks.')}
+                {t('mobile.hypertension_desc')}
               </Text>
             </TouchableOpacity>
 
@@ -592,10 +616,10 @@ export default function PatientsManagementScreen() {
                   }`
                 )}
               >
-                {t('mobile.diabetes_care', 'Diabetes Care')}
+                {t('mobile.diabetes_care')}
               </Text>
               <Text style={tw('text-sm text-slate-500 mt-1')}>
-                {t('mobile.diabetes_desc', 'Glucose tracking, insulin reminders, foot checks.')}
+                {t('mobile.diabetes_desc')}
               </Text>
             </TouchableOpacity>
 
@@ -608,7 +632,7 @@ export default function PatientsManagementScreen() {
               >
                 <CheckCircle color="#10b981" size={20} style={tw('mr-2')} />
                 <Text style={tw('text-emerald-700 dark:text-emerald-400 font-bold')}>
-                  {t('mobile.eligibility_passed', 'Eligibility Passed (Gói CARE hợp lệ)')}
+                  {t('mobile.eligibility_passed')}
                 </Text>
               </View>
             )}
@@ -621,7 +645,7 @@ export default function PatientsManagementScreen() {
               >
                 <ShieldAlert color="#ef4444" size={20} style={tw('mr-2')} />
                 <Text style={tw('text-red-700 dark:text-red-400 font-bold')}>
-                  {t('mobile.eligibility_failed', 'Eligibility Failed')}
+                  {t('mobile.eligibility_failed')}
                 </Text>
               </View>
             )}
@@ -629,10 +653,11 @@ export default function PatientsManagementScreen() {
             <View style={tw('flex-row gap-4')}>
               <TouchableOpacity
                 onPress={() => setEnrollModalVisible(false)}
+                disabled={isSendingConsent}
                 style={tw('flex-1 p-4 items-center bg-slate-100 dark:bg-slate-800 rounded-2xl')}
               >
                 <Text style={tw('font-bold text-slate-700 dark:text-slate-300')}>
-                  {t('mobile.cancel', 'Cancel')}
+                  {t('mobile.cancel')}
                 </Text>
               </TouchableOpacity>
 
@@ -644,7 +669,7 @@ export default function PatientsManagementScreen() {
                   )}
                 >
                   <Text style={tw('font-bold text-slate-400 dark:text-slate-500')}>
-                    {t('mobile.check_eligibility', 'Check Eligibility')}
+                    {t('mobile.check_eligibility')}
                   </Text>
                 </TouchableOpacity>
               ) : eligibilityStatus === 'idle' ? (
@@ -653,7 +678,7 @@ export default function PatientsManagementScreen() {
                   style={tw('flex-1 p-4 items-center bg-blue-500 rounded-2xl')}
                 >
                   <Text style={tw('font-bold text-white')}>
-                    {t('mobile.check_eligibility', 'Check Eligibility')}
+                    {t('mobile.check_eligibility')}
                   </Text>
                 </TouchableOpacity>
               ) : eligibilityStatus === 'checking' ? (
@@ -665,16 +690,17 @@ export default function PatientsManagementScreen() {
                 >
                   <ActivityIndicator color="white" size="small" style={tw('mr-2')} />
                   <Text style={tw('font-bold text-white')}>
-                    {t('mobile.check_eligibility', 'Check Eligibility')}
+                    {t('mobile.check_eligibility')}
                   </Text>
                 </TouchableOpacity>
               ) : eligibilityStatus === 'passed' ? (
                 <TouchableOpacity
                   onPress={handleSendConsent}
-                  style={tw('flex-1 p-4 items-center bg-brand rounded-2xl')}
+                  disabled={isSendingConsent}
+                  style={tw(`flex-1 p-4 items-center bg-brand rounded-2xl ${isSendingConsent ? 'opacity-60' : ''}`)}
                 >
                   <Text style={tw('font-bold text-slate-900')}>
-                    {t('mobile.send_consent', 'Send Consent Request')}
+                    {t('mobile.send_consent')}
                   </Text>
                 </TouchableOpacity>
               ) : (
@@ -685,7 +711,7 @@ export default function PatientsManagementScreen() {
                   )}
                 >
                   <Text style={tw('font-bold text-slate-400 dark:text-slate-500')}>
-                    {t('mobile.send_consent', 'Send Consent Request')}
+                    {t('mobile.send_consent')}
                   </Text>
                 </TouchableOpacity>
               )}
@@ -694,7 +720,7 @@ export default function PatientsManagementScreen() {
         </View>
       </Modal>
 
-      {/* Enrollment Lifecycle Modal (CARE-17: Pause / Resume / Complete / Cancel) */}
+      {/* Enrollment Lifecycle Modal */}
       <Modal
         visible={lifecycleModalVisible}
         transparent
@@ -708,29 +734,33 @@ export default function PatientsManagementScreen() {
           <View style={tw('bg-white dark:bg-slate-900 rounded-t-3xl p-6')}>
             <View style={tw('flex-row justify-between items-center mb-4')}>
               <Text style={tw('text-xl font-bold text-slate-900 dark:text-white')}>
-                {t('mobile.enrollment_lifecycle_title', 'Trạng thái đăng ký chương trình')}
+                {t('mobile.enrollment_lifecycle_title')}
               </Text>
-              <TouchableOpacity onPress={() => setLifecycleModalVisible(false)}>
+              <TouchableOpacity
+                disabled={isSubmittingLifecycle}
+                onPress={() => setLifecycleModalVisible(false)}
+              >
                 <X color="#64748b" size={24} />
               </TouchableOpacity>
             </View>
 
             <Text style={tw('text-xs text-slate-500 dark:text-slate-400 mb-3')}>
-              {t('mobile.patient_label', 'Bệnh nhân')}: <Text style={tw('font-bold')}>{activePatientData?.name}</Text> •{' '}
+              {t('mobile.patient_label')}: <Text style={tw('font-bold')}>{activePatientData?.name}</Text> •{' '}
               {activePatientData?.program}
             </Text>
 
             <View style={tw('flex-row flex-wrap gap-2 mb-4')}>
               {(
                 [
-                  { id: 'pause', label: t('mobile.program_pause', 'Tạm dừng') },
-                  { id: 'resume', label: t('mobile.program_resume', 'Tiếp tục') },
-                  { id: 'complete', label: t('mobile.program_complete', 'Hoàn thành') },
-                  { id: 'cancel', label: t('mobile.program_cancel', 'Hủy chương trình') },
+                  { id: 'pause', label: t('mobile.program_pause') },
+                  { id: 'resume', label: t('mobile.program_resume') },
+                  { id: 'complete', label: t('mobile.program_complete') },
+                  { id: 'cancel', label: t('mobile.program_cancel') },
                 ] as const
               ).map((act) => (
                 <TouchableOpacity
                   key={act.id}
+                  disabled={isSubmittingLifecycle}
                   onPress={() => setLifecycleAction(act.id)}
                   style={tw(
                     `px-3.5 py-2 rounded-xl border ${
@@ -756,13 +786,13 @@ export default function PatientsManagementScreen() {
             </View>
 
             <Text style={tw('text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1.5')}>
-              {t('mobile.lifecycle_reason_label', 'Lý do chuyển trạng thái (bắt buộc)')}
+              {t('mobile.lifecycle_reason_label')}
             </Text>
             <TextInput
               value={lifecycleReason}
               onChangeText={setLifecycleReason}
-              placeholder={t('mobile.lifecycle_reason_placeholder', 'Nhập lý do lâm sàng hoặc hành chính để lưu nhật ký...'
-              )}
+              editable={!isSubmittingLifecycle}
+              placeholder={t('mobile.lifecycle_reason_placeholder')}
               placeholderTextColor="#94a3b8"
               multiline
               style={tw(
@@ -773,10 +803,14 @@ export default function PatientsManagementScreen() {
 
             <TouchableOpacity
               onPress={handleLifecycleSubmit}
-              style={tw('bg-brand py-4 rounded-xl items-center')}
+              disabled={isSubmittingLifecycle}
+              style={tw(`bg-brand py-4 rounded-xl items-center flex-row justify-center ${isSubmittingLifecycle ? 'opacity-60' : ''}`)}
             >
+              {isSubmittingLifecycle && (
+                <ActivityIndicator size="small" color="#0f172a" style={tw('mr-2')} />
+              )}
               <Text style={tw('text-slate-900 font-bold text-base')}>
-                {t('mobile.confirm_lifecycle_change', 'Xác nhận cập nhật trạng thái')}
+                {t('mobile.confirm_lifecycle_change')}
               </Text>
             </TouchableOpacity>
           </View>
@@ -788,7 +822,7 @@ export default function PatientsManagementScreen() {
         visible={aiSummaryVisible}
         onClose={() => setAiSummaryVisible(false)}
         patientName={activePatientData?.name}
-        programName={activePatientData?.program || undefined}
+        programName={localizeProgramName(activePatientData?.program) || undefined}
         baseline={activePatientData?.baseline || undefined}
         current={activePatientData?.current || undefined}
         adherence={activePatientData?.adherence || undefined}
@@ -801,25 +835,29 @@ export default function PatientsManagementScreen() {
         patientName={activePatientData?.name}
       />
 
-      {/* 3. Program Active Rule Preview & Activation Modal (CARE-18, CARE-21) */}
+      {/* 3. Program Active Rule Preview & Activation Modal */}
       <ProgramRulePreviewModal
         visible={programRulePreviewVisible}
         onClose={() => setProgramRulePreviewVisible(false)}
-        programName={activePatientData?.program || (isVi ? 'Quản lý tăng huyết áp' : 'Hypertension Management')}
+        programName={localizeProgramName(activePatientData?.program) || t('mobile.hypertension_management')}
       />
 
-      {/* 4. Doctor Review Task Modal (CARE-35) */}
+      {/* 4. Doctor Review Task Modal */}
       <DoctorReviewTaskModal
         visible={doctorReviewTaskVisible}
         onClose={() => setDoctorReviewTaskVisible(false)}
         patientName={activePatientData?.name}
-        programName={activePatientData?.program || undefined}
+        programName={localizeProgramName(activePatientData?.program) || undefined}
         onSubmitReview={(payload) => {
           if (activePatientData) {
             setPatients((prev) =>
               prev.map((p) =>
                 p.id === activePatientData.id
-                  ? { ...p, lastDoctorReview: `${payload.reasonCode} (Vừa xong)` }
+                  ? {
+                      ...p,
+                      lastDoctorReviewCode: payload.reasonCode,
+                      lastDoctorReviewWhenKey: 'mobile.just_now',
+                    }
                   : p
               )
             );
@@ -833,7 +871,7 @@ export default function PatientsManagementScreen() {
         visible={voidDataVisible}
         onClose={() => setVoidDataVisible(false)}
         patientName={activePatientData?.name}
-        metricLabel={activePatientData ? `Current: ${activePatientData.current}` : undefined}
+        metricLabel={activePatientData ? `${t('mobile.current')}: ${activePatientData.current}` : undefined}
       />
 
       {/* 6. Patient Profile Modal */}

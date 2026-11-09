@@ -964,10 +964,11 @@
     },
     "careProgram": {
       "title": "Chương trình Chăm sóc & Quy tắc",
-      "subtitle": "Quản lý các chương trình theo dõi sức khoẻ và hệ thống quy tắc cảnh báo.",
+      "subtitle": "Quản lý chương trình theo dõi sức khoẻ, tài liệu giáo dục và hệ thống quy tắc cảnh báo.",
       "tabs": {
         "templates": "Mẫu Chương trình",
-        "rules": "Hệ thống Quy tắc"
+        "rules": "Hệ thống Quy tắc",
+        "education": "Tài liệu Giáo dục"
       },
       "actions": {
         "createProgram": "Tạo Chương trình",
@@ -989,11 +990,12 @@
       },
       "rules": {
         "program": "CHƯƠNG TRÌNH",
+        "source": "NGUỒN DỮ LIỆU",
         "condition": "ĐIỀU KIỆN",
         "severity": "MỨC ĐỘ",
         "status": "TRẠNG THÁI",
         "action": "HÀNH ĐỘNG",
-        "edit": "CHỈNH SỬA",
+        "edit": "THAO TÁC",
         "active": "Hoạt động",
         "retired": "Đã huỷ",
         "draft": "Bản nháp",
@@ -1009,11 +1011,69 @@
         "medications": "Thuốc đang sử dụng",
         "quietHours": "Khung giờ nghỉ ngơi"
       },
+      "taskTypes": {
+        "metric": "Đo chỉ số sinh hiệu",
+        "check_in": "Kiểm tra triệu chứng",
+        "education": "Tài liệu giáo dục sức khỏe",
+        "appointment": "Liên kết lịch tái khám",
+        "doctor_review": "Bác sĩ rà soát định kỳ"
+      },
+      "symptoms": {
+        "chest_pain": "Đau ngực",
+        "shortness_of_breath": "Khó thở",
+        "dizziness": "Chóng mặt",
+        "headache": "Đau đầu",
+        "fatigue": "Mệt mỏi",
+        "edema": "Phù nhẹ",
+        "nausea": "Buồn nôn",
+        "palpitations": "Hồi hộp, tim đập nhanh"
+      },
+      "educationCatalog": {
+        "notice": "Chỉ những tài liệu giáo dục đã phát hành mới hiển thị để bệnh nhân đọc và xác nhận trong nhiệm vụ hằng ngày. Tài liệu đang ở trạng thái bản nháp hoặc tạm ngưng sẽ tự động khóa xác nhận.",
+        "colTitle": "TÀI LIỆU",
+        "colFormat": "ĐỊNH DẠNG",
+        "colVersion": "PHIÊN BẢN",
+        "colStatus": "TRẠNG THÁI",
+        "publishBtn": "Phát hành",
+        "format": {
+          "article": "Bài viết",
+          "video": "Video",
+          "document": "Tài liệu"
+        }
+      },
+      "educationCatalogItems": {
+        "hypertension_salt_guide": {
+          "title": "Hướng dẫn giảm muối và dinh dưỡng cho người tăng huyết áp",
+          "summary": "Chế độ ăn giảm natri dưới 2.000 mg mỗi ngày, tăng cường rau xanh và đo huyết áp định kỳ."
+        },
+        "bp_home_measurement_video": {
+          "title": "Video hướng dẫn tư thế đo huyết áp chuẩn tại nhà",
+          "summary": "Nghỉ ngơi 5 phút trước khi đo, đặt vòng bít ngang mức tim và không nói chuyện trong lúc đo."
+        },
+        "diabetes_foot_care_doc": {
+          "title": "Tài liệu chăm sóc bàn chân và phòng ngừa biến chứng đái tháo đường",
+          "summary": "Kiểm tra bàn chân mỗi tối, giữ da khô thoáng và liên hệ bác sĩ ngay khi có vết xước lâu lành."
+        },
+        "medication_adherence_guide": {
+          "title": "Cẩm nang tuân thủ dùng thuốc tim mạch lâu dài",
+          "summary": "Bản thảo đang chờ hội đồng chuyên môn duyệt trước khi phát hành cho bệnh nhân."
+        }
+      },
       "metrics": {
-        "systolic": "Huyết áp tâm thu (mmHg)",
-        "diastolic": "Huyết áp tâm trương (mmHg)",
-        "glucose": "Đường huyết (mg/dL)",
-        "heartRate": "Nhịp tim (bpm)"
+        "systolic": "Huyết áp tâm thu",
+        "diastolic": "Huyết áp tâm trương",
+        "glucose": "Đường huyết",
+        "heartRate": "Nhịp tim",
+        "symptomSeverityRank": "Mức độ triệu chứng",
+        "chestPainReported": "Triệu chứng đau ngực",
+        "shortnessOfBreathReported": "Triệu chứng khó thở",
+        "dizzinessReported": "Triệu chứng chóng mặt"
+      },
+      "simSeverity": {
+        "none": "0 - Không có",
+        "mild": "1 - Nhẹ",
+        "moderate": "2 - Trung bình",
+        "severe": "3 - Nặng"
       },
       "operators": {
         "greaterThan": "Lớn hơn",
@@ -1024,7 +1084,7 @@
       },
       "modals": {
         "createTitle": "Tạo Mẫu Chương trình Chăm sóc mới",
-        "createDesc": "Thiết lập chương trình theo dõi bệnh mạn tính với câu hỏi nền tảng và nhiệm vụ mẫu.",
+        "createDesc": "Thiết lập chương trình theo dõi bệnh mạn tính với chỉ số nền tảng và nhiệm vụ hằng ngày.",
         "progName": "Tên Chương trình",
         "progNamePlaceholder": "Ví dụ: Quản lý Bệnh Tăng huyết áp...",
         "progCode": "Mã Định danh",
@@ -1036,21 +1096,32 @@
         "descriptionPlaceholder": "Mục tiêu theo dõi và nhóm bệnh nhân chỉ định...",
         "baselineQuestions": "Chỉ số & Khảo sát Ban đầu",
         "baselineDesc": "Chọn các chỉ số sức khoẻ bắt buộc khi bệnh nhân tham gia:",
-        "taskTemplates": "Nhiệm vụ Theo dõi Mẫu",
+        "taskTemplates": "Nhiệm vụ Theo dõi Hằng ngày",
+        "taskTemplatesDesc": "Cấu hình các nhiệm vụ đo chỉ số, kiểm tra triệu chứng và đọc tài liệu giáo dục.",
+        "addTaskBtn": "Thêm Nhiệm vụ",
+        "removeTask": "Xóa nhiệm vụ",
+        "taskTypeLabel": "Loại Nhiệm vụ",
+        "scheduledTime": "Khung giờ",
+        "windowMinutes": "Thời hạn thực hiện",
+        "allowedSymptomsLabel": "Danh sách triệu chứng cần theo dõi",
+        "educationMaterialLabel": "Tài liệu giáo dục đã phát hành",
         "completionCriteria": "Tiêu chí Hoàn thành",
         "completionCriteriaPlaceholder": "80% tuân thủ trong 90 ngày",
         "saveDraft": "Lưu Bản nháp",
         "publish": "Phát hành",
         "ruleTitle": "Thêm Quy tắc Cảnh báo",
-        "ruleDesc": "Cấu hình điều kiện cảnh báo rủi ro dựa trên chỉ số đo của bệnh nhân.",
+        "ruleDesc": "Cấu hình điều kiện cảnh báo rủi ro dựa trên chỉ số sinh hiệu hoặc phiếu kiểm tra triệu chứng.",
         "targetProgram": "Áp dụng cho Chương trình",
+        "dataSourceLabel": "Nguồn Dữ liệu Đánh giá",
+        "sourceHealthMetric": "Chỉ số Sinh hiệu",
+        "sourceSymptomCheckIn": "Phiếu Kiểm tra Triệu chứng",
         "selectRule": "Chọn Quy tắc cần Kiểm tra",
-        "metric": "Chỉ số Đánh giá",
+        "metric": "Trường Đánh giá",
         "operator": "Toán tử Điều kiện",
         "threshold": "Ngưỡng Giá trị",
         "severity": "Mức độ Cảnh báo",
         "action": "Hành động Kích hoạt",
-        "declarativeCondition": "Điều kiện Khai báo",
+        "declarativeCondition": "Điều kiện Cảnh báo",
         "conditionPreview": "Xem trước Điều kiện",
         "cancel": "Hủy",
         "createRule": "Tạo Quy tắc",
@@ -1060,16 +1131,18 @@
         "actionPatientTask": "Giao nhiệm vụ Bệnh nhân",
         "actionEmergency": "Kích hoạt Quy trình Khẩn cấp",
         "simTitle": "Mô phỏng Đánh giá Quy tắc",
-        "simDesc": "Chạy thử nghiệm bộ quy tắc trên 500 hồ sơ bệnh nhân giả lập để kiểm tra độ chính xác.",
+        "simDesc": "Chạy thử nghiệm quy tắc trên dữ liệu bệnh nhân giả lập trước khi áp dụng thực tế.",
         "simScanned": "Hồ sơ đã quét",
         "simAlerts": "Cảnh báo Sinh ra",
         "simFalsePos": "Tỷ lệ Dương tính Giả",
         "simStatus": "Mô phỏng Đạt Chuẩn An toàn Y tế",
-        "simTelemetryInputs": "Chỉ số Đo Giả lập",
-        "simViolated": "VI PHẠM / KÍCH HOẠT CẢNH BÁO",
-        "simSafe": "BÌNH THƯỜNG / AN TOÀN",
-        "simMatched": "Điều kiện Thoả mãn (Đã kích hoạt)",
-        "simNoTrigger": "Không kích hoạt (Không vi phạm ngưỡng)",
+        "simTelemetryInputs": "Dữ liệu Bệnh nhân Giả lập",
+        "simWarningSymptomToggle": "Bệnh nhân có báo cáo triệu chứng bất thường",
+        "simInactiveRuleNotice": "Lưu ý: Quy tắc này hiện chưa ở trạng thái Hoạt động nên chỉ ghi nhận nhật ký đánh giá mà không gửi cảnh báo trực tiếp tới bác sĩ.",
+        "simViolated": "KÍCH HOẠT CẢNH BÁO",
+        "simSafe": "TRONG NGƯỠNG AN TOÀN",
+        "simMatched": "Đã kích hoạt cảnh báo",
+        "simNoTrigger": "Trong ngưỡng an toàn",
         "actionFired": "Hành động Kích hoạt",
         "run": "Chạy Mô phỏng",
         "activateRule": "Kích hoạt Quy tắc này",
@@ -1088,7 +1161,7 @@
         "enrolledCount": "{{count}} bệnh nhân",
         "baselineRequirements": "Chỉ số & Khảo sát Ban đầu",
         "baselineDesc": "Chọn các chỉ số sức khoẻ bắt buộc khi bệnh nhân tham gia:",
-        "taskTemplates": "Số lượng Nhiệm vụ Hằng ngày",
+        "taskTemplates": "Nhiệm vụ Theo dõi Hằng ngày",
         "completionCriteria": "Tiêu chí Hoàn thành",
         "completionCriteriaPlaceholder": "Ví dụ: 80% tuân thủ trong 90 ngày",
         "cancel": "Hủy",
@@ -1096,10 +1169,15 @@
       },
       "toasts": {
         "nameRequired": "Vui lòng nhập tên chương trình",
+        "minOneTask": "Cần có ít nhất một nhiệm vụ theo dõi",
+        "symptomSelectionRequired": "Vui lòng chọn ít nhất một triệu chứng cần theo dõi",
+        "educationContentRequired": "Vui lòng chọn tài liệu giáo dục đã phát hành",
+        "checkInTaskRequiredForRule": "Chương trình đã chọn cần có nhiệm vụ kiểm tra triệu chứng để tạo quy tắc triệu chứng.",
         "thresholdRequired": "Vui lòng nhập ngưỡng giá trị hợp lệ",
         "ruleCreated": "Tạo quy tắc cảnh báo thành công",
         "ruleActivated": "Quy tắc đã được kích hoạt",
         "ruleRetired": "Quy tắc đã ngưng áp dụng",
+        "educationStatusUpdated": "Đã cập nhật trạng thái tài liệu giáo dục",
         "updateSuccess": "Cập nhật chương trình chăm sóc thành công",
         "publishSuccess": "Xuất bản chương trình thành công",
         "draftSuccess": "Lưu bản nháp thành công"

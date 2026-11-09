@@ -11,6 +11,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   TextInput,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSafeRouter as useRouter } from '@/utils/useSafeRouter';
@@ -37,44 +38,43 @@ interface PriorityAlertItem {
   time: string;
   statusKey: 'waiting' | 'upcoming';
   alertLifecycleStatus: 'open' | 'acknowledged' | 'resolved' | 'dismissed';
-  type: string;
+  sourceType: 'vital_reading' | 'symptom_checkin';
+  typeKey: 'mobile.video_call' | 'mobile.chat';
   priority: 'Urgent' | 'Attention' | 'Normal';
-  alertText: string;
+  alertTextKey: string;
   value: string;
   metric: string;
-  tag: string;
   linkedConsultationId?: string | null;
 }
 
 export default function DoctorHomeScreen() {
-  const { t, i18n } = useTranslation();
-  const isVi = i18n.language === 'vi';
+  const { t } = useTranslation();
   useThemeContext();
 
   const router = useRouter();
   const [isOnline, setIsOnline] = useState(true);
+  const [busyActionId, setBusyActionId] = useState<string | null>(null);
 
-  // Filter pills (CARE-12)
   const [severityFilter, setSeverityFilter] = useState<'All' | 'Urgent' | 'Attention'>('All');
   const [statusFilter, setStatusFilter] = useState<'all' | 'open' | 'acknowledged'>('all');
 
   const stats = [
     {
-      title: t('mobile.total_patients', 'Total Patients'),
+      title: t('mobile.total_patients'),
       value: '1,248',
       icon: <Users color="#3b82f6" size={24} />,
       bg: 'bg-blue-50 dark:bg-blue-900/30',
       trend: '+12%',
     },
     {
-      title: t('mobile.consultations', 'Consultations'),
+      title: t('mobile.consultations'),
       value: '142',
       icon: <CalendarIcon color="#10b981" size={24} />,
       bg: 'bg-emerald-50 dark:bg-emerald-900/30',
       trend: '+5%',
     },
     {
-      title: t('mobile.hours_online', 'Hours Online'),
+      title: t('mobile.hours_online'),
       value: '64h',
       icon: <Clock color="#f59e0b" size={24} />,
       bg: 'bg-yellow-50 dark:bg-yellow-900/30',
@@ -82,19 +82,19 @@ export default function DoctorHomeScreen() {
     },
   ];
 
-  const priorityInbox: PriorityAlertItem[] = [
+  const initialPriorityInbox: PriorityAlertItem[] = [
     {
       id: 1,
       name: 'Alex Johnson',
       time: '10:30 AM',
       statusKey: 'waiting',
       alertLifecycleStatus: 'open',
-      type: t('mobile.video_call', 'Video Call'),
+      sourceType: 'vital_reading',
+      typeKey: 'mobile.video_call',
       priority: 'Urgent',
-      alertText: 'High Blood Pressure (Rule v1.2 Trigger)',
+      alertTextKey: 'mobile.alert_title_high_bp',
       value: '165/100',
       metric: 'mmHg',
-      tag: 'BP Alert',
       linkedConsultationId: null,
     },
     {
@@ -103,12 +103,12 @@ export default function DoctorHomeScreen() {
       time: '11:00 AM',
       statusKey: 'upcoming',
       alertLifecycleStatus: 'acknowledged',
-      type: t('mobile.chat', 'Chat'),
+      sourceType: 'symptom_checkin',
+      typeKey: 'mobile.chat',
       priority: 'Attention',
-      alertText: 'Elevated Fasting Glucose',
-      value: '140',
-      metric: 'mg/dL',
-      tag: 'Glucose',
+      alertTextKey: 'mobile.alert_title_symptom_dizziness',
+      value: 'Moderate',
+      metric: 'Dizziness',
       linkedConsultationId: null,
     },
     {
@@ -117,12 +117,12 @@ export default function DoctorHomeScreen() {
       time: '02:15 PM',
       statusKey: 'upcoming',
       alertLifecycleStatus: 'open',
-      type: t('mobile.video_call', 'Video Call'),
-      priority: 'Normal',
-      alertText: 'Missed 2 Consecutive Check-in Tasks',
-      value: '2 tasks',
-      metric: 'missed',
-      tag: 'Adherence',
+      sourceType: 'vital_reading',
+      typeKey: 'mobile.video_call',
+      priority: 'Attention',
+      alertTextKey: 'mobile.alert_title_elevated_glucose',
+      value: '145',
+      metric: 'mg/dL',
       linkedConsultationId: null,
     },
   ];
@@ -131,7 +131,6 @@ export default function DoctorHomeScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [queue, setQueue] = useState<PriorityAlertItem[]>([]);
 
-  // Modals state
   const [resolveModalVisible, setResolveModalVisible] = useState(false);
   const [dismissModalVisible, setDismissModalVisible] = useState(false);
   const [selectedAlert, setSelectedAlert] = useState<PriorityAlertItem | null>(null);
@@ -139,64 +138,69 @@ export default function DoctorHomeScreen() {
   const [reasonCode, setReasonCode] = useState('');
 
   const reasonCodes = [
-    { id: 'duplicate', label: t('mobile.duplicate', 'Duplicate (Trùng lặp)') },
-    { id: 'invalid_metric', label: t('mobile.invalid_metric', 'Invalid Metric (Chỉ số sai lệch)') },
-    {
-      id: 'rule_false_positive',
-      label: t('mobile.rule_false_positive', 'False Positive (Cảnh báo giả)'),
-    },
+    { id: 'duplicate', label: t('mobile.duplicate') },
+    { id: 'invalid_metric', label: t('mobile.invalid_metric') },
+    { id: 'rule_false_positive', label: t('mobile.rule_false_positive') },
   ];
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      setQueue(priorityInbox);
+      setQueue(initialPriorityInbox);
       setLoading(false);
-    }, 800);
+    }, 600);
     return () => clearTimeout(timer);
   }, []);
 
   const onRefresh = () => {
     setRefreshing(true);
-    setTimeout(() => setRefreshing(false), 800);
+    setTimeout(() => setRefreshing(false), 600);
   };
 
-  // CARE-13: Acknowledge Alert
-  const handleAcknowledge = (alertItem: PriorityAlertItem) => {
-    setQueue((prev) =>
-      prev.map((item) =>
-        item.id === alertItem.id ? { ...item, alertLifecycleStatus: 'acknowledged' } : item
-      )
-    );
-    Toast.show({
-      type: 'success',
-      text1: t('mobile.alert_acknowledged', 'Đã tiếp nhận cảnh báo'),
-      text2: isVi
-          ? `${alertItem.name} • Đã chuyển sang trạng thái tiếp nhận`
-          : `${alertItem.name} • Status changed to acknowledged`,
-    });
+  const handleAcknowledge = async (alertItem: PriorityAlertItem) => {
+    if (busyActionId) return;
+    setBusyActionId(`ack-${alertItem.id}`);
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 220));
+      setQueue((prev) =>
+        prev.map((item) =>
+          item.id === alertItem.id ? { ...item, alertLifecycleStatus: 'acknowledged' } : item
+        )
+      );
+      Toast.show({
+        type: 'success',
+        text1: t('mobile.alert_acknowledged'),
+        text2: `${alertItem.name} • ${t('mobile.status_acknowledged')}`,
+      });
+    } finally {
+      setBusyActionId(null);
+    }
   };
 
-  // CARE-16: Create Consultation from Alert
-  const handleCreateConsultationFromAlert = (alertItem: PriorityAlertItem) => {
-    const consultId = `con_alert_${alertItem.id}`;
-    setQueue((prev) =>
-      prev.map((item) =>
-        item.id === alertItem.id
-          ? {
-              ...item,
-              alertLifecycleStatus: 'acknowledged',
-              linkedConsultationId: consultId,
-            }
-          : item
-      )
-    );
-    Toast.show({
-      type: 'success',
-      text1: t('mobile.consultation_created_from_alert', 'Đã tạo phiên tư vấn từ cảnh báo'),
-      text2: isVi
-          ? `Đã khởi tạo yêu cầu khám cho ${alertItem.name} và gắn với cảnh báo này.`
-          : `A consultation request was created for ${alertItem.name} and linked to this alert.`,
-    });
+  const handleCreateConsultationFromAlert = async (alertItem: PriorityAlertItem) => {
+    if (busyActionId) return;
+    setBusyActionId(`consult-${alertItem.id}`);
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 240));
+      const consultId = `con_alert_${alertItem.id}`;
+      setQueue((prev) =>
+        prev.map((item) =>
+          item.id === alertItem.id
+            ? {
+                ...item,
+                alertLifecycleStatus: 'acknowledged',
+                linkedConsultationId: consultId,
+              }
+            : item
+        )
+      );
+      Toast.show({
+        type: 'success',
+        text1: t('mobile.consultation_created_from_alert'),
+        text2: `${alertItem.name} • ${t('mobile.consultation_created')}`,
+      });
+    } finally {
+      setBusyActionId(null);
+    }
   };
 
   const handleResolve = (alert: PriorityAlertItem) => {
@@ -209,38 +213,52 @@ export default function DoctorHomeScreen() {
     setDismissModalVisible(true);
   };
 
-  const confirmResolve = () => {
-    if (selectedAlert) {
-      setQueue((prev) => prev.filter((item) => item.id !== selectedAlert.id));
+  const confirmResolve = async () => {
+    if (busyActionId) return;
+    setBusyActionId('confirm-resolve');
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 240));
+      if (selectedAlert) {
+        setQueue((prev) => prev.filter((item) => item.id !== selectedAlert.id));
+      }
+      setResolveModalVisible(false);
+      setResolutionNote('');
+      Toast.show({
+        type: 'success',
+        text1: t('mobile.success'),
+        text2: t('mobile.alert_resolved'),
+      });
+    } finally {
+      setBusyActionId(null);
     }
-    setResolveModalVisible(false);
-    setResolutionNote('');
-    Toast.show({
-      type: 'success',
-      text1: t('mobile.success', 'Success'),
-      text2: t('mobile.alert_resolved', 'Alert resolved successfully'),
-    });
   };
 
-  const confirmDismiss = () => {
+  const confirmDismiss = async () => {
     if (!reasonCode) {
       Toast.show({
         type: 'error',
-        text1: t('mobile.error', 'Error'),
-        text2: t('mobile.reason_code_required', 'Reason code is required'),
+        text1: t('mobile.error'),
+        text2: t('mobile.reason_code_required'),
       });
       return;
     }
-    if (selectedAlert) {
-      setQueue((prev) => prev.filter((item) => item.id !== selectedAlert.id));
+    if (busyActionId) return;
+    setBusyActionId('confirm-dismiss');
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 240));
+      if (selectedAlert) {
+        setQueue((prev) => prev.filter((item) => item.id !== selectedAlert.id));
+      }
+      setDismissModalVisible(false);
+      setReasonCode('');
+      Toast.show({
+        type: 'success',
+        text1: t('mobile.success'),
+        text2: t('mobile.alert_dismissed'),
+      });
+    } finally {
+      setBusyActionId(null);
     }
-    setDismissModalVisible(false);
-    setReasonCode('');
-    Toast.show({
-      type: 'success',
-      text1: t('mobile.success', 'Success'),
-      text2: t('mobile.alert_dismissed', `Alert dismissed (${reasonCode})`),
-    });
   };
 
   const filteredQueue = queue.filter((item) => {
@@ -279,10 +297,10 @@ export default function DoctorHomeScreen() {
         <View style={tw('flex-row justify-between items-center px-6 pt-6 pb-4')}>
           <View style={tw('flex-1')}>
             <Text style={tw('text-gray-500 text-sm')}>
-              {t('mobile.good_morning', 'Good morning,')}
+              {t('mobile.good_morning')}
             </Text>
             <Text style={tw('text-2xl font-bold text-slate-900 dark:text-white')}>
-              {t('mobile.dr_sarah_connor', 'Dr. Sarah Connor')}
+              {t('mobile.dr_sarah_connor')}
             </Text>
           </View>
           <View style={tw('flex-row items-center')}>
@@ -319,7 +337,7 @@ export default function DoctorHomeScreen() {
         {/* Stats Grid */}
         <View style={tw('px-6 mb-8')}>
           <Text style={tw('text-lg font-bold text-slate-900 dark:text-white mb-4')}>
-            {t('mobile.overview', 'Overview')}
+            {t('mobile.overview')}
           </Text>
           <ScrollView
             horizontal
@@ -352,7 +370,7 @@ export default function DoctorHomeScreen() {
                     <TrendingUp color="#10b981" size={14} />
                     <Text style={tw('text-xs font-bold text-emerald-500')}>{stat.trend}</Text>
                     <Text style={tw('text-xs text-gray-400')}>
-                      {t('mobile.this_month', 'this month')}
+                      {t('mobile.this_month')}
                     </Text>
                   </View>
                 </View>
@@ -361,14 +379,14 @@ export default function DoctorHomeScreen() {
           </ScrollView>
         </View>
 
-        {/* Priority Inbox Header (CARE-12..16) */}
+        {/* Priority Inbox Header */}
         <View style={tw('px-6 mb-3 flex-row items-center justify-between')}>
           <View>
             <Text style={tw('text-lg font-bold text-slate-900 dark:text-white')}>
-              {t('mobile.priority_inbox', 'Priority Inbox')}
+              {t('mobile.priority_inbox')}
             </Text>
             <Text style={tw('text-sm text-gray-500 dark:text-gray-400')}>
-              {t('mobile.needs_attention', 'Cảnh báo vượt ngưỡng & nhiệm vụ cần xử lý')}
+              {t('mobile.needs_attention')}
             </Text>
           </View>
           <TouchableOpacity
@@ -376,12 +394,12 @@ export default function DoctorHomeScreen() {
             style={tw('bg-brand/10 dark:bg-brand/20 px-3 py-1.5 rounded-full')}
           >
             <Text style={tw('text-xs font-bold text-brand-dark dark:text-brand-light')}>
-              {t('mobile.view_all', 'View All')}
+              {t('mobile.view_all')}
             </Text>
           </TouchableOpacity>
         </View>
 
-        {/* Priority Inbox Filter Pills (Severity + Alert Status) */}
+        {/* Priority Inbox Filter Pills */}
         <View style={tw('px-6 mb-4 gap-2')}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             <View style={tw('flex-row gap-2')}>
@@ -407,10 +425,10 @@ export default function DoctorHomeScreen() {
                     )}
                   >
                     {sev === 'All'
-                      ? t('mobile.all_severities', 'Tất cả mức độ')
+                      ? t('mobile.all_severities')
                       : sev === 'Urgent'
-                        ? t('mobile.urgent', 'Khẩn cấp')
-                        : t('mobile.attention', 'Cần chú ý')}
+                        ? t('mobile.urgent')
+                        : t('mobile.attention')}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -434,10 +452,10 @@ export default function DoctorHomeScreen() {
                     )}
                   >
                     {st === 'all'
-                      ? t('mobile.all_statuses', 'Mọi trạng thái')
+                      ? t('mobile.all_statuses')
                       : st === 'open'
-                        ? t('mobile.status_open', 'Đang mở')
-                        : t('mobile.status_acknowledged', 'Đã tiếp nhận')}
+                        ? t('mobile.status_open')
+                        : t('mobile.status_acknowledged')}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -494,7 +512,11 @@ export default function DoctorHomeScreen() {
                             }`
                           )}
                         >
-                          {item.priority}
+                          {item.priority === 'Urgent'
+                            ? t('mobile.urgent')
+                            : item.priority === 'Attention'
+                              ? t('mobile.attention')
+                              : t('mobile.normal')}
                         </Text>
                       </View>
                       <View
@@ -515,17 +537,19 @@ export default function DoctorHomeScreen() {
                             }`
                           )}
                         >
-                          {item.alertLifecycleStatus}
+                          {item.alertLifecycleStatus === 'acknowledged'
+                            ? t('mobile.status_acknowledged')
+                            : t('mobile.status_open')}
                         </Text>
                       </View>
                     </View>
                     <Text style={tw('text-sm text-gray-500 dark:text-gray-400')}>
-                      {item.type} • {item.time}
+                      {t(item.typeKey)} • {item.time}
                     </Text>
                   </View>
                   <TouchableOpacity
                     onPress={() =>
-                      item.type === t('mobile.video_call', 'Video Call')
+                      item.typeKey === 'mobile.video_call'
                         ? router.push('/(doctor)/video-call')
                         : router.push('/(doctor)/chat/1')
                     }
@@ -548,8 +572,8 @@ export default function DoctorHomeScreen() {
                       )}
                     >
                       {item.statusKey === 'waiting'
-                        ? t('mobile.waiting', 'Waiting')
-                        : t('mobile.upcoming', 'Upcoming')}
+                        ? t('mobile.waiting')
+                        : t('mobile.upcoming')}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -566,8 +590,13 @@ export default function DoctorHomeScreen() {
                     }`
                   )}
                 >
+                  <Text style={tw('text-[11px] font-bold text-indigo-600 dark:text-indigo-400 mb-0.5')}>
+                    {item.sourceType === 'symptom_checkin'
+                      ? t('mobile.rule_source_symptom_checkin')
+                      : t('mobile.rule_source_vital_readings')}
+                  </Text>
                   <Text style={tw('text-sm font-bold text-slate-700 dark:text-slate-300 mb-1')}>
-                    {item.alertText}
+                    {t(item.alertTextKey)}
                   </Text>
                   <View style={tw('flex-row items-end justify-between')}>
                     <View style={tw('flex-row items-end')}>
@@ -592,53 +621,61 @@ export default function DoctorHomeScreen() {
                       <View style={tw('flex-row items-center bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-md')}>
                         <CheckCircle size={12} color="#10b981" style={tw('mr-1')} />
                         <Text style={tw('text-xs font-bold text-emerald-600 dark:text-emerald-400')}>
-                          {t('mobile.consultation_created', 'Đã tạo phiên khám')}
+                          {t('mobile.consultation_created')}
                         </Text>
                       </View>
                     )}
                   </View>
                 </View>
 
-                {/* Row 1 Actions: Acknowledge (CARE-13) + Create Consultation from Alert (CARE-16) */}
+                {/* Row 1 Actions: Acknowledge + Create Consultation from Alert */}
                 <View style={tw('flex-row gap-2.5 mb-2.5')}>
                   {item.alertLifecycleStatus === 'open' && (
                     <TouchableOpacity
+                      disabled={busyActionId !== null}
                       onPress={() => handleAcknowledge(item)}
                       style={tw(
-                        'flex-1 bg-indigo-50 dark:bg-indigo-900/30 py-2.5 rounded-xl flex-row justify-center items-center border border-indigo-200 dark:border-indigo-800'
+                        `flex-1 bg-indigo-50 dark:bg-indigo-900/30 py-2.5 rounded-xl flex-row justify-center items-center border border-indigo-200 dark:border-indigo-800 ${
+                          busyActionId === `ack-${item.id}` ? 'opacity-60' : ''
+                        }`
                       )}
                     >
                       <Eye color="#6366f1" size={16} style={tw('mr-1.5')} />
                       <Text style={tw('text-indigo-700 dark:text-indigo-300 font-bold text-xs')}>
-                        {t('mobile.acknowledge_alert', 'Tiếp nhận')}
+                        {t('mobile.acknowledge_alert')}
                       </Text>
                     </TouchableOpacity>
                   )}
                   <TouchableOpacity
+                    disabled={busyActionId !== null}
                     onPress={() => handleCreateConsultationFromAlert(item)}
                     style={tw(
-                      'flex-1 bg-emerald-50 dark:bg-emerald-900/30 py-2.5 rounded-xl flex-row justify-center items-center border border-emerald-200 dark:border-emerald-800'
+                      `flex-1 bg-emerald-50 dark:bg-emerald-900/30 py-2.5 rounded-xl flex-row justify-center items-center border border-emerald-200 dark:border-emerald-800 ${
+                        busyActionId === `consult-${item.id}` ? 'opacity-60' : ''
+                      }`
                     )}
                   >
                     <Stethoscope color="#10b981" size={16} style={tw('mr-1.5')} />
                     <Text style={tw('text-emerald-700 dark:text-emerald-300 font-bold text-xs')}>
-                      {t('mobile.create_consult_from_alert', 'Tạo phiên khám')}
+                      {t('mobile.create_consult_from_alert')}
                     </Text>
                   </TouchableOpacity>
                 </View>
 
-                {/* Row 2 Actions: Resolve (CARE-14) + Dismiss (CARE-15) */}
+                {/* Row 2 Actions: Resolve + Dismiss */}
                 <View style={tw('flex-row gap-3')}>
                   <TouchableOpacity
+                    disabled={busyActionId !== null}
                     onPress={() => handleResolve(item)}
                     style={tw('flex-1 bg-brand py-3 rounded-xl flex-row justify-center items-center')}
                   >
                     <CheckCircle color="#0f172a" size={18} style={tw('mr-2')} />
                     <Text style={tw('text-slate-900 font-bold text-sm')}>
-                      {t('mobile.resolve', 'Resolve')}
+                      {t('mobile.resolve')}
                     </Text>
                   </TouchableOpacity>
                   <TouchableOpacity
+                    disabled={busyActionId !== null}
                     onPress={() => handleDismiss(item)}
                     style={tw(
                       'flex-1 bg-slate-100 dark:bg-slate-800 py-3 rounded-xl flex-row justify-center items-center border border-slate-200 dark:border-slate-700'
@@ -650,7 +687,7 @@ export default function DoctorHomeScreen() {
                       style={tw('mr-2')}
                     />
                     <Text style={tw('text-slate-700 dark:text-slate-300 font-bold text-sm')}>
-                      {t('mobile.dismiss', 'Dismiss')}
+                      {t('mobile.dismiss')}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -664,7 +701,7 @@ export default function DoctorHomeScreen() {
             >
               <Users color="#94a3b8" size={32} style={tw('mb-2')} />
               <Text style={tw('text-gray-500 font-medium')}>
-                {t('mobile.no_patients_in_queue', 'No alerts matching filter')}
+                {t('mobile.no_patients_in_queue')}
               </Text>
             </View>
           )}
@@ -685,7 +722,7 @@ export default function DoctorHomeScreen() {
           <View style={tw('bg-white dark:bg-slate-900 rounded-t-3xl p-6')}>
             <View style={tw('flex-row justify-between items-center mb-6')}>
               <Text style={tw('text-xl font-bold text-slate-900 dark:text-white')}>
-                {t('mobile.resolve_alert', 'Resolve Alert')}
+                {t('mobile.resolve_alert')}
               </Text>
               <TouchableOpacity onPress={() => setResolveModalVisible(false)}>
                 <X color={twInstance.color('text-slate-400')} size={24} />
@@ -693,12 +730,12 @@ export default function DoctorHomeScreen() {
             </View>
             <View style={tw('mb-4')}>
               <Text style={tw('text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2')}>
-                {t('mobile.resolution_note', 'Resolution Note')}
+                {t('mobile.resolution_note')}
               </Text>
               <TextInput
                 value={resolutionNote}
                 onChangeText={setResolutionNote}
-                placeholder={t('mobile.write_diagnostic_notes', 'Write your notes...')}
+                placeholder={t('mobile.write_diagnostic_notes')}
                 placeholderTextColor={twInstance.color('text-slate-400')}
                 style={tw(
                   'bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-4 text-slate-900 dark:text-white h-32'
@@ -708,11 +745,15 @@ export default function DoctorHomeScreen() {
               />
             </View>
             <TouchableOpacity
+              disabled={busyActionId !== null}
               onPress={confirmResolve}
-              style={tw('bg-brand py-4 rounded-xl items-center')}
+              style={tw(`bg-brand py-4 rounded-xl items-center flex-row justify-center ${busyActionId === 'confirm-resolve' ? 'opacity-60' : ''}`)}
             >
+              {busyActionId === 'confirm-resolve' && (
+                <ActivityIndicator size="small" color="#0f172a" style={tw('mr-2')} />
+              )}
               <Text style={tw('text-slate-900 font-bold text-base')}>
-                {t('mobile.confirm_resolve', 'Confirm & Resolve')}
+                {t('mobile.confirm_resolve')}
               </Text>
             </TouchableOpacity>
           </View>
@@ -733,7 +774,7 @@ export default function DoctorHomeScreen() {
           <View style={tw('bg-white dark:bg-slate-900 rounded-t-3xl p-6')}>
             <View style={tw('flex-row justify-between items-center mb-6')}>
               <Text style={tw('text-xl font-bold text-slate-900 dark:text-white')}>
-                {t('mobile.dismiss_alert', 'Dismiss Alert')}
+                {t('mobile.dismiss_alert')}
               </Text>
               <TouchableOpacity onPress={() => setDismissModalVisible(false)}>
                 <X color={twInstance.color('text-slate-400')} size={24} />
@@ -741,7 +782,7 @@ export default function DoctorHomeScreen() {
             </View>
             <View style={tw('mb-6')}>
               <Text style={tw('text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2')}>
-                {t('mobile.reason_code', 'Reason Code (Allowlisted)')}
+                {t('mobile.reason_code')}
               </Text>
               <View
                 style={tw(
@@ -787,11 +828,15 @@ export default function DoctorHomeScreen() {
               </View>
             </View>
             <TouchableOpacity
+              disabled={busyActionId !== null}
               onPress={confirmDismiss}
-              style={tw('bg-slate-900 dark:bg-white py-4 rounded-xl items-center')}
+              style={tw(`bg-slate-900 dark:bg-white py-4 rounded-xl items-center flex-row justify-center ${busyActionId === 'confirm-dismiss' ? 'opacity-60' : ''}`)}
             >
+              {busyActionId === 'confirm-dismiss' && (
+                <ActivityIndicator size="small" color="#64748b" style={tw('mr-2')} />
+              )}
               <Text style={tw('text-white dark:text-slate-900 font-bold text-base')}>
-                {t('mobile.confirm_dismiss', 'Confirm Dismiss')}
+                {t('mobile.confirm_dismiss')}
               </Text>
             </TouchableOpacity>
           </View>

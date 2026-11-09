@@ -41,8 +41,7 @@ import { DoctorReviewsModal } from '@/components/modals';
 type DoctorStatus = 'unrequested' | 'pending' | 'accepted';
 
 export default function MyDoctorsScreen() {
-  const { t, i18n } = useTranslation();
-  const isVi = i18n.language === 'vi';
+  const { t } = useTranslation();
   useThemeContext();
 
   const router = useRouter();
@@ -167,7 +166,7 @@ export default function MyDoctorsScreen() {
           ? t('mobile.slot_booked_instant', 'Đặt lịch thành công (tự động xác nhận)')
           : t('mobile.request_sent', 'Request Sent'),
         text2: isInstantScheduled
-          ? `${selectedDate} • ${selectedTime} (${timezoneLabel(selectedDoctor.timezone, isVi)})`
+          ? `${selectedDate} • ${selectedTime} (${timezoneLabel(selectedDoctor.timezone)})`
           : t('mobile.consultation_request_sent_success', 'Your consultation request has been sent to the doctor.'),
       });
     }, 400);
@@ -310,7 +309,7 @@ export default function MyDoctorsScreen() {
                       {t('mobile.last_visit', 'Last visit')}: {doc.lastVisit}
                     </Text>
                     <Text style={tw('text-[11px] text-indigo-500 dark:text-indigo-400 font-semibold mt-0.5')}>
-                      {bookingPolicyLabel(doc.bookingPolicy, isVi)} • {timezoneLabel(doc.timezone, isVi)}
+                      {bookingPolicyLabel(doc.bookingPolicy)} • {timezoneLabel(doc.timezone)}
                     </Text>
                   </View>
 
@@ -400,7 +399,7 @@ export default function MyDoctorsScreen() {
                   <View style={tw('bg-emerald-50 dark:bg-emerald-950/40 px-3 py-1 rounded-full border border-emerald-100 dark:border-emerald-800 flex-row items-center')}>
                     <Globe color="#10b981" size={13} />
                     <Text style={tw('text-emerald-700 dark:text-emerald-300 font-bold text-xs ml-1')}>
-                      {timezoneLabel(selectedDoctor.timezone, isVi)}
+                      {timezoneLabel(selectedDoctor.timezone)}
                     </Text>
                   </View>
                 </View>
@@ -537,7 +536,7 @@ export default function MyDoctorsScreen() {
                       : t('mobile.request_on_demand', 'Yêu cầu Khám ngay')}
                   </Text>
                   <Text style={tw('text-xs text-slate-500 dark:text-slate-400 mt-0.5')}>
-                    {timezoneLabel(selectedDoctor.timezone, isVi)} • {bookingPolicyLabel(selectedDoctor.bookingPolicy, isVi)}
+                    {timezoneLabel(selectedDoctor.timezone)} • {bookingPolicyLabel(selectedDoctor.bookingPolicy)}
                   </Text>
                 </View>
                 <TouchableOpacity onPress={() => setRequestModalVisible(false)} style={tw('p-2 bg-slate-50 dark:bg-slate-950 rounded-xl')}>
@@ -553,7 +552,7 @@ export default function MyDoctorsScreen() {
                     style={tw(`flex-1 py-2.5 rounded-xl items-center ${bookingMode === 'scheduled' ? 'bg-white dark:bg-slate-900 shadow-sm' : ''}`)}
                   >
                     <Text style={tw(`text-xs font-bold ${bookingMode === 'scheduled' ? 'text-slate-900 dark:text-white' : 'text-slate-500 dark:text-slate-400'}`)}>
-                      {isVi ? 'Đặt theo khung giờ (30 phút)' : 'Scheduled slot (30 min)'}
+                      {t('mobile.scheduled_slot_30m', 'Đặt theo khung giờ 30 phút')}
                     </Text>
                   </TouchableOpacity>
                   <TouchableOpacity
@@ -561,7 +560,7 @@ export default function MyDoctorsScreen() {
                     style={tw(`flex-1 py-2.5 rounded-xl items-center ${bookingMode === 'on_demand' ? 'bg-white dark:bg-slate-900 shadow-sm' : ''}`)}
                   >
                     <Text style={tw(`text-xs font-bold ${bookingMode === 'on_demand' ? 'text-slate-900 dark:text-white' : 'text-slate-500 dark:text-slate-400'}`)}>
-                      {isVi ? 'Yêu cầu khám ngay' : 'On-demand request'}
+                      {t('mobile.on_demand_request_tab', 'Yêu cầu khám ngay')}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -603,7 +602,7 @@ export default function MyDoctorsScreen() {
                     </ScrollView>
 
                     <Text style={tw('text-sm font-bold text-slate-900 dark:text-white mb-2')}>
-                      {t('mobile.select_time_slot', 'Select Time Slot (Available)')}
+                      {t('mobile.select_time_slot', 'Select Time Slot')}
                     </Text>
                     <View style={tw('flex-row flex-wrap gap-2 mb-4')}>
                       {availableTimes.map((time) => (
@@ -634,7 +633,7 @@ export default function MyDoctorsScreen() {
                 )}
 
                 <Text style={tw('text-sm font-bold text-slate-900 dark:text-white mb-2')}>
-                  {t('mobile.reason_for_consultation', 'Reason for consultation (patientNotes)')}
+                  {t('mobile.reason_for_consultation', 'Lý do tư vấn')}
                 </Text>
                 <TextInput
                   style={tw('bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 min-h-[90px] text-sm text-slate-800 dark:text-slate-100')}

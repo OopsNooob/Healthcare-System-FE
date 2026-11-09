@@ -23,8 +23,7 @@ interface ChatMessage {
 }
 
 export default function DoctorChatSessionScreen() {
-  const { t, i18n } = useTranslation();
-  const isVi = i18n.language === 'vi';
+  const { t } = useTranslation();
   useThemeContext();
 
   const router = useRouter();
@@ -50,7 +49,7 @@ export default function DoctorChatSessionScreen() {
   const initialMessages: ChatMessage[] = [
     {
       id: '1',
-      text: isVi ? "Bác sĩ ơi, tôi gửi kèm kết quả xét nghiệm máu mới nhận sáng nay:" : "Doctor, here is my recent blood test panel from this morning:",
+      text: t('mobile.sample_chat_patient_msg_1', 'Bác sĩ ơi, tôi gửi kèm kết quả xét nghiệm máu mới nhận sáng nay:'),
       sender: 'user',
       time: '10:31 AM',
       hasAttachment: true,
@@ -61,7 +60,7 @@ export default function DoctorChatSessionScreen() {
     },
     {
       id: '2',
-      text: isVi ? "Bác sĩ đã xem phiếu xét nghiệm. Các chỉ số đều rất tốt. Tôi gửi đơn thuốc và hướng dẫn theo dõi bên dưới nhé:" : "I reviewed your blood panel. Results look great. I have attached the updated care directives below:",
+      text: t('mobile.sample_chat_doctor_msg_2', 'Bác sĩ đã xem phiếu xét nghiệm. Các chỉ số đều rất tốt. Tôi gửi đơn thuốc và hướng dẫn theo dõi bên dưới nhé:'),
       sender: 'doctor',
       time: '10:33 AM',
       hasAttachment: true,

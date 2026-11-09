@@ -17,21 +17,38 @@ export const PatientProfileModal: React.FC<PatientProfileModalProps> = ({
 }) => {
   const { t } = useTranslation();
 
-  const mockPatient = patient || {
+  const defaultPatient = {
     name: 'Alex Johnson',
     age: 36,
-    gender: 'Male',
-    phone: '+1 234 567 890',
+    gender: t('mobile.male', 'Nam'),
+    phone: '+84 912 345 678',
     email: 'alex.johnson@example.com',
-    address: '123 Health Street, Ward 5, District 1, Metropolis',
+    address: '123 Nguyễn Thị Minh Khai, Quận 1, TP. Hồ Chí Minh',
     bloodType: 'O+',
-    allergies: 'Penicillin, Shellfish',
-    program: 'Hypertension Care Program',
+    allergies: 'Penicillin',
+    program: t('mobile.hypertension_management'),
     baseline: '145/95 mmHg',
     current: '138/88 mmHg',
     adherence: 85,
-    enrolledDate: 'Aug 15, 2026',
-    emergencyContact: 'Sarah Johnson (Spouse) - +1 234 567 891',
+    enrolledDate: '15/08/2026',
+    emergencyContact: `Sarah Johnson (${t('mobile.rel_spouse')}) - +84 987 654 321`,
+  };
+
+  const rawProgram = patient?.program || defaultPatient.program;
+  const localizedProgram =
+    rawProgram === 'Hypertension Management'
+      ? t('mobile.hypertension_management')
+      : rawProgram === 'Diabetes Care'
+        ? t('mobile.diabetes_care')
+        : rawProgram;
+
+  const mockPatient = {
+    ...defaultPatient,
+    ...patient,
+    program: localizedProgram,
+    baseline: patient?.baseline || defaultPatient.baseline,
+    current: patient?.current || defaultPatient.current,
+    adherence: patient?.adherence ?? defaultPatient.adherence,
   };
 
   return (

@@ -44,8 +44,7 @@ const AiSummaryAccordion = ({ title, content, isEmpty }: { title: string, conten
 };
 
 export default function ReportsScreen() {
-  const { t, i18n } = useTranslation();
-  const isVi = i18n.language === 'vi';
+  const { t } = useTranslation();
   useThemeContext();
   const router = useRouter();
 
@@ -98,10 +97,10 @@ export default function ReportsScreen() {
                 style={tw(`font-semibold text-center ${timeRange === range ? 'text-slate-900 dark:text-white' : 'text-slate-500 dark:text-slate-400'}`)}
               >
                 {range === '7d' 
-                  ? (isVi ? '7\u00A0Ngày' : '7\u00A0Days') 
+                  ? t('mobile.range_7d_short', '7\u00A0Ngày') 
                   : range === '30d' 
-                  ? (isVi ? '30\u00A0Ngày' : '30\u00A0Days') 
-                  : (isVi ? '90\u00A0Ngày' : '90\u00A0Days')}
+                  ? t('mobile.range_30d_short', '30\u00A0Ngày') 
+                  : t('mobile.range_90d_short', '90\u00A0Ngày')}
               </Text>
             </TouchableOpacity>
           ))}

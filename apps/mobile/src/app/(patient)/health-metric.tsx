@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { View, Text, ScrollView, TouchableOpacity, Modal, TextInput, Alert, KeyboardAvoidingView, Platform, Linking } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Modal, TextInput, Alert, KeyboardAvoidingView, Platform, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Activity, Heart, Droplet, Plus, Edit2, Trash2, Bot, X, AlertTriangle, AlertCircle, PhoneCall, CheckCircle2 } from 'lucide-react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Activity, Heart, Droplet, Plus, Trash2, Bot, X, AlertTriangle, AlertCircle, PhoneCall } from 'lucide-react-native';
 import { tw, twInstance } from '@/tw';
 import { useSafeRouter as useRouter } from '@/utils/useSafeRouter';
 import Toast from 'react-native-toast-message';
@@ -78,18 +79,24 @@ export default function HealthMetricScreen() {
   const [alertVisible, setAlertVisible] = useState(false);
   const [alertType, setAlertType] = useState<'normal' | 'attention' | 'urgent'>('normal');
   const [alertReason, setAlertReason] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
-  const { i18n } = useTranslation();
-  const isVi = i18n.language === 'vi';
+  const onRefresh = () => {
+    setRefreshing(true);
+    setTimeout(() => setRefreshing(false), 600);
+  };
 
   const formatTime = (date: Date) => {
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
   const formatDate = (date: Date) => {
-    if (isVi) {
-      return `Ngày ${date.getDate()} Thg ${date.getMonth() + 1}, ${date.getFullYear()}`;
-    }
-    return date.toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
+    return t('mobile.metric_date_format', {
+      day: date.getDate(),
+      month: date.getMonth() + 1,
+      year: date.getFullYear(),
+      defaultValue: `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()}`,
+    });
   };
 
   const openAddModal = () => {
@@ -124,7 +131,8 @@ export default function HealthMetricScreen() {
     ]);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    if (isSaving) return;
     if (!formValue.trim()) {
       Toast.show({
         type: 'error',
@@ -133,6 +141,9 @@ export default function HealthMetricScreen() {
       });
       return;
     }
+
+    setIsSaving(true);
+    await new Promise((resolve) => setTimeout(resolve, 250));
 
     // --- Mock Rule Engine for DA2 ---
     let newAlertType: 'normal' | 'attention' | 'urgent' = 'normal';
@@ -179,7 +190,29 @@ export default function HealthMetricScreen() {
       }
       return m;
     }));
+
+    // Auto-complete matching metric care task in AsyncStorage (PR #12 metric task completion)
+    try {
+      const targetTaskId = selectedMetricId === 'blood_pressure' ? 'task-101' : selectedMetricId === 'blood_sugar' ? 'task-102' : null;
+      if (targetTaskId) {
+        const rawTasks = await AsyncStorage.getItem('mock_care_tasks_v1');
+        if (rawTasks) {
+          const parsedTasks = JSON.parse(rawTasks);
+          if (Array.isArray(parsedTasks)) {
+            const updatedTasks = parsedTasks.map((tk: any) =>
+              tk.id === targetTaskId && tk.status !== 'completed'
+                ? { ...tk, status: 'completed' }
+                : tk
+            );
+            await AsyncStorage.setItem('mock_care_tasks_v1', JSON.stringify(updatedTasks));
+          }
+        }
+      }
+    } catch {
+      // ignore storage error
+    }
     
+    setIsSaving(false);
     setModalVisible(false);
 
     // Trigger Alert if not normal
@@ -199,7 +232,14 @@ export default function HealthMetricScreen() {
   const handleAskAI = (entry: MetricEntry) => {
     const timeStr = formatTime(new Date(entry.timestamp));
     const dateStr = formatDate(new Date(entry.timestamp));
-    const prompt = isVi ? `Đánh giá giúp tôi chỉ số ${selectedMetric.title} là ${entry.value} ${selectedMetric.unit} vừa đo lúc ${timeStr} ngày ${dateStr} có sao không?` : `Please evaluate my ${selectedMetric.title} which is ${entry.value} ${selectedMetric.unit} measured at ${timeStr} on ${dateStr}. Is it okay?`;
+    const prompt = t('mobile.ask_ai_metric_prompt', {
+      metric: selectedMetric.title,
+      value: entry.value,
+      unit: selectedMetric.unit,
+      time: timeStr,
+      date: dateStr,
+      defaultValue: `Đánh giá giúp tôi chỉ số ${selectedMetric.title} là ${entry.value} ${selectedMetric.unit} vừa đo lúc ${timeStr} ngày ${dateStr} có sao không?`,
+    });
     router.push({
       pathname: '/(patient)/ai-chat/[id]',
       params: { id: 'new-session', prefill: prompt }
@@ -246,7 +286,11 @@ export default function HealthMetricScreen() {
       </View>
 
       {/* Entries List */}
-      <ScrollView contentContainerStyle={tw('px-6 pb-20')} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={tw('px-6 pb-20')}
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#10b981" />}
+      >
         <View style={tw('flex-row justify-between items-end mb-4')}>
           <Text style={tw('text-lg font-bold text-slate-900 dark:text-white')}>{t('mobile.recent_records', `Recent Records`)}</Text>
           <TouchableOpacity onPress={() => router.push('/(patient)/reports')}>
@@ -360,7 +404,8 @@ export default function HealthMetricScreen() {
 
               <TouchableOpacity 
                 onPress={handleSave}
-                style={tw('bg-emerald-500 py-4 rounded-xl items-center mt-4')}
+                disabled={isSaving}
+                style={tw(`bg-emerald-500 py-4 rounded-xl items-center mt-4 ${isSaving ? 'opacity-60' : ''}`)}
               >
                 <Text style={tw('text-white font-bold text-base')}>{t('mobile.save_record', `Save Record`)}</Text>
               </TouchableOpacity>

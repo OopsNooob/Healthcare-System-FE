@@ -82,8 +82,7 @@ interface RefundRequestRecord {
 }
 
 export default function PremiumScreen() {
-  const { t, i18n } = useTranslation();
-  const isVi = i18n.language === 'vi';
+  const { t } = useTranslation();
   useThemeContext();
 
   const router = useRouter();
@@ -227,7 +226,7 @@ export default function PremiumScreen() {
             Toast.show({
               type: 'info',
               text1: t('mobile.order_ended', 'Đơn hàng đã kết thúc'),
-              text2: `${isVi ? 'Trạng thái' : 'Status'}: ${orderStatusText(order.status)}`,
+              text2: `${t('mobile.status_label', 'Trạng thái')}: ${orderStatusText(order.status)}`,
             });
             setOrderModalVisible(false);
           }
@@ -282,12 +281,13 @@ export default function PremiumScreen() {
       const errorMsg =
         error?.response?.data?.message ||
         error?.message ||
-        (isVi ? 'Cổng thanh toán đang được chuẩn bị' : 'The payment gateway is being prepared');
+        t('mobile.payment_gateway_preparing', 'Cổng thanh toán đang được chuẩn bị');
       Alert.alert(
         t('mobile.payment_gateway', 'Cổng thanh toán VNPAY'),
-        isVi
-          ? `${errorMsg}.\n\nLưu ý: trang kết quả thanh toán chỉ hiển thị trạng thái chờ xác minh. Gói chỉ được kích hoạt khi ngân hàng xác nhận giao dịch hợp lệ.\n\nBạn có muốn mô phỏng thanh toán thành công (chế độ thử nghiệm)?`
-          : `${errorMsg}.\n\nNote: the payment result page only shows a pending-verification status. Your plan is activated only after the bank confirms a valid transaction.\n\nWould you like to simulate a successful payment (demo mode)?`,
+        t('mobile.vnpay_demo_prompt', {
+          error: errorMsg,
+          defaultValue: `${errorMsg}.\n\nLưu ý: trang kết quả thanh toán chỉ hiển thị trạng thái chờ xác minh. Gói chỉ được kích hoạt khi ngân hàng xác nhận giao dịch hợp lệ.\n\nBạn có muốn mô phỏng thanh toán thành công?`,
+        }),
         [
           { text: t('mobile.cancel', 'Hủy'), style: 'cancel' },
           {
@@ -520,7 +520,7 @@ export default function PremiumScreen() {
                 </View>
                 <View style={tw('bg-emerald-100 dark:bg-emerald-900/30 px-3 py-1.5 rounded-full')}>
                   <Text style={tw('text-emerald-700 dark:text-emerald-400 font-bold text-xs')}>
-                    {isVi ? 'ĐANG DÙNG' : 'ACTIVE'}
+                    {t('mobile.plan_active_badge', 'ĐANG DÙNG')}
                   </Text>
                 </View>
               </View>
@@ -536,14 +536,14 @@ export default function PremiumScreen() {
               <View style={tw('mb-3 bg-slate-50 dark:bg-slate-800/60 p-3 rounded-2xl')}>
                 <View style={tw('flex-row justify-between items-center mb-1')}>
                   <Text style={tw('text-xs font-bold text-slate-700 dark:text-slate-200')}>
-                    {isVi ? '1. Lượt dùng AI (yêu cầu và token)' : '1. AI usage (requests & tokens)'}
+                    {t('mobile.meter_1_ai_usage', '1. Lượt dùng AI')}
                   </Text>
                   <Text style={tw('text-xs font-bold text-indigo-600 dark:text-indigo-400')}>
-                    {usageMeters.aiUsage.requestsUsed}/{usageMeters.aiUsage.requestsLimit} {isVi ? 'yêu cầu' : 'requests'}
+                    {usageMeters.aiUsage.requestsUsed}/{usageMeters.aiUsage.requestsLimit} {t('mobile.requests_unit', 'yêu cầu')}
                   </Text>
                 </View>
                 <Text style={tw('text-[11px] text-slate-500 dark:text-slate-400')}>
-                  {isVi ? 'Token' : 'Tokens'}: {usageMeters.aiUsage.tokensUsed.toLocaleString()} / {usageMeters.aiUsage.tokensLimit.toLocaleString()}
+                  {t('mobile.tokens_label', 'Token')}: {usageMeters.aiUsage.tokensUsed.toLocaleString()} / {usageMeters.aiUsage.tokensLimit.toLocaleString()}
                 </Text>
               </View>
 
@@ -551,7 +551,7 @@ export default function PremiumScreen() {
               <View style={tw('mb-3 bg-slate-50 dark:bg-slate-800/60 p-3 rounded-2xl')}>
                 <View style={tw('flex-row justify-between items-center mb-1')}>
                   <Text style={tw('text-xs font-bold text-slate-700 dark:text-slate-200')}>
-                    {isVi ? '2. Hạn mức tư vấn bác sĩ' : '2. Doctor consultation quota'}
+                    {t('mobile.meter_2_consult_quota', '2. Hạn mức tư vấn bác sĩ')}
                   </Text>
                   <Text style={tw('text-xs font-bold text-emerald-600 dark:text-emerald-400')}>
                     {t('mobile.remaining', 'Còn lại')}: {usageMeters.consultationUsage.remaining}
@@ -559,13 +559,13 @@ export default function PremiumScreen() {
                 </View>
                 <View style={tw('flex-row gap-3 mt-1')}>
                   <Text style={tw('text-[11px] text-slate-500 dark:text-slate-400')}>
-                    {isVi ? 'Đã dùng' : 'Used'}: <Text style={tw('font-bold text-slate-700 dark:text-slate-200')}>{usageMeters.consultationUsage.used}</Text>
+                    {t('mobile.used_label', 'Đã dùng')}: <Text style={tw('font-bold text-slate-700 dark:text-slate-200')}>{usageMeters.consultationUsage.used}</Text>
                   </Text>
                   <Text style={tw('text-[11px] text-amber-600 dark:text-amber-400')}>
-                    {isVi ? 'Đã giữ chỗ' : 'Reserved'}: <Text style={tw('font-bold')}>{usageMeters.consultationUsage.reserved}</Text>
+                    {t('mobile.reserved_label', 'Đã giữ chỗ')}: <Text style={tw('font-bold')}>{usageMeters.consultationUsage.reserved}</Text>
                   </Text>
                   <Text style={tw('text-[11px] text-emerald-600 dark:text-emerald-400')}>
-                    {isVi ? 'Còn lại' : 'Remaining'}: <Text style={tw('font-bold')}>{usageMeters.consultationUsage.remaining}</Text>
+                    {t('mobile.remaining', 'Còn lại')}: <Text style={tw('font-bold')}>{usageMeters.consultationUsage.remaining}</Text>
                   </Text>
                 </View>
               </View>
@@ -574,21 +574,17 @@ export default function PremiumScreen() {
               <View style={tw('flex-row gap-2.5')}>
                 <View style={tw('flex-1 bg-slate-50 dark:bg-slate-800/60 p-3 rounded-2xl')}>
                   <Text style={tw('text-[11px] font-bold text-slate-500 dark:text-slate-400')}>
-                    {isVi ? '3. Chương trình chăm sóc' : '3. Care program limit'}
+                    {t('mobile.meter_3_care_program', '3. Chương trình chăm sóc')}
                   </Text>
                   <Text style={tw('text-sm font-bold text-slate-900 dark:text-white mt-1')}>
                     {activePlan === 'care'
-                      ? isVi
-                        ? '1 / 1 đang dùng'
-                        : '1 / 1 active'
-                      : isVi
-                        ? '0 / 0 (cần gói CARE)'
-                        : '0 / 0 (CARE plan required)'}
+                      ? t('mobile.care_limit_active', '1 / 1 đang dùng')
+                      : t('mobile.care_limit_upgrade_needed', '0 / 0 • Cần gói CARE')}
                   </Text>
                 </View>
                 <View style={tw('flex-1 bg-slate-50 dark:bg-slate-800/60 p-3 rounded-2xl')}>
                   <Text style={tw('text-[11px] font-bold text-slate-500 dark:text-slate-400')}>
-                    {isVi ? '4. Liên kết người thân' : '4. Family link limit'}
+                    {t('mobile.meter_4_family_link', '4. Liên kết người thân')}
                   </Text>
                   <Text style={tw('text-sm font-bold text-slate-900 dark:text-white mt-1')}>
                     {usageMeters.familyLinkLimit.linked} / {activePlan === 'free' ? 1 : activePlan === 'plus' ? 3 : 5} {t('mobile.members', 'Thành viên')}
@@ -676,7 +672,7 @@ export default function PremiumScreen() {
               <View style={tw('flex-row items-center')}>
                 <CheckCircle2 color="#10b981" size={18} />
                 <Text style={tw('text-slate-700 dark:text-slate-300 text-sm ml-2')}>
-                  {t('mobile.feature_consult_plus', '3 lượt tư vấn bác sĩ (Scheduled / On-demand) / chu kỳ')}
+                  {t('mobile.feature_consult_plus', '3 lượt tư vấn bác sĩ mỗi chu kỳ')}
                 </Text>
               </View>
               <View style={tw('flex-row items-center')}>
@@ -688,7 +684,7 @@ export default function PremiumScreen() {
               <View style={tw('flex-row items-center')}>
                 <CheckCircle2 color="#10b981" size={18} />
                 <Text style={tw('text-slate-700 dark:text-slate-300 text-sm ml-2')}>
-                  {t('mobile.feature_family_plus', 'Tối đa 3 thành viên Family Companion')}
+                  {t('mobile.feature_family_plus', 'Tối đa 3 thành viên đồng hành gia đình')}
                 </Text>
               </View>
             </View>
@@ -732,25 +728,25 @@ export default function PremiumScreen() {
               <View style={tw('flex-row items-center')}>
                 <CheckCircle2 color="#10b981" size={18} />
                 <Text style={tw('text-slate-700 dark:text-slate-300 text-sm ml-2')}>
-                  {t('mobile.feature_consult_care', '6 lượt tư vấn bác sĩ / chu kỳ & hạn mức AI cao nhất')}
+                  {t('mobile.feature_consult_care', '6 lượt tư vấn bác sĩ mỗi chu kỳ và hạn mức AI cao nhất')}
                 </Text>
               </View>
               <View style={tw('flex-row items-center')}>
                 <CheckCircle2 color="#10b981" size={18} />
                 <Text style={tw('text-slate-700 dark:text-slate-300 text-sm ml-2 font-bold')}>
-                  {t('mobile.feature_care_program', 'Chương trình chăm sóc bệnh mạn tính cùng bác sĩ (1 chương trình đang áp dụng)')}
+                  {t('mobile.feature_care_program', 'Chương trình chăm sóc bệnh mạn tính cùng bác sĩ')}
                 </Text>
               </View>
               <View style={tw('flex-row items-center')}>
                 <CheckCircle2 color="#10b981" size={18} />
                 <Text style={tw('text-slate-700 dark:text-slate-300 text-sm ml-2')}>
-                  {t('mobile.feature_doctor_review', 'Bác sĩ rà soát định kỳ (Doctor Review) & Priority Inbox')}
+                  {t('mobile.feature_doctor_review', 'Bác sĩ rà soát định kỳ và ưu tiên xử lý cảnh báo')}
                 </Text>
               </View>
               <View style={tw('flex-row items-center')}>
                 <CheckCircle2 color="#10b981" size={18} />
                 <Text style={tw('text-slate-700 dark:text-slate-300 text-sm ml-2')}>
-                  {t('mobile.feature_family_care', 'Tối đa 5 thành viên Family Companion')}
+                  {t('mobile.feature_family_care', 'Tối đa 5 thành viên đồng hành gia đình')}
                 </Text>
               </View>
             </View>
@@ -804,7 +800,7 @@ export default function PremiumScreen() {
                   {t('mobile.request_refund', 'Gửi yêu cầu hoàn tiền')}
                 </Text>
                 <Text style={tw('text-red-600/80 dark:text-red-400/80 text-xs mt-1')}>
-                  {t('mobile.refund_desc', 'Đính kèm mã lý do và tự động chụp usageSnapshot tại thời điểm yêu cầu')}
+                  {t('mobile.refund_desc', 'Đính kèm lý do và tự động ghi nhận mức sử dụng tại thời điểm yêu cầu')}
                 </Text>
               </View>
               <XCircle color={twInstance.color('text-red-500')} size={24} />
@@ -844,7 +840,7 @@ export default function PremiumScreen() {
                   {t('mobile.orders_and_refunds', 'Lịch sử Đơn hàng & Hoàn tiền')}
                 </Text>
                 <Text style={tw('text-xs text-slate-500 dark:text-slate-400 mt-0.5')}>
-                  {isVi ? 'Đơn thanh toán, hoàn tiền và mức sử dụng' : 'Payment orders, refunds, and usage'}
+                  {t('mobile.orders_refunds_subtitle', 'Đơn thanh toán, hoàn tiền và mức sử dụng')}
                 </Text>
               </View>
               <TouchableOpacity onPress={() => setOrderHistoryModalVisible(false)} style={tw('p-2')}>
@@ -876,7 +872,7 @@ export default function PremiumScreen() {
                     <View style={tw('flex-row justify-between items-start mb-2')}>
                       <View>
                         <Text style={tw('font-bold text-slate-900 dark:text-white text-sm')}>
-                          {ord.orderCode} • {isVi ? 'Gói' : 'Plan'} {ord.planCode}
+                          {ord.orderCode} • {t('mobile.plan_prefix', 'Gói')} {ord.planCode}
                         </Text>
                         <Text style={tw('text-xs text-slate-500 dark:text-slate-400 mt-0.5')}>
                           {ord.createdAt}
@@ -946,17 +942,17 @@ export default function PremiumScreen() {
                     </View>
                   </View>
                   <Text style={tw('text-xs text-slate-600 dark:text-slate-300 mt-1')}>
-                    {isVi ? 'Lý do' : 'Reason'}: <Text style={tw('font-semibold')}>{refundReasonText(ref.reasonCode)}</Text> — {ref.note}
+                    {t('mobile.reason_label', 'Lý do')}: <Text style={tw('font-semibold')}>{refundReasonText(ref.reasonCode)}</Text> — {ref.note}
                   </Text>
                   <View style={tw('mt-2.5 pt-2.5 border-t border-slate-200 dark:border-slate-700 flex-row justify-between')}>
                     <Text style={tw('text-[11px] text-slate-500 dark:text-slate-400')}>
-                      {isVi ? 'AI đã dùng' : 'AI used'}: {ref.usageSnapshot.aiTokensUsed} tokens
+                      {t('mobile.ai_used_label', 'AI đã dùng')}: {ref.usageSnapshot.aiTokensUsed} tokens
                     </Text>
                     <Text style={tw('text-[11px] text-slate-500 dark:text-slate-400')}>
-                      {isVi ? 'Lượt khám' : 'Consults'}: {ref.usageSnapshot.consultationsUsed}
+                      {t('mobile.consults_used_short', 'Lượt khám')}: {ref.usageSnapshot.consultationsUsed}
                     </Text>
                     <Text style={tw('text-[11px] text-slate-500 dark:text-slate-400')}>
-                      {isVi ? 'Chương trình' : 'Program'}: {ref.usageSnapshot.careProgramEnrolled ? (isVi ? 'Có' : 'Yes') : isVi ? 'Không' : 'No'}
+                      {t('mobile.program_short_label', 'Chương trình')}: {ref.usageSnapshot.careProgramEnrolled ? t('mobile.common_yes', 'Có') : t('mobile.common_no', 'Không')}
                     </Text>
                   </View>
                 </View>
@@ -1038,19 +1034,15 @@ export default function PremiumScreen() {
 
             <View style={tw('bg-amber-50 dark:bg-amber-950/40 p-3.5 rounded-2xl border border-amber-200 dark:border-amber-800/60 mb-5')}>
               <Text style={tw('text-xs font-bold text-amber-800 dark:text-amber-300 mb-1')}>
-                {isVi ? 'Mức sử dụng hiện tại (sẽ đính kèm yêu cầu):' : 'Current usage (attached to your request):'}
+                {t('mobile.current_usage_attached_title', 'Mức sử dụng hiện tại đính kèm yêu cầu:')}
               </Text>
               <Text style={tw('text-xs text-amber-700 dark:text-amber-400')}>
-                • {isVi ? 'AI đã dùng' : 'AI used'}: {usageMeters.aiUsage.tokensUsed.toLocaleString()} tokens{'\n'}
-                • {isVi ? 'Lượt khám đã dùng' : 'Consultations used'}: {usageMeters.consultationUsage.used}{'\n'}
-                • {isVi ? 'Chương trình chăm sóc' : 'Care program'}:{' '}
+                • {t('mobile.ai_used_label', 'AI đã dùng')}: {usageMeters.aiUsage.tokensUsed.toLocaleString()} tokens{'\n'}
+                • {t('mobile.consultations_used_label', 'Lượt khám đã dùng')}: {usageMeters.consultationUsage.used}{'\n'}
+                • {t('mobile.care_program_label', 'Chương trình chăm sóc')}:{' '}
                 {usageMeters.careProgramLimit.enrolled > 0
-                  ? isVi
-                    ? 'Đã kích hoạt'
-                    : 'Activated'
-                  : isVi
-                    ? 'Chưa đăng ký'
-                    : 'Not enrolled'}
+                  ? t('mobile.status_activated', 'Đã kích hoạt')
+                  : t('mobile.status_not_enrolled', 'Chưa đăng ký')}
               </Text>
             </View>
 
@@ -1078,9 +1070,9 @@ export default function PremiumScreen() {
             {/* Modal Header */}
             <View style={tw('flex-row justify-between items-center pb-4 border-b border-slate-100 dark:border-slate-800')}>
               <View>
-                <Text style={tw('text-xl font-bold text-slate-900 dark:text-white')}>{isVi ? 'Thanh toán VNPAY QR' : 'VNPAY QR payment'}</Text>
+                <Text style={tw('text-xl font-bold text-slate-900 dark:text-white')}>{t('mobile.vnpay_qr_payment_title', 'Thanh toán VNPAY QR')}</Text>
                 <Text style={tw('text-xs text-slate-500 dark:text-slate-400 mt-1')}>
-                  {isVi ? 'Mã đơn' : 'Order code'}: {currentOrder?.orderCode}
+                  {t('mobile.order_code_label', 'Mã đơn')}: {currentOrder?.orderCode}
                 </Text>
               </View>
               <TouchableOpacity onPress={() => handleCancelOrder()} style={tw('p-2')}>
@@ -1098,14 +1090,14 @@ export default function PremiumScreen() {
                     resizeMode="contain"
                   />
                   <Text style={tw('text-xs text-slate-500 mt-2 font-medium')}>
-                    {isVi ? 'Quét mã bằng ứng dụng ngân hàng' : 'Scan with your banking app'}
+                    {t('mobile.scan_with_banking_app', 'Quét mã bằng ứng dụng ngân hàng')}
                   </Text>
                 </View>
               ) : (
                 <View style={tw('w-48 h-48 bg-slate-100 dark:bg-slate-800 rounded-2xl items-center justify-center p-4')}>
                   <QrCode color={twInstance.color('text-slate-400')} size={64} />
                   <Text style={tw('text-xs text-slate-500 text-center mt-2')}>
-                    {isVi ? 'Đang mở trang thanh toán VNPAY...' : 'Opening the VNPAY payment page...'}
+                    {t('mobile.opening_vnpay_page', 'Đang mở trang thanh toán VNPAY...')}
                   </Text>
                 </View>
               )}
@@ -1122,7 +1114,7 @@ export default function PremiumScreen() {
                   style={tw('mr-2')}
                 />
                 <Text style={tw('text-xs font-semibold text-amber-700 dark:text-amber-400')}>
-                  {isVi ? 'Đang chờ xác nhận thanh toán' : 'Waiting for payment confirmation'} ({orderStatusText(pollingStatus)})
+                  {t('mobile.waiting_payment_confirmation', 'Đang chờ xác nhận thanh toán')} • {orderStatusText(pollingStatus)}
                 </Text>
               </View>
             </View>
@@ -1134,7 +1126,7 @@ export default function PremiumScreen() {
                   onPress={() => currentOrder.paymentUrl && Linking.openURL(currentOrder.paymentUrl)}
                   style={tw('bg-blue-600 py-3.5 rounded-2xl items-center justify-center')}
                 >
-                  <Text style={tw('text-white font-bold text-base')}>{isVi ? 'Mở lại cổng thanh toán VNPAY' : 'Reopen VNPAY payment page'}</Text>
+                  <Text style={tw('text-white font-bold text-base')}>{t('mobile.reopen_vnpay_page', 'Mở lại cổng thanh toán VNPAY')}</Text>
                 </TouchableOpacity>
               ) : null}
 
@@ -1143,7 +1135,7 @@ export default function PremiumScreen() {
                 style={tw('bg-slate-100 dark:bg-slate-800 py-3.5 rounded-2xl items-center justify-center')}
               >
                 <Text style={tw('text-slate-700 dark:text-slate-300 font-bold text-base')}>
-                  {isVi ? 'Hủy đơn hàng' : 'Cancel order'}
+                  {t('mobile.cancel_order_btn', 'Hủy đơn hàng')}
                 </Text>
               </TouchableOpacity>
             </View>

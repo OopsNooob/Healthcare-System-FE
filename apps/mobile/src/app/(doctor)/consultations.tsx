@@ -50,21 +50,19 @@ interface WaitingQueueItem {
 }
 
 export default function DoctorConsultationsScreen() {
-  const { t, i18n } = useTranslation();
-  const isVi = i18n.language === 'vi';
+  const { t } = useTranslation();
   useThemeContext();
 
   const genderLabel = (g: string) =>
     g === 'Male' ? t('mobile.gender_male', 'Nam') : g === 'Female' ? t('mobile.gender_female', 'Nữ') : g;
 
   const followUpActionLabel = (action: string) => {
-    const map: Record<string, [string, string]> = {
-      book_scheduled: ['Đặt lịch tái khám định kỳ', 'Book a scheduled follow-up'],
-      monitor_at_home: ['Tiếp tục theo dõi tại nhà', 'Continue monitoring at home'],
-      visit_facility: ['Đến cơ sở y tế khám trực tiếp', 'Visit a medical facility in person'],
+    const map: Record<string, string> = {
+      book_scheduled: t('mobile.followup_book_scheduled', 'Đặt lịch tái khám định kỳ'),
+      monitor_at_home: t('mobile.followup_monitor_at_home', 'Tiếp tục theo dõi tại nhà'),
+      visit_facility: t('mobile.followup_visit_facility', 'Đến cơ sở y tế khám trực tiếp'),
     };
-    const entry = map[action];
-    return entry ? (isVi ? entry[0] : entry[1]) : action;
+    return map[action] || action;
   };
 
   const router = useRouter();
@@ -193,7 +191,7 @@ export default function DoctorConsultationsScreen() {
     const d = item.scheduledStartAt ? new Date(item.scheduledStartAt) : new Date();
     return {
       id: item._id || item.id,
-      patientName: item.patient?.fullName || item.patientId || (isVi ? 'Bệnh nhân' : 'Patient'),
+      patientName: item.patient?.fullName || item.patientId || t('mobile.patient_label', 'Bệnh nhân'),
       patientId: item.patient?._id || item.patientId || item._id,
       time: d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       date: d.toLocaleDateString(),
@@ -212,9 +210,9 @@ export default function DoctorConsultationsScreen() {
             : item.sessionStatus,
       age: item.patient?.patientProfile?.age || 30,
       gender: item.patient?.gender === 'female' ? 'Female' : 'Male',
-      reason: item.reason || item.patientNotes || (isVi ? 'Tư vấn sức khỏe tổng quát' : 'General health consultation'),
+      reason: item.reason || item.patientNotes || t('mobile.general_health_consultation', 'Tư vấn sức khỏe tổng quát'),
       rating: item.rating || 5,
-      review: item.doctorNotes || (isVi ? 'Chưa có ghi chú' : 'No notes'),
+      review: item.doctorNotes || t('mobile.no_notes', 'Chưa có ghi chú'),
     };
   };
 
@@ -321,9 +319,10 @@ export default function DoctorConsultationsScreen() {
     Toast.show({
       type: 'success',
       text1: t('mobile.called_next_patient', 'Đã gọi bệnh nhân tiếp theo'),
-      text2: isVi
-          ? `${waitingQueue[0].patientName} đã nhận thông báo vào phòng khám.`
-          : `${waitingQueue[0].patientName} has been notified to join the room.`,
+      text2: t('mobile.called_next_patient_desc', {
+        name: waitingQueue[0].patientName,
+        defaultValue: `${waitingQueue[0].patientName} đã nhận thông báo vào phòng khám.`,
+      }),
     });
   };
 
@@ -409,7 +408,7 @@ export default function DoctorConsultationsScreen() {
     Toast.show({
       type: 'success',
       text1: t('mobile.followup_saved', 'Đã lưu khuyến nghị tái khám'),
-      text2: `${isVi ? 'Hướng xử trí' : 'Next action'}: ${followUpActionLabel(followUpNextAction)}`,
+      text2: `${t('mobile.next_action', 'Hướng xử trí')}: ${followUpActionLabel(followUpNextAction)}`,
     });
   };
 
@@ -503,7 +502,7 @@ export default function DoctorConsultationsScreen() {
             ...endedItem,
             status: 'Completed',
             statusKey: 'completed',
-            review: doctorNote || (isVi ? 'Chưa có ghi chú' : 'No notes'),
+            review: doctorNote || t('mobile.no_notes', 'Chưa có ghi chú'),
           },
           ...prev,
         ]);

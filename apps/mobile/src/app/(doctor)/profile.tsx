@@ -21,7 +21,6 @@ import { pickNativePdfDocument, pickNativeImage } from '@/services/nativeMedia';
 
 export default function DoctorProfileScreen() {
   const { t, i18n } = useTranslation();
-  const isVi = i18n.language?.startsWith('vi');
   const { colorScheme, setColorScheme } = useThemeContext();
   const activeScheme = colorScheme;
 
@@ -186,7 +185,13 @@ export default function DoctorProfileScreen() {
             <View style={tw('mt-4 bg-blue-50 dark:bg-blue-900/30 px-4 py-1.5 rounded-full border border-blue-200 dark:border-blue-800 flex-row items-center')}>
               <Stethoscope color="#3b82f6" size={14} />
               <Text style={tw('text-blue-700 dark:text-blue-300 font-bold text-xs ml-1')}>
-                {t('mobile.doctor', 'Doctor')} • {verificationStatus.toUpperCase()}
+                {t('mobile.doctor', 'Doctor')} •{' '}
+                {(verificationStatus === 'approved'
+                  ? t('mobile.status_approved', 'Đã duyệt')
+                  : verificationStatus === 'pending'
+                    ? t('mobile.status_pending_review', 'Chờ duyệt')
+                    : t('mobile.status_rejected', 'Từ chối')
+                ).toUpperCase()}
               </Text>
             </View>
           </View>

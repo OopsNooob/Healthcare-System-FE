@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, Modal, TouchableOpacity, ScrollView } from 'react-native';
-import { X, FileText, ShieldCheck, Download, Share2, CheckCircle2, Clock, Calendar, Hash } from 'lucide-react-native';
+import { X, FileText, ShieldCheck, Share2, Calendar, Hash } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import Toast from 'react-native-toast-message';
 import * as Sharing from 'expo-sharing';
@@ -25,11 +25,8 @@ export const DocViewerModal: React.FC<DocViewerModalProps> = ({
   uploadDate = '17/10/2026',
   summary,
 }) => {
-  const { t, i18n } = useTranslation();
-  const isVi = i18n.language === 'vi';
-  const finalSummary = summary || (isVi 
-    ? 'Báo cáo ghi nhận điện tâm đồ và chỉ số huyết áp trong đợt điều trị ngoại trú.' 
-    : 'Report recording ECG telemetry and blood pressure metrics during outpatient treatment.');
+  const { t } = useTranslation();
+  const finalSummary = summary || t('mobile.default_doc_summary');
 
   const handleShare = async () => {
     try {
@@ -45,15 +42,15 @@ export const DocViewerModal: React.FC<DocViewerModalProps> = ({
       }
       Toast.show({
         type: 'success',
-        text1: t('mobile.success', 'Success'),
-        text2: t('mobile.report_exported', 'Document saved to cache successfully'),
+        text1: t('mobile.success'),
+        text2: t('mobile.report_exported'),
       });
     } catch (err) {
       console.warn('Share error:', err);
       Toast.show({
         type: 'info',
         text1: fileName,
-        text2: t('mobile.document_added', 'Document ready'),
+        text2: t('mobile.document_added'),
       });
     }
   };
@@ -70,10 +67,10 @@ export const DocViewerModal: React.FC<DocViewerModalProps> = ({
               </View>
               <View>
                 <Text style={tw('text-lg font-bold text-slate-900 dark:text-white')}>
-                  {t('mobile.official_medical_doc', 'Official Medical Document')}
+                  {t('mobile.official_medical_doc')}
                 </Text>
                 <Text style={tw('text-xs text-slate-500 dark:text-slate-400')}>
-                  {t('mobile.documents', 'PDF Document Format')}
+                  {t('mobile.documents')}
                 </Text>
               </View>
             </View>
@@ -88,7 +85,7 @@ export const DocViewerModal: React.FC<DocViewerModalProps> = ({
               <Text style={tw('text-base font-bold text-slate-900 dark:text-white')} numberOfLines={2}>
                 {fileName}
               </Text>
-              
+
               <View style={tw('flex-row items-center gap-4 pt-1')}>
                 <View style={tw('flex-row items-center')}>
                   <Calendar size={14} color="#64748b" style={tw('mr-1.5')} />
@@ -106,10 +103,10 @@ export const DocViewerModal: React.FC<DocViewerModalProps> = ({
               <ShieldCheck color="#10b981" size={20} style={tw('mr-2.5')} />
               <View style={tw('flex-1')}>
                 <Text style={tw('text-xs font-bold text-emerald-800 dark:text-emerald-200')}>
-                  {t('mobile.doc_verified_moh', 'MOH Digital Certificate Verified')}
+                  {t('mobile.doc_verified_moh')}
                 </Text>
                 <Text style={tw('text-[11px] text-emerald-700/80 dark:text-emerald-300/80')}>
-                  {t('mobile.digitally_certified_physician', 'Đã được ký điện tử bởi Bác sĩ chuyên khoa phụ trách')}
+                  {t('mobile.digitally_certified_physician')}
                 </Text>
               </View>
             </View>
@@ -117,7 +114,7 @@ export const DocViewerModal: React.FC<DocViewerModalProps> = ({
             {/* Document Abstract / Content Preview */}
             <View style={tw('gap-2')}>
               <Text style={tw('text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider')}>
-                {t('mobile.clinical_summary_and_directives', 'Tóm Tắt Hồ Sơ Lâm Sàng')}
+                {t('mobile.clinical_summary_and_directives')}
               </Text>
               <View style={tw('p-4 rounded-2xl bg-indigo-50/60 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-800/30')}>
                 <Text style={tw('text-xs leading-5 text-indigo-950 dark:text-indigo-200')}>
@@ -130,14 +127,14 @@ export const DocViewerModal: React.FC<DocViewerModalProps> = ({
           {/* Footer Actions */}
           <View style={tw('p-4 border-t border-slate-100 dark:border-slate-800 flex-row gap-3')}>
             <TouchableOpacity onPress={onClose} style={tw('flex-1 bg-slate-100 dark:bg-slate-800 py-3.5 rounded-xl items-center')}>
-              <Text style={tw('text-slate-700 dark:text-slate-300 font-bold text-sm')}>{t('mobile.close', 'Close')}</Text>
+              <Text style={tw('text-slate-700 dark:text-slate-300 font-bold text-sm')}>{t('mobile.close')}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={handleShare}
               style={tw('flex-1 bg-brand py-3.5 rounded-xl items-center flex-row justify-center')}
             >
               <Share2 color="#0f172a" size={16} style={tw('mr-2')} />
-              <Text style={tw('text-slate-900 font-bold text-sm')}>{t('mobile.share_or_open', 'Mở / Chia sẻ')}</Text>
+              <Text style={tw('text-slate-900 font-bold text-sm')}>{t('mobile.share_or_open')}</Text>
             </TouchableOpacity>
           </View>
         </View>

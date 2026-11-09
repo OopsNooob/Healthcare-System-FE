@@ -33,7 +33,8 @@ interface DiseaseSpecialtyMappingItem {
 
 export function MedicalFacilities() {
   const { t, i18n } = useTranslation();
-  const isVi = i18n.language?.startsWith("vi");
+  const pickLocalizedText = (viText: string, enText?: string) =>
+    i18n.language?.startsWith("vi") ? viText : (enText || viText);
 
   const [activeTab, setActiveTab] = useState<"facilities" | "mappings">("facilities");
   const [search, setSearch] = useState("");
@@ -543,7 +544,7 @@ export function MedicalFacilities() {
                         {m.diseaseCode}
                       </div>
                       <div className="font-semibold text-slate-900 dark:text-slate-100 mt-0.5">
-                        {isVi ? m.diseaseNameVi : (m.diseaseNameEn || m.diseaseNameVi)}
+                        {pickLocalizedText(m.diseaseNameVi, m.diseaseNameEn)}
                       </div>
                     </td>
                     <td className="px-6 py-4">
@@ -556,7 +557,7 @@ export function MedicalFacilities() {
                       </div>
                     </td>
                     <td className="px-6 py-4 max-w-xs text-xs text-slate-600 dark:text-slate-300">
-                      {isVi ? m.urgencyGuidanceVi : (m.urgencyGuidanceEn || m.urgencyGuidanceVi)}
+                      {pickLocalizedText(m.urgencyGuidanceVi, m.urgencyGuidanceEn)}
                     </td>
                     <td className="px-6 py-4">
                       {m.isActive ? (

@@ -29,8 +29,7 @@ export const BookingSettingsModal: React.FC<BookingSettingsModalProps> = ({
   settings,
   onSave,
 }) => {
-  const { t, i18n } = useTranslation();
-  const isVi = i18n.language?.startsWith('vi');
+  const { t } = useTranslation();
   const [draft, setDraft] = useState<DoctorBookingSettingsDto>(settings);
 
   useEffect(() => {
@@ -45,7 +44,7 @@ export const BookingSettingsModal: React.FC<BookingSettingsModalProps> = ({
     onSave(draft);
     Toast.show({
       type: 'success',
-      text1: t('mobile.booking_settings_saved', isVi ? 'Đã lưu cấu hình đặt lịch' : 'Booking Settings Saved'),
+      text1: t('mobile.booking_settings_saved'),
       text2: `${draft.timezone}`,
     });
     onClose();
@@ -63,13 +62,10 @@ export const BookingSettingsModal: React.FC<BookingSettingsModalProps> = ({
               </View>
               <View style={tw('flex-1')}>
                 <Text style={tw('text-lg font-bold text-slate-900 dark:text-white')}>
-                  {t('mobile.booking_settings_title', isVi ? 'Cấu hình Đặt lịch & Phòng chờ' : 'Booking & Waiting Room Settings')}
+                  {t('mobile.booking_settings_title')}
                 </Text>
                 <Text style={tw('text-xs text-slate-500 dark:text-slate-400')}>
-                  {t(
-                    'mobile.booking_settings_subtitle',
-                    'Thiết lập múi giờ, thời lượng ca khám và chính sách nhận lịch'
-                  )}
+                  {t('mobile.booking_settings_subtitle')}
                 </Text>
               </View>
             </View>
@@ -84,7 +80,7 @@ export const BookingSettingsModal: React.FC<BookingSettingsModalProps> = ({
               <View style={tw('flex-row items-center mb-2')}>
                 <Globe color={twInstance.color('text-indigo-500')} size={16} style={tw('mr-1.5')} />
                 <Text style={tw('text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400')}>
-                  {t('mobile.iana_timezone', isVi ? 'Múi giờ làm việc' : 'Working Timezone')}
+                  {t('mobile.iana_timezone')}
                 </Text>
               </View>
               <View style={tw('flex-row flex-wrap justify-between gap-y-2.5')}>
@@ -119,7 +115,7 @@ export const BookingSettingsModal: React.FC<BookingSettingsModalProps> = ({
               <View style={tw('flex-row items-center mb-2')}>
                 <ShieldCheck color={twInstance.color('text-emerald-500')} size={16} style={tw('mr-1.5')} />
                 <Text style={tw('text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400')}>
-                  {t('mobile.booking_policy_label', isVi ? 'Chính sách xác nhận lịch đặt' : 'Booking Confirmation Policy')}
+                  {t('mobile.booking_policy_label')}
                 </Text>
               </View>
               <View style={tw('gap-2.5')}>
@@ -135,15 +131,10 @@ export const BookingSettingsModal: React.FC<BookingSettingsModalProps> = ({
                 >
                   <View style={tw('flex-1 mr-2')}>
                     <Text style={tw('text-sm font-bold text-slate-900 dark:text-white')}>
-                      {t('mobile.policy_instant', isVi ? 'Tự động xác nhận' : 'Instant Confirmation')}
+                      {t('mobile.policy_instant')}
                     </Text>
                     <Text style={tw('text-xs text-slate-500 dark:text-slate-400 mt-0.5')}>
-                      {t(
-                        'mobile.policy_instant_desc',
-                        isVi
-                          ? 'Lịch đặt của bệnh nhân được xác nhận và giữ chỗ ngay lập tức.'
-                          : 'Patient bookings are automatically accepted and reserved immediately.'
-                      )}
+                      {t('mobile.policy_instant_desc')}
                     </Text>
                   </View>
                   {draft.bookingPolicy === 'instant' && <CheckCircle2 color="#10b981" size={18} />}
@@ -161,15 +152,10 @@ export const BookingSettingsModal: React.FC<BookingSettingsModalProps> = ({
                 >
                   <View style={tw('flex-1 mr-2')}>
                     <Text style={tw('text-sm font-bold text-slate-900 dark:text-white')}>
-                      {t('mobile.policy_approval', isVi ? 'Cần bác sĩ phê duyệt' : 'Doctor Approval Required')}
+                      {t('mobile.policy_approval')}
                     </Text>
                     <Text style={tw('text-xs text-slate-500 dark:text-slate-400 mt-0.5')}>
-                      {t(
-                        'mobile.policy_approval_desc',
-                        isVi
-                          ? 'Lịch đặt sẽ ở trạng thái chờ duyệt cho tới khi bác sĩ bấm Chấp nhận.'
-                          : 'Bookings remain pending until you manually review and accept them.'
-                      )}
+                      {t('mobile.policy_approval_desc')}
                     </Text>
                   </View>
                   {draft.bookingPolicy === 'approval_required' && <CheckCircle2 color="#f59e0b" size={18} />}
@@ -182,39 +168,39 @@ export const BookingSettingsModal: React.FC<BookingSettingsModalProps> = ({
               <View style={tw('flex-row items-center')}>
                 <Clock color={twInstance.color('text-slate-500')} size={16} style={tw('mr-1.5')} />
                 <Text style={tw('text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400')}>
-                  {t('mobile.window_parameters', isVi ? 'Thông số Khung giờ & Phòng chờ' : 'Slot & Waiting Room Timing')}
+                  {t('mobile.window_parameters')}
                 </Text>
               </View>
 
               {[
                 {
                   key: 'defaultDurationMinutes' as const,
-                  label: t('mobile.default_duration_min', isVi ? 'Thời lượng mỗi ca khám (phút)' : 'Default Slot Duration (minutes)'),
+                  label: t('mobile.default_duration_min'),
                   options: [15, 30, 45, 60],
                 },
                 {
                   key: 'bufferMinutes' as const,
-                  label: t('mobile.buffer_min', isVi ? 'Khoảng nghỉ giữa 2 ca khám (phút)' : 'Buffer Between Slots (minutes)'),
+                  label: t('mobile.buffer_min'),
                   options: [0, 10, 15, 30],
                 },
                 {
                   key: 'minNoticeMinutes' as const,
-                  label: t('mobile.min_notice_min', isVi ? 'Thời gian đặt trước tối thiểu (phút)' : 'Minimum Advance Notice (minutes)'),
+                  label: t('mobile.min_notice_min'),
                   options: [30, 60, 120],
                 },
                 {
                   key: 'cancellationDeadlineMinutes' as const,
-                  label: t('mobile.cancel_deadline_min', isVi ? 'Hạn chót đổi hoặc hủy lịch (phút)' : 'Cancellation / Reschedule Deadline (minutes)'),
+                  label: t('mobile.cancel_deadline_min'),
                   options: [60, 120, 240],
                 },
                 {
                   key: 'checkInEarlyMinutes' as const,
-                  label: t('mobile.checkin_early_min', isVi ? 'Cho phép vào phòng chờ sớm (phút)' : 'Early Check-in Window (minutes)'),
+                  label: t('mobile.checkin_early_min'),
                   options: [10, 15, 30],
                 },
                 {
                   key: 'noShowAfterMinutes' as const,
-                  label: t('mobile.noshow_after_min', isVi ? 'Thời gian chờ tối đa trước khi tính vắng mặt (phút)' : 'No-Show Grace Period (minutes)'),
+                  label: t('mobile.noshow_after_min'),
                   options: [10, 15, 30],
                 },
               ].map((param) => (
@@ -261,7 +247,7 @@ export const BookingSettingsModal: React.FC<BookingSettingsModalProps> = ({
               style={tw('flex-1 py-3.5 rounded-xl bg-slate-100 dark:bg-slate-800 items-center')}
             >
               <Text style={tw('font-bold text-slate-700 dark:text-slate-300 text-sm')}>
-                {t('mobile.cancel', isVi ? 'Hủy' : 'Cancel')}
+                {t('mobile.cancel')}
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -269,7 +255,7 @@ export const BookingSettingsModal: React.FC<BookingSettingsModalProps> = ({
               style={tw('flex-1 py-3.5 rounded-xl bg-brand items-center justify-center')}
             >
               <Text style={tw('font-bold text-slate-900 text-sm')}>
-                {t('mobile.save_settings', isVi ? 'Lưu cấu hình' : 'Save Settings')}
+                {t('mobile.save_settings')}
               </Text>
             </TouchableOpacity>
           </View>
@@ -278,4 +264,3 @@ export const BookingSettingsModal: React.FC<BookingSettingsModalProps> = ({
     </Modal>
   );
 };
-

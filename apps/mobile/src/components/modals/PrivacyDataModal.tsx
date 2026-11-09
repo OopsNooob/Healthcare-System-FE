@@ -6,7 +6,6 @@ import Toast from 'react-native-toast-message';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import { tw, twInstance } from '@/tw';
-import { saveReportToDevice } from '@/services/nativeMedia';
 
 export interface DataExportJobItem {
   id: string;
@@ -22,8 +21,7 @@ interface PrivacyDataModalProps {
 }
 
 export const PrivacyDataModal: React.FC<PrivacyDataModalProps> = ({ visible, onClose }) => {
-  const { t, i18n } = useTranslation();
-  const isVi = i18n.language?.startsWith('vi');
+  const { t } = useTranslation();
 
   const [exportJobs, setExportJobs] = useState<DataExportJobItem[]>([
     {
@@ -49,16 +47,8 @@ export const PrivacyDataModal: React.FC<PrivacyDataModalProps> = ({ visible, onC
     setExportJobs((prev) => [newJob, ...prev]);
     Toast.show({
       type: 'success',
-      text1: t(
-        'mobile.export_requested_title',
-        isVi ? 'Đã tạo yêu cầu trích xuất dữ liệu' : 'Data Export Requested'
-      ),
-      text2: t(
-        'mobile.export_requested_desc',
-        isVi
-          ? 'Hệ thống đang đóng gói dữ liệu cá nhân của bạn.'
-          : 'Your personal data archive is being prepared.'
-      ),
+      text1: t('mobile.export_requested_title'),
+      text2: t('mobile.export_requested_desc'),
     });
   };
 
@@ -96,7 +86,6 @@ export const PrivacyDataModal: React.FC<PrivacyDataModalProps> = ({ visible, onC
 
       const jsonString = JSON.stringify(exportData, null, 2);
 
-      // On Android: Use Storage Access Framework so the user can choose the exact directory/folder
       if (Platform.OS === 'android' && FileSystem.StorageAccessFramework) {
         try {
           const permissions = await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync();
@@ -113,20 +102,14 @@ export const PrivacyDataModal: React.FC<PrivacyDataModalProps> = ({ visible, onC
 
             Toast.show({
               type: 'success',
-              text1: t(
-                'mobile.file_saved_to_folder',
-                isVi ? 'Đã lưu tệp JSON vào thư mục đã chọn' : 'JSON file saved to selected folder'
-              ),
+              text1: t('mobile.file_saved_to_folder'),
               text2: fileName,
             });
             return;
           } else {
             Toast.show({
               type: 'info',
-              text1: t(
-                'mobile.folder_pick_cancelled',
-                isVi ? 'Đã hủy chọn thư mục lưu' : 'Folder selection cancelled'
-              ),
+              text1: t('mobile.folder_pick_cancelled'),
             });
             return;
           }
@@ -135,7 +118,6 @@ export const PrivacyDataModal: React.FC<PrivacyDataModalProps> = ({ visible, onC
         }
       }
 
-      // iOS or fallback: Write to documentDirectory and open share sheet
       const localDirectory = FileSystem.documentDirectory || FileSystem.cacheDirectory;
       const fileUri = `${localDirectory}${fileName}`;
       await FileSystem.writeAsStringAsync(fileUri, jsonString, {
@@ -146,27 +128,21 @@ export const PrivacyDataModal: React.FC<PrivacyDataModalProps> = ({ visible, onC
       if (isShareAvailable) {
         await Sharing.shareAsync(fileUri, {
           mimeType: 'application/json',
-          dialogTitle: t(
-            'mobile.select_save_folder',
-            isVi ? 'Chọn thư mục lưu tệp dữ liệu (JSON)' : 'Select folder to save JSON archive'
-          ),
+          dialogTitle: t('mobile.select_save_folder'),
         });
       }
 
       Toast.show({
         type: 'success',
-        text1: t(
-          'mobile.file_saved_to_folder',
-          isVi ? 'Đã tải tệp JSON thành công' : 'JSON file saved successfully'
-        ),
+        text1: t('mobile.file_saved_to_folder'),
         text2: fileName,
       });
     } catch (err) {
       console.warn('Failed to export JSON file:', err);
       Toast.show({
         type: 'error',
-        text1: isVi ? 'Lỗi tải tệp' : 'Download Error',
-        text2: isVi ? 'Không thể lưu tệp dữ liệu JSON' : 'Failed to save JSON export file',
+        text1: t('mobile.download_error_title'),
+        text2: t('mobile.download_error_desc'),
       });
     }
   };
@@ -175,29 +151,16 @@ export const PrivacyDataModal: React.FC<PrivacyDataModalProps> = ({ visible, onC
     if (confirmText.trim().toUpperCase() !== 'DELETE') {
       Toast.show({
         type: 'error',
-        text1: t('mobile.confirmation_required', isVi ? 'Cần xác nhận' : 'Confirmation Required'),
-        text2: t(
-          'mobile.type_delete_to_confirm',
-          isVi
-            ? 'Vui lòng nhập chữ DELETE để xác nhận yêu cầu xóa tài khoản.'
-            : 'Please type DELETE to confirm your account deletion request.'
-        ),
+        text1: t('mobile.confirmation_required'),
+        text2: t('mobile.type_delete_to_confirm'),
       });
       return;
     }
     setDeletionRequested(true);
     Toast.show({
       type: 'info',
-      text1: t(
-        'mobile.deletion_requested_title',
-        isVi ? 'Đã ghi nhận yêu cầu xóa tài khoản' : 'Account Deletion Requested'
-      ),
-      text2: t(
-        'mobile.deletion_requested_desc',
-        isVi
-          ? 'Tài khoản đã được chuyển sang hàng đợi xử lý theo quy định lưu trữ y tế.'
-          : 'Your account has been queued for deletion in accordance with medical retention policies.'
-      ),
+      text1: t('mobile.deletion_requested_title'),
+      text2: t('mobile.deletion_requested_desc'),
     });
   };
 
@@ -213,15 +176,10 @@ export const PrivacyDataModal: React.FC<PrivacyDataModalProps> = ({ visible, onC
               </View>
               <View style={tw('flex-1')}>
                 <Text style={tw('text-lg font-bold text-slate-900 dark:text-white')}>
-                  {t(
-                    'mobile.privacy_data_title',
-                    isVi ? 'Quyền riêng tư & Dữ liệu cá nhân' : 'Privacy & Personal Data'
-                  )}
+                  {t('mobile.privacy_data_title')}
                 </Text>
                 <Text style={tw('text-xs text-slate-500 dark:text-slate-400')}>
-                  {isVi
-                    ? 'Trích xuất hồ sơ cá nhân và quản lý lưu trữ tài khoản'
-                    : 'Export personal records and manage account retention'}
+                  {t('mobile.privacy_data_subtitle')}
                 </Text>
               </View>
             </View>
@@ -235,24 +193,19 @@ export const PrivacyDataModal: React.FC<PrivacyDataModalProps> = ({ visible, onC
             <View style={tw('bg-slate-50 dark:bg-slate-950 p-4 rounded-2xl border border-slate-200 dark:border-slate-800')}>
               <View style={tw('flex-row justify-between items-center mb-2')}>
                 <Text style={tw('text-sm font-bold text-slate-900 dark:text-white')}>
-                  {t('mobile.personal_data_export', isVi ? 'Trích xuất dữ liệu cá nhân' : 'Personal Data Export')}
+                  {t('mobile.personal_data_export')}
                 </Text>
                 <TouchableOpacity
                   onPress={handleRequestExport}
                   style={tw('bg-brand px-3 py-1.5 rounded-xl')}
                 >
                   <Text style={tw('text-xs font-bold text-slate-900')}>
-                    + {t('mobile.request_export', isVi ? 'Yêu cầu xuất mới' : 'New Export')}
+                    + {t('mobile.request_export')}
                   </Text>
                 </TouchableOpacity>
               </View>
               <Text style={tw('text-xs text-slate-500 dark:text-slate-400 mb-3 leading-4')}>
-                {t(
-                  'mobile.export_policy_desc',
-                  isVi
-                    ? 'Bao gồm thông tin hồ sơ, chỉ số sức khỏe, lịch sử tư vấn và gói đăng ký. Đường dẫn tải xuống được bảo mật và có hiệu lực trong 72 giờ.'
-                    : 'Includes your profile, health metrics, consultation history, and subscriptions. Download links are secured and valid for 72 hours.'
-                )}
+                {t('mobile.export_policy_desc')}
               </Text>
 
               <View style={tw('gap-2.5')}>
@@ -283,12 +236,8 @@ export const PrivacyDataModal: React.FC<PrivacyDataModalProps> = ({ visible, onC
                             )}
                           >
                             {job.status === 'ready'
-                              ? isVi
-                                ? 'Sẵn sàng'
-                                : 'Ready'
-                              : isVi
-                              ? 'Đang xử lý'
-                              : 'Processing'}
+                              ? t('mobile.status_ready')
+                              : t('mobile.processing')}
                           </Text>
                         </View>
                       </View>
@@ -297,7 +246,7 @@ export const PrivacyDataModal: React.FC<PrivacyDataModalProps> = ({ visible, onC
                       </Text>
                       {job.expiresAt && (
                         <Text style={tw('text-[10px] text-slate-400 dark:text-slate-500 mt-0.5')}>
-                          {isVi ? 'Hết hạn:' : 'Expires:'} {job.expiresAt}
+                          {t('mobile.expires_label')} {job.expiresAt}
                         </Text>
                       )}
                     </View>
@@ -308,14 +257,14 @@ export const PrivacyDataModal: React.FC<PrivacyDataModalProps> = ({ visible, onC
                       >
                         <Download color="#ffffff" size={14} style={tw('mr-1')} />
                         <Text style={tw('text-xs font-bold text-white')}>
-                          {t('mobile.download', isVi ? 'Tải về' : 'Download')}
+                          {t('mobile.download')}
                         </Text>
                       </TouchableOpacity>
                     ) : (
                       <View style={tw('flex-row items-center px-2.5 py-1.5 bg-amber-50 dark:bg-amber-950/40 rounded-lg')}>
                         <Clock color="#d97706" size={13} style={tw('mr-1')} />
                         <Text style={tw('text-[11px] font-semibold text-amber-700 dark:text-amber-300')}>
-                          {t('mobile.processing', isVi ? 'Đang xử lý' : 'Processing')}
+                          {t('mobile.processing')}
                         </Text>
                       </View>
                     )}
@@ -329,22 +278,14 @@ export const PrivacyDataModal: React.FC<PrivacyDataModalProps> = ({ visible, onC
               <View style={tw('flex-row items-center mb-2')}>
                 <ShieldAlert color="#ef4444" size={18} style={tw('mr-2')} />
                 <Text style={tw('text-sm font-bold text-rose-800 dark:text-rose-300')}>
-                  {t(
-                    'mobile.account_deletion_request',
-                    isVi ? 'Yêu cầu xóa tài khoản & Chính sách lưu trữ' : 'Account Deletion & Retention Policy'
-                  )}
+                  {t('mobile.account_deletion_request')}
                 </Text>
               </View>
 
               <View style={tw('bg-white/80 dark:bg-slate-900/80 p-3 rounded-xl border border-rose-100 dark:border-rose-900/40 mb-3 flex-row items-start')}>
                 <Info color="#f43f5e" size={15} style={tw('mt-0.5 mr-2 shrink-0')} />
                 <Text style={tw('text-xs text-slate-600 dark:text-slate-300 flex-1 leading-4')}>
-                  {t(
-                    'mobile.retention_policy_notice',
-                    isVi
-                      ? 'Lưu ý pháp lý: Dữ liệu định danh cá nhân sẽ được ẩn danh hóa sau thời gian ân hạn 14 ngày. Tuy nhiên, hóa đơn thanh toán và biên bản tư vấn y khoa bắt buộc được lưu trữ tối thiểu theo quy định pháp luật y tế.'
-                      : 'Legal notice: Personal identifiers will be anonymized after a 14-day grace period. However, payment invoices and clinical consultation records are retained as required by healthcare regulations.'
-                  )}
+                  {t('mobile.retention_policy_notice')}
                 </Text>
               </View>
 
@@ -352,12 +293,7 @@ export const PrivacyDataModal: React.FC<PrivacyDataModalProps> = ({ visible, onC
                 <View style={tw('bg-amber-100 dark:bg-amber-900/40 p-3.5 rounded-xl flex-row items-center')}>
                   <CheckCircle2 color="#d97706" size={18} style={tw('mr-2')} />
                   <Text style={tw('text-xs font-bold text-amber-900 dark:text-amber-200 flex-1')}>
-                    {t(
-                      'mobile.deletion_pending_banner',
-                      isVi
-                        ? 'Yêu cầu xóa tài khoản đang chờ xử lý (Thời gian ân hạn: 14 ngày).'
-                        : 'Account deletion request is pending (Grace period: 14 days).'
-                    )}
+                    {t('mobile.deletion_pending_banner')}
                   </Text>
                 </View>
               ) : (
@@ -365,20 +301,14 @@ export const PrivacyDataModal: React.FC<PrivacyDataModalProps> = ({ visible, onC
                   <TextInput
                     value={deleteReason}
                     onChangeText={setDeleteReason}
-                    placeholder={t(
-                      'mobile.delete_reason_placeholder',
-                      isVi ? 'Lý do yêu cầu xóa tài khoản (không bắt buộc)...' : 'Reason for account deletion (optional)...'
-                    )}
+                    placeholder={t('mobile.delete_reason_placeholder')}
                     placeholderTextColor="#94a3b8"
                     style={tw('bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 dark:text-white')}
                   />
                   <TextInput
                     value={confirmText}
                     onChangeText={setConfirmText}
-                    placeholder={t(
-                      'mobile.type_delete_placeholder',
-                      isVi ? 'Nhập chữ DELETE để xác nhận...' : 'Type DELETE to confirm...'
-                    )}
+                    placeholder={t('mobile.type_delete_placeholder')}
                     placeholderTextColor="#94a3b8"
                     autoCapitalize="characters"
                     style={tw('bg-white dark:bg-slate-900 border border-rose-200 dark:border-rose-800 rounded-xl px-3.5 py-2.5 text-xs font-bold text-rose-700 dark:text-rose-300')}
@@ -389,7 +319,7 @@ export const PrivacyDataModal: React.FC<PrivacyDataModalProps> = ({ visible, onC
                   >
                     <Trash2 color="#ffffff" size={15} style={tw('mr-1.5')} />
                     <Text style={tw('text-xs font-bold text-white')}>
-                      {t('mobile.submit_deletion_request', isVi ? 'Gửi yêu cầu xóa tài khoản' : 'Submit Deletion Request')}
+                      {t('mobile.submit_deletion_request')}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -400,7 +330,7 @@ export const PrivacyDataModal: React.FC<PrivacyDataModalProps> = ({ visible, onC
           <View style={tw('p-4 border-t border-slate-100 dark:border-slate-800')}>
             <TouchableOpacity onPress={onClose} style={tw('py-3.5 rounded-xl bg-slate-900 dark:bg-white items-center')}>
               <Text style={tw('font-bold text-white dark:text-slate-900 text-sm')}>
-                {t('mobile.close', isVi ? 'Đóng' : 'Close')}
+                {t('mobile.close')}
               </Text>
             </TouchableOpacity>
           </View>
@@ -409,4 +339,3 @@ export const PrivacyDataModal: React.FC<PrivacyDataModalProps> = ({ visible, onC
     </Modal>
   );
 };
-
