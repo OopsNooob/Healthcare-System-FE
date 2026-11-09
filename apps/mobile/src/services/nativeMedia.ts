@@ -187,25 +187,24 @@ export const generateHealthReport = async (
   options: HealthReportExportOptions
 ): Promise<GeneratedReport | null> => {
   try {
-    const isVi = i18n.language === 'vi';
-    const currentDate = new Date().toLocaleDateString(isVi ? 'vi-VN' : 'en-US', {
+    const currentDate = new Date().toLocaleDateString(undefined, {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
     });
 
-    const docTitle = isVi ? 'Báo Cáo Sức Khỏe Lâm Sàng' : 'Clinical Health Report';
-    const docSubtitle = isVi ? 'Báo Cáo Sức Khỏe & Giám Sát Điều Trị Mạn Tính' : 'Chronic Care & Telecare Monitoring Report';
-    const patientLabel = isVi ? 'Bệnh nhân' : 'Patient';
-    const periodLabel = isVi ? 'Thời gian báo cáo' : 'Period';
-    const exportDateLabel = isVi ? 'Ngày xuất' : 'Export Date';
-    const dossierLabel = isVi ? 'Mã hồ sơ' : 'Dossier ID';
+    const docTitle = i18n.t('mobile.pdf_doc_title', 'Báo Cáo Sức Khỏe Lâm Sàng');
+    const docSubtitle = i18n.t('mobile.pdf_doc_subtitle', 'Báo Cáo Sức Khỏe & Giám Sát Điều Trị Mạn Tính');
+    const patientLabel = i18n.t('mobile.patient_label', 'Bệnh nhân');
+    const periodLabel = i18n.t('mobile.pdf_period_label', 'Thời gian báo cáo');
+    const exportDateLabel = i18n.t('mobile.pdf_export_date_label', 'Ngày xuất');
+    const dossierLabel = i18n.t('mobile.pdf_dossier_label', 'Mã hồ sơ');
 
     const cacheDir = FileSystem.cacheDirectory || FileSystem.documentDirectory || '';
 
     // 1. Handle Excel (.xlsx) format (Default & Recommended)
     if (!options.format || options.format === 'xlsx' || options.format === 'csv') {
-      const excelResult = buildHealthReportExcel(options, isVi);
+      const excelResult = buildHealthReportExcel(options);
       const filePath = `${cacheDir}${excelResult.fileName}`;
 
       await FileSystem.writeAsStringAsync(filePath, excelResult.base64, {
@@ -351,15 +350,15 @@ export const generateHealthReport = async (
         ${
           options.includeCharts
             ? `
-          <div class="section-title">${isVi ? '1. Tổng hợp Chỉ số Sinh hiệu Lâm sàng' : '1. Vital Telemetry Logs & Summary'}</div>
+          <div class="section-title">${i18n.t('mobile.pdf_section_1_vitals', '1. Tổng hợp Chỉ số Sinh hiệu Lâm sàng')}</div>
           <table class="data-table">
             <thead>
               <tr>
-                <th>${isVi ? 'Ngày đo' : 'Date & Time'}</th>
-                <th>${isVi ? 'Huyết áp (mmHg)' : 'Blood Pressure (mmHg)'}</th>
-                <th>${isVi ? 'Đường huyết đói (mg/dL)' : 'Fasting Glucose (mg/dL)'}</th>
-                <th>${isVi ? 'Nhịp tim (BPM)' : 'Heart Rate (BPM)'}</th>
-                <th>${isVi ? 'Đánh giá' : 'Assessment'}</th>
+                <th>${i18n.t('mobile.pdf_col_date_time', 'Ngày đo')}</th>
+                <th>${i18n.t('mobile.pdf_col_bp', 'Huyết áp (mmHg)')}</th>
+                <th>${i18n.t('mobile.excel_col_glucose', 'Đường huyết đói (mg/dL)')}</th>
+                <th>${i18n.t('mobile.excel_col_hr', 'Nhịp tim (BPM)')}</th>
+                <th>${i18n.t('mobile.pdf_col_assessment', 'Đánh giá')}</th>
               </tr>
             </thead>
             <tbody>
@@ -368,28 +367,28 @@ export const generateHealthReport = async (
                 <td>120 / 80</td>
                 <td>102</td>
                 <td>74</td>
-                <td><span class="status-normal">${isVi ? 'Bình thường' : 'Normal'}</span></td>
+                <td><span class="status-normal">${i18n.t('mobile.eval_normal', 'Bình thường')}</span></td>
               </tr>
               <tr>
                 <td>16/10/2026 08:15</td>
                 <td>124 / 82</td>
                 <td>108</td>
                 <td>78</td>
-                <td><span class="status-normal">${isVi ? 'Bình thường' : 'Normal'}</span></td>
+                <td><span class="status-normal">${i18n.t('mobile.eval_normal', 'Bình thường')}</span></td>
               </tr>
               <tr>
                 <td>15/10/2026 08:00</td>
                 <td>138 / 88</td>
                 <td>125</td>
                 <td>82</td>
-                <td><span class="status-elevated">${isVi ? 'Hơi cao (Cần theo dõi)' : 'Elevated (Monitor)'}</span></td>
+                <td><span class="status-elevated">${i18n.t('mobile.eval_elevated', 'Hơi cao, cần chú ý')}</span></td>
               </tr>
               <tr>
                 <td>14/10/2026 08:30</td>
                 <td>122 / 80</td>
                 <td>98</td>
                 <td>72</td>
-                <td><span class="status-normal">${isVi ? 'Mục tiêu' : 'Target'}</span></td>
+                <td><span class="status-normal">${i18n.t('mobile.eval_target_achieved', 'Đạt mục tiêu')}</span></td>
               </tr>
             </tbody>
           </table>
@@ -400,15 +399,14 @@ export const generateHealthReport = async (
         ${
           options.includeAiSummary
             ? `
-          <div class="section-title">${isVi ? '2. Phân Tích & Khuyến Nghị Từ Trí Tuệ Nhân Tạo (AI Insights)' : '2. Artificial Intelligence Analysis & Directives (AI Insights)'}</div>
+          <div class="section-title">${i18n.t('mobile.pdf_section_2_ai', '2. Phân Tích & Khuyến Nghị Từ Trí Tuệ Nhân Tạo')}</div>
           <div class="ai-box">
-            <div class="ai-title">✨ ${isVi ? 'Tóm tắt Telemetry 7 ngày:' : '7-Day Telemetry Summary:'}</div>
+            <div class="ai-title">✨ ${i18n.t('mobile.pdf_ai_7d_title', 'Tóm tắt theo dõi 7 ngày:')}</div>
             <p style="margin: 0; line-height: 1.5; font-size: 13px; color: #312e81;">
-              ${
-                isVi
-                  ? 'Chỉ số huyết áp đạt ngưỡng mục tiêu trong 85% thời gian theo dõi. Có 1 lần ghi nhận dao động nhẹ vào buổi sáng ngày 15/10 sau bữa tối nhiều natri. Bệnh nhân duy trì tuân thủ dùng thuốc tốt. Khuyến nghị duy trì chế độ giảm muối và lịch tái khám định kỳ.'
-                  : 'Blood pressure remained within target range for 85% of telemetry window. A single mild elevation occurred on Oct 15 morning following a high-sodium dinner. Patient demonstrates strong medication adherence. Continued low-sodium diet and routine follow-up recommended.'
-              }
+              ${i18n.t(
+                'mobile.pdf_ai_7d_body',
+                'Chỉ số huyết áp đạt ngưỡng mục tiêu trong 85% thời gian theo dõi. Có 1 lần ghi nhận dao động nhẹ vào buổi sáng ngày 15/10 sau bữa tối nhiều natri. Bệnh nhân duy trì tuân thủ dùng thuốc tốt. Khuyến nghị duy trì chế độ giảm muối và lịch tái khám định kỳ.'
+              )}
             </p>
           </div>
         `
@@ -418,22 +416,22 @@ export const generateHealthReport = async (
         ${
           options.includeAlerts
             ? `
-          <div class="section-title">${isVi ? '3. Nhật Ký Cảnh Báo Lâm Sàng & Ghi Chú Y Lệnh' : '3. Clinical Alerts & Physician Order Logs'}</div>
+          <div class="section-title">${i18n.t('mobile.pdf_section_3_alerts', '3. Nhật Ký Cảnh Báo Lâm Sàng & Ghi Chú Y Lệnh')}</div>
           <table class="data-table">
             <thead>
               <tr>
-                <th>${isVi ? 'Thời điểm' : 'Timestamp'}</th>
-                <th>${isVi ? 'Mức độ' : 'Severity'}</th>
-                <th>${isVi ? 'Mô tả sự kiện' : 'Event Description'}</th>
-                <th>${isVi ? 'Trạng thái xử lý' : 'Resolution Status'}</th>
+                <th>${i18n.t('mobile.excel_col_timestamp', 'Thời gian')}</th>
+                <th>${i18n.t('mobile.excel_col_severity', 'Mức độ')}</th>
+                <th>${i18n.t('mobile.excel_col_alert_desc', 'Nội dung cảnh báo')}</th>
+                <th>${i18n.t('mobile.pdf_col_resolution', 'Trạng thái xử lý')}</th>
               </tr>
             </thead>
             <tbody>
               <tr>
                 <td>15/10/2026 08:05</td>
-                <td><span class="status-elevated">${isVi ? 'Chú ý' : 'Attention'}</span></td>
-                <td>${isVi ? 'Đường huyết đói vượt ngưỡng nhẹ (125 mg/dL)' : 'Fasting blood sugar slightly above baseline (125 mg/dL)'}</td>
-                <td>${isVi ? 'Bác sĩ đã ghi nhận & điều chỉnh' : 'Physician reviewed and adjusted plan'}</td>
+                <td><span class="status-elevated">${i18n.t('mobile.severity_attention', 'Cần chú ý')}</span></td>
+                <td>${i18n.t('mobile.excel_alert_desc_2', 'Đường huyết sáng 125 mg/dL cao hơn mức chuẩn')}</td>
+                <td>${i18n.t('mobile.pdf_alert_resolution_1', 'Bác sĩ đã ghi nhận & điều chỉnh')}</td>
               </tr>
             </tbody>
           </table>
@@ -442,11 +440,10 @@ export const generateHealthReport = async (
         }
 
         <div class="footer">
-          ${
-            isVi
-              ? 'Báo cáo được khởi tạo tự động từ Nền tảng Chăm sóc Sức khỏe Telecare. Dữ liệu có giá trị tham vấn chuyên môn với Bác sĩ phụ trách.'
-              : 'Report automatically generated from the Telecare Health Platform. Data is intended for clinical consultation with your attending physician.'
-          }
+          ${i18n.t(
+            'mobile.excel_footer_disclaimer',
+            'Báo cáo được khởi tạo tự động từ Nền tảng Chăm sóc Sức khỏe Telecare. Dữ liệu có giá trị tham vấn chuyên môn với Bác sĩ phụ trách.'
+          )}
         </div>
       </body>
       </html>

@@ -21,7 +21,6 @@ import { pickNativePdfDocument, pickNativeImage } from '@/services/nativeMedia';
 
 export default function DoctorProfileScreen() {
   const { t, i18n } = useTranslation();
-  const isVi = i18n.language?.startsWith('vi');
   const { colorScheme, setColorScheme } = useThemeContext();
   const activeScheme = colorScheme;
 

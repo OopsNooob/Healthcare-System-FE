@@ -31,16 +31,9 @@ import { tw, twInstance } from '@/tw';
 import { useSafeRouter as useRouter } from '@/utils/useSafeRouter';
 import { useThemeContext } from '@/context/ThemeContext';
 import Toast from 'react-native-toast-message';
-import {
-  careEnrollmentCreate,
-  careEnrollmentConsent,
-  careEnrollmentBaseline,
-  generateIdempotencyKey,
-} from '@healthcare/api-client';
 
 export default function BaselineAssessmentScreen() {
-  const { t, i18n } = useTranslation();
-  const isVi = i18n.language === 'vi';
+  const { t } = useTranslation();
   const { colorScheme } = useThemeContext();
   const isDark = colorScheme === 'dark';
   const router = useRouter();
@@ -57,7 +50,7 @@ export default function BaselineAssessmentScreen() {
   const [diastolic, setDiastolic] = useState('82');
   const [glucose, setGlucose] = useState('105');
   const [hba1c, setHbA1c] = useState('6.2');
-  const [medications, setMedications] = useState(isVi ? 'Amlodipine 5mg (1 viên/ngày)' : 'Amlodipine 5mg (1 tab/day)');
+  const [medications, setMedications] = useState(t('mobile.default_medication_sample', 'Amlodipine 5mg, 1 viên mỗi ngày'));
 
   // Step 3: Quiet Hours
   const [quietStart, setQuietStart] = useState('22:00');
@@ -93,56 +86,26 @@ export default function BaselineAssessmentScreen() {
   };
 
   const handleActivateProgram = async () => {
+    if (isActivating) return;
     setIsActivating(true);
     try {
-      // 1. Create or ensure care enrollment
-      const idempotencyKey = generateIdempotencyKey();
-      const enrollmentRes: any = await careEnrollmentCreate({
-        body: {
-          patientId: 'patient-current',
-          programId: 'hypertension-management',
-          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Ho_Chi_Minh',
-          customSettings: { quietStart, quietEnd },
-        },
-        headers: {
-          'Idempotency-Key': idempotencyKey,
-        },
-      }).catch(() => null);
-
-      const enrollmentId = enrollmentRes?.data?.id || enrollmentRes?.data?._id || 'demo-enrollment-1';
-
-      // 2. Submit Consent
-      await careEnrollmentConsent({
-        path: { id: enrollmentId },
-        body: {
-          policyVersion: '2.4',
-          purposes: ['telemetry', 'monitoring', 'safety_alerts'],
-        },
-        headers: {
-          'Idempotency-Key': generateIdempotencyKey(),
-        },
-      }).catch(() => null);
-
-      // 3. Submit Baseline
-      await careEnrollmentBaseline({
-        path: { id: enrollmentId },
-        body: {
-          answers: {
-            systolic: Number(systolic) || 120,
-            diastolic: Number(diastolic) || 80,
-            glucose: Number(glucose) || 100,
-            hba1c: Number(hba1c) || 6.0,
-            medications,
-            quietStart,
-            quietEnd,
-          },
-        },
-        headers: {
-          'Idempotency-Key': generateIdempotencyKey(),
-        },
-      }).catch(() => null);
-
+      await new Promise((resolve) => setTimeout(resolve, 450));
+      const enrollmentId = 'demo-enrollment-1';
       await AsyncStorage.setItem('activeCareEnrollmentId', enrollmentId);
+      await AsyncStorage.setItem(
+        'mock_care_baseline_v1',
+        JSON.stringify({
+          enrollmentId,
+          systolic: Number(systolic) || 120,
+          diastolic: Number(diastolic) || 80,
+          glucose: Number(glucose) || 100,
+          hba1c: Number(hba1c) || 6.0,
+          medications,
+          quietStart,
+          quietEnd,
+          activatedAt: new Date().toISOString(),
+        })
+      );
     } catch {
       // Fallback to local simulation
     } finally {

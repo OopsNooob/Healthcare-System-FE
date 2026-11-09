@@ -964,10 +964,11 @@
     },
     "careProgram": {
       "title": "Care Program & Rules",
-      "subtitle": "Manage health tracking programs and threshold rules.",
+      "subtitle": "Manage health tracking programs, educational materials, and alert rules.",
       "tabs": {
         "templates": "Program Templates",
-        "rules": "Rule Engine Builder"
+        "rules": "Alert Rules",
+        "education": "Educational Materials"
       },
       "actions": {
         "createProgram": "Create Program",
@@ -989,11 +990,12 @@
       },
       "rules": {
         "program": "PROGRAM",
+        "source": "DATA SOURCE",
         "condition": "CONDITION",
         "severity": "SEVERITY",
         "status": "STATUS",
         "action": "ACTION",
-        "edit": "EDIT",
+        "edit": "ACTIONS",
         "active": "Active",
         "retired": "Retired",
         "draft": "Draft",
@@ -1009,11 +1011,69 @@
         "medications": "Current Medications",
         "quietHours": "Quiet Hours"
       },
+      "taskTypes": {
+        "metric": "Vital Measurement",
+        "check_in": "Symptom Check-in",
+        "education": "Health Education",
+        "appointment": "Follow-up Appointment",
+        "doctor_review": "Doctor Review"
+      },
+      "symptoms": {
+        "chest_pain": "Chest pain",
+        "shortness_of_breath": "Shortness of breath",
+        "dizziness": "Dizziness",
+        "headache": "Headache",
+        "fatigue": "Fatigue",
+        "edema": "Mild swelling",
+        "nausea": "Nausea",
+        "palpitations": "Palpitations"
+      },
+      "educationCatalog": {
+        "notice": "Only published educational materials can be viewed and acknowledged by patients in their daily tasks. Draft or retired materials are automatically locked from patient acknowledgement.",
+        "colTitle": "MATERIAL",
+        "colFormat": "FORMAT",
+        "colVersion": "VERSION",
+        "colStatus": "STATUS",
+        "publishBtn": "Publish",
+        "format": {
+          "article": "Article",
+          "video": "Video",
+          "document": "Document"
+        }
+      },
+      "educationCatalogItems": {
+        "hypertension_salt_guide": {
+          "title": "Low-Sodium Diet & Nutrition Guide for Hypertension",
+          "summary": "Keep daily sodium intake below 2,000 mg, increase leafy greens, and monitor blood pressure daily."
+        },
+        "bp_home_measurement_video": {
+          "title": "Home Blood Pressure Measurement Posture Video",
+          "summary": "Rest 5 minutes before measuring, keep the cuff at heart level, and remain quiet during measurement."
+        },
+        "diabetes_foot_care_doc": {
+          "title": "Diabetic Foot Care & Complication Prevention Handbook",
+          "summary": "Inspect feet every evening, keep skin dry, and contact your doctor immediately for slow-healing sores."
+        },
+        "medication_adherence_guide": {
+          "title": "Long-Term Cardiovascular Medication Adherence Guide",
+          "summary": "Draft awaiting medical board review before publishing to enrolled patients."
+        }
+      },
       "metrics": {
-        "systolic": "Systolic (mmHg)",
-        "diastolic": "Diastolic (mmHg)",
-        "glucose": "Glucose (mg/dL)",
-        "heartRate": "Heart Rate (bpm)"
+        "systolic": "Systolic BP",
+        "diastolic": "Diastolic BP",
+        "glucose": "Blood Glucose",
+        "heartRate": "Heart Rate",
+        "symptomSeverityRank": "Symptom Severity Level",
+        "chestPainReported": "Chest Pain",
+        "shortnessOfBreathReported": "Shortness of Breath",
+        "dizzinessReported": "Dizziness"
+      },
+      "simSeverity": {
+        "none": "0 - None",
+        "mild": "1 - Mild",
+        "moderate": "2 - Moderate",
+        "severe": "3 - Severe"
       },
       "operators": {
         "greaterThan": "Greater than",
@@ -1024,7 +1084,7 @@
       },
       "modals": {
         "createTitle": "Create Care Program Template",
-        "createDesc": "Configure a chronic care program with baseline assessments and monitoring task templates.",
+        "createDesc": "Configure a chronic care program with baseline assessments and daily monitoring tasks.",
         "progName": "Program Name",
         "progNamePlaceholder": "e.g. Hypertension Management...",
         "progCode": "Program Code",
@@ -1036,42 +1096,55 @@
         "descriptionPlaceholder": "Monitoring goals and target patient cohort...",
         "baselineQuestions": "Baseline Form & Assessment",
         "baselineDesc": "Select vital metrics required upon patient enrollment:",
-        "taskTemplates": "Embedded Task Templates",
+        "taskTemplates": "Daily Monitoring Tasks",
+        "taskTemplatesDesc": "Configure daily patient tasks, symptom check-ins, and educational materials.",
+        "addTaskBtn": "Add Task",
+        "removeTask": "Remove task",
+        "taskTypeLabel": "Task Category",
+        "scheduledTime": "Scheduled Time",
+        "windowMinutes": "Completion Window",
+        "allowedSymptomsLabel": "Tracked Symptoms for Check-in",
+        "educationMaterialLabel": "Published Educational Material",
         "completionCriteria": "Completion Criteria",
         "completionCriteriaPlaceholder": "80% adherence over 90 days",
         "saveDraft": "Save as Draft",
         "publish": "Publish Program",
-        "ruleTitle": "Add Alert Rule (Rule Builder)",
-        "ruleDesc": "Configure declarative filters to automatically trigger clinical alerts.",
+        "ruleTitle": "Add Alert Rule",
+        "ruleDesc": "Configure automated clinical alert rules from vital signs or symptom check-ins.",
         "targetProgram": "Apply to Program",
+        "dataSourceLabel": "Evaluation Data Source",
+        "sourceHealthMetric": "Vital Measurements",
+        "sourceSymptomCheckIn": "Symptom Check-in",
         "selectRule": "Select Rule to Test",
-        "metric": "Target Metric",
+        "metric": "Target Field",
         "operator": "Condition Operator",
         "threshold": "Threshold Value",
         "severity": "Severity Level",
         "action": "Triggered Action",
-        "declarativeCondition": "Declarative Condition",
+        "declarativeCondition": "Alert Condition",
         "conditionPreview": "Condition Preview",
         "cancel": "Cancel",
         "createRule": "Create Rule",
-        "severityAttention": "Attention (Moderate Alert)",
-        "severityUrgent": "Urgent (Critical Alert)",
+        "severityAttention": "Attention",
+        "severityUrgent": "Urgent",
         "actionDoctorAlert": "Send Doctor Alert",
         "actionPatientTask": "Assign Patient Task",
         "actionEmergency": "Trigger Emergency Protocol",
         "simTitle": "Rule Dry-Run Simulation",
-        "simDesc": "Test rules against synthetic patient telemetry before enabling in production.",
+        "simDesc": "Test rules against synthetic patient inputs before enabling in production.",
         "simScanned": "Records Evaluated",
         "simAlerts": "Alerts Generated",
         "simFalsePos": "False Positive Rate",
         "simStatus": "Safety Validation Passed",
-        "simTelemetryInputs": "Synthetic Telemetry Inputs",
-        "simViolated": "VIOLATED / TRIGGERED",
-        "simSafe": "NORMAL / SAFE",
-        "simMatched": "Condition Matched (Triggered)",
-        "simNoTrigger": "No Trigger (Condition Not Met)",
+        "simTelemetryInputs": "Synthetic Patient Inputs",
+        "simWarningSymptomToggle": "Patient reported warning symptom",
+        "simInactiveRuleNotice": "Note: This rule is not currently active, so only an evaluation log is recorded without sending a live doctor alert.",
+        "simViolated": "TRIGGERED",
+        "simSafe": "SAFE",
+        "simMatched": "Condition Triggered",
+        "simNoTrigger": "Within Safe Threshold",
         "actionFired": "Action Fired",
-        "run": "Run Dry-Run",
+        "run": "Run Simulation",
         "activateRule": "Activate Rule",
         "close": "Close"
       },
@@ -1088,7 +1161,7 @@
         "enrolledCount": "{{count}} patients",
         "baselineRequirements": "Baseline Survey Requirements",
         "baselineDesc": "Select vital metrics required upon patient enrollment:",
-        "taskTemplates": "Daily Tasks Templates Count",
+        "taskTemplates": "Daily Monitoring Tasks",
         "completionCriteria": "Completion Criteria",
         "completionCriteriaPlaceholder": "e.g. 80% adherence over 90 days",
         "cancel": "Cancel",
@@ -1096,10 +1169,15 @@
       },
       "toasts": {
         "nameRequired": "Please enter a program name",
+        "minOneTask": "At least one monitoring task is required",
+        "symptomSelectionRequired": "Please select at least one tracked symptom for the check-in task",
+        "educationContentRequired": "Please select a published educational material",
+        "checkInTaskRequiredForRule": "The selected program must include a daily symptom check-in task to use symptom rules.",
         "thresholdRequired": "Please enter a valid threshold",
         "ruleCreated": "Alert rule created successfully",
         "ruleActivated": "Rule activated",
         "ruleRetired": "Rule retired",
+        "educationStatusUpdated": "Educational material status updated",
         "updateSuccess": "Care program updated successfully",
         "publishSuccess": "Program published successfully",
         "draftSuccess": "Draft saved successfully"

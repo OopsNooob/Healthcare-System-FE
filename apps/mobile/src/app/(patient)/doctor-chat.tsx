@@ -21,8 +21,7 @@ interface ChatMessage {
 }
 
 export default function DoctorChatScreen() {
-  const { t, i18n } = useTranslation();
-  const isVi = i18n.language === 'vi';
+  const { t } = useTranslation();
 
   const router = useRouter();
   const [message, setMessage] = useState('');
@@ -42,14 +41,14 @@ export default function DoctorChatScreen() {
   const initialMessages: ChatMessage[] = [
     {
       id: '1',
-      text: isVi ? "Chào Alex, tôi là Bác sĩ Sarah Connor. Tình hình huyết áp và sức khỏe của bạn hôm nay thế nào?" : "Hello Alex, Dr. Sarah Connor here. How are you feeling and how are your vital readings today?",
+      text: t('mobile.sample_doc_chat_msg_1', 'Chào Alex, tôi là Bác sĩ Sarah Connor. Tình hình huyết áp và sức khỏe của bạn hôm nay thế nào?'),
       sender: 'doctor',
       time: '10:30 AM',
       hasAttachment: false,
     },
     {
       id: '2',
-      text: isVi ? "Chào bác sĩ, thuốc dùng rất êm. Tôi gửi kèm hình ảnh chụp phiếu kết quả xét nghiệm máu gần nhất để bác sĩ xem giúp:" : "Hello Doctor, the medication is working well. I took a photo of my recent blood panel for your review:",
+      text: t('mobile.sample_doc_chat_msg_2', 'Chào bác sĩ, thuốc dùng rất êm. Tôi gửi kèm hình ảnh chụp phiếu kết quả xét nghiệm máu gần nhất để bác sĩ xem giúp:'),
       sender: 'user',
       time: '10:31 AM',
       hasAttachment: true,
@@ -60,7 +59,7 @@ export default function DoctorChatScreen() {
     },
     {
       id: '3',
-      text: isVi ? "Bác sĩ đã xem xét nghiệm. Các chỉ số đều ổn định. Bác sĩ gửi bản Báo cáo đánh giá lâm sàng 30 ngày định kỳ (PDF) dưới đây nhé:" : "I reviewed your blood panel. Everything looks stable. I have attached your certified 30-Day Care Directives report (PDF) below:",
+      text: t('mobile.sample_doc_chat_msg_3', 'Bác sĩ đã xem xét nghiệm. Các chỉ số đều ổn định. Bác sĩ gửi bản Báo cáo đánh giá lâm sàng 30 ngày định kỳ bên dưới nhé:'),
       sender: 'doctor',
       time: '10:33 AM',
       hasAttachment: true,
@@ -116,8 +115,8 @@ export default function DoctorChatScreen() {
         {
           id: (Date.now() + 1).toString(),
           text: item.type === 'image'
-            ? (isVi ? 'Bác sĩ đã tiếp nhận hình ảnh của bạn và đang kiểm tra.' : 'I have received your medical photo and am reviewing it now.')
-            : (isVi ? 'Bác sĩ đã nhận tệp tài liệu PDF và sẽ lưu vào hồ sơ theo dõi.' : 'I have received your PDF document and archived it to your clinical dossier.'),
+            ? t('mobile.doctor_received_image_reply', 'Bác sĩ đã tiếp nhận hình ảnh của bạn và đang kiểm tra.')
+            : t('mobile.doctor_received_pdf_reply', 'Bác sĩ đã nhận tệp tài liệu PDF và sẽ lưu vào hồ sơ theo dõi.'),
           sender: 'doctor',
           time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           hasAttachment: false,
@@ -190,7 +189,7 @@ export default function DoctorChatScreen() {
           <View style={tw('flex-row items-center flex-1 mr-3')}>
             <View style={tw('w-2 h-2 rounded-full bg-emerald-500 mr-2')} />
             <Text style={tw('text-xs text-emerald-900 dark:text-emerald-200 font-semibold')} numberOfLines={1}>
-              {isVi ? 'Phòng khám trực tuyến sẵn sàng' : 'Teleconsultation room ready'}
+              {t('mobile.teleconsultation_room_ready', 'Phòng khám trực tuyến sẵn sàng')}
             </Text>
           </View>
           <TouchableOpacity

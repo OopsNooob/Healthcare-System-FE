@@ -39,7 +39,6 @@ import {
 
 export default function ProfileScreen() {
   const { t, i18n } = useTranslation();
-  const isVi = i18n.language === 'vi';
   const { colorScheme, setColorScheme } = useThemeContext();
   const activeScheme = colorScheme;
   const router = useRouter();
@@ -168,7 +167,7 @@ export default function ProfileScreen() {
             >
               <View style={tw('mb-4')}>
                 <Text style={tw('font-bold text-indigo-900 dark:text-indigo-100 text-lg mb-2')}>
-                  {isVi ? 'Đăng ký chương trình chăm sóc' : 'Care Program Enrollment'}
+                  {t('mobile.care_program_enrollment_title', 'Đăng ký chương trình chăm sóc')}
                 </Text>
                 <View style={tw('bg-amber-100 dark:bg-amber-900/30 px-3 py-1.5 rounded-full self-start')}>
                   <Text style={tw('text-amber-700 dark:text-amber-400 text-xs font-bold')}>

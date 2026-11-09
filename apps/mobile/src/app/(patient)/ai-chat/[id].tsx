@@ -28,8 +28,7 @@ type Message = {
 };
 
 export default function AiChatSessionScreen() {
-  const { t, i18n } = useTranslation();
-  const isVi = i18n.language === 'vi';
+  const { t } = useTranslation();
   const router = useRouter();
   const { id, prefill } = useLocalSearchParams<{ id: string; prefill?: string }>();
   const scrollViewRef = useRef<ScrollView>(null);
@@ -43,13 +42,13 @@ export default function AiChatSessionScreen() {
   const initialMessages: Message[] = [
     { 
       id: '1', 
-      text: isVi ? "Xin chào! Tôi là Trợ lý AI Y tế. Tôi có thể giúp gì cho bạn hôm nay?" : "Hello! I'm your AI Healthcare Assistant. How can I help you today?", 
+      text: t('mobile.ai_welcome_msg', 'Xin chào! Tôi là Trợ lý AI Y tế. Tôi có thể giúp gì cho bạn hôm nay?'), 
       sender: 'ai', 
       time: '10:00 AM' 
     },
     {
       id: '2',
-      text: isVi ? "Tôi đã tải lên ảnh chụp đơn thuốc để AI kiểm tra liều dùng:" : "I uploaded my prescription photo for AI analysis:",
+      text: t('mobile.ai_sample_user_prescription', 'Tôi đã tải lên ảnh chụp đơn thuốc để AI kiểm tra liều dùng:'),
       sender: 'user',
       time: '10:01 AM',
       hasAttachment: true,
@@ -57,9 +56,10 @@ export default function AiChatSessionScreen() {
     },
     {
       id: '3',
-      text: isVi 
-        ? "Tôi đã tiếp nhận hình ảnh đơn thuốc. Kết quả nhận diện: Paracetamol 500mg, uống sau khi ăn và cách nhau tối thiểu 4-6 giờ. Bạn có triệu chứng sốt hoặc đau đầu kèm theo không?" 
-        : "I have received your prescription image. Detected: Paracetamol 500mg, take after meals at least 4-6 hours apart. Are you experiencing fever or headache?",
+      text: t(
+        'mobile.ai_sample_prescription_reply',
+        'Tôi đã tiếp nhận hình ảnh đơn thuốc. Kết quả nhận diện: Paracetamol 500mg, uống sau khi ăn và cách nhau tối thiểu 4-6 giờ. Bạn có triệu chứng sốt hoặc đau đầu kèm theo không?'
+      ),
       sender: 'ai',
       time: '10:02 AM',
       citations: [
@@ -83,9 +83,10 @@ export default function AiChatSessionScreen() {
           ...prev, 
           { 
             id: (Date.now() + 1).toString(), 
-            text: isVi 
-              ? "Dựa trên dữ liệu, các chỉ số của bạn nằm trong ngưỡng bình thường. Nếu bạn thấy mệt, vui lòng liên hệ bác sĩ." 
-              : "I've analyzed your health metric. Everything looks to be in normal range, but if you feel unwell, please consult your doctor.", 
+            text: t(
+              'mobile.ai_prefill_normal_reply',
+              'Dựa trên dữ liệu, các chỉ số của bạn nằm trong ngưỡng bình thường. Nếu bạn thấy mệt, vui lòng liên hệ bác sĩ.'
+            ), 
             sender: 'ai', 
             time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
             citations: [
@@ -121,9 +122,10 @@ export default function AiChatSessionScreen() {
           ...prev, 
           { 
             id: (Date.now() + 1).toString(), 
-            text: isVi 
-              ? "Vì lý do an toàn, AI không được phép chẩn đoán bệnh hoặc kê đơn thuốc. Vui lòng đặt lịch khám với bác sĩ chuyên khoa để được tư vấn chính xác nhất." 
-              : "For safety reasons, I cannot diagnose conditions or prescribe medications. Please consult a qualified healthcare professional.", 
+            text: t(
+              'mobile.ai_safety_refusal_reply',
+              'Vì lý do an toàn, AI không được phép chẩn đoán bệnh hoặc kê đơn thuốc. Vui lòng đặt lịch khám với bác sĩ chuyên khoa để được tư vấn chính xác nhất.'
+            ), 
             sender: 'ai', 
             time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
             isFallback: true
@@ -134,7 +136,7 @@ export default function AiChatSessionScreen() {
           ...prev, 
           { 
             id: (Date.now() + 1).toString(), 
-            text: isVi ? "Cảm ơn thông tin của bạn. Tôi đã ghi nhận và phân tích dữ liệu." : "Thank you for the information. I've recorded and analyzed it.", 
+            text: t('mobile.ai_ack_reply', 'Cảm ơn thông tin của bạn. Tôi đã ghi nhận và phân tích dữ liệu.'), 
             sender: 'ai', 
             time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
             citations: [
@@ -168,9 +170,10 @@ export default function AiChatSessionScreen() {
         ...prev,
         {
           id: (Date.now() + 1).toString(),
-          text: isVi
-            ? "Tôi đã tiếp nhận hình ảnh của bạn. Kết quả phân tích sơ bộ: Hình ảnh chụp rõ ràng đơn thuốc / chỉ số y tế. Lưu ý luôn dùng thuốc đúng giờ theo chỉ định của bác sĩ điều trị."
-            : "I have received your medical image. Preliminary analysis: The prescription / metric photo is clear. Please remember to take medications on time as directed by your physician.",
+          text: t(
+            'mobile.ai_image_received_reply',
+            'Tôi đã tiếp nhận hình ảnh của bạn. Kết quả phân tích sơ bộ: Hình ảnh chụp rõ ràng đơn thuốc / chỉ số y tế. Lưu ý luôn dùng thuốc đúng giờ theo chỉ định của bác sĩ điều trị.'
+          ),
           sender: 'ai',
           time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           citations: [
@@ -271,7 +274,7 @@ export default function AiChatSessionScreen() {
                       <View style={tw('absolute bottom-2 right-2 bg-black/70 px-2 py-1 rounded-md flex-row items-center')}>
                         <ZoomIn color="#ffffff" size={12} style={tw('mr-1')} />
                         <Text style={tw('text-[10px] text-white font-medium')}>
-                          {isVi ? 'Phóng to' : 'Zoom'}
+                          {t('mobile.zoom_image', 'Phóng to')}
                         </Text>
                       </View>
                     </TouchableOpacity>

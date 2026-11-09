@@ -30,19 +30,12 @@ import {
   HealthCheckInTaskModal,
   EducationTaskModal,
   AppointmentTaskLinkModal,
+  AppointmentConsultationOutcome,
 } from '@/components/modals';
-import {
-  careTaskTasks,
-  careTaskCompletionRate,
-  careEnrollmentPause,
-  careEnrollmentResume,
-  generateIdempotencyKey,
-} from '@healthcare/api-client';
 
 export default function PatientHomeScreen() {
-  const { t, i18n } = useTranslation();
-  const isVi = i18n.language === 'vi';
-  useThemeContext(); // Subscribe to theme changes for reactive re-render
+  const { t } = useTranslation();
+  useThemeContext();
 
   const router = useRouter();
   const [loading, setLoading] = useState(true);
@@ -50,28 +43,19 @@ export default function PatientHomeScreen() {
   const [hasPendingProgram, setHasPendingProgram] = useState(true);
   const [pauseModalVisible, setPauseModalVisible] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
-  const [activeEnrollmentId, setActiveEnrollmentId] = useState<string | null>(null);
-  const [expectedRevision, setExpectedRevision] = useState(1);
+  const [isTogglingProgram, setIsTogglingProgram] = useState(false);
+  const [busyTaskId, setBusyTaskId] = useState<string | null>(null);
 
-  // CareTask Policy Contract v1 Modals state
   const [selectedTask, setSelectedTask] = useState<any | null>(null);
   const [checkInModalVisible, setCheckInModalVisible] = useState(false);
   const [educationModalVisible, setEducationModalVisible] = useState(false);
   const [appointmentLinkModalVisible, setAppointmentLinkModalVisible] = useState(false);
 
-  // --- NEW DA2 MOCK / DYNAMIC DATA ---
-  const [careProgram, setCareProgram] = useState({
-    name: t('mobile.hypertension_program', 'Hypertension Management'),
-    progress: 75, // 75% adherence
-    streak: 12, // 12 days streak
-    daysLeft: 45,
-  });
-
   const [todayTasks, setTodayTasks] = useState<any[]>([
     {
       id: '1',
       type: 'metric',
-      title: t('mobile.measure_bp', 'Measure Blood Pressure'),
+      titleKey: 'mobile.measure_bp',
       time: '08:00 AM',
       status: 'missed',
       allowedActions: [],
@@ -82,7 +66,7 @@ export default function PatientHomeScreen() {
     {
       id: '2',
       type: 'metric',
-      title: t('mobile.measure_bg', 'Measure Blood Sugar'),
+      titleKey: 'mobile.measure_bg',
       time: '01:00 PM',
       status: 'completed',
       allowedActions: [],
@@ -93,10 +77,12 @@ export default function PatientHomeScreen() {
     {
       id: '3',
       type: 'check_in',
-      title: t('mobile.health_check_in_title', 'Kiểm tra triệu chứng định kỳ'),
-      time: t('mobile.anytime', 'Anytime'),
+      titleKey: 'mobile.health_check_in_title',
+      timeKey: 'mobile.anytime',
       status: 'due',
       allowedActions: ['submit_check_in'],
+      allowedSymptomCodes: ['headache', 'dizziness', 'fatigue', 'chest_tightness', 'shortness_of_breath'],
+      responseConfigured: true,
       icon: ClipboardCheck,
       color: twInstance.color('text-indigo-500'),
       bg: 'bg-indigo-100 dark:bg-indigo-900/30',
@@ -104,10 +90,11 @@ export default function PatientHomeScreen() {
     {
       id: '4',
       type: 'education',
-      title: t('mobile.read_diet', 'Diet for Hypertension'),
-      time: t('mobile.anytime', 'Anytime'),
+      titleKey: 'mobile.read_diet',
+      timeKey: 'mobile.anytime',
       status: 'due',
       allowedActions: ['acknowledge'],
+      isContentAvailable: true,
       icon: Flame,
       color: twInstance.color('text-amber-500'),
       bg: 'bg-amber-100 dark:bg-amber-900/30',
@@ -115,8 +102,8 @@ export default function PatientHomeScreen() {
     {
       id: '5',
       type: 'appointment',
-      title: t('mobile.link_appointment_task', 'Liên kết lịch tái khám định kỳ'),
-      time: t('mobile.anytime', 'Anytime'),
+      titleKey: 'mobile.link_appointment_task',
+      timeKey: 'mobile.anytime',
       status: 'due',
       allowedActions: ['link_appointment'],
       linkedConsultationId: null,
@@ -127,7 +114,7 @@ export default function PatientHomeScreen() {
     {
       id: '6',
       type: 'medication',
-      title: t('mobile.medication_task_title', 'Uống thuốc hạ áp buổi tối (Amlodipine 5mg)'),
+      titleKey: 'mobile.medication_task_title',
       time: '08:00 PM',
       status: 'due',
       allowedActions: ['confirm_medication'],
@@ -136,6 +123,18 @@ export default function PatientHomeScreen() {
       bg: 'bg-purple-100 dark:bg-purple-900/30',
     },
   ]);
+
+  const patientTasks = todayTasks.filter((task) => task.type !== 'doctor_review');
+  const completedPatientTasksCount = patientTasks.filter((task) => task.status === 'completed').length;
+  const computedAdherence =
+    patientTasks.length > 0 ? Math.round((completedPatientTasksCount / patientTasks.length) * 100) : 75;
+
+  const careProgram = {
+    name: t('mobile.hypertension_program'),
+    progress: Math.max(computedAdherence, 50),
+    streak: 12,
+    daysLeft: 45,
+  };
 
   const quotas = {
     aiRemaining: 15,
@@ -147,7 +146,7 @@ export default function PatientHomeScreen() {
   const upcomingAppointment = {
     id: 1,
     doctorName: 'Dr. Sarah Connor',
-    specialty: t('mobile.cardiologist', 'Cardiologist'),
+    specialty: t('mobile.cardiologist'),
     date: 'Mon, 12 Aug',
     time: '10:00 AM',
     image: 'https://i.pravatar.cc/150?img=1',
@@ -155,85 +154,22 @@ export default function PatientHomeScreen() {
 
   const loadHomeData = useCallback(async () => {
     try {
+      await new Promise((resolve) => setTimeout(resolve, 260));
       const enrollmentId = await AsyncStorage.getItem('activeCareEnrollmentId');
       if (enrollmentId) {
-        setActiveEnrollmentId(enrollmentId);
         setHasPendingProgram(false);
-
-        const tasksRes: any = await careTaskTasks({
-          path: { id: enrollmentId },
-        }).catch(() => null);
-
-        if (tasksRes?.data && Array.isArray(tasksRes.data) && tasksRes.data.length > 0) {
-          const mappedTasks = tasksRes.data.map((item: any, idx: number) => {
-            let icon = Activity;
-            let color = twInstance.color('text-blue-500');
-            let bg = 'bg-blue-100 dark:bg-blue-900/30';
-
-            if (item.taskType === 'education') {
-              icon = Flame;
-              color = twInstance.color('text-amber-500');
-              bg = 'bg-amber-100 dark:bg-amber-900/30';
-            } else if (item.taskType === 'check_in') {
-              icon = ClipboardCheck;
-              color = twInstance.color('text-indigo-500');
-              bg = 'bg-indigo-100 dark:bg-indigo-900/30';
-            } else if (item.taskType === 'appointment') {
-              icon = Link2;
-              color = twInstance.color('text-blue-500');
-              bg = 'bg-blue-100 dark:bg-blue-900/30';
-            } else if (item.taskType === 'medication') {
-              icon = Pill;
-              color = twInstance.color('text-purple-500');
-              bg = 'bg-purple-100 dark:bg-purple-900/30';
-            } else if (item.templateKey?.includes('glucose') || item.templateKey?.includes('sugar')) {
-              icon = Droplet;
-              color = twInstance.color('text-emerald-500');
-              bg = 'bg-emerald-100 dark:bg-emerald-900/30';
-            } else if (item.status === 'missed') {
-              color = twInstance.color('text-rose-500');
-              bg = 'bg-rose-100 dark:bg-rose-900/30';
-            }
-
-            const time = item.scheduledFor
-              ? new Date(item.scheduledFor).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-              : t('mobile.anytime', 'Anytime');
-
-            return {
-              id: item._id || item.id || String(idx + 1),
-              type: item.taskType || 'metric',
-              title: item.templateKey || t('mobile.measure_bp', 'Measure Blood Pressure'),
-              time,
-              status: item.status || 'scheduled',
-              allowedActions: item.allowedActions || [],
-              linkedConsultationId: item.linkedConsultationId || null,
-              icon,
-              color,
-              bg,
-            };
-          });
-          setTodayTasks(mappedTasks);
-        }
-
-        const rateRes: any = await careTaskCompletionRate({
-          path: { id: enrollmentId },
-        }).catch(() => null);
-
-        if (rateRes?.data && typeof rateRes.data.completionRate === 'number') {
-          const ratePct = Math.round(rateRes.data.completionRate * 100);
-          setCareProgram((prev) => ({
-            ...prev,
-            progress: ratePct,
-          }));
-        }
+      }
+      const savedPaused = await AsyncStorage.getItem('mockCareProgramPaused');
+      if (savedPaused === 'true') {
+        setIsPaused(true);
       }
     } catch {
-      // Graceful fallback to default mock data
+      // Fallback to default state
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [t]);
+  }, []);
 
   useEffect(() => {
     loadHomeData();
@@ -244,7 +180,8 @@ export default function PatientHomeScreen() {
     loadHomeData();
   };
 
-  const handleTaskPress = (task: any) => {
+  const handleTaskPress = async (task: any) => {
+    if (busyTaskId) return;
     setSelectedTask(task);
     if (task.type === 'check_in') {
       setCheckInModalVisible(true);
@@ -253,58 +190,110 @@ export default function PatientHomeScreen() {
     } else if (task.type === 'appointment') {
       setAppointmentLinkModalVisible(true);
     } else if (task.type === 'medication') {
-      setTodayTasks((prev) =>
-        prev.map((item) => (item.id === task.id ? { ...item, status: 'completed' } : item))
-      );
-      Toast.show({
-        type: 'success',
-        text1: t('mobile.medication_confirmed_title', 'Đã xác nhận uống thuốc'),
-        text2: task.title,
-      });
+      setBusyTaskId(task.id);
+      try {
+        await new Promise((resolve) => setTimeout(resolve, 220));
+        setTodayTasks((prev) =>
+          prev.map((item) => (item.id === task.id ? { ...item, status: 'completed' } : item))
+        );
+        Toast.show({
+          type: 'success',
+          text1: t('mobile.medication_confirmed_title'),
+          text2: t(task.titleKey),
+        });
+      } finally {
+        setBusyTaskId(null);
+      }
     } else {
       router.push('/(patient)/health-metric');
     }
   };
 
-  const handlePauseConfirm = async (reason: string, _durationDays: number) => {
-    const enrollmentId = activeEnrollmentId || (await AsyncStorage.getItem('activeCareEnrollmentId')) || 'demo-enrollment-1';
+  const handlePauseConfirm = async (_reason: string, _durationDays: number) => {
+    if (isTogglingProgram) return;
+    setIsTogglingProgram(true);
     try {
-      await careEnrollmentPause({
-        path: { id: enrollmentId },
-        body: {
-          expectedRevision,
-          reason: reason || 'Patient requested pause',
-        },
-        headers: {
-          'Idempotency-Key': generateIdempotencyKey(),
-        },
-      });
-      setExpectedRevision((prev) => prev + 1);
-    } catch {
-      // Graceful fallback
+      await new Promise((resolve) => setTimeout(resolve, 260));
+      await AsyncStorage.setItem('mockCareProgramPaused', 'true');
+      setIsPaused(true);
+      setPauseModalVisible(false);
+    } finally {
+      setIsTogglingProgram(false);
     }
-    setIsPaused(true);
-    setPauseModalVisible(false);
   };
 
   const handleResume = async () => {
-    const enrollmentId = activeEnrollmentId || (await AsyncStorage.getItem('activeCareEnrollmentId')) || 'demo-enrollment-1';
+    if (isTogglingProgram) return;
+    setIsTogglingProgram(true);
     try {
-      await careEnrollmentResume({
-        path: { id: enrollmentId },
-        body: {
-          expectedRevision,
-          reason: 'Patient resumed program',
-        },
-        headers: {
-          'Idempotency-Key': generateIdempotencyKey(),
-        },
+      await new Promise((resolve) => setTimeout(resolve, 260));
+      await AsyncStorage.setItem('mockCareProgramPaused', 'false');
+      setIsPaused(false);
+      Toast.show({
+        type: 'success',
+        text1: t('mobile.program_resumed_toast'),
+        text2: careProgram.name,
       });
-      setExpectedRevision((prev) => prev + 1);
-    } catch {
-      // Graceful fallback
+    } finally {
+      setIsTogglingProgram(false);
     }
-    setIsPaused(false);
+  };
+
+  const handleAppointmentOutcome = (outcome: AppointmentConsultationOutcome, consultationId: string) => {
+    if (!selectedTask) return;
+    if (outcome === 'completed') {
+      setTodayTasks((prev) =>
+        prev.map((item) =>
+          item.id === selectedTask.id
+            ? { ...item, status: 'completed', linkedConsultationId: consultationId }
+            : item
+        )
+      );
+      Toast.show({
+        type: 'success',
+        text1: t('mobile.appointment_outcome_completed_toast'),
+        text2: t(selectedTask.titleKey),
+      });
+    } else if (outcome === 'missed') {
+      setTodayTasks((prev) =>
+        prev.map((item) =>
+          item.id === selectedTask.id
+            ? { ...item, status: 'missed', linkedConsultationId: consultationId }
+            : item
+        )
+      );
+      Toast.show({
+        type: 'error',
+        text1: t('mobile.appointment_outcome_missed_toast'),
+        text2: t(selectedTask.titleKey),
+      });
+    } else if (outcome === 'rescheduled') {
+      setTodayTasks((prev) =>
+        prev.map((item) =>
+          item.id === selectedTask.id
+            ? { ...item, status: 'due', linkedConsultationId: consultationId }
+            : item
+        )
+      );
+      Toast.show({
+        type: 'info',
+        text1: t('mobile.appointment_outcome_rescheduled_toast'),
+        text2: consultationId,
+      });
+    } else if (outcome === 'cancelled') {
+      setTodayTasks((prev) =>
+        prev.map((item) =>
+          item.id === selectedTask.id
+            ? { ...item, status: 'due', linkedConsultationId: null }
+            : item
+        )
+      );
+      Toast.show({
+        type: 'info',
+        text1: t('mobile.appointment_outcome_cancelled_toast'),
+        text2: t('mobile.appointment_outcome_cancelled_desc'),
+      });
+    }
   };
 
   const renderTaskSkeleton = () => (
@@ -334,8 +323,8 @@ export default function PatientHomeScreen() {
         {/* Header */}
         <View style={tw('flex-row justify-between items-center px-6 pt-6 pb-4')}>
           <View>
-            <Text style={tw('text-gray-500 dark:text-gray-400 text-sm')}>{t('mobile.good_morning', 'Good morning,')}</Text>
-            <Text style={tw('text-2xl font-bold text-[#313A34] dark:text-slate-100')}>{t('mobile.alex_johnson', 'Alex Johnson')}</Text>
+            <Text style={tw('text-gray-500 dark:text-gray-400 text-sm')}>{t('mobile.good_morning')}</Text>
+            <Text style={tw('text-2xl font-bold text-[#313A34] dark:text-slate-100')}>{t('mobile.alex_johnson')}</Text>
           </View>
           <TouchableOpacity
             style={tw('p-2 bg-white dark:bg-slate-900 rounded-full shadow-sm border border-gray-100 dark:border-gray-800 relative')}
@@ -346,7 +335,7 @@ export default function PatientHomeScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Quotas Bar (DA2) */}
+        {/* Quotas Bar */}
         <View style={tw('px-6 mb-6 flex-row gap-3')}>
           <TouchableOpacity
             onPress={() => router.push('/(patient)/premium')}
@@ -354,7 +343,7 @@ export default function PatientHomeScreen() {
           >
             <MessageSquare size={16} color={twInstance.color('text-emerald-600 dark:text-emerald-400')} />
             <Text style={tw('ml-2 text-xs font-medium text-emerald-800 dark:text-emerald-300')}>
-              {t('mobile.ai_tokens', 'AI Tokens')}: {quotas.aiRemaining}/{quotas.aiTotal}
+              {t('mobile.ai_tokens')}: {quotas.aiRemaining}/{quotas.aiTotal}
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -363,12 +352,12 @@ export default function PatientHomeScreen() {
           >
             <Activity size={16} color={twInstance.color('text-blue-600 dark:text-blue-400')} />
             <Text style={tw('ml-2 text-xs font-medium text-blue-800 dark:text-blue-300')}>
-              Call: {quotas.consultsRemaining}/{quotas.consultsTotal} {t('mobile.left', 'left')}
+              {t('mobile.call_quota_label')}: {quotas.consultsRemaining}/{quotas.consultsTotal} {t('mobile.left')}
             </Text>
           </TouchableOpacity>
         </View>
 
-        {/* Pending Care Program Assessment Banner (DA2) */}
+        {/* Pending Care Program Assessment Banner */}
         {hasPendingProgram && (
           <View style={tw('px-6 mb-6')}>
             <View style={tw('bg-amber-500 dark:bg-amber-600 rounded-3xl p-5 shadow-sm border border-amber-400 dark:border-amber-500')}>
@@ -379,7 +368,7 @@ export default function PatientHomeScreen() {
                   </View>
                   <View style={tw('bg-white/20 px-2.5 py-0.5 rounded-full')}>
                     <Text style={tw('text-white text-[10px] font-bold uppercase tracking-wider')}>
-                      {t('mobile.enroll_status_pending', 'Pending Activation')}
+                      {t('mobile.enroll_status_pending')}
                     </Text>
                   </View>
                 </View>
@@ -392,10 +381,10 @@ export default function PatientHomeScreen() {
               </View>
 
               <Text style={tw('text-white font-bold text-lg mb-1 leading-snug')}>
-                {t('mobile.pending_program_banner_title', 'Care Program Pending Activation')}
+                {t('mobile.pending_program_banner_title')}
               </Text>
               <Text style={tw('text-amber-100 text-xs leading-relaxed mb-4')}>
-                {t('mobile.pending_program_banner_desc', 'Please complete your baseline assessment survey to start receiving scheduled monitoring tasks.')}
+                {t('mobile.pending_program_banner_desc')}
               </Text>
 
               <TouchableOpacity
@@ -405,7 +394,7 @@ export default function PatientHomeScreen() {
               >
                 <Sparkles size={16} color={twInstance.color('text-amber-600 dark:text-amber-400')} style={tw('mr-2')} />
                 <Text style={tw('text-amber-700 dark:text-amber-300 font-bold text-sm')}>
-                  {t('mobile.complete_assessment_now', 'Complete Survey')}
+                  {t('mobile.complete_assessment_now')}
                 </Text>
                 <ChevronRight size={16} color={twInstance.color('text-amber-700 dark:text-amber-300')} style={tw('ml-1')} />
               </TouchableOpacity>
@@ -413,20 +402,20 @@ export default function PatientHomeScreen() {
           </View>
         )}
 
-        {/* Care Program Banner (DA2) */}
+        {/* Care Program Banner */}
         <View style={tw('px-6 mb-6')}>
           <View style={tw('bg-indigo-600 dark:bg-indigo-700 rounded-3xl p-5 shadow-sm')}>
             <View style={tw('flex-row justify-between items-start mb-4')}>
               <View style={tw('flex-1')}>
                 <Text style={tw('text-indigo-100 text-xs font-medium uppercase tracking-wider mb-1')}>
-                  {isPaused ? t('mobile.program_paused', 'Paused Program') : t('mobile.active_program', 'Active Program')}
+                  {isPaused ? t('mobile.program_paused') : t('mobile.active_program')}
                 </Text>
                 <Text style={tw('text-white font-bold text-lg leading-tight')}>{careProgram.name}</Text>
               </View>
               <View style={tw('bg-white/20 px-3 py-1.5 rounded-full flex-row items-center')}>
                 <Flame size={14} color="#fca5a5" />
                 <Text style={tw('text-white text-xs font-bold ml-1')}>
-                  {careProgram.streak} {t('mobile.days', 'days')}
+                  {careProgram.streak} {t('mobile.days')}
                 </Text>
               </View>
             </View>
@@ -434,7 +423,7 @@ export default function PatientHomeScreen() {
             {/* Progress bar */}
             <View style={tw('mb-4')}>
               <View style={tw('flex-row justify-between mb-1')}>
-                <Text style={tw('text-indigo-100 text-xs')}>{t('mobile.adherence', 'Adherence')}</Text>
+                <Text style={tw('text-indigo-100 text-xs')}>{t('mobile.adherence')}</Text>
                 <Text style={tw('text-white font-bold text-xs')}>{careProgram.progress}%</Text>
               </View>
               <View style={tw('w-full h-2 bg-indigo-900/50 rounded-full overflow-hidden')}>
@@ -444,9 +433,10 @@ export default function PatientHomeScreen() {
 
             <View style={tw('flex-row justify-between items-center')}>
               <Text style={tw('text-indigo-200 text-xs')}>
-                {careProgram.daysLeft} {t('mobile.days_remaining', 'days remaining')}
+                {careProgram.daysLeft} {t('mobile.days_remaining')}
               </Text>
               <TouchableOpacity
+                disabled={isTogglingProgram}
                 onPress={() => {
                   if (isPaused) {
                     handleResume();
@@ -454,34 +444,30 @@ export default function PatientHomeScreen() {
                     setPauseModalVisible(true);
                   }
                 }}
-                style={tw('bg-white/20 px-3 py-1.5 rounded-full active:opacity-80')}
+                style={tw(`bg-white/20 px-3 py-1.5 rounded-full active:opacity-80 ${isTogglingProgram ? 'opacity-50' : ''}`)}
               >
                 <Text style={tw('text-white text-xs font-medium')}>
-                  {isPaused ? t('mobile.resume_program', 'Resume Program') : t('mobile.pause_program', 'Pause Program')}
+                  {isPaused ? t('mobile.resume_program') : t('mobile.pause_program')}
                 </Text>
               </TouchableOpacity>
             </View>
           </View>
         </View>
 
-        {/* Today's Tasks (DA2 CareTask Policy Contract v1) */}
+        {/* Today's Tasks */}
         <View style={tw('px-6 mb-8')}>
           <View style={tw('flex-row justify-between items-start mb-4')}>
             <View style={tw('flex-1 mr-3')}>
               <Text style={tw('text-lg font-bold text-[#313A34] dark:text-slate-100')}>
-                {t('mobile.todays_tasks', "Today's Tasks")}
+                {t('mobile.todays_tasks')}
               </Text>
               <Text style={tw('text-xs text-slate-500 dark:text-slate-400 mt-0.5')} numberOfLines={1}>
-                {t(
-                  'mobile.care_task_contract_subtitle',
-                  isVi ? 'Chỉ số, triệu chứng và lịch theo dõi hôm nay' : 'Daily vitals, symptoms & follow-ups'
-                )}
+                {t('mobile.care_task_contract_subtitle')}
               </Text>
             </View>
             <View style={tw('bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-1 rounded-full shrink-0')}>
               <Text style={tw('text-xs font-bold text-emerald-600 dark:text-emerald-400')}>
-                {todayTasks.filter((task) => task.status === 'completed').length}/{todayTasks.length}{' '}
-                {t('mobile.done', isVi ? 'Hoàn thành' : 'Done')}
+                {completedPatientTasksCount}/{patientTasks.length} {t('mobile.done')}
               </Text>
             </View>
           </View>
@@ -494,10 +480,12 @@ export default function PatientHomeScreen() {
                 {renderTaskSkeleton()}
               </>
             ) : (
-              todayTasks.map((task) => {
+              patientTasks.map((task) => {
                 const Icon = task.icon;
                 const isTerminal = task.status === 'completed' || task.status === 'missed' || task.status === 'cancelled';
-                const isDisabled = isTerminal || task.status === 'scheduled';
+                const isDisabled = isTerminal || task.status === 'scheduled' || busyTaskId === task.id;
+                const taskTitle = task.titleKey ? t(task.titleKey) : task.title;
+                const taskTime = task.timeKey ? t(task.timeKey) : task.time;
 
                 return (
                   <TouchableOpacity
@@ -510,7 +498,7 @@ export default function PatientHomeScreen() {
                           : 'bg-white dark:bg-slate-900 border-gray-100 dark:border-gray-800'
                       }`
                     )}
-                    onPress={() => handleTaskPress(task)}
+                    onPress={() => handleTaskPress({ ...task, title: taskTitle })}
                   >
                     <View style={tw(`w-12 h-12 rounded-xl items-center justify-center mr-4 ${task.bg}`)}>
                       <Icon size={24} color={task.color as string} />
@@ -523,36 +511,36 @@ export default function PatientHomeScreen() {
                           }`
                         )}
                       >
-                        {task.title}
+                        {taskTitle}
                       </Text>
                       {task.linkedConsultationId && task.status !== 'completed' && (
                         <Text style={tw('text-xs font-semibold text-blue-600 dark:text-blue-400 mt-0.5')}>
-                          {t('mobile.linked_to_consultation', 'Đã liên kết lịch khám')}: {task.linkedConsultationId} ({t('mobile.waiting_for_completion', 'Chờ buổi khám hoàn tất')})
+                          {t('mobile.linked_to_consultation')}: {task.linkedConsultationId} • {t('mobile.waiting_for_completion')}
                         </Text>
                       )}
                       {task.status === 'scheduled' && (
                         <Text style={tw('text-sm text-indigo-500 dark:text-indigo-400 font-medium mt-0.5')}>
-                          {t('mobile.task_scheduled', 'Scheduled for')} {task.time}
+                          {t('mobile.task_scheduled')} {taskTime}
                         </Text>
                       )}
                       {task.status === 'due' && (
                         <Text style={tw('text-sm text-amber-500 dark:text-amber-400 font-medium mt-0.5')}>
-                          {t('mobile.task_due', 'Due now')} • {task.time}
+                          {t('mobile.task_due')} • {taskTime}
                         </Text>
                       )}
                       {task.status === 'missed' && (
                         <Text style={tw('text-sm text-rose-500 dark:text-rose-400 font-medium mt-0.5')}>
-                          {t('mobile.task_missed', 'Missed')}
+                          {t('mobile.task_missed')}
                         </Text>
                       )}
                       {task.status === 'cancelled' && (
                         <Text style={tw('text-sm text-gray-500 dark:text-gray-400 mt-0.5')}>
-                          {t('mobile.task_cancelled', 'Cancelled')}
+                          {t('mobile.task_cancelled')}
                         </Text>
                       )}
                       {task.status === 'completed' && (
                         <Text style={tw('text-sm text-emerald-500 dark:text-emerald-400 font-medium mt-0.5')}>
-                          {t('mobile.task_completed', 'Completed')}
+                          {t('mobile.task_completed')}
                         </Text>
                       )}
                     </View>
@@ -565,10 +553,10 @@ export default function PatientHomeScreen() {
                         <View style={tw('bg-indigo-600 px-3.5 py-1.5 rounded-full')}>
                           <Text style={tw('text-white text-xs font-bold')}>
                             {task.type === 'education'
-                              ? t('mobile.view_and_ack', 'Xem')
+                              ? t('mobile.view_and_ack')
                               : task.type === 'appointment'
-                              ? t('mobile.link_btn', 'Liên kết')
-                              : t('mobile.start', 'Start')}
+                              ? t('mobile.link_btn')
+                              : t('mobile.start')}
                           </Text>
                         </View>
                       ) : (
@@ -591,10 +579,10 @@ export default function PatientHomeScreen() {
             <View style={tw('flex-1 pr-4')}>
               <View style={tw('flex-row items-center mb-1')}>
                 <Crown color="#ffffff" size={20} style={tw('mr-2')} />
-                <Text style={tw('text-white font-bold text-lg')}>{t('mobile.upgrade_premium', 'Upgrade Premium')}</Text>
+                <Text style={tw('text-white font-bold text-lg')}>{t('mobile.upgrade_premium')}</Text>
               </View>
               <Text style={tw('text-amber-50 text-sm leading-tight')}>
-                {t('mobile.unlimited_ai_chats_priority_do', 'Unlimited AI chats & priority doctor queue')}
+                {t('mobile.unlimited_ai_chats_priority_do')}
               </Text>
             </View>
             <View style={tw('bg-white dark:bg-slate-900/20 p-2 rounded-full')}>
@@ -607,10 +595,10 @@ export default function PatientHomeScreen() {
         <View style={tw('px-6 mb-8')}>
           <View style={tw('flex-row justify-between items-end mb-4')}>
             <Text style={tw('text-lg font-bold text-[#313A34] dark:text-slate-100')}>
-              {t('mobile.upcoming_appointment', 'Upcoming Appointment')}
+              {t('mobile.upcoming_appointment')}
             </Text>
             <TouchableOpacity onPress={() => router.push('/(patient)/appointments')}>
-              <Text style={tw('text-sm font-medium text-emerald-500')}>{t('mobile.see_all', 'See all')}</Text>
+              <Text style={tw('text-sm font-medium text-emerald-500')}>{t('mobile.see_all')}</Text>
             </TouchableOpacity>
           </View>
 
@@ -652,11 +640,12 @@ export default function PatientHomeScreen() {
         onConfirmPause={handlePauseConfirm}
       />
 
-      {/* CareTask Policy v1: Check-in Modal */}
       <HealthCheckInTaskModal
         visible={checkInModalVisible}
         onClose={() => setCheckInModalVisible(false)}
         taskTitle={selectedTask?.title}
+        allowedSymptomCodes={selectedTask?.allowedSymptomCodes}
+        responseConfigured={selectedTask?.responseConfigured ?? true}
         onSubmit={() => {
           if (selectedTask) {
             setTodayTasks((prev) =>
@@ -666,10 +655,10 @@ export default function PatientHomeScreen() {
         }}
       />
 
-      {/* CareTask Policy v1: Education Acknowledge Modal */}
       <EducationTaskModal
         visible={educationModalVisible}
         onClose={() => setEducationModalVisible(false)}
+        isContentAvailable={selectedTask?.isContentAvailable ?? true}
         onAcknowledge={() => {
           if (selectedTask) {
             setTodayTasks((prev) =>
@@ -679,7 +668,6 @@ export default function PatientHomeScreen() {
         }}
       />
 
-      {/* CareTask Policy v1: Appointment Task Link Modal */}
       <AppointmentTaskLinkModal
         visible={appointmentLinkModalVisible}
         onClose={() => setAppointmentLinkModalVisible(false)}
@@ -694,6 +682,7 @@ export default function PatientHomeScreen() {
             );
           }
         }}
+        onSimulateOutcome={handleAppointmentOutcome}
         onBookNewSlot={() => router.push('/(patient)/my-doctors')}
       />
     </SafeAreaView>

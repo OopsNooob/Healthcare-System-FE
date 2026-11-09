@@ -49,19 +49,17 @@ interface ReceivedInvitation {
 }
 
 export default function FamilyCompanionScreen() {
-  const { t, i18n } = useTranslation();
-  const isVi = i18n.language === 'vi';
+  const { t } = useTranslation();
 
   const relationshipLabel = (rel: string) => {
-    const map: Record<string, [string, string]> = {
-      parent: ['Cha/Mẹ', 'Parent'],
-      child: ['Con', 'Child'],
-      spouse: ['Vợ/Chồng', 'Spouse'],
-      sibling: ['Anh/Chị/Em', 'Sibling'],
-      caregiver: ['Người chăm sóc', 'Caregiver'],
+    const map: Record<string, string> = {
+      parent: t('mobile.rel_parent', 'Cha/Mẹ'),
+      child: t('mobile.rel_child', 'Con'),
+      spouse: t('mobile.rel_spouse', 'Vợ/Chồng'),
+      sibling: t('mobile.rel_sibling', 'Anh/Chị/Em'),
+      caregiver: t('mobile.rel_caregiver', 'Người chăm sóc'),
     };
-    const entry = map[rel];
-    return entry ? (isVi ? entry[0] : entry[1]) : rel;
+    return map[rel] || rel;
   };
 
   const yesNo = (v: boolean) => (v ? t('mobile.common_yes', 'Có') : t('mobile.common_no', 'Không'));
@@ -477,7 +475,7 @@ export default function FamilyCompanionScreen() {
                       {member.name}
                     </Text>
                     <Text style={tw('text-xs text-slate-500 dark:text-slate-400 mt-0.5')}>
-                      {member.email} • {member.consentVersion}
+                      {member.email} • {relationshipLabel(member.relationship)}
                     </Text>
                     <View style={tw('flex-row items-center mt-1.5')}>
                       {member.status === 'active' ? (
@@ -603,11 +601,11 @@ export default function FamilyCompanionScreen() {
                       {yesNo(inv.permissions.receiveReminders)}
                     </Text>
                     <Text style={tw('text-xs text-slate-600 dark:text-slate-400')}>
-                      • {isVi ? 'Xem tiến độ nhiệm vụ chăm sóc' : 'View care task progress'}:{' '}
+                      • {t('mobile.perm_view_care_progress', 'Xem tiến độ nhiệm vụ chăm sóc')}:{' '}
                       {yesNo(inv.permissions.viewProgress)}
                     </Text>
                     <Text style={tw('text-xs text-slate-600 dark:text-slate-400')}>
-                      • {isVi ? 'Xem tóm tắt cảnh báo sức khỏe' : 'View health alert summary'}:{' '}
+                      • {t('mobile.perm_view_alert_summary', 'Xem tóm tắt cảnh báo sức khỏe')}:{' '}
                       {yesNo(inv.permissions.viewAlertSummary)}
                     </Text>
                   </View>
@@ -636,9 +634,10 @@ export default function FamilyCompanionScreen() {
                         {acceptConsentChecked[inv.id] && <Check size={14} color="#fff" />}
                       </View>
                       <Text style={tw('text-xs text-slate-600 dark:text-slate-300 flex-1')}>
-                        {isVi
-                          ? 'Tôi xác nhận đồng thuận nhận thông tin đồng hành từ người thân.'
-                          : 'I consent to receive companion information from this family member.'}
+                        {t(
+                          'mobile.family_companion_consent_check',
+                          'Tôi xác nhận đồng thuận nhận thông tin đồng hành từ người thân.'
+                        )}
                       </Text>
                     </TouchableOpacity>
 
@@ -753,12 +752,13 @@ export default function FamilyCompanionScreen() {
               </View>
               <View style={tw('flex-1')}>
                 <Text style={tw('text-xs font-bold text-emerald-900 dark:text-emerald-200')}>
-                  {isVi ? 'Xác nhận đồng thuận chia sẻ dữ liệu' : 'Confirm consent to share data'}
+                  {t('mobile.confirm_data_sharing_consent', 'Xác nhận đồng thuận chia sẻ dữ liệu')}
                 </Text>
                 <Text style={tw('text-[11px] text-emerald-700 dark:text-emerald-400 mt-0.5')}>
-                  {isVi
-                    ? 'Tôi đồng ý cho người thân xem tiến độ nhiệm vụ và cảnh báo sức khỏe đã chọn. Không chia sẻ tin nhắn tư vấn bác sĩ.'
-                    : 'I agree to let my family member see my task progress and the selected health alerts. Doctor consultation messages are never shared.'}
+                  {t(
+                    'mobile.confirm_data_sharing_consent_desc',
+                    'Tôi đồng ý cho người thân xem tiến độ nhiệm vụ và cảnh báo sức khỏe đã chọn. Không chia sẻ tin nhắn tư vấn bác sĩ.'
+                  )}
                 </Text>
               </View>
             </TouchableOpacity>
@@ -817,7 +817,7 @@ export default function FamilyCompanionScreen() {
                   <View style={tw('flex-row justify-between items-center mb-4')}>
                     <View style={tw('flex-1 pr-4')}>
                       <Text style={tw('font-bold text-slate-900 dark:text-white')}>
-                        {t('mobile.receive_reminders', 'Nhận thông báo nhắc nhở (receiveReminders)')}
+                        {t('mobile.receive_reminders', 'Nhận thông báo nhắc nhở')}
                       </Text>
                       <Text style={tw('text-xs text-slate-500 dark:text-slate-400 mt-1')}>
                         {t(
@@ -841,7 +841,7 @@ export default function FamilyCompanionScreen() {
                   <View style={tw('flex-row justify-between items-center mb-4')}>
                     <View style={tw('flex-1 pr-4')}>
                       <Text style={tw('font-bold text-slate-900 dark:text-white')}>
-                        {t('mobile.view_progress', 'Xem tiến độ chăm sóc (viewCareProgress)')}
+                        {t('mobile.view_progress', 'Xem tiến độ chăm sóc')}
                       </Text>
                       <Text style={tw('text-xs text-slate-500 dark:text-slate-400 mt-1')}>
                         {t(

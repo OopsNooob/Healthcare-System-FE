@@ -41,8 +41,7 @@ interface DoctorSlotItem {
 import { bookingPolicyLabel, timezoneLabel } from '@/utils/bookingLabels';
 
 export default function DoctorScheduleScreen() {
-  const { t, i18n } = useTranslation();
-  const isVi = i18n.language === 'vi';
+  const { t } = useTranslation();
   useThemeContext();
 
   const [selectedDate, setSelectedDate] = useState('2026-11-06');
@@ -64,8 +63,15 @@ export default function DoctorScheduleScreen() {
   });
 
   const generateDates = (selectedStr: string) => {
-    const dayNamesEn = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    const dayNamesVi = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
+    const dayKeys = [
+      { key: 'mobile.day_sun', fallback: 'CN' },
+      { key: 'mobile.day_mon', fallback: 'T2' },
+      { key: 'mobile.day_tue', fallback: 'T3' },
+      { key: 'mobile.day_wed', fallback: 'T4' },
+      { key: 'mobile.day_thu', fallback: 'T5' },
+      { key: 'mobile.day_fri', fallback: 'T6' },
+      { key: 'mobile.day_sat', fallback: 'T7' },
+    ];
     const base = new Date(selectedStr);
     const res = [];
     for (let offset = -1; offset <= 5; offset++) {
@@ -74,9 +80,10 @@ export default function DoctorScheduleScreen() {
       const yyyy = d.getFullYear();
       const mm = String(d.getMonth() + 1).padStart(2, '0');
       const dd = String(d.getDate()).padStart(2, '0');
+      const dayItem = dayKeys[d.getDay()];
       res.push({
         date: `${yyyy}-${mm}-${dd}`,
-        dayName: isVi ? dayNamesVi[d.getDay()] : dayNamesEn[d.getDay()],
+        dayName: t(dayItem.key, dayItem.fallback),
         dayNum: dd,
       });
     }
@@ -85,9 +92,11 @@ export default function DoctorScheduleScreen() {
 
   const dates = generateDates(selectedDate);
   const selectedDateObj = new Date(selectedDate);
-  const monthYearTitle = isVi
-    ? `Tháng ${selectedDateObj.getMonth() + 1}, ${selectedDateObj.getFullYear()}`
-    : `${selectedDateObj.toLocaleString('en-US', { month: 'long' })}, ${selectedDateObj.getFullYear()}`;
+  const monthYearTitle = t('mobile.month_year_format', {
+    month: selectedDateObj.getMonth() + 1,
+    year: selectedDateObj.getFullYear(),
+    defaultValue: `Tháng ${selectedDateObj.getMonth() + 1}, ${selectedDateObj.getFullYear()}`,
+  });
 
   const timeSlots: DoctorSlotItem[] = [
     { id: '1', time: '08:00 AM', status: 'expired' },
@@ -207,7 +216,7 @@ export default function DoctorScheduleScreen() {
               {t('mobile.my_schedule', 'My Schedule')}
             </Text>
             <Text style={tw('text-slate-500 dark:text-slate-400 text-xs mt-1')}>
-              {timezoneLabel(bookingSettings.timezone, isVi)} • {bookingPolicyLabel(bookingSettings.bookingPolicy, isVi)} •{' '}
+              {timezoneLabel(bookingSettings.timezone)} • {bookingPolicyLabel(bookingSettings.bookingPolicy)} •{' '}
               {bookingSettings.defaultDurationMinutes} {t('mobile.minutes_short', 'phút')}
             </Text>
           </View>

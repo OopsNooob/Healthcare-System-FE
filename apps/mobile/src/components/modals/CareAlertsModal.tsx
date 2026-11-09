@@ -1,16 +1,17 @@
 import React, { useState } from 'react';
 import { View, Text, Modal, TouchableOpacity, ScrollView } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { X, AlertTriangle, CheckCircle2, Clock, AlertCircle } from 'lucide-react-native';
+import { X, AlertTriangle, CheckCircle2, Clock } from 'lucide-react-native';
 import Toast from 'react-native-toast-message';
 import { tw, twInstance } from '@/tw';
 
 interface CareAlertItem {
   id: string;
   type: 'urgent' | 'attention';
-  metric: string;
+  sourceType: 'vital_reading' | 'symptom_checkin';
+  metricKey: string;
   value: string;
-  reason: string;
+  reasonKey: string;
   time: string;
   acknowledged: boolean;
 }
@@ -27,55 +28,73 @@ export const CareAlertsModal: React.FC<CareAlertsModalProps> = ({
   patientName = 'Alex Johnson',
 }) => {
   const { t } = useTranslation();
+  const [busyId, setBusyId] = useState<string | null>(null);
 
   const [alerts, setAlerts] = useState<CareAlertItem[]>([
     {
       id: '1',
       type: 'urgent',
-      metric: 'Blood Pressure',
+      sourceType: 'vital_reading',
+      metricKey: 'mobile.blood_pressure',
       value: '165/100 mmHg',
-      reason: 'Systolic exceeded critical threshold (>160 mmHg)',
-      time: 'Today, 08:30 AM',
+      reasonKey: 'mobile.alert_reason_bp_critical',
+      time: '08:30 AM',
       acknowledged: false,
     },
     {
       id: '2',
       type: 'attention',
-      metric: 'Blood Glucose',
-      value: '145 mg/dL',
-      reason: 'Fasting glucose above target margin (130 mg/dL)',
-      time: 'Yesterday, 07:15 AM',
+      sourceType: 'symptom_checkin',
+      metricKey: 'mobile.health_checkin_title',
+      value: 'Moderate • Dizziness',
+      reasonKey: 'mobile.alert_reason_symptom_dizziness',
+      time: '07:45 AM',
       acknowledged: false,
     },
     {
       id: '3',
       type: 'attention',
-      metric: 'Medication Adherence',
-      value: 'Missed Dose',
-      reason: 'Evening Amlodipine dose unconfirmed for >4 hours',
-      time: '2 days ago',
+      sourceType: 'vital_reading',
+      metricKey: 'mobile.blood_glucose',
+      value: '145 mg/dL',
+      reasonKey: 'mobile.alert_reason_glucose_margin',
+      time: '07:15 AM',
       acknowledged: true,
     },
   ]);
 
-  const handleAcknowledge = (id: string) => {
-    setAlerts((prev) =>
-      prev.map((a) => (a.id === id ? { ...a, acknowledged: true } : a))
-    );
-    Toast.show({
-      type: 'success',
-      text1: t('mobile.success', 'Success'),
-      text2: t('mobile.alert_acknowledged', 'Alert acknowledged and stamped'),
-    });
+  const handleAcknowledge = async (id: string) => {
+    if (busyId) return;
+    setBusyId(id);
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 200));
+      setAlerts((prev) =>
+        prev.map((a) => (a.id === id ? { ...a, acknowledged: true } : a))
+      );
+      Toast.show({
+        type: 'success',
+        text1: t('mobile.success'),
+        text2: t('mobile.alert_acknowledged'),
+      });
+    } finally {
+      setBusyId(null);
+    }
   };
 
-  const handleAcknowledgeAll = () => {
-    setAlerts((prev) => prev.map((a) => ({ ...a, acknowledged: true })));
-    Toast.show({
-      type: 'success',
-      text1: t('mobile.success', 'Success'),
-      text2: t('mobile.all_alerts_acknowledged', 'All clinical alerts acknowledged'),
-    });
+  const handleAcknowledgeAll = async () => {
+    if (busyId) return;
+    setBusyId('all');
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 240));
+      setAlerts((prev) => prev.map((a) => ({ ...a, acknowledged: true })));
+      Toast.show({
+        type: 'success',
+        text1: t('mobile.success'),
+        text2: t('mobile.all_alerts_acknowledged'),
+      });
+    } finally {
+      setBusyId(null);
+    }
   };
 
   const pendingCount = alerts.filter((a) => !a.acknowledged).length;
@@ -86,16 +105,16 @@ export const CareAlertsModal: React.FC<CareAlertsModalProps> = ({
         <View style={tw('bg-white dark:bg-slate-900 rounded-t-3xl max-h-[85%] border-t border-slate-200 dark:border-slate-800')}>
           {/* Header */}
           <View style={tw('p-5 border-b border-slate-100 dark:border-slate-800 flex-row items-center justify-between')}>
-            <View style={tw('flex-row items-center')}>
+            <View style={tw('flex-row items-center flex-1 mr-3')}>
               <View style={tw('w-10 h-10 rounded-2xl bg-amber-100 dark:bg-amber-900/40 items-center justify-center mr-3')}>
                 <AlertTriangle color={twInstance.color('text-amber-600 dark:text-amber-400')} size={22} />
               </View>
-              <View>
+              <View style={tw('flex-1')}>
                 <Text style={tw('text-lg font-bold text-slate-900 dark:text-white')}>
-                  {t('mobile.care_alerts', 'Care Program Telemetry Alerts')}
+                  {t('mobile.care_alerts')}
                 </Text>
                 <Text style={tw('text-xs text-slate-500 dark:text-slate-400')}>
-                  {patientName} • {pendingCount} {t('mobile.active_pending', 'active pending')}
+                  {patientName} • {pendingCount} {t('mobile.active_pending')}
                 </Text>
               </View>
             </View>
@@ -118,8 +137,8 @@ export const CareAlertsModal: React.FC<CareAlertsModalProps> = ({
                   }`
                 )}
               >
-                <View style={tw('flex-row justify-between items-start mb-2')}>
-                  <View style={tw('flex-row items-center')}>
+                <View style={tw('flex-row justify-between items-start mb-1.5')}>
+                  <View style={tw('flex-row items-center flex-wrap flex-1 mr-2')}>
                     <View
                       style={tw(
                         `w-2 h-2 rounded-full mr-2 ${
@@ -128,7 +147,7 @@ export const CareAlertsModal: React.FC<CareAlertsModalProps> = ({
                       )}
                     />
                     <Text style={tw('font-bold text-sm text-slate-900 dark:text-white')}>
-                      {alert.metric}
+                      {t(alert.metricKey)}
                     </Text>
                     <View
                       style={tw(
@@ -148,9 +167,7 @@ export const CareAlertsModal: React.FC<CareAlertsModalProps> = ({
                           }`
                         )}
                       >
-                        {alert.type === 'urgent'
-                          ? t('mobile.urgent', 'Urgent')
-                          : t('mobile.attention', 'Attention')}
+                        {alert.type === 'urgent' ? t('mobile.urgent') : t('mobile.attention')}
                       </Text>
                     </View>
                   </View>
@@ -159,8 +176,14 @@ export const CareAlertsModal: React.FC<CareAlertsModalProps> = ({
                   </Text>
                 </View>
 
+                <Text style={tw('text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 mb-1')}>
+                  {alert.sourceType === 'symptom_checkin'
+                    ? t('mobile.rule_source_symptom_checkin')
+                    : t('mobile.rule_source_vital_readings')}
+                </Text>
+
                 <Text style={tw('text-xs text-slate-600 dark:text-slate-300 leading-4 mb-3')}>
-                  {alert.reason}
+                  {t(alert.reasonKey)}
                 </Text>
 
                 <View style={tw('flex-row justify-between items-center pt-2 border-t border-slate-100 dark:border-slate-800')}>
@@ -173,16 +196,17 @@ export const CareAlertsModal: React.FC<CareAlertsModalProps> = ({
                     <View style={tw('flex-row items-center')}>
                       <CheckCircle2 color={twInstance.color('text-emerald-500')} size={14} style={tw('mr-1')} />
                       <Text style={tw('text-xs font-semibold text-emerald-600 dark:text-emerald-400')}>
-                        {t('mobile.acknowledged', 'Acknowledged')}
+                        {t('mobile.acknowledged')}
                       </Text>
                     </View>
                   ) : (
                     <TouchableOpacity
+                      disabled={busyId !== null}
                       onPress={() => handleAcknowledge(alert.id)}
-                      style={tw('bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 px-3 py-1.5 rounded-lg')}
+                      style={tw(`bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 px-3 py-1.5 rounded-lg ${busyId === alert.id ? 'opacity-60' : ''}`)}
                     >
                       <Text style={tw('text-xs font-bold text-slate-700 dark:text-slate-200')}>
-                        {t('mobile.acknowledge', 'Acknowledge')}
+                        {t('mobile.acknowledge')}
                       </Text>
                     </TouchableOpacity>
                   )}
@@ -194,14 +218,15 @@ export const CareAlertsModal: React.FC<CareAlertsModalProps> = ({
           {/* Footer Actions */}
           <View style={tw('p-4 border-t border-slate-100 dark:border-slate-800 flex-row gap-3')}>
             <TouchableOpacity onPress={onClose} style={tw('flex-1 bg-slate-100 dark:bg-slate-800 py-3.5 rounded-xl items-center')}>
-              <Text style={tw('text-slate-700 dark:text-slate-300 font-bold text-sm')}>{t('mobile.close', 'Close')}</Text>
+              <Text style={tw('text-slate-700 dark:text-slate-300 font-bold text-sm')}>{t('mobile.close')}</Text>
             </TouchableOpacity>
             {pendingCount > 0 && (
               <TouchableOpacity
+                disabled={busyId !== null}
                 onPress={handleAcknowledgeAll}
-                style={tw('flex-1 bg-brand py-3.5 rounded-xl items-center')}
+                style={tw(`flex-1 bg-brand py-3.5 rounded-xl items-center ${busyId === 'all' ? 'opacity-60' : ''}`)}
               >
-                <Text style={tw('text-slate-900 font-bold text-sm')}>{t('mobile.acknowledge_all', 'Acknowledge All')}</Text>
+                <Text style={tw('text-slate-900 font-bold text-sm')}>{t('mobile.acknowledge_all')}</Text>
               </TouchableOpacity>
             )}
           </View>

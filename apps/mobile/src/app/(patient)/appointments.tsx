@@ -38,8 +38,7 @@ import {
 } from '@healthcare/api-client';
 
 export default function AppointmentsScreen() {
-  const { t, i18n } = useTranslation();
-  const isVi = i18n.language === 'vi';
+  const { t } = useTranslation();
   useThemeContext();
 
   const router = useRouter();
@@ -217,16 +216,15 @@ export default function AppointmentsScreen() {
   };
 
   const statusLabel = (status: string) => {
-    const map: Record<string, [string, string]> = {
-      Waiting: ['Chờ khám', 'Waiting'],
-      Confirmed: ['Đã xác nhận', 'Confirmed'],
-      Completed: ['Hoàn thành', 'Completed'],
-      Cancelled: ['Đã hủy', 'Cancelled'],
-      Pending: ['Chờ duyệt', 'Pending'],
-      Interrupted: ['Bị gián đoạn', 'Interrupted'],
+    const map: Record<string, string> = {
+      Waiting: t('mobile.status_waiting', 'Chờ khám'),
+      Confirmed: t('mobile.status_confirmed', 'Đã xác nhận'),
+      Completed: t('mobile.status_completed', 'Hoàn thành'),
+      Cancelled: t('mobile.status_cancelled', 'Đã hủy'),
+      Pending: t('mobile.status_pending', 'Chờ duyệt'),
+      Interrupted: t('mobile.status_interrupted', 'Bị gián đoạn'),
     };
-    const entry = map[status];
-    return entry ? (isVi ? entry[0] : entry[1]) : status;
+    return map[status] || status;
   };
 
   const typeLabel = (type: string) =>
@@ -234,13 +232,13 @@ export default function AppointmentsScreen() {
 
   const specialtyLabel = (specialty: string) => {
     const map: Record<string, string> = {
-      Cardiologist: 'Bác sĩ tim mạch',
-      Dermatologist: 'Bác sĩ da liễu',
-      Pediatrician: 'Bác sĩ nhi khoa',
-      Neurologist: 'Bác sĩ thần kinh',
-      'General Practitioner': 'Bác sĩ đa khoa',
+      Cardiologist: t('mobile.specialty_cardiologist', 'Bác sĩ tim mạch'),
+      Dermatologist: t('mobile.specialty_dermatologist', 'Bác sĩ da liễu'),
+      Pediatrician: t('mobile.specialty_pediatrician', 'Bác sĩ nhi khoa'),
+      Neurologist: t('mobile.specialty_neurologist', 'Bác sĩ thần kinh'),
+      'General Practitioner': t('mobile.specialty_general_practitioner', 'Bác sĩ đa khoa'),
     };
-    return isVi ? map[specialty] || specialty : specialty;
+    return map[specialty] || specialty;
   };
 
   // Patient Scheduled Check-in (POST /consultations/:id/check-in)
@@ -488,11 +486,12 @@ export default function AppointmentsScreen() {
                                   )}
                                 >
                                   {apt.calledAt
-                                    ? isVi
-                                      ? `Đã gọi lúc ${apt.calledAt} • Nhấn "Vào phòng khám" ngay`
-                                      : `Called at ${apt.calledAt} • Tap "Join Room" now`
+                                    ? t('mobile.called_at_tap_join', {
+                                        time: apt.calledAt,
+                                        defaultValue: `Đã gọi lúc ${apt.calledAt} • Nhấn "Vào phòng khám" ngay`,
+                                      })
                                     : apt.estimatedWaitMinutes
-                                    ? `${t('mobile.estimated_wait', isVi ? 'Thời gian chờ ước tính' : 'Estimated wait')}: ${apt.estimatedWaitMinutes} ${isVi ? 'phút' : 'min'}`
+                                    ? `${t('mobile.estimated_wait', 'Thời gian chờ ước tính')}: ${apt.estimatedWaitMinutes} ${t('mobile.minutes_short', 'phút')}`
                                     : t('mobile.eta_not_configured', 'Đang chờ bác sĩ gọi theo thứ tự ưu tiên'
                                       )}
                                 </Text>
@@ -525,12 +524,8 @@ export default function AppointmentsScreen() {
                           <Text style={tw('text-sm font-medium text-slate-500 dark:text-slate-400')}>
                             {specialtyLabel(apt.specialty)} •{' '}
                             {apt.mode === 'on_demand'
-                              ? isVi
-                                ? 'Khám ngay'
-                                : 'On-demand'
-                              : isVi
-                              ? 'Đặt lịch'
-                              : 'Scheduled'}
+                              ? t('mobile.mode_on_demand', 'Khám ngay')
+                              : t('mobile.mode_scheduled', 'Đặt lịch')}
                           </Text>
                         </View>
                         <View
@@ -589,7 +584,7 @@ export default function AppointmentsScreen() {
                           >
                             <Video color="#0f172a" size={18} style={tw('mr-2')} />
                             <Text style={tw('text-slate-900 font-bold text-sm')}>
-                              {t('mobile.join_room', 'Vào phòng khám (Join Room)')}
+                              {t('mobile.join_room', 'Vào phòng khám')}
                             </Text>
                           </TouchableOpacity>
                         ) : (

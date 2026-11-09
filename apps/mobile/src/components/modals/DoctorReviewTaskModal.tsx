@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, Modal, TouchableOpacity, ScrollView, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, Modal, TouchableOpacity, ScrollView, TextInput, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { X, Stethoscope, CheckCircle2, Info } from 'lucide-react-native';
 import Toast from 'react-native-toast-message';
@@ -30,55 +30,34 @@ export const DoctorReviewTaskModal: React.FC<DoctorReviewTaskModalProps> = ({
   onClose,
   patientName = 'Alex Johnson',
   programName = 'Hypertension Management',
-  taskId = 'task-doc-rev-01',
   onSubmitReview,
 }) => {
-  const { t, i18n } = useTranslation();
-  const isVi = i18n.language?.startsWith('vi');
+  const { t } = useTranslation();
 
   const [reasonCode, setReasonCode] = useState<DoctorReviewReasonCode>('reviewed_no_action');
   const [note, setNote] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const allowlistedReasons: { code: DoctorReviewReasonCode; title: string; desc: string }[] = [
     {
       code: 'reviewed_no_action',
-      title: t(
-        'mobile.doc_rev_no_action',
-        isVi ? 'Đã xem xét — Không cần can thiệp thêm' : 'Reviewed — No Further Action Required'
-      ),
-      desc: isVi
-        ? 'Chỉ số sinh hiệu và mức độ tuân thủ ổn định theo mục tiêu chương trình.'
-        : 'Vital readings and adherence remain stable within program targets.',
+      title: t('mobile.doc_rev_no_action'),
+      desc: t('mobile.doc_rev_no_action_desc'),
     },
     {
       code: 'follow_up_needed',
-      title: t(
-        'mobile.doc_rev_follow_up',
-        isVi ? 'Cần theo dõi sát ở chu kỳ tiếp theo' : 'Close Monitoring Needed in Next Cycle'
-      ),
-      desc: isVi
-        ? 'Có dao động nhẹ, tiếp tục nhắc nhở bệnh nhân đo chỉ số đúng khung giờ.'
-        : 'Mild fluctuations observed; continue reminding patient to log readings on time.',
+      title: t('mobile.doc_rev_follow_up'),
+      desc: t('mobile.doc_rev_follow_up_desc'),
     },
     {
       code: 'consultation_recommended',
-      title: t(
-        'mobile.doc_rev_consult_rec',
-        isVi ? 'Khuyến nghị đặt lịch tư vấn trực tuyến' : 'Recommend Scheduling a Teleconsultation'
-      ),
-      desc: isVi
-        ? 'Cần trao đổi trực tiếp với bệnh nhân qua buổi tư vấn trực tuyến.'
-        : 'Direct clinical discussion recommended via a scheduled or on-demand session.',
+      title: t('mobile.doc_rev_consult_rec'),
+      desc: t('mobile.doc_rev_consult_rec_desc'),
     },
     {
       code: 'care_plan_adjustment_needed',
-      title: t(
-        'mobile.doc_rev_adjust_plan',
-        isVi ? 'Cần điều chỉnh phác đồ / kế hoạch chăm sóc' : 'Care Plan / Regimen Adjustment Needed'
-      ),
-      desc: isVi
-        ? 'Ghi nhận để điều chỉnh hướng dẫn sinh hoạt hoặc mục tiêu theo dõi.'
-        : 'Record need to adjust lifestyle guidance or monitoring targets.',
+      title: t('mobile.doc_rev_adjust_plan'),
+      desc: t('mobile.doc_rev_adjust_plan_desc'),
     },
   ];
 
@@ -89,22 +68,26 @@ export const DoctorReviewTaskModal: React.FC<DoctorReviewTaskModalProps> = ({
     }
   };
 
-  const handleConfirm = () => {
-    const cleanNote = note.trim();
-    onSubmitReview({
-      reasonCode,
-      ...(cleanNote ? { note: cleanNote } : {}),
-    });
-    Toast.show({
-      type: 'success',
-      text1: t(
-        'mobile.doctor_review_completed',
-        isVi ? 'Đã hoàn tất đánh giá định kỳ' : 'Periodic Clinical Review Completed'
-      ),
-      text2: `${patientName} • ${programName}`,
-    });
-    setNote('');
-    onClose();
+  const handleConfirm = async () => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 260));
+      const cleanNote = note.trim();
+      onSubmitReview({
+        reasonCode,
+        ...(cleanNote ? { note: cleanNote } : {}),
+      });
+      Toast.show({
+        type: 'success',
+        text1: t('mobile.doctor_review_completed'),
+        text2: `${patientName} • ${programName}`,
+      });
+      setNote('');
+      onClose();
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -122,14 +105,18 @@ export const DoctorReviewTaskModal: React.FC<DoctorReviewTaskModalProps> = ({
               </View>
               <View style={tw('flex-1')}>
                 <Text style={tw('text-lg font-bold text-slate-900 dark:text-white')}>
-                  {t('mobile.doctor_review_task_title', isVi ? 'Đánh giá định kỳ của Bác sĩ' : 'Periodic Doctor Review')}
+                  {t('mobile.doctor_review_task_title')}
                 </Text>
                 <Text style={tw('text-xs text-slate-500 dark:text-slate-400')}>
                   {patientName} • {programName}
                 </Text>
               </View>
             </View>
-            <TouchableOpacity onPress={onClose} style={tw('p-2 rounded-full bg-slate-100 dark:bg-slate-800')}>
+            <TouchableOpacity
+              onPress={onClose}
+              disabled={isSubmitting}
+              style={tw('p-2 rounded-full bg-slate-100 dark:bg-slate-800')}
+            >
               <X color={twInstance.color('text-slate-600 dark:text-slate-300')} size={20} />
             </TouchableOpacity>
           </View>
@@ -138,19 +125,14 @@ export const DoctorReviewTaskModal: React.FC<DoctorReviewTaskModalProps> = ({
             <View style={tw('bg-blue-50 dark:bg-blue-950/30 p-3.5 rounded-2xl border border-blue-200 dark:border-blue-800/50 flex-row items-start')}>
               <Info color="#3b82f6" size={16} style={tw('mt-0.5 mr-2 shrink-0')} />
               <Text style={tw('text-xs text-blue-800 dark:text-blue-200 flex-1 leading-4')}>
-                {t(
-                  'mobile.doctor_review_contract_hint',
-                  isVi
-                    ? 'Vui lòng chọn kết luận đánh giá phù hợp và nhập ghi chú chuyên môn (tối đa 500 ký tự).'
-                    : 'Please select an appropriate clinical conclusion and add an optional note (up to 500 characters).'
-                )}
+                {t('mobile.doctor_review_contract_hint')}
               </Text>
             </View>
 
-            {/* Allowlisted Reason Codes */}
+            {/* Clinical Assessment Conclusion */}
             <View>
               <Text style={tw('text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2.5')}>
-                1. {t('mobile.select_reason_code', isVi ? 'Kết luận đánh giá' : 'Clinical Assessment Conclusion')} *
+                1. {t('mobile.select_reason_code')} *
               </Text>
               <View style={tw('gap-2.5')}>
                 {allowlistedReasons.map((item) => {
@@ -158,6 +140,7 @@ export const DoctorReviewTaskModal: React.FC<DoctorReviewTaskModalProps> = ({
                   return (
                     <TouchableOpacity
                       key={item.code}
+                      disabled={isSubmitting}
                       onPress={() => setReasonCode(item.code)}
                       style={tw(
                         `p-3.5 rounded-2xl border flex-row items-start justify-between ${
@@ -188,11 +171,11 @@ export const DoctorReviewTaskModal: React.FC<DoctorReviewTaskModalProps> = ({
               </View>
             </View>
 
-            {/* Optional Plaintext Note (<= 500 chars) */}
+            {/* Optional Plaintext Note */}
             <View>
               <View style={tw('flex-row justify-between items-center mb-2')}>
                 <Text style={tw('text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400')}>
-                  2. {t('mobile.plaintext_clinical_note', isVi ? 'Ghi chú lâm sàng (tùy chọn)' : 'Clinical Note (optional)')}
+                  2. {t('mobile.plaintext_clinical_note')}
                 </Text>
                 <Text style={tw(`text-xs font-semibold ${note.length >= 480 ? 'text-amber-500' : 'text-slate-400'}`)}>
                   {note.length}/500
@@ -201,13 +184,11 @@ export const DoctorReviewTaskModal: React.FC<DoctorReviewTaskModalProps> = ({
               <TextInput
                 value={note}
                 onChangeText={handleNoteChange}
-                placeholder={t(
-                  'mobile.doctor_review_note_placeholder',
-                  isVi ? 'Nhập nhận xét chuyên môn ngắn gọn...' : 'Enter brief clinical observations...'
-                )}
+                placeholder={t('mobile.doctor_review_note_placeholder')}
                 placeholderTextColor="#94a3b8"
                 multiline
                 maxLength={500}
+                editable={!isSubmitting}
                 textAlignVertical="top"
                 style={tw(
                   'bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 text-sm text-slate-900 dark:text-white min-h-[100px]'
@@ -219,19 +200,25 @@ export const DoctorReviewTaskModal: React.FC<DoctorReviewTaskModalProps> = ({
           <View style={tw('p-4 border-t border-slate-100 dark:border-slate-800 flex-row gap-3')}>
             <TouchableOpacity
               onPress={onClose}
+              disabled={isSubmitting}
               style={tw('flex-1 py-3.5 rounded-xl bg-slate-100 dark:bg-slate-800 items-center')}
             >
               <Text style={tw('font-bold text-slate-700 dark:text-slate-300 text-sm')}>
-                {t('mobile.cancel', isVi ? 'Hủy' : 'Cancel')}
+                {t('mobile.cancel')}
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={handleConfirm}
-              style={tw('flex-1 py-3.5 rounded-xl bg-brand items-center justify-center flex-row')}
+              disabled={isSubmitting}
+              style={tw(`flex-1 py-3.5 rounded-xl bg-brand items-center justify-center flex-row ${isSubmitting ? 'opacity-60' : ''}`)}
             >
-              <CheckCircle2 color="#0f172a" size={18} style={tw('mr-1.5')} />
+              {isSubmitting ? (
+                <ActivityIndicator size="small" color="#0f172a" style={tw('mr-1.5')} />
+              ) : (
+                <CheckCircle2 color="#0f172a" size={18} style={tw('mr-1.5')} />
+              )}
               <Text style={tw('font-bold text-slate-900 text-sm')}>
-                {t('mobile.submit_doctor_review', isVi ? 'Hoàn tất đánh giá' : 'Submit Review')}
+                {t('mobile.submit_doctor_review')}
               </Text>
             </TouchableOpacity>
           </View>
@@ -240,4 +227,3 @@ export const DoctorReviewTaskModal: React.FC<DoctorReviewTaskModalProps> = ({
     </Modal>
   );
 };
-

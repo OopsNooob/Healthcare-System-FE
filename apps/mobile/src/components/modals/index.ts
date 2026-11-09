@@ -19,6 +19,7 @@ export { DocViewerModal } from './DocViewerModal';
 export { HealthCheckInTaskModal } from './HealthCheckInTaskModal';
 export { EducationTaskModal } from './EducationTaskModal';
 export { AppointmentTaskLinkModal } from './AppointmentTaskLinkModal';
+export type { AppointmentConsultationOutcome } from './AppointmentTaskLinkModal';
 export { SecuritySessionsModal } from './SecuritySessionsModal';
 export { PrivacyDataModal } from './PrivacyDataModal';
 export { DoctorReviewTaskModal } from './DoctorReviewTaskModal';
