@@ -29,10 +29,16 @@ export const DoctorReviewTaskModal: React.FC<DoctorReviewTaskModalProps> = ({
   visible,
   onClose,
   patientName = 'Alex Johnson',
-  programName = 'Hypertension Management',
+  programName,
   onSubmitReview,
 }) => {
   const { t } = useTranslation();
+  const displayProgramName =
+    !programName || programName === 'Hypertension Management'
+      ? t('mobile.hypertension_management')
+      : programName === 'Diabetes Care'
+        ? t('mobile.diabetes_care')
+        : programName;
 
   const [reasonCode, setReasonCode] = useState<DoctorReviewReasonCode>('reviewed_no_action');
   const [note, setNote] = useState('');
@@ -108,7 +114,7 @@ export const DoctorReviewTaskModal: React.FC<DoctorReviewTaskModalProps> = ({
                   {t('mobile.doctor_review_task_title')}
                 </Text>
                 <Text style={tw('text-xs text-slate-500 dark:text-slate-400')}>
-                  {patientName} • {programName}
+                  {patientName} • {displayProgramName}
                 </Text>
               </View>
             </View>

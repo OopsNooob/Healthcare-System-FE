@@ -14,15 +14,22 @@ interface ProgramRulePreviewModalProps {
 export const ProgramRulePreviewModal: React.FC<ProgramRulePreviewModalProps> = ({
   visible,
   onClose,
-  programName = 'Hypertension Management',
+  programName,
 }) => {
   const { t } = useTranslation();
-  const [ruleVersion, setRuleVersion] = useState('v2.1');
+  const [ruleVersion, setRuleVersion] = useState('2.1');
   const [ruleStatus, setRuleStatus] = useState<'active' | 'validated_candidate'>('active');
   const [isActivating, setIsActivating] = useState(false);
 
+  const displayProgramName =
+    !programName || programName === 'Hypertension Management'
+      ? t('mobile.hypertension_management')
+      : programName === 'Diabetes Care'
+        ? t('mobile.diabetes_care')
+        : programName;
+
   const activeRule = {
-    ruleId: 'rule-htn-bp-v2',
+    ruleName: t('mobile.rule_standard_bp_name'),
     version: ruleVersion,
     status: ruleStatus,
     updatedAt: '2026-11-05',
@@ -30,7 +37,7 @@ export const ProgramRulePreviewModal: React.FC<ProgramRulePreviewModalProps> = (
       {
         id: 'cond-1',
         sourceLabel: t('mobile.rule_source_vital_readings'),
-        expression: 'blood_pressure.systolic >= 160 OR blood_pressure.diastolic >= 100',
+        expression: t('mobile.rule_cond1_expr'),
         window: t('mobile.rule_cond1_window'),
         severity: 'urgent' as const,
         action: t('mobile.rule_cond1_action'),
@@ -38,7 +45,7 @@ export const ProgramRulePreviewModal: React.FC<ProgramRulePreviewModalProps> = (
       {
         id: 'cond-2',
         sourceLabel: t('mobile.rule_source_vital_readings'),
-        expression: 'blood_pressure.systolic BETWEEN 140 AND 159',
+        expression: t('mobile.rule_cond2_expr'),
         window: t('mobile.rule_cond2_window'),
         severity: 'attention' as const,
         action: t('mobile.rule_cond2_action'),
@@ -46,7 +53,7 @@ export const ProgramRulePreviewModal: React.FC<ProgramRulePreviewModalProps> = (
       {
         id: 'cond-3',
         sourceLabel: t('mobile.rule_source_symptom_checkin'),
-        expression: 'health_checkin.severity == severe OR symptom IN (chest_tightness, shortness_of_breath)',
+        expression: t('mobile.rule_cond3_expr'),
         window: t('mobile.rule_cond3_window'),
         severity: 'urgent' as const,
         action: t('mobile.rule_cond3_action'),
@@ -56,7 +63,7 @@ export const ProgramRulePreviewModal: React.FC<ProgramRulePreviewModalProps> = (
       boundaryPassed: '12/12',
       missingDataHandled: '6/6',
       repeatedSuppressionVerified: '8/8',
-      lastSimulatedAt: '2026-11-05 09:15 UTC',
+      lastSimulatedAt: '2026-11-05 09:15',
     },
   };
 
@@ -65,7 +72,7 @@ export const ProgramRulePreviewModal: React.FC<ProgramRulePreviewModalProps> = (
     setIsActivating(true);
     try {
       await new Promise((resolve) => setTimeout(resolve, 260));
-      setRuleVersion('v2.2');
+      setRuleVersion('2.2');
       setRuleStatus('active');
       Toast.show({
         type: 'success',
@@ -92,7 +99,7 @@ export const ProgramRulePreviewModal: React.FC<ProgramRulePreviewModalProps> = (
                   {t('mobile.program_rule_preview_title')}
                 </Text>
                 <Text style={tw('text-xs text-slate-500 dark:text-slate-400')}>
-                  {programName}
+                  {displayProgramName}
                 </Text>
               </View>
             </View>
@@ -116,15 +123,15 @@ export const ProgramRulePreviewModal: React.FC<ProgramRulePreviewModalProps> = (
 
             {/* Rule Version & Status Header */}
             <View style={tw('bg-slate-50 dark:bg-slate-950 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 flex-row items-center justify-between')}>
-              <View>
+              <View style={tw('flex-1 mr-3')}>
                 <Text style={tw('text-xs text-slate-500 dark:text-slate-400')}>
-                  {t('mobile.rule_id')}: {activeRule.ruleId}
+                  {activeRule.ruleName}
                 </Text>
                 <Text style={tw('text-base font-bold text-slate-900 dark:text-white mt-0.5')}>
                   {t('mobile.rule_version')} {activeRule.version}
                 </Text>
               </View>
-              <View style={tw('bg-emerald-100 dark:bg-emerald-900/40 px-3 py-1 rounded-full flex-row items-center')}>
+              <View style={tw('bg-emerald-100 dark:bg-emerald-900/40 px-3 py-1 rounded-full flex-row items-center shrink-0')}>
                 <ShieldCheck color="#10b981" size={14} style={tw('mr-1')} />
                 <Text style={tw('text-xs font-bold text-emerald-700 dark:text-emerald-300 uppercase')}>
                   {t('mobile.rule_active')}
@@ -171,51 +178,59 @@ export const ProgramRulePreviewModal: React.FC<ProgramRulePreviewModalProps> = (
                       </Text>
                     </View>
                   </View>
-                  <Text style={tw('text-xs font-mono font-bold text-slate-900 dark:text-white bg-slate-100 dark:bg-slate-800 p-2.5 rounded-xl mb-2')}>
-                    {cond.expression}
-                  </Text>
-                  <Text style={tw('text-xs text-slate-600 dark:text-slate-300')}>→ {cond.action}</Text>
+                  <View style={tw('bg-slate-100 dark:bg-slate-800 p-3 rounded-xl mb-2')}>
+                    <Text style={tw('text-xs font-semibold text-slate-900 dark:text-white leading-4')}>
+                      {cond.expression}
+                    </Text>
+                  </View>
+                  <Text style={tw('text-xs text-slate-600 dark:text-slate-300 leading-4')}>→ {cond.action}</Text>
                 </View>
               ))}
             </View>
 
             {/* Deterministic Simulation Test Summary */}
             <View style={tw('bg-emerald-50/50 dark:bg-emerald-950/20 p-4 rounded-2xl border border-emerald-200 dark:border-emerald-800/50')}>
-              <Text style={tw('text-xs font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-300 mb-2.5')}>
+              <Text style={tw('text-xs font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-300 mb-3')}>
                 {t('mobile.simulation_test_summary')}
               </Text>
-              <View style={tw('flex-row justify-between mb-2')}>
-                <View style={tw('flex-row items-center')}>
-                  <CheckCircle2 color="#10b981" size={14} style={tw('mr-1.5')} />
-                  <Text style={tw('text-xs text-slate-700 dark:text-slate-300')}>
+              <View style={tw('flex-row justify-between items-center mb-2.5')}>
+                <View style={tw('flex-row items-center flex-1 mr-3')}>
+                  <CheckCircle2 color="#10b981" size={14} style={tw('mr-2 shrink-0')} />
+                  <Text style={tw('text-xs text-slate-700 dark:text-slate-300 flex-1')}>
                     {t('mobile.boundary_cases_label')}
                   </Text>
                 </View>
-                <Text style={tw('text-xs font-bold text-emerald-700 dark:text-emerald-300')}>
-                  {activeRule.testSummary.boundaryPassed} {t('mobile.test_passed_label')}
-                </Text>
+                <View style={tw('bg-emerald-100 dark:bg-emerald-900/40 px-2.5 py-1 rounded-lg shrink-0')}>
+                  <Text style={tw('text-xs font-bold text-emerald-700 dark:text-emerald-300')}>
+                    {activeRule.testSummary.boundaryPassed} • {t('mobile.test_passed_label')}
+                  </Text>
+                </View>
               </View>
-              <View style={tw('flex-row justify-between mb-2')}>
-                <View style={tw('flex-row items-center')}>
-                  <CheckCircle2 color="#10b981" size={14} style={tw('mr-1.5')} />
-                  <Text style={tw('text-xs text-slate-700 dark:text-slate-300')}>
+              <View style={tw('flex-row justify-between items-center mb-2.5')}>
+                <View style={tw('flex-row items-center flex-1 mr-3')}>
+                  <CheckCircle2 color="#10b981" size={14} style={tw('mr-2 shrink-0')} />
+                  <Text style={tw('text-xs text-slate-700 dark:text-slate-300 flex-1')}>
                     {t('mobile.missing_data_guard_label')}
                   </Text>
                 </View>
-                <Text style={tw('text-xs font-bold text-emerald-700 dark:text-emerald-300')}>
-                  {activeRule.testSummary.missingDataHandled} {t('mobile.test_passed_label')}
-                </Text>
+                <View style={tw('bg-emerald-100 dark:bg-emerald-900/40 px-2.5 py-1 rounded-lg shrink-0')}>
+                  <Text style={tw('text-xs font-bold text-emerald-700 dark:text-emerald-300')}>
+                    {activeRule.testSummary.missingDataHandled} • {t('mobile.test_passed_label')}
+                  </Text>
+                </View>
               </View>
-              <View style={tw('flex-row justify-between')}>
-                <View style={tw('flex-row items-center')}>
-                  <CheckCircle2 color="#10b981" size={14} style={tw('mr-1.5')} />
-                  <Text style={tw('text-xs text-slate-700 dark:text-slate-300')}>
+              <View style={tw('flex-row justify-between items-center')}>
+                <View style={tw('flex-row items-center flex-1 mr-3')}>
+                  <CheckCircle2 color="#10b981" size={14} style={tw('mr-2 shrink-0')} />
+                  <Text style={tw('text-xs text-slate-700 dark:text-slate-300 flex-1')}>
                     {t('mobile.repeated_alert_dedupe_label')}
                   </Text>
                 </View>
-                <Text style={tw('text-xs font-bold text-emerald-700 dark:text-emerald-300')}>
-                  {activeRule.testSummary.repeatedSuppressionVerified} {t('mobile.test_passed_label')}
-                </Text>
+                <View style={tw('bg-emerald-100 dark:bg-emerald-900/40 px-2.5 py-1 rounded-lg shrink-0')}>
+                  <Text style={tw('text-xs font-bold text-emerald-700 dark:text-emerald-300')}>
+                    {activeRule.testSummary.repeatedSuppressionVerified} • {t('mobile.test_passed_label')}
+                  </Text>
+                </View>
               </View>
             </View>
           </ScrollView>

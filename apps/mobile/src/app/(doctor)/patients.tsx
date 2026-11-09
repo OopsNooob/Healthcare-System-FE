@@ -69,6 +69,13 @@ export default function PatientsManagementScreen() {
     return when ? `${label} • ${when}` : label;
   };
 
+  const localizeProgramName = (program?: string | null) => {
+    if (!program) return '';
+    if (program === 'Hypertension Management') return t('mobile.hypertension_management');
+    if (program === 'Diabetes Care') return t('mobile.diabetes_care');
+    return program;
+  };
+
   const enrollmentStatusLabel = (status: PatientItem['enrollmentStatus']) => {
     if (!status) return '';
     const map: Record<NonNullable<PatientItem['enrollmentStatus']>, string> = {
@@ -332,7 +339,7 @@ export default function PatientsManagementScreen() {
                         )}
                       >
                         <Text style={tw('text-xs font-bold text-indigo-600 dark:text-indigo-400')}>
-                          {patient.program}
+                          {localizeProgramName(patient.program)}
                         </Text>
                       </View>
                       <View
@@ -815,7 +822,7 @@ export default function PatientsManagementScreen() {
         visible={aiSummaryVisible}
         onClose={() => setAiSummaryVisible(false)}
         patientName={activePatientData?.name}
-        programName={activePatientData?.program || undefined}
+        programName={localizeProgramName(activePatientData?.program) || undefined}
         baseline={activePatientData?.baseline || undefined}
         current={activePatientData?.current || undefined}
         adherence={activePatientData?.adherence || undefined}
@@ -832,7 +839,7 @@ export default function PatientsManagementScreen() {
       <ProgramRulePreviewModal
         visible={programRulePreviewVisible}
         onClose={() => setProgramRulePreviewVisible(false)}
-        programName={activePatientData?.program || t('mobile.hypertension_management')}
+        programName={localizeProgramName(activePatientData?.program) || t('mobile.hypertension_management')}
       />
 
       {/* 4. Doctor Review Task Modal */}
@@ -840,7 +847,7 @@ export default function PatientsManagementScreen() {
         visible={doctorReviewTaskVisible}
         onClose={() => setDoctorReviewTaskVisible(false)}
         patientName={activePatientData?.name}
-        programName={activePatientData?.program || undefined}
+        programName={localizeProgramName(activePatientData?.program) || undefined}
         onSubmitReview={(payload) => {
           if (activePatientData) {
             setPatients((prev) =>

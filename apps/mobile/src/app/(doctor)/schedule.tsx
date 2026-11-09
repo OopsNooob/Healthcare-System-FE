@@ -336,7 +336,7 @@ export default function DoctorScheduleScreen() {
                 {t('mobile.time_slots', 'Time Slots')}
               </Text>
               <Text style={tw('text-xs text-slate-500 dark:text-slate-400')}>
-                {t('mobile.slot_status_legend', 'còn trống • đã đặt • đã khóa • đã qua giờ')}
+                {t('mobile.slot_status_legend', 'Còn trống • Đã đặt • Đã khóa • Đã qua giờ')}
               </Text>
             </View>
             <TouchableOpacity
