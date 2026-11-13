@@ -578,7 +578,7 @@
   "mobile.confirm_copy": "Xác nhận Sao chép",
   "mobile.schedule_copied_success": "Đã sao chép lịch làm việc sang tuần tới",
   "mobile.change_profile_photo": "Đổi Ảnh Đại Diện",
-  "mobile.upload_or_select_avatar": "Chụp ảnh mới hoặc chọn ảnh đại diện",
+  "mobile.upload_or_select_avatar": "Chụp ảnh mới hoặc chọn ảnh từ thư viện thiết bị",
   "mobile.take_photo": "Chụp ảnh",
   "mobile.choose_library": "Chọn từ thư viện",
   "mobile.preset_avatars": "Ảnh đại diện có sẵn",
@@ -1333,5 +1333,8 @@
   "mobile.vnpay_demo_prompt": "Hoàn tất thanh toán trên trang VNPAY hoặc nhấn nút mô phỏng xác nhận bên dưới.",
   "mobile.vnpay_qr_payment_title": "Thanh toán VNPAY QR",
   "mobile.waiting_payment_confirmation": "Đang chờ xác nhận thanh toán...",
-  "mobile.zoom_image": "Xem ảnh lớn"
+  "mobile.zoom_image": "Xem ảnh lớn",
+  "mobile.no_image_selected_prompt": "Chụp ảnh mới hoặc chọn hình ảnh từ thư viện thiết bị để đính kèm.",
+  "mobile.no_pdf_selected_prompt": "Chọn tệp tài liệu PDF từ bộ nhớ thiết bị để đính kèm.",
+  "mobile.downloading_file": "Đang tải..."
 }

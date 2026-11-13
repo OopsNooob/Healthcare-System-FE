@@ -578,7 +578,7 @@
   "mobile.confirm_copy": "Confirm Copy",
   "mobile.schedule_copied_success": "Weekly schedule replicated to next week",
   "mobile.change_profile_photo": "Change Profile Photo",
-  "mobile.upload_or_select_avatar": "Upload a photo or choose an avatar",
+  "mobile.upload_or_select_avatar": "Take a new photo or choose from your library",
   "mobile.take_photo": "Take Photo",
   "mobile.choose_library": "Choose Library",
   "mobile.preset_avatars": "Preset Avatars",
@@ -1333,5 +1333,8 @@
   "mobile.vnpay_demo_prompt": "Complete payment in the VNPAY window or simulate confirmation below.",
   "mobile.vnpay_qr_payment_title": "VNPAY QR Payment",
   "mobile.waiting_payment_confirmation": "Waiting for payment confirmation...",
-  "mobile.zoom_image": "View Image"
+  "mobile.zoom_image": "View Image",
+  "mobile.no_image_selected_prompt": "Take a new photo or choose an image from your device library to attach.",
+  "mobile.no_pdf_selected_prompt": "Select a PDF document from your device storage to attach.",
+  "mobile.downloading_file": "Downloading..."
 }
