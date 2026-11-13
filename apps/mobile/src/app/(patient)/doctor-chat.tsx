@@ -1,12 +1,13 @@
 import { useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { View, Text, TouchableOpacity, ScrollView, TextInput, Image, KeyboardAvoidingView, Platform, Modal } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, TextInput, Image, KeyboardAvoidingView, Platform, Modal, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSafeRouter as useRouter } from '@/utils/useSafeRouter';
 import Toast from 'react-native-toast-message';
-import { ArrowLeft, Send, Video, Phone, ImagePlus, Paperclip, AlertTriangle, CheckCircle, X, Star, FileText, ZoomIn, Eye, ShieldCheck } from 'lucide-react-native';
+import { ArrowLeft, Send, Video, Phone, ImagePlus, Paperclip, AlertTriangle, X, Star, FileText, ZoomIn, Eye, Download } from 'lucide-react-native';
 import { tw, twInstance } from '@/tw';
 import { AttachmentPickerModal, ImageViewerModal, DocViewerModal } from '@/components/modals';
+import { downloadMediaFileToDevice } from '@/services/nativeMedia';
 
 interface ChatMessage {
   id: string;
@@ -37,6 +38,29 @@ export default function DoctorChatScreen() {
   // Preview Modals
   const [selectedImagePreview, setSelectedImagePreview] = useState<{ uri: string; name: string; size: string } | null>(null);
   const [selectedDocPreview, setSelectedDocPreview] = useState<{ name: string; size: string; uri?: string } | null>(null);
+  const [downloadingMsgId, setDownloadingMsgId] = useState<string | null>(null);
+
+  const handleDirectDownload = async (msg: ChatMessage) => {
+    if (downloadingMsgId) return;
+    setDownloadingMsgId(msg.id);
+    try {
+      const isImage = msg.attachmentType === 'image';
+      const defaultName = isImage ? `Medical_Photo_${msg.id}.jpg` : `Medical_Record_${msg.id}.pdf`;
+      const fileName = msg.attachmentName || defaultName;
+      const mimeType = isImage
+        ? fileName.toLowerCase().endsWith('.png')
+          ? 'image/png'
+          : 'image/jpeg'
+        : 'application/pdf';
+      await downloadMediaFileToDevice({
+        uri: msg.attachmentUri,
+        fileName,
+        mimeType,
+      });
+    } finally {
+      setDownloadingMsgId(null);
+    }
+  };
 
   const initialMessages: ChatMessage[] = [
     {
@@ -218,66 +242,109 @@ export default function DoctorChatScreen() {
               <View style={tw(`p-3.5 rounded-2xl ${msg.sender === 'user' ? 'bg-brand rounded-tr-sm' : 'bg-slate-100 dark:bg-slate-800 rounded-tl-sm'}`)}>
                 {/* 1. Image Attachment Preview */}
                 {msg.attachmentType === 'image' && msg.attachmentUri && (
-                  <TouchableOpacity
-                    activeOpacity={0.88}
-                    onPress={() => setSelectedImagePreview({
-                      uri: msg.attachmentUri!,
-                      name: msg.attachmentName || 'Photo.jpg',
-                      size: msg.attachmentSize || '2.1 MB',
-                    })}
-                    style={tw('mb-2.5 rounded-xl overflow-hidden border border-black/10 dark:border-white/10 bg-slate-200 dark:bg-slate-700 relative')}
-                  >
-                    <Image
-                      source={{ uri: msg.attachmentUri }}
-                      style={tw('w-60 h-44 rounded-xl')}
-                      resizeMode="cover"
-                    />
-                    <View style={tw('absolute bottom-2 right-2 bg-black/70 px-2 py-1 rounded-md flex-row items-center')}>
+                  <View style={tw('w-60 mb-2.5 rounded-xl overflow-hidden border border-black/10 dark:border-white/10 bg-slate-200 dark:bg-slate-700 relative')}>
+                    <TouchableOpacity
+                      activeOpacity={0.88}
+                      onPress={() => setSelectedImagePreview({
+                        uri: msg.attachmentUri!,
+                        name: msg.attachmentName || 'Photo.jpg',
+                        size: msg.attachmentSize || '2.1 MB',
+                      })}
+                    >
+                      <Image
+                        source={{ uri: msg.attachmentUri }}
+                        style={tw('w-60 h-44 rounded-xl')}
+                        resizeMode="cover"
+                      />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      activeOpacity={0.8}
+                      disabled={downloadingMsgId === msg.id}
+                      onPress={() => handleDirectDownload(msg)}
+                      style={tw('absolute top-2 right-2 bg-black/75 px-2.5 py-1.5 rounded-lg flex-row items-center')}
+                    >
+                      {downloadingMsgId === msg.id ? (
+                        <ActivityIndicator size="small" color="#ffffff" />
+                      ) : (
+                        <>
+                          <Download color="#ffffff" size={12} style={tw('mr-1')} />
+                          <Text style={tw('text-[10px] text-white font-bold')}>
+                            {t('mobile.download', 'Tải về')}
+                          </Text>
+                        </>
+                      )}
+                    </TouchableOpacity>
+                    <View style={tw('absolute bottom-2 right-2 bg-black/70 px-2 py-1 rounded-md flex-row items-center pointer-events-none')}>
                       <ZoomIn color="#ffffff" size={12} style={tw('mr-1')} />
                       <Text style={tw('text-[10px] text-white font-medium')}>
                         {msg.attachmentSize || 'Photo'}
                       </Text>
                     </View>
-                  </TouchableOpacity>
+                  </View>
                 )}
 
                 {/* 2. PDF Document Attachment Card */}
                 {msg.attachmentType === 'file' && (
-                  <TouchableOpacity
-                    activeOpacity={0.85}
-                    onPress={() => setSelectedDocPreview({
-                      name: msg.attachmentName || 'Medical_Record.pdf',
-                      size: msg.attachmentSize || '1.2 MB',
-                      uri: msg.attachmentUri,
-                    })}
+                  <View
                     style={tw(
-                      `mb-2.5 p-3 rounded-xl border flex-row items-center gap-3 ${
+                      `w-64 overflow-hidden mb-2.5 p-3 rounded-xl border flex-row items-center gap-2.5 ${
                         msg.sender === 'user'
                           ? 'bg-slate-900/10 border-slate-900/20'
                           : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700'
                       }`
                     )}
                   >
-                    <View style={tw('w-10 h-10 rounded-lg bg-red-100 dark:bg-red-900/30 items-center justify-center')}>
-                      <FileText color="#ef4444" size={22} />
-                    </View>
-                    <View style={tw('flex-1 mr-1')}>
-                      <Text
-                        numberOfLines={1}
-                        style={tw(
-                          `text-xs font-bold ${
-                            msg.sender === 'user' ? 'text-slate-900' : 'text-slate-900 dark:text-white'
-                          }`
-                        )}
-                      >
-                        {msg.attachmentName || 'Document.pdf'}
-                      </Text>
-                      <Text style={tw('text-[10px] text-slate-500 dark:text-slate-400 mt-0.5')}>
-                        {msg.attachmentSize || 'PDF Document'} • {t('mobile.tap_to_view', 'Nhấn để xem')}
-                      </Text>
-                    </View>
-                    <Eye color={msg.sender === 'user' ? '#0f172a' : '#64748b'} size={18} />
-                  </TouchableOpacity>
+                    <TouchableOpacity
+                      activeOpacity={0.85}
+                      onPress={() => setSelectedDocPreview({
+                        name: msg.attachmentName || 'Medical_Record.pdf',
+                        size: msg.attachmentSize || '1.2 MB',
+                        uri: msg.attachmentUri,
+                      })}
+                      style={tw('flex-1 flex-row items-center gap-3')}
+                    >
+                      <View style={tw('w-10 h-10 shrink-0 rounded-lg bg-red-100 dark:bg-red-900/30 items-center justify-center')}>
+                        <FileText color="#ef4444" size={22} />
+                      </View>
+                      <View style={tw('flex-1 mr-1')}>
+                        <Text
+                          numberOfLines={1}
+                          style={tw(
+                            `text-xs font-bold ${
+                              msg.sender === 'user' ? 'text-slate-900' : 'text-slate-900 dark:text-white'
+                            }`
+                          )}
+                        >
+                          {msg.attachmentName || 'Document.pdf'}
+                        </Text>
+                        <Text
+                          numberOfLines={1}
+                          style={tw('text-[10px] text-slate-500 dark:text-slate-400 mt-0.5')}
+                        >
+                          {msg.attachmentSize || 'PDF Document'} • {t('mobile.tap_to_view', 'Nhấn để xem')}
+                        </Text>
+                      </View>
+                      <Eye color={msg.sender === 'user' ? '#0f172a' : '#64748b'} size={17} />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      activeOpacity={0.8}
+                      disabled={downloadingMsgId === msg.id}
+                      onPress={() => handleDirectDownload(msg)}
+                      style={tw(
+                        `p-2 shrink-0 rounded-lg ${
+                          msg.sender === 'user'
+                            ? 'bg-slate-900/15'
+                            : 'bg-slate-100 dark:bg-slate-800'
+                        }`
+                      )}
+                    >
+                      {downloadingMsgId === msg.id ? (
+                        <ActivityIndicator size="small" color={msg.sender === 'user' ? '#0f172a' : '#64748b'} />
+                      ) : (
+                        <Download color={msg.sender === 'user' ? '#0f172a' : '#64748b'} size={17} />
+                      )}
+                    </TouchableOpacity>
+                  </View>
                 )}
 
                 {/* Text Message */}

@@ -1,10 +1,9 @@
-import React from 'react';
-import { View, Text, Modal, TouchableOpacity, ScrollView } from 'react-native';
-import { X, FileText, ShieldCheck, Share2, Calendar, Hash } from 'lucide-react-native';
+import React, { useState } from 'react';
+import { View, Text, Modal, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
+import { X, FileText, ShieldCheck, Share2, Calendar, Hash, Download } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
-import Toast from 'react-native-toast-message';
-import * as Sharing from 'expo-sharing';
 import { tw, twInstance } from '@/tw';
+import { downloadMediaFileToDevice, shareMediaFile } from '@/services/nativeMedia';
 
 interface DocViewerModalProps {
   visible: boolean;
@@ -26,32 +25,37 @@ export const DocViewerModal: React.FC<DocViewerModalProps> = ({
   summary,
 }) => {
   const { t } = useTranslation();
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
   const finalSummary = summary || t('mobile.default_doc_summary');
 
-  const handleShare = async () => {
+  const handleDownload = async () => {
+    if (isDownloading || isSharing) return;
+    setIsDownloading(true);
     try {
-      if (fileUri) {
-        const isAvailable = await Sharing.isAvailableAsync();
-        if (isAvailable) {
-          await Sharing.shareAsync(fileUri, {
-            mimeType: 'application/pdf',
-            dialogTitle: fileName,
-          });
-          return;
-        }
-      }
-      Toast.show({
-        type: 'success',
-        text1: t('mobile.success'),
-        text2: t('mobile.report_exported'),
+      await downloadMediaFileToDevice({
+        uri: fileUri,
+        fileName,
+        mimeType: 'application/pdf',
+        summary: finalSummary,
       });
-    } catch (err) {
-      console.warn('Share error:', err);
-      Toast.show({
-        type: 'info',
-        text1: fileName,
-        text2: t('mobile.document_added'),
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
+  const handleShare = async () => {
+    if (isSharing || isDownloading) return;
+    setIsSharing(true);
+    try {
+      await shareMediaFile({
+        uri: fileUri,
+        fileName,
+        mimeType: 'application/pdf',
+        summary: finalSummary,
       });
+    } finally {
+      setIsSharing(false);
     }
   };
 
@@ -126,15 +130,42 @@ export const DocViewerModal: React.FC<DocViewerModalProps> = ({
 
           {/* Footer Actions */}
           <View style={tw('p-4 border-t border-slate-100 dark:border-slate-800 flex-row gap-3')}>
-            <TouchableOpacity onPress={onClose} style={tw('flex-1 bg-slate-100 dark:bg-slate-800 py-3.5 rounded-xl items-center')}>
-              <Text style={tw('text-slate-700 dark:text-slate-300 font-bold text-sm')}>{t('mobile.close')}</Text>
-            </TouchableOpacity>
             <TouchableOpacity
               onPress={handleShare}
-              style={tw('flex-1 bg-brand py-3.5 rounded-xl items-center flex-row justify-center')}
+              disabled={isSharing || isDownloading}
+              style={tw(
+                `flex-1 bg-slate-100 dark:bg-slate-800 py-3.5 rounded-xl items-center flex-row justify-center ${
+                  isSharing || isDownloading ? 'opacity-60' : ''
+                }`
+              )}
             >
-              <Share2 color="#0f172a" size={16} style={tw('mr-2')} />
-              <Text style={tw('text-slate-900 font-bold text-sm')}>{t('mobile.share_or_open')}</Text>
+              {isSharing ? (
+                <ActivityIndicator size="small" color={twInstance.color('text-slate-700 dark:text-slate-300')} style={tw('mr-2')} />
+              ) : (
+                <Share2 color={twInstance.color('text-slate-700 dark:text-slate-300')} size={16} style={tw('mr-2')} />
+              )}
+              <Text style={tw('text-slate-700 dark:text-slate-300 font-bold text-sm')}>
+                {t('mobile.share_or_open')}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={handleDownload}
+              disabled={isDownloading || isSharing}
+              style={tw(
+                `flex-1 bg-brand py-3.5 rounded-xl items-center flex-row justify-center ${
+                  isDownloading || isSharing ? 'opacity-60' : ''
+                }`
+              )}
+            >
+              {isDownloading ? (
+                <ActivityIndicator size="small" color="#0f172a" style={tw('mr-2')} />
+              ) : (
+                <Download color="#0f172a" size={16} style={tw('mr-2')} />
+              )}
+              <Text style={tw('text-slate-900 font-bold text-sm')}>
+                {isDownloading ? t('mobile.downloading_file', 'Đang tải...') : t('mobile.download')}
+              </Text>
             </TouchableOpacity>
           </View>
         </View>

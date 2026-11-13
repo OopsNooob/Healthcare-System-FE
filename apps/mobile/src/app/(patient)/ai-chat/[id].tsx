@@ -1,13 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { View, Text, TouchableOpacity, ScrollView, TextInput, KeyboardAvoidingView, Platform, Modal, Image } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, TextInput, KeyboardAvoidingView, Platform, Modal, Image, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams } from 'expo-router';
 import { useSafeRouter as useRouter } from '@/utils/useSafeRouter';
 import Toast from 'react-native-toast-message';
-import { ArrowLeft, Send, Sparkles, AlertTriangle, X, ShieldAlert, BookOpen, Crown, Camera, Image as ImageIcon, ZoomIn } from 'lucide-react-native';
+import { ArrowLeft, Send, Sparkles, AlertTriangle, X, ShieldAlert, BookOpen, Crown, Camera, Image as ImageIcon, ZoomIn, Download } from 'lucide-react-native';
 import { tw, twInstance } from '@/tw';
-import { pickNativeImage } from '@/services/nativeMedia';
+import { pickNativeImage, downloadMediaFileToDevice } from '@/services/nativeMedia';
 import { ImageViewerModal } from '@/components/modals';
 
 type Citation = {
@@ -23,6 +23,8 @@ type Message = {
   time: string;
   hasAttachment?: boolean;
   imageUri?: string;
+  imageName?: string;
+  imageSize?: string;
   isFallback?: boolean;
   citations?: Citation[];
 };
@@ -38,6 +40,22 @@ export default function AiChatSessionScreen() {
   const [imagePickerModalVisible, setImagePickerModalVisible] = useState(false);
   const [reportReason, setReportReason] = useState('');
   const [selectedImagePreview, setSelectedImagePreview] = useState<{ uri: string; name: string; size: string } | null>(null);
+  const [downloadingMsgId, setDownloadingMsgId] = useState<string | null>(null);
+
+  const handleDirectDownload = async (msg: Message) => {
+    if (!msg.imageUri || downloadingMsgId) return;
+    setDownloadingMsgId(msg.id);
+    try {
+      const fileName = msg.imageName || `Prescription_Photo_${msg.id}.jpg`;
+      await downloadMediaFileToDevice({
+        uri: msg.imageUri,
+        fileName,
+        mimeType: fileName.toLowerCase().endsWith('.png') ? 'image/png' : 'image/jpeg',
+      });
+    } finally {
+      setDownloadingMsgId(null);
+    }
+  };
 
   const initialMessages: Message[] = [
     { 
@@ -53,6 +71,8 @@ export default function AiChatSessionScreen() {
       time: '10:01 AM',
       hasAttachment: true,
       imageUri: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?q=80&w=600&auto=format&fit=crop',
+      imageName: 'Prescription_Photo.jpg',
+      imageSize: '1.8 MB',
     },
     {
       id: '3',
@@ -159,6 +179,8 @@ export default function AiChatSessionScreen() {
         id: Date.now().toString(),
         text: `📷 ${media.name} (${media.size})`,
         imageUri: media.uri,
+        imageName: media.name,
+        imageSize: media.size,
         sender: 'user',
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         hasAttachment: true,
@@ -257,27 +279,46 @@ export default function AiChatSessionScreen() {
                 // Normal AI or User Message
                 <View style={tw(`p-4 rounded-2xl ${msg.sender === 'user' ? 'bg-indigo-600 rounded-tr-sm' : 'bg-slate-100 dark:bg-slate-800 rounded-tl-sm'}`)}>
                   {msg.imageUri && (
-                    <TouchableOpacity
-                      activeOpacity={0.88}
-                      onPress={() => setSelectedImagePreview({
-                        uri: msg.imageUri!,
-                        name: 'Prescription_Photo.jpg',
-                        size: '1.8 MB',
-                      })}
-                      style={tw('w-56 h-56 rounded-xl mb-2.5 overflow-hidden border border-black/10 dark:border-white/10 bg-slate-200 dark:bg-slate-700 relative')}
-                    >
-                      <Image
-                        source={{ uri: msg.imageUri }}
+                    <View style={tw('w-56 h-56 rounded-xl mb-2.5 overflow-hidden border border-black/10 dark:border-white/10 bg-slate-200 dark:bg-slate-700 relative')}>
+                      <TouchableOpacity
+                        activeOpacity={0.88}
+                        onPress={() => setSelectedImagePreview({
+                          uri: msg.imageUri!,
+                          name: msg.imageName || 'Prescription_Photo.jpg',
+                          size: msg.imageSize || '1.8 MB',
+                        })}
                         style={tw('w-full h-full')}
-                        resizeMode="cover"
-                      />
-                      <View style={tw('absolute bottom-2 right-2 bg-black/70 px-2 py-1 rounded-md flex-row items-center')}>
+                      >
+                        <Image
+                          source={{ uri: msg.imageUri }}
+                          style={tw('w-full h-full')}
+                          resizeMode="cover"
+                        />
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        activeOpacity={0.8}
+                        disabled={downloadingMsgId === msg.id}
+                        onPress={() => handleDirectDownload(msg)}
+                        style={tw('absolute top-2 right-2 bg-black/75 px-2.5 py-1.5 rounded-lg flex-row items-center')}
+                      >
+                        {downloadingMsgId === msg.id ? (
+                          <ActivityIndicator size="small" color="#ffffff" />
+                        ) : (
+                          <>
+                            <Download color="#ffffff" size={12} style={tw('mr-1')} />
+                            <Text style={tw('text-[10px] text-white font-bold')}>
+                              {t('mobile.download', 'Tải về')}
+                            </Text>
+                          </>
+                        )}
+                      </TouchableOpacity>
+                      <View style={tw('absolute bottom-2 right-2 bg-black/70 px-2 py-1 rounded-md flex-row items-center pointer-events-none')}>
                         <ZoomIn color="#ffffff" size={12} style={tw('mr-1')} />
                         <Text style={tw('text-[10px] text-white font-medium')}>
                           {t('mobile.zoom_image', 'Phóng to')}
                         </Text>
                       </View>
-                    </TouchableOpacity>
+                    </View>
                   )}
                   <Text style={tw(`text-base ${msg.sender === 'user' ? (msg.hasAttachment ? 'text-indigo-100 font-medium' : 'text-white') : 'text-slate-800 dark:text-slate-200'} leading-6`)}>
                     {msg.text}

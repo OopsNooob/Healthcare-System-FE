@@ -603,6 +603,188 @@ export const exportAndShareHealthReport = async (
   return result?.uri ?? null;
 };
 
+const sanitizeFileName = (name: string, fallbackExt: string): string => {
+  const cleaned = (name || `File_${Date.now()}${fallbackExt}`)
+    .trim()
+    .replace(/[<>:"/\\|?*]+/g, '_');
+  if (/\.[a-zA-Z0-9]{2,6}$/.test(cleaned)) {
+    return cleaned;
+  }
+  return `${cleaned}${fallbackExt}`;
+};
+
+const escapeHtmlText = (input: string): string =>
+  input
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+
+/**
+ * Resolve any chat/document attachment URI (local, remote HTTP/HTTPS, or virtual sample PDF) to a local file URI
+ */
+export const resolveLocalMediaUri = async (options: {
+  uri?: string;
+  fileName: string;
+  mimeType: string;
+  summary?: string;
+}): Promise<string | null> => {
+  try {
+    const cacheDir = FileSystem.cacheDirectory || FileSystem.documentDirectory || '';
+    const isPdf = options.mimeType === 'application/pdf';
+    const fallbackExt = isPdf ? '.pdf' : options.mimeType === 'image/png' ? '.png' : '.jpg';
+    const safeFileName = sanitizeFileName(options.fileName, fallbackExt);
+
+    if (options.uri && (options.uri.startsWith('file://') || options.uri.startsWith('content://'))) {
+      return options.uri;
+    }
+
+    if (options.uri && (options.uri.startsWith('http://') || options.uri.startsWith('https://'))) {
+      const targetUri = `${cacheDir}${Date.now()}_${safeFileName}`;
+      const downloadRes = await FileSystem.downloadAsync(options.uri, targetUri);
+      if (downloadRes && downloadRes.uri) {
+        return downloadRes.uri;
+      }
+      return null;
+    }
+
+    if (isPdf) {
+      const generatedDate = new Date().toLocaleDateString(undefined, {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      });
+      const safeTitle = escapeHtmlText(safeFileName);
+      const safeSummary = escapeHtmlText(
+        options.summary ||
+          i18n.t(
+            'mobile.default_doc_summary',
+            'Official medical document verified and stored in the encrypted clinical repository.'
+          )
+      );
+      const html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>${safeTitle}</title>
+  <style>
+    body { font-family: Roboto, Arial, sans-serif; color: #1e293b; margin: 28px; line-height: 1.5; font-size: 13px; }
+    .header { border-bottom: 2px solid #059669; padding-bottom: 12px; margin-bottom: 18px; }
+    .title { font-size: 18px; font-weight: bold; color: #065f46; margin: 0 0 4px 0; }
+    .meta { font-size: 12px; color: #64748b; }
+    .box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px; margin-top: 14px; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1 class="title">${safeTitle}</h1>
+    <div class="meta">${escapeHtmlText(i18n.t('mobile.pdf_export_date_label', 'Export Date'))}: ${escapeHtmlText(generatedDate)}</div>
+  </div>
+  <div class="box">
+    <strong>${escapeHtmlText(i18n.t('mobile.clinical_summary_and_directives', 'Clinical Summary & Directives'))}</strong>
+    <p>${safeSummary}</p>
+  </div>
+</body>
+</html>`;
+      try {
+        const printResult = await Print.printToFileAsync({
+          html,
+          width: 612,
+          height: 792,
+          base64: false,
+        });
+        if (printResult?.uri) {
+          return printResult.uri;
+        }
+      } catch (printErr) {
+        console.warn('resolveLocalMediaUri Print.printToFileAsync fallback:', printErr);
+      }
+
+      const fallbackPath = `${cacheDir}${safeFileName.replace(/\.pdf$/i, '')}.html`;
+      await FileSystem.writeAsStringAsync(fallbackPath, html, {
+        encoding: FileSystem.EncodingType.UTF8,
+      });
+      return fallbackPath;
+    }
+
+    return null;
+  } catch (err) {
+    console.warn('resolveLocalMediaUri error:', err);
+    return null;
+  }
+};
+
+/**
+ * Download or save an image/document attachment from chat or modals directly to device storage
+ */
+export const downloadMediaFileToDevice = async (options: {
+  uri?: string;
+  fileName: string;
+  mimeType: string;
+  summary?: string;
+}): Promise<boolean> => {
+  const isPdf = options.mimeType === 'application/pdf';
+  const fallbackExt = isPdf ? '.pdf' : options.mimeType === 'image/png' ? '.png' : '.jpg';
+  const safeFileName = sanitizeFileName(options.fileName, fallbackExt);
+
+  const localUri = await resolveLocalMediaUri({
+    ...options,
+    fileName: safeFileName,
+  });
+
+  if (!localUri) {
+    Toast.show({
+      type: 'error',
+      text1: i18n.t('mobile.download_error_title', 'Export Failed'),
+      text2: i18n.t('mobile.download_error_desc', 'Unable to generate or share the file on this device.'),
+    });
+    return false;
+  }
+
+  const effectiveMime = localUri.toLowerCase().endsWith('.html') ? 'text/html' : options.mimeType;
+  const effectiveName = localUri.toLowerCase().endsWith('.html')
+    ? safeFileName.replace(/\.pdf$/i, '.html')
+    : safeFileName;
+
+  return saveReportToDevice(localUri, effectiveName, effectiveMime);
+};
+
+/**
+ * Share or open a resolved media attachment safely
+ */
+export const shareMediaFile = async (options: {
+  uri?: string;
+  fileName: string;
+  mimeType: string;
+  summary?: string;
+}): Promise<void> => {
+  const isPdf = options.mimeType === 'application/pdf';
+  const fallbackExt = isPdf ? '.pdf' : options.mimeType === 'image/png' ? '.png' : '.jpg';
+  const safeFileName = sanitizeFileName(options.fileName, fallbackExt);
+
+  const localUri = await resolveLocalMediaUri({
+    ...options,
+    fileName: safeFileName,
+  });
+
+  if (!localUri) {
+    Toast.show({
+      type: 'error',
+      text1: i18n.t('mobile.download_error_title', 'Export Failed'),
+      text2: i18n.t('mobile.download_error_desc', 'Unable to generate or share the file on this device.'),
+    });
+    return;
+  }
+
+  const effectiveMime = localUri.toLowerCase().endsWith('.html') ? 'text/html' : options.mimeType;
+  const effectiveName = localUri.toLowerCase().endsWith('.html')
+    ? safeFileName.replace(/\.pdf$/i, '.html')
+    : safeFileName;
+
+  await shareReportFile(localUri, effectiveName, effectiveMime);
+};
+
 /**
  * Utility to build multipart/form-data payload compatible with Cloudinary backend
  */
