@@ -1,4 +1,4 @@
-import { api } from "@/lib/api";
+import { webAdminApi } from "@/lib/api";
 
 export type ReportType =
   | "harassment"
@@ -17,11 +17,9 @@ export interface ApiCreateReport {
 }
 
 export async function createReport(payload: ApiCreateReport) {
-  const submitReport = await api.post(`violations`, {
+  return webAdminApi.violationsCreate({
     reported_user_id: payload.reportedUserId,
     report_type: payload.reportType,
     reason: payload.reason,
   });
-
-  return submitReport.data;
 }

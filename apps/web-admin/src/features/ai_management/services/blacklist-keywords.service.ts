@@ -1,60 +1,96 @@
-import { api } from "@/lib/api";
+import {
+  normalizePaginatedList,
+  webAdminApi,
+  type BlacklistKeywordsCheckContentRequest,
+  type PaginatedResult,
+} from "@/lib/api";
 
-export type ApiKeywordReceiver = {
+export interface ApiKeywordReceiver {
   id: string;
   keyword: string;
-};
+  createdAt?: string;
+}
 
 export interface ApiKeywordList {
   keywordList: ApiKeywordReceiver[];
-}
-
-type ApiKeywordItem = {
-  _id: string;
-  keyword: string;
-  createdAt: string;
-};
-
-interface ApiKeywordListReceiver {
-  data: ApiKeywordItem[];
   total: number;
+  page: number;
+  totalPages: number;
 }
 
-export async function getKeywordList(): Promise<ApiKeywordList> {
-  const res = await api.get<ApiKeywordListReceiver>("/blacklist-keywords");
+type RawKeyword = Record<string, unknown>;
 
+function mapKeyword(obj: RawKeyword): ApiKeywordReceiver | null {
+  const id =
+    typeof obj._id === "string"
+      ? obj._id
+      : typeof obj.id === "string"
+        ? obj.id
+        : "";
+  const keyword = typeof obj.keyword === "string" ? obj.keyword : "";
+  if (!id || !keyword) return null;
   return {
-    keywordList: res.data.data
-      .map((obj) => {
-        return {
-          id: obj._id,
-          keyword: obj.keyword,
-        };
-      })
-      .filter((item): item is ApiKeywordReceiver =>
-        Boolean(item.id && item.keyword),
-      ),
+    id,
+    keyword,
+    createdAt: typeof obj.createdAt === "string" ? obj.createdAt : undefined,
   };
 }
 
-export async function updateKeyword(id: string, newKeyword: string) {
-  const res = await api.patch(`/blacklist-keywords/${id}`, {
-    keyword: newKeyword,
+export async function getKeywordList(params: {
+  page?: number;
+  limit?: number;
+  search?: string;
+} = {}): Promise<ApiKeywordList> {
+  const page = params.page ?? 1;
+  const limit = params.limit ?? 100;
+  const raw = await webAdminApi.blacklistKeywordsGetAll({
+    query: {
+      page,
+      limit,
+      search: params.search?.trim() || undefined,
+      sortBy: "createdAt",
+      sortOrder: -1,
+    },
   });
 
-  return res.data;
+  const normalized: PaginatedResult<RawKeyword> = normalizePaginatedList<RawKeyword>(
+    raw,
+    page,
+    limit,
+  );
+  const keywordList = normalized.items
+    .map(mapKeyword)
+    .filter((item): item is ApiKeywordReceiver => item !== null);
+
+  return {
+    keywordList,
+    total: normalized.total,
+    page: normalized.page,
+    totalPages: normalized.totalPages,
+  };
+}
+
+export async function getKeywordById(id: string) {
+  return webAdminApi.blacklistKeywordsGetKeyword({ params: { id } });
 }
 
 export async function addKeyword(newKeyword: string) {
-  const res = await api.post(`/blacklist-keywords`, {
-    keyword: newKeyword,
-  });
+  return webAdminApi.blacklistKeywordsCreate({ keyword: newKeyword });
+}
 
-  return res.data;
+export async function updateKeyword(id: string, newKeyword: string) {
+  return webAdminApi.blacklistKeywordsUpdateKeyword({
+    params: { id },
+    body: { keyword: newKeyword },
+  });
 }
 
 export async function deleteKeyword(id: string) {
-  const res = await api.delete(`/blacklist-keywords/${id}`);
+  return webAdminApi.blacklistKeywordsDeleteKeyword({ params: { id } });
+}
 
-  return res.data;
+export async function checkBlacklistContent(content: string) {
+  return webAdminApi.blacklistKeywordsCheckContent({
+    body: { content },
+  } as unknown as BlacklistKeywordsCheckContentRequest);
 }

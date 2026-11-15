@@ -1,618 +1,276 @@
-import { useState, useEffect, useCallback } from "react";
-import {
-  CreditCard,
-  Eye,
-  TrendingUp,
-  Users,
-  Search,
-  Database,
-  Edit,
-  Sparkles,
-  Copy,
-  CheckCircle2,
-  Archive,
-  RefreshCw,
-} from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
 import { Badge } from "@repo/ui/components/ui/badge";
 import { Skeleton } from "@repo/ui/components/ui/skeleton";
+import {
+  CreditCard,
+  Search,
+  Sparkles,
+  RefreshCw,
+  CheckCircle2,
+  Archive,
+  Copy,
+  ShieldCheck,
+  AlertTriangle,
+  Plus,
+  Receipt,
+} from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { toast } from "react-toastify";
-import {
-  RefundDecisionModal,
-} from "../components/refund-decision-modal";
-import type { RefundRequest } from "../components/refund-decision-modal";
+import type { PaymentsGetEvidenceResponse } from "@/lib/api";
 import { EditPlanModal } from "../components/edit-plan-modal";
-import type { PlanConfig } from "../components/edit-plan-modal";
 import {
-  TransactionDetailModal,
-} from "../components/transaction-detail-modal";
-import type { Transaction } from "../components/transaction-detail-modal";
-import {
-  plansList,
-  plansDeployDefaults,
-  plansPublish,
-  plansRetire,
-  plansCreate,
-} from "@healthcare/api-client";
+  premiumManagementService,
+  type CreatePlanDraftInput,
+  type PlanVersionRecord,
+} from "../services/premium-management.service";
 
-interface PlanVersionRow {
-  id: string;
-  code: "FREE" | "PLUS" | "CARE";
-  name: string;
-  version: string;
-  priceVnd: number;
-  status: "published" | "draft" | "retired";
-  aiQuota: string;
-  consultQuota: string;
-  careProgramLimit: number;
-  familyLinkLimit: number;
+interface InspectedOrderEntry {
+  orderId: string;
+  evidence: PaymentsGetEvidenceResponse;
+  inspectedAt: string;
 }
 
 export function PremiumManagement() {
-  const { t } = useTranslation();
-  const [activeTab, setActiveTab] = useState<"transactions" | "config" | "refunds">("transactions");
+  const { t, i18n } = useTranslation();
+  const locale = i18n.language?.startsWith("vi") ? "vi-VN" : "en-US";
+
+  const [activeTab, setActiveTab] = useState<"config" | "evidence">("config");
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
-  const [isTransactionModalOpen, setIsTransactionModalOpen] = useState(false);
-  const [activePlanId, setActivePlanId] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [planVersions, setPlanVersions] = useState<PlanVersionRecord[]>([]);
+  const [busyId, setBusyId] = useState<string | null>(null);
 
-  // Plan Versions Catalog (A-07 / BILL-12..16)
-  const [planVersions, setPlanVersions] = useState<PlanVersionRow[]>([
-    {
-      id: "plan-free-v1",
-      code: "FREE",
-      name: "Free Basic",
-      version: "v1.0",
-      priceVnd: 0,
-      status: "published",
-      aiQuota: "20 turns / month",
-      consultQuota: "0 included",
-      careProgramLimit: 1,
-      familyLinkLimit: 1,
-    },
-    {
-      id: "plan-plus-v1",
-      code: "PLUS",
-      name: "Plus Health",
-      version: "v1.0",
-      priceVnd: 99000,
-      status: "published",
-      aiQuota: "200 turns / month",
-      consultQuota: "1 / month",
-      careProgramLimit: 2,
-      familyLinkLimit: 3,
-    },
-    {
-      id: "plan-care-v1",
-      code: "CARE",
-      name: "Chronic Care Pro",
-      version: "v1.0",
-      priceVnd: 299000,
-      status: "published",
-      aiQuota: "500 turns / month",
-      consultQuota: "3 / month",
-      careProgramLimit: 5,
-      familyLinkLimit: 5,
-    },
-  ]);
-
-  // Plan Config State
-  const [planConfig, setPlanConfig] = useState<PlanConfig>({
-    name: "Chronic Care Pro (CARE)",
-    price: "299,000 VND / month",
-    billingCycle: "Monthly",
-    aiLimit: "500 turns / cycle",
-    consultsLimit: "3 / cycle",
-    familyLimit: "5 members",
-    features: [
-      "500 AI health assistant turns / cycle",
-      "3 priority teleconsultations / cycle",
-      "Up to 5 Chronic Care Programs",
-      "Up to 5 Family profile links",
-    ],
-    isActive: true,
-  });
   const [isEditPlanOpen, setIsEditPlanOpen] = useState(false);
+  const [cloneSourcePlan, setCloneSourcePlan] = useState<PlanVersionRecord | null>(null);
 
-  // Refund Requests State
-  const [refundRequests, setRefundRequests] = useState<RefundRequest[]>([
-    {
-      id: "REF-001",
-      user: "Vu Quoc Huy",
-      amount: "299,000 VND",
-      requestedAt: "05/11/2026",
-      reason: "Accidentally renewed subscription without needing consultation this month.",
-      tokensUsed: 1200,
-      tokensLimit: 5000,
-      consultsUsed: 0,
-      consultsLimit: 3,
-      daysActive: 2,
-      isEligible: true,
-      status: "pending",
-    },
-    {
-      id: "REF-002",
-      user: "Nguyen Van A",
-      amount: "99,000 VND",
-      requestedAt: "03/11/2026",
-      reason: "Service did not meet expectations, requesting refund after 2 weeks.",
-      tokensUsed: 15400,
-      tokensLimit: 5000,
-      consultsUsed: 1,
-      consultsLimit: 1,
-      daysActive: 16,
-      isEligible: false,
-      status: "pending",
-    },
-    {
-      id: "REF-003",
-      user: "Tran Thi B",
-      amount: "299,000 VND",
-      requestedAt: "01/11/2026",
-      reason: "Doctor was not available in my local time zone.",
-      tokensUsed: 420,
-      tokensLimit: 5000,
-      consultsUsed: 0,
-      consultsLimit: 3,
-      daysActive: 4,
-      isEligible: true,
-      status: "approved",
-    },
-  ]);
-
-  // Refund Modal State
-  const [selectedRefund, setSelectedRefund] = useState<RefundRequest | null>(null);
-  const [isRefundModalOpen, setIsRefundModalOpen] = useState(false);
+  const [orderIdInput, setOrderIdInput] = useState("");
+  const [isSearchingEvidence, setIsSearchingEvidence] = useState(false);
+  const [evidenceError, setEvidenceError] = useState<string | null>(null);
+  const [activeEvidence, setActiveEvidence] = useState<InspectedOrderEntry | null>(null);
+  const [evidenceHistory, setEvidenceHistory] = useState<InspectedOrderEntry[]>([]);
 
   const loadPlans = useCallback(async () => {
+    setLoading(true);
+    setLoadError(null);
     try {
-      const res = await plansList().catch(() => null);
-      const plans = (res as { data?: Array<Record<string, unknown>> })?.data;
-      if (Array.isArray(plans) && plans.length > 0) {
-        const primaryPlan = (plans.find((p) => p.status === "published") || plans[0]) as {
-          _id?: string;
-          id?: string;
-          name?: string;
-          price?: number;
-          billingCycle?: string;
-          limits?: {
-            aiTokens?: string | number;
-            consultations?: string | number;
-            familyMembers?: string | number;
-          };
-          aiLimit?: string;
-          consultsLimit?: string;
-          familyLimit?: string;
-          features?: string[];
-          status?: string;
-        };
-
-        setActivePlanId(primaryPlan._id || primaryPlan.id || null);
-        setPlanConfig({
-          name: primaryPlan.name || "Chronic Care Pro (CARE)",
-          price: `${(primaryPlan.price || 299000).toLocaleString("vi-VN")} VND / ${primaryPlan.billingCycle || "month"}`,
-          billingCycle: primaryPlan.billingCycle || "Monthly",
-          aiLimit: `${primaryPlan.limits?.aiTokens || primaryPlan.aiLimit || "500"} turns / cycle`,
-          consultsLimit: `${primaryPlan.limits?.consultations || primaryPlan.consultsLimit || "3"} / cycle`,
-          familyLimit: `${primaryPlan.limits?.familyMembers || primaryPlan.familyLimit || "5"} members`,
-          features: primaryPlan.features || [
-            "500 AI health assistant turns / cycle",
-            "3 priority teleconsultations / cycle",
-            "Up to 5 Chronic Care Programs",
-            "Up to 5 Family profile links",
-          ],
-          isActive: primaryPlan.status === "published",
-        });
-      }
-    } catch {
-      // Keep local defaults
+      const plans = await premiumManagementService.listPlans();
+      setPlanVersions(plans);
+    } catch (err) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : t("premiumManagement.errors.loadPlansFailed", "Failed to load subscription plans.");
+      setLoadError(message);
+      toast.error(message);
+    } finally {
+      setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
-    let isSubscribed = true;
-
-    plansList()
-      .then((res) => {
-        if (!isSubscribed) return;
-        const plans = (res as { data?: Array<Record<string, unknown>> })?.data;
-        if (Array.isArray(plans) && plans.length > 0) {
-          const primaryPlan = (plans.find((p) => p.status === "published") || plans[0]) as {
-            _id?: string;
-            id?: string;
-            name?: string;
-            price?: number;
-            billingCycle?: string;
-            limits?: {
-              aiTokens?: string | number;
-              consultations?: string | number;
-              familyMembers?: string | number;
-            };
-            aiLimit?: string;
-            consultsLimit?: string;
-            familyLimit?: string;
-            features?: string[];
-            status?: string;
-          };
-
-          setActivePlanId(primaryPlan._id || primaryPlan.id || null);
-          setPlanConfig({
-            name: primaryPlan.name || "Chronic Care Pro",
-            price: `${(primaryPlan.price || 299000).toLocaleString("vi-VN")} VND / ${primaryPlan.billingCycle || "month"}`,
-            billingCycle: primaryPlan.billingCycle || "Monthly",
-            aiLimit: `${primaryPlan.limits?.aiTokens || primaryPlan.aiLimit || "500"} turns / cycle`,
-            consultsLimit: `${primaryPlan.limits?.consultations || primaryPlan.consultsLimit || "3"} / cycle`,
-            familyLimit: `${primaryPlan.limits?.familyMembers || primaryPlan.familyLimit || "5"} members`,
-            features: primaryPlan.features || [
-              "500 AI health assistant turns / cycle",
-              "3 priority teleconsultations / cycle",
-              "Up to 5 Chronic Care Programs",
-              "Up to 5 Family profile links",
-            ],
-            isActive: primaryPlan.status === "published",
-          });
-        }
-      })
-      .catch(() => {
-        // Keep local defaults
-      });
-
-    const timer = setTimeout(() => {
-      if (!isSubscribed) return;
-      setTransactions([
-        {
-          id: "ORD-2026-8901",
-          user: "Vu Quoc Huy",
-          planCode: "CARE",
-          planVersion: "v1.0",
-          planType: "monthly",
-          amount: 299000,
-          paymentGateway: "vnpay",
-          maskedReference: "VNPAY****4891",
-          date: "05/11/2026 14:20",
-          status: "paid",
-          hasInvoiceRequested: true,
-          ipnVerifiedAt: "05/11/2026 14:20:08",
-          subscriptionGranted: true,
-        },
-        {
-          id: "ORD-2026-8902",
-          user: "Do Dinh Khang",
-          planCode: "PLUS",
-          planVersion: "v1.0",
-          planType: "monthly",
-          amount: 99000,
-          paymentGateway: "vnpay",
-          maskedReference: "VNPAY****8823",
-          date: "05/11/2026 10:15",
-          status: "paid",
-          hasInvoiceRequested: false,
-          ipnVerifiedAt: "05/11/2026 10:15:12",
-          subscriptionGranted: true,
-        },
-        {
-          id: "ORD-2026-8903",
-          user: "Nguyen Van A",
-          planCode: "CARE",
-          planVersion: "v1.0",
-          planType: "monthly",
-          amount: 299000,
-          paymentGateway: "vnpay",
-          maskedReference: "VNPAY****9912",
-          date: "06/11/2026 09:05",
-          status: "pending",
-          hasInvoiceRequested: false,
-          subscriptionGranted: false,
-        },
-        {
-          id: "ORD-2026-8904",
-          user: "Tran Thi B",
-          planCode: "PLUS",
-          planVersion: "v1.0",
-          planType: "monthly",
-          amount: 99000,
-          paymentGateway: "vnpay",
-          maskedReference: "VNPAY****1204",
-          date: "02/11/2026 16:40",
-          status: "refunded",
-          hasInvoiceRequested: true,
-          ipnVerifiedAt: "02/11/2026 16:40:05",
-          subscriptionGranted: false,
-        },
-        {
-          id: "ORD-2026-8905",
-          user: "Le Hoang C",
-          planCode: "PLUS",
-          planVersion: "v1.0",
-          planType: "monthly",
-          amount: 99000,
-          paymentGateway: "vnpay",
-          maskedReference: "VNPAY****3319",
-          date: "01/11/2026 11:00",
-          status: "failed",
-          hasInvoiceRequested: false,
-          subscriptionGranted: false,
-        },
-      ]);
-      setLoading(false);
-    }, 800);
-    return () => {
-      isSubscribed = false;
-      clearTimeout(timer);
-    };
-  }, []);
-
-  const handleReconcileOrder = (orderId: string) => {
-    setTransactions((prev) =>
-      prev.map((tx) =>
-        tx.id === orderId
-          ? {
-              ...tx,
-              status: "paid",
-              ipnVerifiedAt: new Date().toLocaleString("vi-VN"),
-              subscriptionGranted: true,
-            }
-          : tx
-      )
-    );
-    setSelectedTransaction((prev) =>
-      prev && prev.id === orderId
-        ? {
-            ...prev,
-            status: "paid",
-            ipnVerifiedAt: new Date().toLocaleString("vi-VN"),
-            subscriptionGranted: true,
-          }
-        : prev
-    );
-    toast.success(
-      t("premiumManagement.toasts.orderReconciled", { orderId })
-    );
-  };
-
-  const handleClonePlanVersion = (plan: PlanVersionRow) => {
-    const nextVersion = `v1.${planVersions.filter((p) => p.code === plan.code).length}-draft`;
-    const draftClone: PlanVersionRow = {
-      ...plan,
-      id: `${plan.id}-clone-${nextVersion}`,
-      version: nextVersion,
-      status: "draft",
-    };
-    setPlanVersions((prev) => [...prev, draftClone]);
-    toast.success(
-      t("premiumManagement.toasts.draftCreatedForPlan", { code: plan.code, version: nextVersion })
-    );
-  };
-
-  const handlePublishPlanVersion = (planId: string) => {
-    const target = planVersions.find((p) => p.id === planId);
-    if (!target) return;
-    setPlanVersions((prev) =>
-      prev.map((p) => {
-        if (p.id === planId) return { ...p, status: "published" };
-        if (p.code === target.code && p.status === "published") {
-          return { ...p, status: "retired" };
-        }
-        return p;
-      })
-    );
-    toast.success(
-      t("premiumManagement.toasts.versionPublished", { code: target.code, version: target.version })
-    );
-  };
-
-  const handleRetirePlanVersion = (planId: string) => {
-    const target = planVersions.find((p) => p.id === planId);
-    if (!target) return;
-    setPlanVersions((prev) =>
-      prev.map((p) => (p.id === planId ? { ...p, status: "retired" } : p))
-    );
-    toast.info(
-      t("premiumManagement.toasts.versionRetired", { code: target.code, version: target.version })
-    );
-  };
-
-  const openRefundReview = (refund: RefundRequest) => {
-    setSelectedRefund(refund);
-    setIsRefundModalOpen(true);
-  };
-
-  const handleApproveRefund = (refundId: string, overrideReason?: string, adminNotes?: string) => {
-    setRefundRequests((prev) =>
-      prev.map((r) =>
-        r.id === refundId
-          ? {
-              ...r,
-              status: "approved",
-              adminOverride: !!overrideReason,
-              overrideReason,
-              adminNotes,
-            }
-          : r
-      )
-    );
-
-    toast.success(
-      `${t("premiumManagement.refundModal.approveBtn", "Refund Approved")}: ${refundId}`
-    );
-    setIsRefundModalOpen(false);
-  };
-
-  const handleRejectRefund = (refundId: string, adminNotes?: string) => {
-    setRefundRequests((prev) =>
-      prev.map((r) =>
-        r.id === refundId
-          ? {
-              ...r,
-              status: "rejected",
-              adminNotes,
-            }
-          : r
-      )
-    );
-    toast.info(
-      `${t("premiumManagement.refundModal.rejectBtn", "Refund Rejected")}: ${refundId}`
-    );
-    setIsRefundModalOpen(false);
-  };
+    const timer = window.setTimeout(() => {
+      void loadPlans();
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [loadPlans]);
 
   const handleDeployDefaults = async () => {
+    if (busyId) return;
+    setBusyId("deploy-defaults");
     try {
-      await plansDeployDefaults();
-      toast.success(t("premiumManagement.toasts.deployedSuccess", "Default plans deployed successfully!"));
+      await premiumManagementService.deployDefaults();
+      toast.success(
+        t("premiumManagement.toasts.deployedSuccess", "Default plans deployed successfully!")
+      );
       await loadPlans();
-    } catch {
-      toast.info(t("premiumManagement.toasts.deployFallback", "Default plans (FREE, PLUS, CARE) deployed"));
+    } catch (err) {
+      toast.error(
+        err instanceof Error
+          ? err.message
+          : t("premiumManagement.errors.deployFailed", "Failed to deploy default plans.")
+      );
+    } finally {
+      setBusyId(null);
     }
   };
 
-  const handleTogglePlanStatus = async () => {
-    if (!activePlanId) {
-      setPlanConfig((prev) => ({ ...prev, isActive: !prev.isActive }));
-      return;
-    }
+  const handlePublishPlanVersion = async (plan: PlanVersionRecord) => {
+    if (busyId) return;
+    setBusyId(`pub-${plan.id}`);
     try {
-      if (planConfig.isActive) {
-        await plansRetire({ path: { id: activePlanId } });
-        setPlanConfig((prev) => ({ ...prev, isActive: false }));
-        toast.info(t("premiumManagement.toasts.planRetired", "Plan retired successfully"));
-      } else {
-        await plansPublish({ path: { id: activePlanId } });
-        setPlanConfig((prev) => ({ ...prev, isActive: true }));
-        toast.success(t("premiumManagement.toasts.planPublished", "Plan published successfully"));
-      }
-    } catch {
-      setPlanConfig((prev) => ({ ...prev, isActive: !prev.isActive }));
+      await premiumManagementService.publishPlan(plan.id);
+      toast.success(
+        t("premiumManagement.toasts.versionPublished", "Published {{code}} v{{version}}", {
+          code: plan.code,
+          version: plan.version,
+        })
+      );
+      await loadPlans();
+    } catch (err) {
+      toast.error(
+        err instanceof Error
+          ? err.message
+          : t("premiumManagement.errors.publishFailed", "Failed to publish plan version.")
+      );
+    } finally {
+      setBusyId(null);
     }
   };
 
-  const handleSavePlanConfig = async (updated: PlanConfig) => {
+  const handleRetirePlanVersion = async (plan: PlanVersionRecord) => {
+    if (busyId) return;
+    setBusyId(`retire-${plan.id}`);
     try {
-      await plansCreate({
-        body: {
-          name: updated.name,
-          billingCycle: updated.billingCycle,
-          features: updated.features,
-          limits: {
-            aiTokens: updated.aiLimit,
-            consultations: updated.consultsLimit,
-            familyMembers: updated.familyLimit,
-          },
-        },
-      }).catch(() => null);
-    } catch {
-      // Graceful fallback
+      await premiumManagementService.retirePlan(plan.id);
+      toast.info(
+        t("premiumManagement.toasts.versionRetired", "Retired {{code}} v{{version}}", {
+          code: plan.code,
+          version: plan.version,
+        })
+      );
+      await loadPlans();
+    } catch (err) {
+      toast.error(
+        err instanceof Error
+          ? err.message
+          : t("premiumManagement.errors.retireFailed", "Failed to retire plan version.")
+      );
+    } finally {
+      setBusyId(null);
     }
-    setPlanConfig(updated);
-    toast.success(
-      t("premiumManagement.editPlanModal.save", "Plan configuration updated successfully")
-    );
-    setIsEditPlanOpen(false);
   };
 
-  const filteredTransactions = transactions.filter(
-    (t) =>
-      t.user.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      t.id.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  const renderOrderStatusBadge = (status: Transaction["status"]) => {
-    const norm = status.toLowerCase();
-    if (norm === "paid" || norm === "success") {
-      return (
-        <Badge className="bg-emerald-600 hover:bg-emerald-700 text-white">
-          {t("premiumManagement.status.paid")}
-        </Badge>
+  const handleCreateDraft = async (input: CreatePlanDraftInput) => {
+    try {
+      await premiumManagementService.createDraft(input);
+      toast.success(
+        t("premiumManagement.toasts.draftCreated", "Created draft plan {{code}}", {
+          code: input.code,
+        })
+      );
+      setIsEditPlanOpen(false);
+      setCloneSourcePlan(null);
+      await loadPlans();
+    } catch (err) {
+      toast.error(
+        err instanceof Error
+          ? err.message
+          : t("premiumManagement.errors.createDraftFailed", "Failed to create plan draft.")
       );
     }
-    if (norm === "pending" || norm === "refund_pending") {
-      return (
-        <Badge className="bg-amber-500 hover:bg-amber-600 text-white">
-          {t("premiumManagement.status.pending")}
-        </Badge>
-      );
-    }
-    if (norm === "refunded") {
-      return (
-        <Badge className="bg-purple-600 hover:bg-purple-700 text-white">
-          {t("premiumManagement.status.refunded")}
-        </Badge>
-      );
-    }
-    return (
-      <Badge variant="destructive">
-        {t("premiumManagement.status.failed")}
-      </Badge>
-    );
   };
+
+  const handleInspectEvidence = async (targetOrderId?: string) => {
+    const queryId = (targetOrderId ?? orderIdInput).trim();
+    if (!queryId || isSearchingEvidence) return;
+    setIsSearchingEvidence(true);
+    setEvidenceError(null);
+    try {
+      const evidence = await premiumManagementService.getPaymentEvidence(queryId);
+      const entry: InspectedOrderEntry = {
+        orderId: queryId,
+        evidence,
+        inspectedAt: new Date().toLocaleTimeString(locale),
+      };
+      setActiveEvidence(entry);
+      setEvidenceHistory((prev) => [
+        entry,
+        ...prev.filter((item) => item.orderId !== queryId).slice(0, 9),
+      ]);
+    } catch (err) {
+      const msg =
+        err instanceof Error
+          ? err.message
+          : t("premiumManagement.errors.evidenceNotFound", "Payment order evidence not found.");
+      setEvidenceError(msg);
+      toast.error(msg);
+    } finally {
+      setIsSearchingEvidence(false);
+    }
+  };
+
+  const publishedPlans = planVersions.filter((p) => p.status === "published");
+  const draftPlans = planVersions.filter((p) => p.status === "draft");
+  const highlightedPlan =
+    publishedPlans.find((p) => p.code === "CARE") ||
+    publishedPlans.find((p) => p.price > 0) ||
+    publishedPlans[0] ||
+    null;
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
+    <div className="p-6 max-w-7xl mx-auto space-y-6 animate-fade-in">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-            {t("premiumManagement.title")}
+            {t("premiumManagement.title", "Plans & Billing Operations")}
           </h1>
           <p className="text-gray-500 dark:text-gray-400 mt-1">
-            {t("premiumManagement.subtitle")}
+            {t(
+              "premiumManagement.subtitle",
+              "Manage subscription tier versions and inspect verified payment evidence."
+            )}
           </p>
         </div>
+        <button
+          type="button"
+          disabled={loading || Boolean(busyId)}
+          onClick={loadPlans}
+          className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3.5 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors disabled:opacity-50"
+        >
+          <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
+          <span>{t("common.refresh", "Refresh")}</span>
+        </button>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      {/* Real Catalog Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-gray-100 dark:border-slate-800 p-6 flex items-center">
-          <div className="w-12 h-12 rounded-full bg-brand/10 dark:bg-brand/20 flex flex-col items-center justify-center mr-4">
-            <TrendingUp className="w-6 h-6 text-brand" />
+          <div className="w-12 h-12 rounded-full bg-emerald-500/10 dark:bg-emerald-500/20 flex items-center justify-center mr-4">
+            <CheckCircle2 className="w-6 h-6 text-emerald-500" />
           </div>
           <div>
             <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
-              {t("premiumManagement.stats.totalRevenue")}
+              {t("premiumManagement.stats.publishedPlans", "Published Plan Tiers")}
             </p>
-            <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100">24,500,000 VND</h3>
+            <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+              {publishedPlans.length}
+            </h3>
           </div>
         </div>
         <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-gray-100 dark:border-slate-800 p-6 flex items-center">
-          <div className="w-12 h-12 rounded-full bg-amber-500/10 dark:bg-amber-500/20 flex flex-col items-center justify-center mr-4">
+          <div className="w-12 h-12 rounded-full bg-amber-500/10 dark:bg-amber-500/20 flex items-center justify-center mr-4">
             <CreditCard className="w-6 h-6 text-amber-500" />
           </div>
           <div>
             <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
-              {t("premiumManagement.stats.successfulTransactions")}
+              {t("premiumManagement.stats.draftPlans", "Pending Draft Versions")}
             </p>
-            <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100">125</h3>
+            <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+              {draftPlans.length}
+            </h3>
           </div>
         </div>
         <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-gray-100 dark:border-slate-800 p-6 flex items-center">
-          <div className="w-12 h-12 rounded-full bg-green-500/10 dark:bg-green-500/20 flex flex-col items-center justify-center mr-4">
-            <Users className="w-6 h-6 text-green-500" />
+          <div className="w-12 h-12 rounded-full bg-brand/10 dark:bg-brand/20 flex items-center justify-center mr-4">
+            <ShieldCheck className="w-6 h-6 text-brand" />
           </div>
           <div>
             <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
-              {t("premiumManagement.stats.activeUsers")}
+              {t("premiumManagement.stats.inspectedOrders", "Inspected Payment Orders")}
             </p>
-            <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100">89</h3>
+            <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+              {evidenceHistory.length}
+            </h3>
           </div>
         </div>
       </div>
 
-      {/* Main Tabs Container */}
-      <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-gray-100 dark:border-slate-800 overflow-hidden mb-6">
-        <div className="border-b border-gray-100 dark:border-slate-800 px-6 py-4 flex flex-col sm:flex-row justify-between items-start sm:items-center">
-          <div className="flex space-x-6 mb-4 sm:mb-0">
+      {/* Main Container */}
+      <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-gray-100 dark:border-slate-800 overflow-hidden">
+        <div className="border-b border-gray-100 dark:border-slate-800 px-6 py-4 flex flex-wrap justify-between items-center gap-4">
+          <div className="flex space-x-6">
             <button
-              className={`font-medium pb-4 border-b-2 -mb-4 transition-colors ${
-                activeTab === "transactions"
-                  ? "border-brand text-brand"
-                  : "border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
-              }`}
-              onClick={() => setActiveTab("transactions")}
-            >
-              {t("premiumManagement.tabs.transactions")}
-            </button>
-            <button
+              type="button"
               className={`font-medium pb-4 border-b-2 -mb-4 transition-colors ${
                 activeTab === "config"
                   ? "border-brand text-brand"
@@ -620,407 +278,425 @@ export function PremiumManagement() {
               }`}
               onClick={() => setActiveTab("config")}
             >
-              {t("premiumManagement.tabs.config")}
+              {t("premiumManagement.tabs.config", "Subscription Plans")}
             </button>
             <button
+              type="button"
               className={`font-medium pb-4 border-b-2 -mb-4 transition-colors ${
-                activeTab === "refunds"
+                activeTab === "evidence"
                   ? "border-brand text-brand"
                   : "border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
               }`}
-              onClick={() => setActiveTab("refunds")}
+              onClick={() => setActiveTab("evidence")}
             >
-              {t("premiumManagement.tabs.refunds")}
-              <span className="ml-2 bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 text-xs px-2 py-0.5 rounded-full font-bold">
-                {refundRequests.filter((r) => r.status === "pending").length}
-              </span>
+              {t("premiumManagement.tabs.evidence", "Payment Order Evidence")}
             </button>
           </div>
-
-          {activeTab === "transactions" && (
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <input
-                type="text"
-                placeholder={t("premiumManagement.searchPlaceholder")}
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 pr-4 py-2 border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 rounded-lg text-sm text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent w-64"
-              />
-            </div>
-          )}
         </div>
 
-        <div className="p-0 overflow-x-auto max-h-[600px] overflow-y-auto">
-          {activeTab === "transactions" ? (
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-gray-50 dark:bg-slate-800 text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wider sticky top-0 z-10 shadow-sm">
-                  <th className="px-6 py-3 font-medium">{t("premiumManagement.table.transactionId")}</th>
-                  <th className="px-6 py-3 font-medium">{t("premiumManagement.table.user")}</th>
-                  <th className="px-6 py-3 font-medium">{t("premiumManagement.transactionModal.plan")}</th>
-                  <th className="px-6 py-3 font-medium">{t("premiumManagement.table.amount")}</th>
-                  <th className="px-6 py-3 font-medium">{t("premiumManagement.table.date")}</th>
-                  <th className="px-6 py-3 font-medium">{t("premiumManagement.table.status")}</th>
-                  <th className="px-6 py-3 font-medium text-right">{t("premiumManagement.table.actions")}</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-slate-800 text-sm">
-                {loading ? (
-                  Array.from({ length: 5 }).map((_, i) => (
-                    <tr key={`skeleton-${i}`}>
-                      <td className="px-6 py-4"><Skeleton className="h-5 w-24" /></td>
-                      <td className="px-6 py-4"><Skeleton className="h-5 w-32" /></td>
-                      <td className="px-6 py-4"><Skeleton className="h-5 w-16" /></td>
-                      <td className="px-6 py-4"><Skeleton className="h-5 w-24" /></td>
-                      <td className="px-6 py-4"><Skeleton className="h-5 w-24" /></td>
-                      <td className="px-6 py-4"><Skeleton className="h-6 w-20 rounded-full" /></td>
-                      <td className="px-6 py-4"><Skeleton className="h-6 w-6 ml-auto" /></td>
-                    </tr>
-                  ))
-                ) : filteredTransactions.length > 0 ? (
-                  filteredTransactions.map((tx, idx) => (
-                    <tr key={idx} className="hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors">
-                      <td className="px-6 py-4 font-mono font-medium text-gray-900 dark:text-gray-100">{tx.id}</td>
-                      <td className="px-6 py-4 text-gray-600 dark:text-gray-300">{tx.user}</td>
-                      <td className="px-6 py-4">
-                        <span className="text-xs font-bold px-2 py-0.5 rounded bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300">
-                          {tx.planCode || "CARE"} ({tx.planVersion || "v1.0"})
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 font-medium text-gray-900 dark:text-gray-100">
-                        {tx.amount.toLocaleString("vi-VN")} VND
-                      </td>
-                      <td className="px-6 py-4 text-gray-500 dark:text-gray-400">{tx.date}</td>
-                      <td className="px-6 py-4">{renderOrderStatusBadge(tx.status)}</td>
-                      <td className="px-6 py-4 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          {(tx.status === "pending" || tx.status === "failed") && (
-                            <button
-                              onClick={() => handleReconcileOrder(tx.id)}
-                              className="px-2.5 py-1 rounded-md bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-300 hover:bg-indigo-100 text-xs font-semibold flex items-center gap-1"
-                              title={t("premiumManagement.actions.reconcileTooltip")}
+        {activeTab === "config" ? (
+          <div className="p-6 space-y-6">
+            {loading ? (
+              <div className="space-y-3">
+                {[1, 2, 3].map((i) => (
+                  <Skeleton key={i} className="h-12 w-full rounded-xl" />
+                ))}
+              </div>
+            ) : loadError ? (
+              <div className="rounded-xl border border-rose-200 dark:border-rose-900/50 bg-rose-50/70 dark:bg-rose-950/30 p-8 text-center space-y-3">
+                <AlertTriangle size={28} className="mx-auto text-rose-500" />
+                <p className="text-sm font-semibold text-rose-800 dark:text-rose-200">
+                  {loadError}
+                </p>
+                <button
+                  type="button"
+                  onClick={loadPlans}
+                  className="px-4 py-2 rounded-xl bg-rose-600 text-white text-xs font-semibold hover:bg-rose-700"
+                >
+                  {t("common.retry", "Retry")}
+                </button>
+              </div>
+            ) : (
+              <>
+                <div className="border border-gray-200 dark:border-slate-800 rounded-xl overflow-hidden bg-white dark:bg-slate-900 shadow-sm">
+                  <div className="bg-slate-50 dark:bg-slate-800/60 px-6 py-4 border-b border-gray-200 dark:border-slate-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                    <div>
+                      <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">
+                        {t("premiumManagement.catalog.title", "Versioned Plan Catalog")}
+                      </h3>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                        {t(
+                          "premiumManagement.catalog.subtitle",
+                          "Create drafts, publish active tiers, or retire superseded versions."
+                        )}
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        disabled={Boolean(busyId)}
+                        onClick={handleDeployDefaults}
+                        className="px-3 py-2 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/50 font-medium transition-colors flex items-center gap-1.5 shadow-sm text-xs disabled:opacity-50"
+                      >
+                        <Sparkles size={14} />
+                        {t("premiumManagement.config.deployDefaults", "Deploy Default Plans")}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCloneSourcePlan(null);
+                          setIsEditPlanOpen(true);
+                        }}
+                        className="px-3 py-2 bg-brand text-slate-900 rounded-lg hover:bg-brand/90 font-semibold transition-colors flex items-center gap-1.5 shadow-sm text-xs"
+                      >
+                        <Plus size={14} />
+                        {t("premiumManagement.config.newDraft", "New Plan Draft")}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="overflow-x-auto">
+                    <table className="w-full min-w-[820px] text-left text-xs border-collapse">
+                      <thead>
+                        <tr className="bg-slate-50/70 dark:bg-slate-800/40 text-slate-500 dark:text-slate-400 uppercase border-b border-slate-200 dark:border-slate-800">
+                          <th className="px-4 py-3 font-semibold whitespace-nowrap">
+                            {t("premiumManagement.catalog.code", "Code")}
+                          </th>
+                          <th className="px-4 py-3 font-semibold whitespace-nowrap">
+                            {t("premiumManagement.catalog.version", "Version")}
+                          </th>
+                          <th className="px-4 py-3 font-semibold whitespace-nowrap">
+                            {t("premiumManagement.catalog.priceVnd", "Price")}
+                          </th>
+                          <th className="px-4 py-3 font-semibold whitespace-nowrap">
+                            {t("premiumManagement.catalog.aiQuota", "AI Quota")}
+                          </th>
+                          <th className="px-4 py-3 font-semibold whitespace-nowrap">
+                            {t("premiumManagement.catalog.consults", "Consults")}
+                          </th>
+                          <th className="px-4 py-3 font-semibold whitespace-nowrap">
+                            {t("premiumManagement.catalog.carePrograms", "Care Programs")}
+                          </th>
+                          <th className="px-4 py-3 font-semibold whitespace-nowrap">
+                            {t("premiumManagement.catalog.status", "Status")}
+                          </th>
+                          <th className="px-4 py-3 font-semibold text-right whitespace-nowrap">
+                            {t("premiumManagement.catalog.actions", "Actions")}
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                        {planVersions.length === 0 ? (
+                          <tr>
+                            <td colSpan={8} className="px-6 py-12 text-center text-slate-400">
+                              {t(
+                                "premiumManagement.empty.noPlans",
+                                "No billing plans found yet. Deploy default plans or create a new draft."
+                              )}
+                            </td>
+                          </tr>
+                        ) : (
+                          planVersions.map((pv) => (
+                            <tr
+                              key={pv.id}
+                              className="hover:bg-slate-50/60 dark:hover:bg-slate-800/30"
                             >
-                              <RefreshCw size={12} />
-                              {t("premiumManagement.actions.reconcile")}
-                            </button>
-                          )}
-                          <button
-                            onClick={() => {
-                              setSelectedTransaction(tx);
-                              setIsTransactionModalOpen(true);
-                            }}
-                            className="p-1 text-gray-400 hover:text-brand transition-colors"
-                            title={t("premiumManagement.actions.viewDetails")}
-                          >
-                            <Eye className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={7} className="px-6 py-16 text-center">
-                      <div className="flex flex-col items-center justify-center">
-                        <div className="w-16 h-16 bg-gray-50 dark:bg-slate-800 rounded-full flex items-center justify-center mb-4">
-                          <Database className="w-8 h-8 text-gray-400" />
-                        </div>
-                        <h3 className="text-gray-900 dark:text-gray-100 font-medium mb-1">
-                          {t("premiumManagement.table.noTransactions")}
+                              <td className="px-4 py-3 font-bold text-slate-900 dark:text-slate-100 whitespace-nowrap">
+                                {pv.code}
+                                <div className="text-[11px] font-normal text-slate-500">
+                                  {pv.name}
+                                </div>
+                              </td>
+                              <td className="px-4 py-3 font-mono text-slate-700 dark:text-slate-300 whitespace-nowrap">
+                                v{pv.version}
+                              </td>
+                              <td className="px-4 py-3 font-semibold text-slate-900 dark:text-slate-100 whitespace-nowrap">
+                                {pv.price.toLocaleString(locale)} {pv.currency}
+                              </td>
+                              <td className="px-4 py-3 text-slate-600 dark:text-slate-300 whitespace-nowrap">
+                                {pv.aiRequestLimit.toLocaleString(locale)} /{" "}
+                                {pv.aiQuotaPeriod === "day"
+                                  ? t("premiumManagement.editPlanModal.periodDay", "Day")
+                                  : t("premiumManagement.editPlanModal.periodCycle", "Cycle")}
+                              </td>
+                              <td className="px-4 py-3 text-slate-600 dark:text-slate-300 whitespace-nowrap">
+                                {pv.consultationLimitPerCycle}
+                              </td>
+                              <td className="px-4 py-3 text-slate-600 dark:text-slate-300 whitespace-nowrap">
+                                {pv.activeCareProgramLimit}
+                              </td>
+                              <td className="px-4 py-3 whitespace-nowrap">
+                                {pv.status === "published" ? (
+                                  <Badge className="bg-emerald-600 text-white text-[10px] whitespace-nowrap">
+                                    {t("premiumManagement.catalog.published", "Published")}
+                                  </Badge>
+                                ) : pv.status === "draft" ? (
+                                  <Badge className="bg-amber-500 text-white text-[10px] whitespace-nowrap">
+                                    {t("premiumManagement.catalog.draft", "Draft")}
+                                  </Badge>
+                                ) : (
+                                  <Badge variant="secondary" className="text-[10px] whitespace-nowrap">
+                                    {t("premiumManagement.catalog.retired", "Retired")}
+                                  </Badge>
+                                )}
+                              </td>
+                              <td className="px-4 py-3 text-right whitespace-nowrap">
+                                <div className="flex items-center justify-end gap-1.5 whitespace-nowrap">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setCloneSourcePlan(pv);
+                                      setIsEditPlanOpen(true);
+                                    }}
+                                    className="px-2.5 py-1 rounded border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium inline-flex items-center gap-1"
+                                  >
+                                    <Copy size={11} />
+                                    {t("premiumManagement.actions.clone", "Clone")}
+                                  </button>
+                                  {pv.status === "draft" && (
+                                    <button
+                                      type="button"
+                                      disabled={busyId === `pub-${pv.id}`}
+                                      onClick={() => handlePublishPlanVersion(pv)}
+                                      className="px-2.5 py-1 rounded bg-emerald-600 hover:bg-emerald-700 text-white font-medium inline-flex items-center gap-1 disabled:opacity-50"
+                                    >
+                                      <CheckCircle2 size={11} />
+                                      {t("premiumManagement.actions.publish", "Publish")}
+                                    </button>
+                                  )}
+                                  {pv.status === "published" && pv.code !== "FREE" && (
+                                    <button
+                                      type="button"
+                                      disabled={busyId === `retire-${pv.id}`}
+                                      onClick={() => handleRetirePlanVersion(pv)}
+                                      className="px-2.5 py-1 rounded bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 hover:bg-rose-100 font-medium inline-flex items-center gap-1 disabled:opacity-50"
+                                    >
+                                      <Archive size={11} />
+                                      {t("premiumManagement.actions.retire", "Retire")}
+                                    </button>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {highlightedPlan && (
+                  <div className="max-w-2xl border border-gray-200 dark:border-slate-800 rounded-xl overflow-hidden bg-white dark:bg-slate-900 shadow-sm">
+                    <div className="bg-amber-50 dark:bg-amber-900/20 p-6 border-b border-gray-200 dark:border-slate-800 flex justify-between items-center">
+                      <div>
+                        <h3 className="text-xl font-bold text-amber-900 dark:text-amber-400 flex items-center gap-2">
+                          <CreditCard className="w-5 h-5" />
+                          {highlightedPlan.name} ({highlightedPlan.code} v{highlightedPlan.version})
                         </h3>
-                        <p className="text-gray-500 dark:text-gray-400 text-sm">
-                          {t("premiumManagement.table.tryAdjusting")}
+                        <p className="text-amber-700 dark:text-amber-500 mt-1 text-sm">
+                          {highlightedPlan.description ||
+                            t("premiumManagement.config.subtitle", "Currently published primary tier")}
                         </p>
                       </div>
-                    </td>
-                  </tr>
+                    </div>
+                    <div className="p-6 space-y-3 text-sm">
+                      <div className="flex justify-between border-b border-gray-100 dark:border-slate-800 pb-2">
+                        <span className="text-gray-500 dark:text-gray-400">
+                          {t("premiumManagement.config.price", "Price")}
+                        </span>
+                        <span className="font-semibold text-gray-900 dark:text-gray-100">
+                          {highlightedPlan.price.toLocaleString(locale)} {highlightedPlan.currency} /{" "}
+                          {highlightedPlan.durationDays} {t("common.days", "days")}
+                        </span>
+                      </div>
+                      <div className="flex justify-between border-b border-gray-100 dark:border-slate-800 pb-2">
+                        <span className="text-gray-500 dark:text-gray-400">
+                          {t("premiumManagement.limits.aiTurns", "AI Quotas")}
+                        </span>
+                        <span className="font-semibold text-gray-900 dark:text-gray-100">
+                          {highlightedPlan.aiRequestLimit.toLocaleString(locale)} req /{" "}
+                          {highlightedPlan.aiTokenLimit.toLocaleString(locale)} tokens
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-500 dark:text-gray-400">
+                          {t("premiumManagement.limits.consultations", "Consultations & Care Programs")}
+                        </span>
+                        <span className="font-semibold text-gray-900 dark:text-gray-100">
+                          {highlightedPlan.consultationLimitPerCycle} consults /{" "}
+                          {highlightedPlan.activeCareProgramLimit} programs
+                        </span>
+                      </div>
+                    </div>
+                  </div>
                 )}
-              </tbody>
-            </table>
-          ) : activeTab === "config" ? (
-            <div className="p-6 space-y-6">
-              {/* Multi-tier Plan Versions Table */}
-              <div className="border border-gray-200 dark:border-slate-800 rounded-xl overflow-hidden bg-white dark:bg-slate-900 shadow-sm">
-                <div className="bg-slate-50 dark:bg-slate-800/60 px-6 py-4 border-b border-gray-200 dark:border-slate-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                  <div>
-                    <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">
-                      {t("premiumManagement.catalog.title")}
-                    </h3>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                      {t("premiumManagement.catalog.subtitle")}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={handleDeployDefaults}
-                      className="px-3 py-2 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/50 font-medium transition-colors flex items-center gap-1.5 shadow-sm text-xs"
-                    >
-                      <Sparkles size={14} />
-                      {t("premiumManagement.config.deployDefaults")}
-                    </button>
-                    <button
-                      onClick={() => setIsEditPlanOpen(true)}
-                      className="px-3 py-2 bg-white dark:bg-slate-800 text-brand border border-brand/20 rounded-lg hover:bg-brand/5 dark:hover:bg-brand/10 font-semibold transition-colors flex items-center gap-1.5 shadow-sm text-xs"
-                    >
-                      <Edit size={14} />
-                      {t("premiumManagement.config.editPlan")}
-                    </button>
-                  </div>
+              </>
+            )}
+          </div>
+        ) : (
+          <div className="p-6 space-y-6">
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                void handleInspectEvidence();
+              }}
+              className="flex flex-col sm:flex-row gap-3"
+            >
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input
+                  type="text"
+                  value={orderIdInput}
+                  onChange={(e) => setOrderIdInput(e.target.value)}
+                  placeholder={t(
+                    "premiumManagement.evidence.searchPlaceholder",
+                    "Enter Payment Order ID to verify VNPAY IPN & subscription grant..."
+                  )}
+                  className="w-full pl-9 pr-4 py-2.5 border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-950 rounded-xl text-sm text-gray-800 dark:text-gray-100 font-mono focus:outline-none focus:ring-2 focus:ring-brand"
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={!orderIdInput.trim() || isSearchingEvidence}
+                className="px-5 py-2.5 rounded-xl bg-brand text-slate-900 font-bold text-sm hover:bg-brand/90 transition-colors disabled:opacity-50 inline-flex items-center gap-2 justify-center"
+              >
+                <Receipt size={16} />
+                {isSearchingEvidence
+                  ? t("common.loading", "Checking...")
+                  : t("premiumManagement.evidence.inspectBtn", "Inspect Order Evidence")}
+              </button>
+            </form>
+
+            {evidenceError && (
+              <div className="rounded-xl border border-rose-200 dark:border-rose-900/50 bg-rose-50/70 dark:bg-rose-950/30 p-4 text-sm text-rose-700 dark:text-rose-300">
+                {evidenceError}
+              </div>
+            )}
+
+            {activeEvidence ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="rounded-xl border border-slate-200 dark:border-slate-800 p-4 space-y-2 bg-slate-50/50 dark:bg-slate-950/50">
+                  <h4 className="text-xs font-bold uppercase text-slate-500">
+                    {t("premiumManagement.evidence.orderSection", "Payment Order")}
+                  </h4>
+                  <p className="text-sm font-mono font-semibold text-slate-900 dark:text-slate-100">
+                    {activeEvidence.evidence.order.id}
+                  </p>
+                  <p className="text-xs text-slate-600 dark:text-slate-300">
+                    {activeEvidence.evidence.order.amount.toLocaleString(locale)}{" "}
+                    {activeEvidence.evidence.order.currency} • {activeEvidence.evidence.order.status}
+                  </p>
                 </div>
 
-                <div className="overflow-x-auto">
-                  <table className="w-full min-w-[820px] text-left text-xs border-collapse">
-                    <thead>
-                      <tr className="bg-slate-50/70 dark:bg-slate-800/40 text-slate-500 dark:text-slate-400 uppercase border-b border-slate-200 dark:border-slate-800">
-                        <th className="px-4 py-3 font-semibold whitespace-nowrap">{t("premiumManagement.catalog.code")}</th>
-                        <th className="px-4 py-3 font-semibold whitespace-nowrap">{t("premiumManagement.catalog.version")}</th>
-                        <th className="px-4 py-3 font-semibold whitespace-nowrap">{t("premiumManagement.catalog.priceVnd")}</th>
-                        <th className="px-4 py-3 font-semibold whitespace-nowrap">{t("premiumManagement.catalog.aiQuota")}</th>
-                        <th className="px-4 py-3 font-semibold whitespace-nowrap">{t("premiumManagement.catalog.consults")}</th>
-                        <th className="px-4 py-3 font-semibold whitespace-nowrap">{t("premiumManagement.catalog.carePrograms")}</th>
-                        <th className="px-4 py-3 font-semibold whitespace-nowrap">{t("premiumManagement.catalog.familyLinks")}</th>
-                        <th className="px-4 py-3 font-semibold whitespace-nowrap">{t("premiumManagement.catalog.status")}</th>
-                        <th className="px-4 py-3 font-semibold text-right whitespace-nowrap">{t("premiumManagement.catalog.actions")}</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                      {planVersions.map((pv) => (
-                        <tr key={pv.id} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/30">
-                          <td className="px-4 py-3 font-bold text-slate-900 dark:text-slate-100 whitespace-nowrap">
-                            {pv.code}
-                            <div className="text-[11px] font-normal text-slate-500">{pv.name}</div>
-                          </td>
-                          <td className="px-4 py-3 font-mono text-slate-700 dark:text-slate-300 whitespace-nowrap">{pv.version}</td>
-                          <td className="px-4 py-3 font-semibold text-slate-900 dark:text-slate-100 whitespace-nowrap">
-                            {pv.priceVnd.toLocaleString("vi-VN")} đ
-                          </td>
-                          <td className="px-4 py-3 text-slate-600 dark:text-slate-300 whitespace-nowrap">{pv.aiQuota}</td>
-                          <td className="px-4 py-3 text-slate-600 dark:text-slate-300 whitespace-nowrap">{pv.consultQuota}</td>
-                          <td className="px-4 py-3 text-slate-600 dark:text-slate-300 whitespace-nowrap">{pv.careProgramLimit}</td>
-                          <td className="px-4 py-3 text-slate-600 dark:text-slate-300 whitespace-nowrap">{pv.familyLinkLimit}</td>
-                          <td className="px-4 py-3 whitespace-nowrap">
-                            {pv.status === "published" ? (
-                              <Badge className="bg-emerald-600 text-white text-[10px] whitespace-nowrap inline-flex items-center">
-                                {t("premiumManagement.catalog.published")}
-                              </Badge>
-                            ) : pv.status === "draft" ? (
-                              <Badge className="bg-amber-500 text-white text-[10px] whitespace-nowrap inline-flex items-center">
-                                {t("premiumManagement.catalog.draft")}
-                              </Badge>
-                            ) : (
-                              <Badge variant="secondary" className="text-[10px] whitespace-nowrap inline-flex items-center">
-                                {t("premiumManagement.catalog.retired")}
-                              </Badge>
-                            )}
-                          </td>
-                          <td className="px-4 py-3 text-right whitespace-nowrap min-w-[170px]">
-                            <div className="flex items-center justify-end gap-1.5 whitespace-nowrap">
-                              <button
-                                onClick={() => handleClonePlanVersion(pv)}
-                                className="px-2.5 py-1 rounded border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium whitespace-nowrap shrink-0 inline-flex items-center gap-1"
-                                title={t("premiumManagement.actions.cloneDraft")}
-                              >
-                                <Copy size={11} />
-                                {t("premiumManagement.actions.clone")}
-                              </button>
-                              {pv.status === "draft" && (
-                                <button
-                                  onClick={() => handlePublishPlanVersion(pv.id)}
-                                  className="px-2.5 py-1 rounded bg-emerald-600 hover:bg-emerald-700 text-white font-medium whitespace-nowrap shrink-0 inline-flex items-center gap-1"
-                                  title={t("premiumManagement.actions.publishVersion")}
-                                >
-                                  <CheckCircle2 size={11} />
-                                  {t("premiumManagement.actions.publish")}
-                                </button>
-                              )}
-                              {pv.status === "published" && pv.code !== "FREE" && (
-                                <button
-                                  onClick={() => handleRetirePlanVersion(pv.id)}
-                                  className="px-2.5 py-1 rounded bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 hover:bg-rose-100 font-medium whitespace-nowrap shrink-0 inline-flex items-center gap-1"
-                                  title={t("premiumManagement.actions.retireVersion")}
-                                >
-                                  <Archive size={11} />
-                                  {t("premiumManagement.actions.retire")}
-                                </button>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
-              {/* Active Highlighted Plan Detail Card */}
-              <div className="max-w-2xl border border-gray-200 dark:border-slate-800 rounded-xl overflow-hidden bg-white dark:bg-slate-900 shadow-sm">
-                <div className="bg-amber-50 dark:bg-amber-900/20 p-6 border-b border-gray-200 dark:border-slate-800 flex justify-between items-center">
-                  <div>
-                    <h3 className="text-xl font-bold text-amber-900 dark:text-amber-500 flex items-center">
-                      <CreditCard className="w-5 h-5 mr-2" />
-                      {planConfig.name}
-                    </h3>
-                    <p className="text-amber-700 dark:text-amber-600 mt-1 text-sm">
-                      {t("premiumManagement.config.subtitle")}
+                <div className="rounded-xl border border-slate-200 dark:border-slate-800 p-4 space-y-2 bg-slate-50/50 dark:bg-slate-950/50">
+                  <h4 className="text-xs font-bold uppercase text-slate-500">
+                    {t("premiumManagement.evidence.transactionSection", "Gateway & IPN")}
+                  </h4>
+                  {activeEvidence.evidence.transaction ? (
+                    <div className="text-xs space-y-1 text-slate-700 dark:text-slate-300">
+                      <p>
+                        {activeEvidence.evidence.transaction.status} •{" "}
+                        {activeEvidence.evidence.transaction.bankCode || "—"} •{" "}
+                        {activeEvidence.evidence.transaction.responseCode || "—"}
+                      </p>
+                      <p className="font-mono">
+                        {activeEvidence.evidence.transaction.providerTransactionNo || "—"}
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-slate-400">
+                      {t("premiumManagement.evidence.noTransaction", "No gateway transaction recorded yet.")}
                     </p>
-                  </div>
+                  )}
                 </div>
-                <div className="p-6 space-y-4">
-                  <div className="grid grid-cols-3 gap-4 border-b border-gray-100 dark:border-slate-800 pb-4">
-                    <div className="text-gray-500 dark:text-gray-400 font-medium">
-                      {t("premiumManagement.config.planName")}
+
+                <div className="rounded-xl border border-slate-200 dark:border-slate-800 p-4 space-y-2 bg-slate-50/50 dark:bg-slate-950/50">
+                  <h4 className="text-xs font-bold uppercase text-slate-500">
+                    {t("premiumManagement.evidence.outboxSection", "Outbox Dispatch")}
+                  </h4>
+                  {activeEvidence.evidence.outbox ? (
+                    <p className="text-xs text-slate-700 dark:text-slate-300">
+                      {activeEvidence.evidence.outbox.status} ({activeEvidence.evidence.outbox.attemptCount}/
+                      {activeEvidence.evidence.outbox.maxAttempts})
+                    </p>
+                  ) : (
+                    <p className="text-xs text-slate-400">
+                      {t("premiumManagement.evidence.noOutbox", "No outbox entry recorded.")}
+                    </p>
+                  )}
+                </div>
+
+                <div className="rounded-xl border border-slate-200 dark:border-slate-800 p-4 space-y-2 bg-slate-50/50 dark:bg-slate-950/50">
+                  <h4 className="text-xs font-bold uppercase text-slate-500">
+                    {t("premiumManagement.evidence.grantSection", "Subscription Grant")}
+                  </h4>
+                  {activeEvidence.evidence.subscriptionGrant ? (
+                    <div className="text-xs space-y-1 text-slate-700 dark:text-slate-300">
+                      <p>
+                        {activeEvidence.evidence.subscriptionGrant.status} •{" "}
+                        {activeEvidence.evidence.subscriptionGrant.grantMode}
+                      </p>
+                      <p>
+                        {new Date(activeEvidence.evidence.subscriptionGrant.startedAt).toLocaleDateString(
+                          locale
+                        )}{" "}
+                        →{" "}
+                        {new Date(activeEvidence.evidence.subscriptionGrant.expiresAt).toLocaleDateString(
+                          locale
+                        )}
+                      </p>
                     </div>
-                    <div className="col-span-2 text-gray-900 dark:text-gray-100 font-semibold">
-                      {planConfig.name}
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-3 gap-4 border-b border-gray-100 dark:border-slate-800 pb-4">
-                    <div className="text-gray-500 dark:text-gray-400 font-medium">
-                      {t("premiumManagement.config.price")}
-                    </div>
-                    <div className="col-span-2 text-gray-900 dark:text-gray-100 font-semibold">
-                      {planConfig.price}
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-3 gap-4 border-b border-gray-100 dark:border-slate-800 pb-4">
-                    <div className="text-gray-500 dark:text-gray-400 font-medium">
-                      {t("premiumManagement.config.limits")}
-                    </div>
-                    <div className="col-span-2 text-gray-600 dark:text-gray-300 space-y-1 text-sm">
-                      <p>• {t("premiumManagement.limits.aiTurns")} {planConfig.aiLimit}</p>
-                      <p>• {t("premiumManagement.limits.consultations")} {planConfig.consultsLimit}</p>
-                      <p>• {t("premiumManagement.limits.carePrograms")} 5</p>
-                      <p>• {t("premiumManagement.limits.familyLinks")} {planConfig.familyLimit}</p>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="text-gray-500 dark:text-gray-400 font-medium">
-                      {t("premiumManagement.config.status")}
-                    </div>
-                    <div className="col-span-2 flex items-center gap-3">
-                      <Badge
-                        variant="default"
-                        className={
-                          planConfig.isActive
-                            ? "bg-green-500 hover:bg-green-600 text-white"
-                            : "bg-slate-400 text-white"
-                        }
-                      >
-                        {planConfig.isActive
-                          ? t("premiumManagement.config.active")
-                          : t("premiumManagement.editPlanModal.inactive", "Inactive")}
-                      </Badge>
-                      <button
-                        onClick={handleTogglePlanStatus}
-                        className="text-xs text-brand font-medium hover:underline"
-                      >
-                        {planConfig.isActive
-                          ? t("premiumManagement.config.retirePlan", "Retire Plan")
-                          : t("premiumManagement.config.publishPlan", "Publish Plan")}
-                      </button>
-                    </div>
-                  </div>
+                  ) : (
+                    <p className="text-xs text-slate-400">
+                      {t("premiumManagement.evidence.noGrant", "No subscription grant created for this order.")}
+                    </p>
+                  )}
                 </div>
               </div>
-            </div>
-          ) : activeTab === "refunds" ? (
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-gray-50 dark:bg-slate-800 text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wider sticky top-0 z-10 shadow-sm">
-                  <th className="px-6 py-3 font-medium">{t("premiumManagement.table.requestId")}</th>
-                  <th className="px-6 py-3 font-medium">{t("premiumManagement.table.user")}</th>
-                  <th className="px-6 py-3 font-medium">{t("premiumManagement.table.amount")}</th>
-                  <th className="px-6 py-3 font-medium">{t("premiumManagement.table.usageSnapshot")}</th>
-                  <th className="px-6 py-3 font-medium">{t("premiumManagement.table.eligibility")}</th>
-                  <th className="px-6 py-3 font-medium">{t("premiumManagement.table.status")}</th>
-                  <th className="px-6 py-3 font-medium text-right">{t("premiumManagement.table.actions")}</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-slate-800 text-sm">
-                {refundRequests.map((req) => (
-                  <tr key={req.id} className="hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors">
-                    <td className="px-6 py-4 font-medium text-gray-900 dark:text-gray-100">
-                      {req.id}
-                    </td>
-                    <td className="px-6 py-4 text-gray-600 dark:text-gray-300">
-                      {req.user}
-                    </td>
-                    <td className="px-6 py-4 font-medium text-gray-900 dark:text-gray-100">
-                      {req.amount}
-                    </td>
-                    <td className="px-6 py-4 text-gray-500 dark:text-gray-400 text-xs font-mono">
-                      {t("premiumManagement.table.usageSummary", {
-                        tokens: req.tokensUsed.toLocaleString(),
-                        consults: req.consultsUsed,
-                        days: req.daysActive,
-                      })}
-                    </td>
-                    <td className="px-6 py-4">
-                      {req.isEligible ? (
-                        <Badge className="bg-green-500 hover:bg-green-600 text-white">
-                          {t("premiumManagement.status.eligible")}
-                        </Badge>
-                      ) : (
-                        <Badge variant="destructive">
-                          {t("premiumManagement.status.ineligible")}
-                        </Badge>
-                      )}
-                    </td>
-                    <td className="px-6 py-4">
-                      {req.status === "pending" ? (
-                        <Badge variant="outline" className="text-amber-600 border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40">
-                          {t("premiumManagement.status.pending")}
-                        </Badge>
-                      ) : req.status === "approved" ? (
-                        <Badge className="bg-emerald-600 text-white">
-                          {t("premiumManagement.table.approved")}
-                        </Badge>
-                      ) : (
-                        <Badge variant="secondary" className="bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
-                          {t("premiumManagement.table.rejected")}
-                        </Badge>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <button
-                        className="px-3 py-1 rounded-md bg-brand text-slate-900 text-xs font-semibold hover:bg-brand/90 transition-colors shadow-sm"
-                        onClick={() => openRefundReview(req)}
-                      >
-                        {t("premiumManagement.actions.review")}
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          ) : null}
-        </div>
+            ) : (
+              <div className="rounded-xl border border-dashed border-slate-300 dark:border-slate-700 p-10 text-center text-sm text-slate-500 dark:text-slate-400">
+                {t(
+                  "premiumManagement.evidence.emptyPrompt",
+                  "Enter a patient payment order ID above to inspect real-time VNPAY IPN verification, outbox delivery, and subscription activation evidence."
+                )}
+              </div>
+            )}
+
+            {evidenceHistory.length > 0 && (
+              <div className="space-y-2">
+                <h4 className="text-xs font-bold uppercase text-slate-500">
+                  {t("premiumManagement.evidence.recentLookups", "Recent Lookups")}
+                </h4>
+                <div className="flex flex-wrap gap-2">
+                  {evidenceHistory.map((item) => (
+                    <button
+                      key={item.orderId}
+                      type="button"
+                      onClick={() => {
+                        setOrderIdInput(item.orderId);
+                        setActiveEvidence(item);
+                      }}
+                      className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-mono text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
+                    >
+                      {item.orderId} ({item.evidence.order.status})
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
-      {/* Modals */}
-      <RefundDecisionModal
-        key={selectedRefund?.id || "refund-modal"}
-        isOpen={isRefundModalOpen}
-        onClose={() => setIsRefundModalOpen(false)}
-        refund={selectedRefund}
-        onApprove={handleApproveRefund}
-        onReject={handleRejectRefund}
-      />
-
       <EditPlanModal
-        key={planConfig.name}
+        key={cloneSourcePlan ? `${cloneSourcePlan.code}-${cloneSourcePlan.version}` : "new-draft"}
         isOpen={isEditPlanOpen}
-        onClose={() => setIsEditPlanOpen(false)}
-        plan={planConfig}
-        onSave={handleSavePlanConfig}
-      />
-
-      <TransactionDetailModal
-        isOpen={isTransactionModalOpen}
-        onClose={() => setIsTransactionModalOpen(false)}
-        transaction={selectedTransaction}
-        onReconcile={handleReconcileOrder}
+        onClose={() => {
+          setIsEditPlanOpen(false);
+          setCloneSourcePlan(null);
+        }}
+        initialPlan={cloneSourcePlan}
+        onSave={handleCreateDraft}
       />
     </div>
   );

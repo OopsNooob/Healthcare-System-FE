@@ -108,7 +108,20 @@
       "followUpConversion": "Tỉ lệ Tái khám",
       "followUpConversionDesc": "Tỉ lệ chuyển đổi từ cảnh báo sang khám bệnh",
       "tierUsage": "Sử dụng Gói dịch vụ",
-      "tierUsageDesc": "Sử dụng AI & Tư vấn theo các Gói Premium"
+      "tierUsageDesc": "Sử dụng AI & Tư vấn theo các Gói Premium",
+      "acknowledgedAlertsCount": "{{count}} cảnh báo đã tiếp nhận",
+      "activeEnrollments": "Ghi danh theo dõi đang hoạt động",
+      "activeEnrollmentsDesc": "Bệnh nhân đang tham gia chương trình chăm sóc",
+      "aiKnowledgeDocs": "Tài liệu tri thức AI",
+      "bannedCount": "{{count}} tài khoản đang bị khóa",
+      "consultationsTotal": "{{count}} tổng ca tư vấn",
+      "healthLive": "Trạng thái dịch vụ",
+      "healthReady": "Sẵn sàng hệ thống",
+      "openCareAlerts": "Cảnh báo chăm sóc đang mở",
+      "ordersCount": "Số lượt đăng ký",
+      "refresh": "Làm mới",
+      "resolvedCareAlerts": "Cảnh báo đã xử lý",
+      "violationTotalCount": "{{count}} báo cáo vi phạm"
     },
     "userManagement": {
       "title": "Quản lý Người dùng & Bác sĩ",
@@ -151,7 +164,9 @@
         "viewProfile": "Xem hồ sơ",
         "lockUser": "Khoá tài khoản",
         "unlockUser": "Mở khoá tài khoản",
-        "operationalSummary": "Tóm tắt vận hành"
+        "operationalSummary": "Tóm tắt vận hành",
+        "deactivateUser": "Ngưng kích hoạt tài khoản",
+        "deleteAdmin": "Xóa quyền quản trị"
       },
       "roles": {
         "superAdmin": "Quản trị cấp cao",
@@ -174,14 +189,24 @@
           "aiAdmin": "Quản trị AI - Cơ sở dữ liệu Tri thức RAG"
         },
         "cancel": "Hủy",
-        "createAdmin": "Tạo Quản trị viên"
+        "createAdmin": "Tạo Quản trị viên",
+        "errors": {
+          "createFailed": "Không thể tạo tài khoản quản trị.",
+          "duplicateEmail": "Email này đã được sử dụng.",
+          "invalidEmail": "Vui lòng nhập địa chỉ email hợp lệ.",
+          "passwordLength": "Mật khẩu tạm phải có ít nhất 8 ký tự.",
+          "required": "Vui lòng điền đầy đủ các trường bắt buộc."
+        }
       },
       "toasts": {
         "reportSuccess": "Gửi báo cáo thành công",
         "defaultBanReason": "Vi phạm quy định hệ thống",
         "reasonRequired": "Vui lòng nhập lý do khóa tài khoản",
         "unlockedSuccess": "Đã mở khóa tài khoản thành công",
-        "lockedSuccess": "Đã khóa tài khoản và thu hồi toàn bộ phiên đăng nhập"
+        "lockedSuccess": "Đã khóa tài khoản và thu hồi toàn bộ phiên đăng nhập",
+        "adminCreated": "Đã tạo tài khoản quản trị viên.",
+        "adminDeleted": "Đã xóa hồ sơ quản trị viên.",
+        "userDeactivated": "Đã ngưng kích hoạt tài khoản."
       },
       "lockModal": {
         "title": "Khóa tài khoản người dùng",
@@ -203,7 +228,25 @@
       "sessionsCount": "{{count}} phiên đang hoạt động",
       "sessionsRevoked": "0 (Đã thu hồi)",
       "privacyBoundaryTitle": "Giới hạn bảo mật dữ liệu y tế:",
-      "privacyBoundaryDesc": "Dữ liệu lâm sàng (hồ sơ bệnh án, nhiệm vụ chăm sóc, chỉ số sinh hiệu, triệu chứng, lịch sử trò chuyện AI) được bảo mật và không hiển thị đối với Quản trị viên."
+      "privacyBoundaryDesc": "Hồ sơ lâm sàng gồm ghi danh chăm sóc, nhiệm vụ theo dõi, chỉ số sinh hiệu, triệu chứng và hội thoại AI được bảo mật tuyệt đối và không hiển thị trong giao diện quản trị.",
+      "confirmDeactivate": {
+        "desc": "Thao tác này sẽ ngưng kích hoạt tài khoản người dùng đã chọn.",
+        "title": "Ngưng kích hoạt tài khoản"
+      },
+      "confirmDeleteAdmin": {
+        "desc": "Thao tác này sẽ thu hồi vĩnh viễn quyền quản trị viên cho tài khoản này.",
+        "title": "Xóa tài khoản quản trị"
+      },
+      "contactPhone": "Số điện thoại",
+      "doctorRating": "Đánh giá bác sĩ",
+      "pagination": {
+        "showing": "Đang hiển thị {{shown}} trên tổng {{total}} tài khoản"
+      },
+      "presence": {
+        "label": "Trạng thái trực tuyến",
+        "offline": "Ngoại tuyến",
+        "online": "Trực tuyến"
+      }
     },
     "medicalFacilities": {
       "description": "Xem xét và quản lý các cơ sở y tế trên bản đồ.",
@@ -377,7 +420,27 @@
         "showing": "Hiển thị",
         "of": "trong",
         "results": "kết quả"
-      }
+      },
+      "lookup": {
+        "button": "Tìm theo Email",
+        "notFound": "Không tìm thấy hồ sơ bác sĩ",
+        "placeholder": "doctor@example.com",
+        "title": "Tìm hồ sơ bác sĩ qua Email"
+      },
+      "storage": {
+        "button": "Tệp lưu trữ",
+        "deletedBulk": "Đã xóa {{count}} tệp",
+        "deletedSingle": "Đã xóa tệp",
+        "deleteFailed": "Không thể xóa tệp",
+        "deleteSelected": "Xóa {{count}} mục đã chọn",
+        "empty": "Chưa có tệp lưu trữ nào",
+        "inspect": "Chi tiết",
+        "inspectFailed": "Không thể xem thông tin tệp",
+        "loadFailed": "Không thể tải danh sách tệp lưu trữ",
+        "subtitle": "Kiểm tra thông tin tệp đã tải lên hoặc dọn dẹp tệp không sử dụng.",
+        "title": "Quản lý tệp đã tải lên"
+      },
+      "yearsCount": "{{count}} năm"
     },
     "premiumManagement": {
       "title": "Premium & Thanh toán",
@@ -385,12 +448,16 @@
       "stats": {
         "totalRevenue": "Tổng doanh thu",
         "successfulTransactions": "Giao dịch thành công",
-        "activeUsers": "Người dùng Premium"
+        "activeUsers": "Người dùng Premium",
+        "draftPlans": "Phiên bản nháp chờ duyệt",
+        "inspectedOrders": "Đơn hàng đã tra cứu",
+        "publishedPlans": "Gói dịch vụ đang mở bán"
       },
       "tabs": {
         "transactions": "Giao dịch VNPAY",
         "config": "Cấu hình Gói",
-        "refunds": "Yêu cầu Hoàn tiền"
+        "refunds": "Yêu cầu Hoàn tiền",
+        "evidence": "Đối soát đơn thanh toán"
       },
       "searchPlaceholder": "Tìm giao dịch...",
       "table": {
@@ -455,7 +522,8 @@
         "limits": "Giới hạn & Định mức",
         "deployDefaults": "Triển khai cấu hình mặc định",
         "retirePlan": "Ngừng lưu hành",
-        "publishPlan": "Phát hành gói"
+        "publishPlan": "Phát hành gói",
+        "newDraft": "Bản nháp gói mới"
       },
       "refundModal": {
         "title": "Xem xét Phê duyệt Hoàn tiền",
@@ -503,7 +571,16 @@
         "active": "Hoạt động",
         "inactive": "Tạm dừng",
         "cancel": "Huỷ",
-        "save": "Lưu thay đổi"
+        "save": "Lưu thay đổi",
+        "aiRequests": "Lượt hỏi Trợ lý AI",
+        "cloneTitle": "Tạo phiên bản nháp tiếp theo cho gói",
+        "createDraftBtn": "Tạo phiên bản nháp",
+        "description": "Mô tả gói",
+        "durationDays": "Thời hạn sử dụng theo ngày",
+        "periodCycle": "Theo chu kỳ gói",
+        "periodDay": "Theo ngày",
+        "quotaPeriod": "Chu kỳ cấp hạn mức AI",
+        "refundDays": "Số ngày cho phép hoàn tiền"
       },
       "transactionModal": {
         "title": "Chi tiết Giao dịch Thanh toán",
@@ -553,7 +630,9 @@
         "orderReconciled": "Đối soát đơn hàng {{orderId}} thành công: Đã xác nhận thanh toán và kích hoạt quyền lợi gói.",
         "draftCreatedForPlan": "Đã tạo phiên bản nháp mới cho gói {{code}} ({{version}})",
         "versionPublished": "Đã phát hành phiên bản {{code}} {{version}}",
-        "versionRetired": "Đã ngừng lưu hành phiên bản {{code}} {{version}}"
+        "versionRetired": "Đã ngừng lưu hành phiên bản {{code}} {{version}}",
+        "invalidCode": "Mã gói phải bắt đầu bằng chữ in hoa dài 2–32 ký tự gồm A–Z, 0–9 và gạch dưới.",
+        "invalidNumbers": "Vui lòng nhập giá và thời hạn là số hợp lệ."
       },
       "catalog": {
         "title": "Danh mục Gói & Phiên bản",
@@ -576,6 +655,30 @@
         "consultations": "Lượt tư vấn bác sĩ:",
         "carePrograms": "Chương trình theo dõi:",
         "familyLinks": "Liên kết gia đình:"
+      },
+      "empty": {
+        "noPlans": "Chưa có gói dịch vụ nào. Hãy triển khai gói mặc định hoặc tạo bản nháp mới."
+      },
+      "errors": {
+        "createDraftFailed": "Không thể tạo bản nháp gói dịch vụ.",
+        "deployFailed": "Không thể triển khai các gói mặc định.",
+        "evidenceNotFound": "Không tìm thấy chứng từ đơn thanh toán.",
+        "loadPlansFailed": "Không thể tải danh sách gói dịch vụ.",
+        "publishFailed": "Không thể phát hành phiên bản gói.",
+        "retireFailed": "Không thể ngừng phát hành phiên bản gói."
+      },
+      "evidence": {
+        "emptyPrompt": "Nhập mã đơn thanh toán phía trên để kiểm tra xác thực thanh toán, hàng đợi gửi tin và kích hoạt gói.",
+        "grantSection": "Quyền lợi gói được kích hoạt",
+        "inspectBtn": "Tra cứu chứng từ đơn",
+        "noGrant": "Chưa có quyền lợi gói nào được kích hoạt cho đơn này.",
+        "noOutbox": "Chưa có bản ghi outbox nào.",
+        "noTransaction": "Chưa ghi nhận giao dịch từ cổng thanh toán.",
+        "orderSection": "Thông tin đơn thanh toán",
+        "outboxSection": "Phân phối sự kiện",
+        "recentLookups": "Tra cứu gần đây",
+        "searchPlaceholder": "Nhập mã đơn thanh toán để kiểm tra...",
+        "transactionSection": "Giao dịch & IPN"
       }
     },
     "appointmentManagement": {
@@ -601,7 +704,11 @@
           "completionRate": "Tỷ lệ hoàn thành 66%",
           "cancelRate": "Tỷ lệ hủy 7%",
           "thanAverage": "+1.5p so với trung bình"
-        }
+        },
+        "liveQueueSub": "Theo dữ liệu hàng chờ",
+        "minutesUnit": "phút",
+        "shownInPage": "{{count}} ca trên trang này",
+        "totalAll": "Tổng ca tư vấn"
       },
       "queue": {
         "title": "Hàng chờ & Lịch hẹn hôm nay",
@@ -678,15 +785,36 @@
         "noShowReason": "Lý do vắng mặt:",
         "patientAbsent": "Bệnh nhân không có mặt",
         "clinicalDataRedacted": "Đã ẩn dữ liệu lâm sàng",
-        "viewAuditLogs": "Xem Nhật ký Kiểm toán"
-      }
+        "viewAuditLogs": "Xem Nhật ký Kiểm toán",
+        "adminNotes": "Ghi chú kiểm duyệt",
+        "careProgramIncluded": "Gói chăm sóc",
+        "consultationLimit": "Lượt tư vấn",
+        "flaggedReview": "Đã gắn cờ",
+        "noReview": "Chưa có đánh giá nào cho phiên tư vấn này.",
+        "noReviewComment": "Không có nhận xét kèm theo.",
+        "reviewTitle": "Đánh giá của bệnh nhân",
+        "roomCode": "Phòng khám",
+        "statusReason": "Lý do và ghi nhận trạng thái",
+        "waitTime": "Thời gian chờ"
+      },
+      "errors": {
+        "loadFailed": "Không thể tải danh sách lịch hẹn."
+      },
+      "pagination": {
+        "next": "Sau",
+        "prev": "Trước",
+        "summary": "Trang {{page}} / {{totalPages}} · {{total}} kết quả"
+      },
+      "refresh": "Làm mới",
+      "retry": "Thử lại"
     },
     "aiManagement": {
       "title": "Cơ sở dữ liệu AI",
       "subtitle": "Quản lý tài liệu RAG và từ khoá cấm cho hệ thống AI y tế.",
       "tabs": {
         "documents": "Tài liệu Kiến thức",
-        "blacklist": "Danh sách Từ cấm"
+        "blacklist": "Danh sách Từ cấm",
+        "feedbacks": "Phản hồi AI"
       },
       "stats": {
         "total": "Tổng tài liệu",
@@ -718,7 +846,12 @@
         "inputPlaceholder": "Nhập từ mới để đưa vào danh sách đen...",
         "addWord": "+ Thêm Từ",
         "allWords": "TẤT CẢ TỪ CẤM",
-        "noWordsFound": "Không tìm thấy từ cấm nào phù hợp."
+        "noWordsFound": "Không tìm thấy từ cấm nào phù hợp.",
+        "checkBtn": "Kiểm tra",
+        "checkPlaceholder": "Nhập câu mẫu cần kiểm tra từ khóa cấm...",
+        "checkTitle": "Kiểm thử bộ lọc nội dung",
+        "cleanResult": "Nội dung hợp lệ, không chứa từ khóa cấm.",
+        "flaggedResult": "Phát hiện từ khóa vi phạm"
       },
       "actions": {
         "upload": "Tải Tài liệu Mới",
@@ -732,7 +865,9 @@
         "review": "Phê duyệt / Từ chối",
         "reindex": "Lập chỉ mục lại",
         "reindexSuccess": "Đã lập chỉ mục lại tài liệu thành công",
-        "archive": "Lưu trữ tài liệu"
+        "archive": "Lưu trữ tài liệu",
+        "editMeta": "Chỉnh sửa thông tin",
+        "reindexFailed": "Không thể lập chỉ mục lại tài liệu"
       },
       "table": {
         "docName": "TÊN TÀI LIỆU",
@@ -750,7 +885,8 @@
         "previewDesc": "xem trước tài liệu",
         "notSupported": "Định dạng này chưa hỗ trợ xem trước trực tiếp.",
         "downloadPrompt": "Vui lòng tải tệp tin về máy để xem nội dung đầy đủ.",
-        "downloadBtn": "Tải tệp tin"
+        "downloadBtn": "Tải tệp tin",
+        "validUntil": "Hiệu lực đến"
       },
       "chunksModal": {
         "title": "Quản lý Phân đoạn Tài liệu",
@@ -775,7 +911,27 @@
         "reasonRequired": "Vui lòng nhập lý do loại trừ đoạn này",
         "exclusionNotice": "* Loại trừ phân đoạn sẽ vô hiệu hóa việc truy xuất đối với đoạn này mà không làm thay đổi trạng thái xuất bản của tài liệu gốc.",
         "successExclude": "Đã loại trừ đoạn này khỏi truy xuất tri thức",
-        "successRestore": "Đã khôi phục đoạn này vào truy xuất tri thức"
+        "successRestore": "Đã khôi phục đoạn này vào truy xuất tri thức",
+        "addBtn": "Thêm phân đoạn",
+        "addFormLabel": "Nội dung phân đoạn — phân tách bằng một dòng trống để thêm hàng loạt",
+        "addPlaceholder": "Nhập nội dung kiến thức y khoa...",
+        "clearAllBtn": "Xóa hết",
+        "confirmClearAll": "Xác nhận xóa toàn bộ phân đoạn của tài liệu này?",
+        "contentRequired": "Vui lòng nhập nội dung phân đoạn.",
+        "createFailed": "Không thể thêm phân đoạn.",
+        "createSuccess": "Đã thêm phân đoạn tri thức mới.",
+        "deleteAllSuccess": "Đã xóa toàn bộ phân đoạn của tài liệu.",
+        "deleteFailed": "Không thể xóa phân đoạn.",
+        "deleteSuccess": "Đã xóa phân đoạn.",
+        "editBtn": "Chỉnh sửa",
+        "empty": "Chưa có phân đoạn tri thức nào cho tài liệu này.",
+        "emptyDesc": "Các phân đoạn được tạo tự động khi tải lên hoặc thêm thủ công tại đây.",
+        "loadFailed": "Không thể tải danh sách phân đoạn.",
+        "pageLabel": "Trang {{page}} / {{totalPages}}",
+        "saveBtn": "Lưu phân đoạn",
+        "searchPlaceholder": "Tìm trong phân đoạn...",
+        "updateFailed": "Không thể cập nhật phân đoạn.",
+        "updateSuccess": "Đã cập nhật phân đoạn."
       },
       "status": {
         "active": "Hoạt động",
@@ -788,7 +944,14 @@
         "addKeywordFailed": "Thêm từ khóa thất bại.",
         "addKeywordSuccess": "Thêm từ khóa thành công",
         "removeKeywordFailed": "Xóa từ khóa thất bại. Vui lòng đăng nhập lại.",
-        "removeKeywordSuccess": "Xóa từ khóa thành công"
+        "removeKeywordSuccess": "Xóa từ khóa thành công",
+        "activated": "Đã kích hoạt tài liệu",
+        "archivedSuccess": "Đã lưu trữ tài liệu",
+        "deactivated": "Đã tạm ngưng tài liệu",
+        "statusUpdateFailed": "Không thể đổi trạng thái",
+        "updateKeywordSuccess": "Đã cập nhật từ khóa",
+        "uploadFailed": "Tải tài liệu lên thất bại",
+        "uploadSuccess": "Đã tải lên {{count}} tài liệu"
       },
       "ingestionStatus": {
         "indexed": "Đã lập chỉ mục",
@@ -812,8 +975,26 @@
         "reasonRequired": "Vui lòng nhập lý do từ chối hoặc lưu trữ",
         "statusUpdated": "Đã cập nhật trạng thái thẩm định tài liệu",
         "confirm": "Xác nhận",
-        "cancel": "Hủy"
-      }
+        "cancel": "Hủy",
+        "titleRequired": "Tên tài liệu không được để trống"
+      },
+      "feedbacks": {
+        "contentCol": "Nội dung phản hồi",
+        "conversationCol": "Hội thoại",
+        "empty": "Chưa có phản hồi AI nào.",
+        "filterConvPlaceholder": "Lọc theo mã hội thoại...",
+        "helpfulCol": "Hữu ích",
+        "patientCol": "Người gửi",
+        "subtitle": "Xem và xác minh chất lượng các phản hồi từ hội thoại AI",
+        "summary": "Trang {{page}} / {{totalPages}} · {{total}} phản hồi",
+        "title": "Phản hồi của người dùng về Trợ lý AI",
+        "unverified": "Chờ xem xét",
+        "verified": "Đã xác minh",
+        "verifiedSuccess": "Đã xác nhận phản hồi AI.",
+        "verifyBtn": "Xác minh",
+        "verifyCol": "Trạng thái"
+      },
+      "processing": "Đang xử lý thay đổi..."
     },
     "violationReport": {
       "title": "Báo cáo Vi phạm",
@@ -871,7 +1052,31 @@
         "decisionDesc": "Chọn biện pháp chế tài phù hợp với mức độ vi phạm",
         "severityLabel": "Mức độ:",
         "assigneeLabel": "Người phụ trách:",
-        "actionTakenLabel": "Biện pháp xử lý:"
+        "actionTakenLabel": "Biện pháp đã áp dụng",
+        "actions": {
+          "ban": "Khóa tài khoản vĩnh viễn",
+          "none": "Không xử phạt thêm",
+          "suspend": "Tạm đình chỉ",
+          "warning": "Gửi cảnh báo"
+        },
+        "chooseAction": "Chọn biện pháp xử lý",
+        "confirmDelete": "Xác nhận xóa",
+        "confirmResolve": "Xác nhận xử lý",
+        "delete": "Xóa báo cáo",
+        "dismiss": "Bỏ qua",
+        "markProcessing": "Đang xác minh",
+        "noPriorHistory": "Chưa ghi nhận báo cáo vi phạm nào khác cho tài khoản này.",
+        "noteLabel": "Ghi chú xử lý",
+        "notePlaceholder": "Nhập kết quả xác minh hoặc lý do quyết định...",
+        "noteRequired": "Vui lòng nhập ghi chú xử lý trước khi xác nhận.",
+        "reasonLabel": "Nội dung báo cáo",
+        "recordsCount": "báo cáo khác",
+        "reportedUser": "Người bị báo cáo",
+        "reporter": "Người báo cáo",
+        "resolutionMeta": "Thông tin kết luận",
+        "resolvedAt": "Thời gian xử lý",
+        "title": "Chi tiết báo cáo vi phạm",
+        "userHistory": "Lịch sử vi phạm trước đó"
       },
       "table": {
         "type": "LOẠI",
@@ -883,20 +1088,25 @@
         "actions": "HÀNH ĐỘNG",
         "view": "Xem",
         "noReports": "Không có báo cáo",
-        "tryAdjusting": "Thử điều chỉnh bộ lọc hoặc trạng thái"
+        "tryAdjusting": "Thử điều chỉnh bộ lọc hoặc trạng thái",
+        "action": "Thao tác",
+        "reason": "Lý do",
+        "reportedUser": "Đối tượng bị báo cáo",
+        "reporter": "Người gửi"
       },
       "filters": {
         "search": "Tìm theo người báo cáo, tài khoản hoặc chi tiết...",
         "filterType": "Lọc theo loại",
         "filterStatus": "Lọc theo trạng thái",
-        "allTypes": "Tất cả",
+        "allTypes": "Tất cả loại vi phạm",
         "allStatus": "Tất cả",
         "pending": "Chờ xử lý",
         "resolved": "Đã xử lý",
         "dismissed": "Đã bác bỏ",
         "noTypeFound": "Không tìm thấy loại vi phạm",
         "noStatusFound": "Không tìm thấy trạng thái",
-        "processing": "Đang xử lý"
+        "processing": "Đang xử lý",
+        "allStatuses": "Tất cả trạng thái"
       },
       "loading": "Đang tải danh sách báo cáo vi phạm...",
       "pagination": {
@@ -908,7 +1118,70 @@
         "processingStarted": "Đã chuyển báo cáo sang trạng thái đang xử lý",
         "resolutionApplied": "Đã áp dụng biện pháp xử lý ({{action}})",
         "dismissSuccess": "Đã bác bỏ báo cáo."
-      }
+      },
+      "empty": "Không có báo cáo vi phạm nào phù hợp bộ lọc hiện tại.",
+      "loadError": "Không thể tải danh sách báo cáo vi phạm.",
+      "reviews": {
+        "adminNotesLabel": "Ghi chú kiểm duyệt nội bộ",
+        "adminNotesPlaceholder": "Nhập lý do gắn cờ nội dung không phù hợp...",
+        "allRatings": "Tất cả số sao",
+        "clearDoctorFilter": "Hiện tất cả bác sĩ",
+        "comment": "Nhận xét",
+        "doctor": "Bác sĩ",
+        "empty": "Chưa có đánh giá nào phù hợp.",
+        "flagged": "Đã gắn cờ",
+        "flaggedFailed": "Không thể gắn cờ đánh giá.",
+        "flaggedSuccess": "Đã gắn cờ đánh giá thành công.",
+        "flagNoteRequired": "Vui lòng nhập ghi chú kiểm duyệt khi gắn cờ đánh giá.",
+        "flagStatus": "Kiểm duyệt",
+        "generalSpecialty": "Đa khoa",
+        "inspectFlag": "Kiểm tra",
+        "modalTitle": "Kiểm duyệt đánh giá",
+        "normal": "Hợp lệ",
+        "noTopDoctors": "Chưa có dữ liệu xếp hạng bác sĩ.",
+        "patient": "Bệnh nhân",
+        "rating": "Điểm",
+        "ratingBreakdown": "Phân bố điểm đánh giá",
+        "reviewCountUnit": "đánh giá",
+        "sortNewest": "Mới nhất",
+        "sortRating": "Điểm cao đến thấp",
+        "submitFlag": "Gắn cờ đánh giá",
+        "topDoctorsTitle": "Bác sĩ đánh giá cao nổi bật"
+      },
+      "searchPlaceholder": "Tìm theo người báo cáo, người bị báo cáo hoặc nội dung...",
+      "stats": {
+        "allRecorded": "Tổng hợp trên toàn hệ thống",
+        "categories": "Nhóm vi phạm",
+        "categoriesSub": "Phân loại hành vi ghi nhận",
+        "pending": "Chờ xử lý",
+        "pendingSub": "Cần rà soát và xác minh",
+        "resolved": "Đã hoàn tất",
+        "resolvedSub": "Đã kết luận và ghi nhận",
+        "total": "Tổng báo cáo"
+      },
+      "status": {
+        "dismissed": "Đã bỏ qua",
+        "pending": "Chờ xử lý",
+        "processing": "Đang xác minh",
+        "resolved": "Đã xử lý"
+      },
+      "tabs": {
+        "reviews": "Kiểm duyệt đánh giá",
+        "violations": "Báo cáo vi phạm"
+      },
+      "toast": {
+        "actionFailed": "Không thể cập nhật trạng thái báo cáo.",
+        "deletedSuccess": "Đã xóa báo cáo vi phạm.",
+        "deleteFailed": "Không thể xóa báo cáo vi phạm.",
+        "dismissedSuccess": "Đã bỏ qua báo cáo vi phạm.",
+        "processingUpdated": "Đã chuyển trạng thái đang xử lý.",
+        "resolvedSuccess": "Đã xử lý báo cáo vi phạm thành công."
+      },
+      "unknownUser": "Người dùng ẩn danh",
+      "userStatus": {
+        "banned": "Đã khóa"
+      },
+      "viewDetail": "Xem và xử lý"
     },
     "profile": {
       "titles": {
@@ -974,7 +1247,8 @@
         "createProgram": "Tạo Chương trình",
         "addRule": "Thêm Quy tắc",
         "runSimulation": "Chạy Mô phỏng",
-        "searchPlaceholder": "Tìm kiếm chương trình..."
+        "searchPlaceholder": "Tìm kiếm chương trình...",
+        "scheduleTasks": "Chạy lập lịch tác vụ"
       },
       "cards": {
         "published": "Đã phát hành",
@@ -986,7 +1260,11 @@
         "completionCriteria": "Tiêu chí Hoàn thành",
         "updated": "Cập nhật",
         "editProgram": "Chỉnh sửa Chương trình",
-        "noPrograms": "Không tìm thấy chương trình nào phù hợp"
+        "noPrograms": "Không tìm thấy chương trình nào phù hợp",
+        "baseline": "Khảo sát đầu vào",
+        "completion": "Hoàn thành",
+        "dailyTasks": "Nhiệm vụ hằng ngày",
+        "edit": "Chỉnh sửa"
       },
       "rules": {
         "program": "CHƯƠNG TRÌNH",
@@ -1000,7 +1278,12 @@
         "retired": "Đã huỷ",
         "draft": "Bản nháp",
         "activate": "Kích hoạt",
-        "retire": "Tạm ngưng"
+        "retire": "Tạm ngưng",
+        "noTestSummary": "Chưa kiểm thử",
+        "saveTestEvidence": "Lưu kết quả kiểm thử",
+        "testSummaryLabel": "Tóm tắt xác minh",
+        "viewActive": "Đang áp dụng",
+        "viewDraft": "Bản nháp quy tắc"
       },
       "baseline": {
         "bloodPressure": "Huyết áp",
@@ -1146,7 +1429,12 @@
         "actionFired": "Hành động Kích hoạt",
         "run": "Chạy Mô phỏng",
         "activateRule": "Kích hoạt Quy tắc này",
-        "close": "Đóng"
+        "close": "Đóng",
+        "checkInTemplate": "Mẫu kiểm tra triệu chứng liên kết",
+        "programCode": "Mã chương trình",
+        "programCodePlaceholder": "Tự động tạo theo tên nếu để trống",
+        "reasonCodeLabel": "Mã cảnh báo",
+        "reasonCodePlaceholder": "Ví dụ: systolic_urgent"
       },
       "editModal": {
         "title": "Chỉnh sửa Mẫu Chương trình",
@@ -1165,7 +1453,9 @@
         "completionCriteria": "Tiêu chí Hoàn thành",
         "completionCriteriaPlaceholder": "Ví dụ: 80% tuân thủ trong 90 ngày",
         "cancel": "Hủy",
-        "save": "Lưu Thay đổi"
+        "save": "Lưu Thay đổi",
+        "immutableNotice": "Phiên bản đã xuất bản hoặc thu hồi không thể sửa trực tiếp. Khi lưu sẽ tạo bản nháp mới.",
+        "saveNewVersion": "Tạo phiên bản nháp mới"
       },
       "toasts": {
         "nameRequired": "Vui lòng nhập tên chương trình",
@@ -1180,7 +1470,47 @@
         "educationStatusUpdated": "Đã cập nhật trạng thái tài liệu giáo dục",
         "updateSuccess": "Cập nhật chương trình chăm sóc thành công",
         "publishSuccess": "Xuất bản chương trình thành công",
-        "draftSuccess": "Lưu bản nháp thành công"
+        "draftSuccess": "Lưu bản nháp thành công",
+        "activatedRule": "Đã kích hoạt quy tắc cảnh báo cho {{program}}",
+        "addedRule": "Đã thêm bản nháp quy tắc mới cho {{metric}}",
+        "createdPublished": "Đã tạo và phát hành chương trình chăm sóc!",
+        "newVersionCreated": "Đã tạo phiên bản nháp mới cho {{name}}",
+        "noCheckInTemplate": "Chương trình đã chọn chưa cấu hình mẫu kiểm tra triệu chứng.",
+        "publishedProgram": "Đã phát hành chương trình {{name}}",
+        "retiredProgram": "Đã ngừng áp dụng chương trình {{name}}",
+        "retiredRule": "Đã thu hồi quy tắc cảnh báo cho {{program}}",
+        "savedDraft": "Đã lưu chương trình dưới dạng bản nháp.",
+        "savedTestEvidence": "Đã lưu kết quả mô phỏng vào quy tắc nháp",
+        "selectProgramFirst": "Vui lòng chọn chương trình chăm sóc trước",
+        "tasksScheduled": "Đã lập lịch nhiệm vụ hằng ngày — đã tạo {{count}} mục",
+        "thresholdInvalid": "Vui lòng nhập ngưỡng số hợp lệ",
+        "updatedProgram": "Đã cập nhật mẫu {{name}}"
+      },
+      "desc": "Quản lý mẫu phác đồ chăm sóc mạn tính, quy tắc cảnh báo và kiểm thử mô phỏng.",
+      "empty": {
+        "activeRules": "Không có quy tắc đang áp dụng nào trong các chương trình.",
+        "draftRules": "Không có quy tắc nháp nào trong các chương trình.",
+        "education": "Chưa có tài liệu giáo dục sức khỏe gắn kèm chương trình nào. Hãy thêm nhiệm vụ giáo dục trong bản nháp để cấu hình.",
+        "programsTitle": "Chưa có chương trình chăm sóc nào"
+      },
+      "errors": {
+        "activateRuleFailed": "Không thể kích hoạt quy tắc",
+        "createFailed": "Không thể tạo chương trình chăm sóc",
+        "createRuleFailed": "Không thể tạo bản nháp quy tắc",
+        "loadDetailFailed": "Không thể tải chi tiết chương trình",
+        "loadFailed": "Không thể tải danh sách chương trình chăm sóc từ máy chủ.",
+        "publishFailed": "Không thể xuất bản chương trình chăm sóc",
+        "retireFailed": "Không thể thu hồi chương trình chăm sóc",
+        "retireRuleFailed": "Không thể thu hồi quy tắc",
+        "saveTestEvidenceFailed": "Không thể lưu kết quả kiểm thử",
+        "scheduleFailed": "Không thể chạy bộ lập lịch nhiệm vụ hằng ngày",
+        "updateFailed": "Không thể lưu thay đổi chương trình"
+      },
+      "stats": {
+        "activeRules": "Quy tắc đã tải",
+        "careAlerts": "Cảnh báo chăm sóc",
+        "draftPrograms": "Chương trình nháp",
+        "publishedPrograms": "Chương trình đã phát hành"
       }
     },
     "sharedPages": {
@@ -1368,7 +1698,14 @@
       "confirm": "Xác nhận",
       "loading": "Đang tải...",
       "failed": "Thất bại",
-      "refresh": "Làm mới"
+      "refresh": "Làm mới",
+      "days": "ngày",
+      "page": "Trang",
+      "processing": "Đang xử lý...",
+      "records": "bản ghi",
+      "retry": "Thử lại",
+      "saving": "Đang lưu...",
+      "searching": "Đang tìm kiếm..."
     },
     "auditLogs": {
       "tabSystemLogs": "Nhật ký Hệ thống",
@@ -1408,7 +1745,10 @@
         "status": "Trạng thái",
         "relationship": "Quan hệ",
         "permissions": "Quyền chia sẻ",
-        "revoke": "Thu hồi"
+        "revoke": "Thu hồi",
+        "ip": "Địa chỉ IP",
+        "reason": "Lý do",
+        "transition": "Chuyển trạng thái"
       },
       "status": {
         "active": "Đang hoạt động",
@@ -1436,6 +1776,35 @@
         "refreshed": "Đã làm mới dữ liệu nhật ký kiểm toán",
         "reasonRequired": "Vui lòng nhập lý do thu hồi liên kết",
         "revokeSuccess": "Đã thu hồi liên kết gia đình và lưu nhật ký kiểm toán"
+      },
+      "careAlert": {
+        "idlePrompt": "Hãy nhập mã cảnh báo để xem chi tiết lịch sử kiểm toán.",
+        "idRequired": "Vui lòng nhập mã cảnh báo chăm sóc để tra cứu.",
+        "inputPlaceholder": "Ví dụ: 6791b4c2d1e8f9a012345678",
+        "loadError": "Không thể tải lịch sử kiểm toán cho cảnh báo này.",
+        "noEventsFound": "Không tìm thấy sự kiện kiểm toán nào cho mã cảnh báo này.",
+        "promptTitle": "Nhập mã cảnh báo để xem toàn bộ lịch sử chuyển trạng thái và người thực hiện",
+        "searchBtn": "Tra cứu dấu vết",
+        "searching": "Đang tra cứu..."
+      },
+      "inspect": "Xem",
+      "operations": {
+        "allSources": "Tất cả nguồn sự kiện",
+        "empty": "Không có bản ghi hoạt động nào phù hợp.",
+        "loadError": "Không thể kết nối dữ liệu nhật ký hoạt động.",
+        "searchPlaceholder": "Lọc theo hành động, chủ thể hoặc nội dung...",
+        "source": "Phân hệ",
+        "sources": {
+          "consultation": "Ca tư vấn",
+          "review": "Đánh giá",
+          "violation": "Vi phạm"
+        },
+        "subject": "Đối tượng",
+        "time": "Thời gian"
+      },
+      "tabs": {
+        "careAlertAudit": "Dấu vết cảnh báo chăm sóc",
+        "operationsFeed": "Hoạt động vận hành gần đây"
       }
     }
   }

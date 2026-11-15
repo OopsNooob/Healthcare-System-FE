@@ -1,97 +1,113 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { X, Sliders, Activity, ClipboardCheck } from "lucide-react";
 import { toast } from "react-toastify";
-import type { CareTaskTemplateItem } from "../constants";
-
-export interface CreateRuleData {
-  program: string;
-  sourceType: "health_metric" | "care_task_check_in";
-  templateKey?: string;
-  metric: string;
-  operator: string;
-  threshold: number;
-  severity: "Attention" | "Urgent";
-  action: string;
-}
+import {
+  careProgramService,
+  type CareProgramRecord,
+  type CreateOrUpdateRuleInput,
+} from "../services/care-program.service";
 
 interface AddRuleModalProps {
   isOpen: boolean;
   onClose: () => void;
-  programs: {
-    id: number;
-    name: string;
-    taskTemplates?: CareTaskTemplateItem[];
-  }[];
-  onAddRule: (rule: CreateRuleData) => Promise<void> | void;
+  programs: CareProgramRecord[];
+  defaultProgramId?: string;
+  onAddRule: (data: CreateOrUpdateRuleInput) => Promise<void>;
 }
 
 export function AddRuleModal({
   isOpen,
   onClose,
   programs,
+  defaultProgramId,
   onAddRule,
 }: AddRuleModalProps) {
   const { t } = useTranslation();
-
-  const [ruleProg, setRuleProg] = useState(
-    programs[0]?.name || "Hypertension Management"
+  const [selectedProgramId, setSelectedProgramId] = useState(
+    defaultProgramId || programs[0]?.id || ""
   );
-  const [sourceType, setSourceType] = useState<
-    "health_metric" | "care_task_check_in"
-  >("health_metric");
+  const [sourceType, setSourceType] = useState<"health_metric" | "care_task_check_in">(
+    "health_metric"
+  );
   const [ruleMetric, setRuleMetric] = useState("Systolic");
-  const [ruleOperator, setRuleOperator] = useState(">");
-  const [ruleThreshold, setRuleThreshold] = useState("140");
-  const [ruleSeverity, setRuleSeverity] = useState<"Attention" | "Urgent">(
-    "Attention"
-  );
-  const [ruleAction, setRuleAction] = useState("Send Doctor Alert");
+  const [ruleOperator, setRuleOperator] = useState(">=");
+  const [ruleThreshold, setRuleThreshold] = useState("150");
+  const [ruleSeverity, setRuleSeverity] = useState<"Attention" | "Urgent">("Urgent");
+  const [reasonCode, setReasonCode] = useState("");
+  const [checkInTemplates, setCheckInTemplates] = useState<string[]>([]);
+  const [activeTemplateKey, setActiveTemplateKey] = useState("daily_symptom_checkin");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const initialId = defaultProgramId || programs[0]?.id || "";
+    const timer = window.setTimeout(() => {
+      setSelectedProgramId((prev) => (prev && programs.some((p) => p.id === prev) ? prev : initialId));
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [isOpen, defaultProgramId, programs]);
+
+  useEffect(() => {
+    if (!isOpen || !selectedProgramId) return;
+    const prog = programs.find((p) => p.id === selectedProgramId);
+    if (!prog) return;
+
+    const loadTemplates = async () => {
+      try {
+        const detailed = prog.hasDetailLoaded
+          ? prog
+          : await careProgramService.getProgramDetail(prog.id, prog);
+        const keys = detailed.taskTemplates
+          .filter((tpl) => tpl.type === "check_in")
+          .map((tpl) => tpl.key);
+        setCheckInTemplates(keys);
+        setActiveTemplateKey((prev) =>
+          keys.length > 0 && !keys.includes(prev) ? keys[0] : prev,
+        );
+      } catch {
+        setCheckInTemplates([]);
+      }
+    };
+
+    void loadTemplates();
+  }, [isOpen, selectedProgramId, programs]);
 
   if (!isOpen) return null;
 
-  const selectedProgramObj = programs.find((p) => p.name === ruleProg);
-  const checkInTemplates = (selectedProgramObj?.taskTemplates || []).filter(
-    (tpl) => tpl.type === "check_in"
-  );
-  const activeTemplateKey =
-    checkInTemplates[0]?.key || "daily_symptom_check";
-
-  const handleSourceTypeChange = (
-    nextSource: "health_metric" | "care_task_check_in"
-  ) => {
-    setSourceType(nextSource);
-    if (nextSource === "care_task_check_in") {
+  const handleSourceTypeChange = (next: "health_metric" | "care_task_check_in") => {
+    setSourceType(next);
+    if (next === "care_task_check_in") {
       setRuleMetric("SymptomSeverityRank");
       setRuleOperator(">=");
       setRuleThreshold("2");
     } else {
       setRuleMetric("Systolic");
-      setRuleOperator(">");
-      setRuleThreshold("140");
+      setRuleOperator(">=");
+      setRuleThreshold("150");
     }
   };
 
   const handleSubmit = async () => {
     if (isSubmitting) return;
-    const val = parseFloat(ruleThreshold);
-    if (isNaN(val)) {
+    if (!selectedProgramId) {
       toast.warning(
-        t("careProgram.toasts.thresholdRequired", "Please enter a valid threshold")
+        t("careProgram.toasts.selectProgramFirst", "Please select a care program first")
       );
       return;
     }
-
-    if (
-      sourceType === "care_task_check_in" &&
-      selectedProgramObj?.taskTemplates &&
-      checkInTemplates.length === 0
-    ) {
+    const val = parseFloat(ruleThreshold);
+    if (Number.isNaN(val)) {
+      toast.warning(
+        t("careProgram.toasts.thresholdInvalid", "Please enter a valid numeric threshold")
+      );
+      return;
+    }
+    if (sourceType === "care_task_check_in" && checkInTemplates.length === 0) {
       toast.warning(
         t(
-          "careProgram.toasts.checkInTaskRequiredForRule",
-          "The selected program must include a daily symptom check-in task to use symptom rules."
+          "careProgram.toasts.noCheckInTemplate",
+          "The selected program has no symptom check-in task template configured."
         )
       );
       return;
@@ -100,15 +116,14 @@ export function AddRuleModal({
     setIsSubmitting(true);
     try {
       await onAddRule({
-        program: ruleProg,
+        careProgramId: selectedProgramId,
         sourceType,
-        templateKey:
-          sourceType === "care_task_check_in" ? activeTemplateKey : undefined,
+        templateKey: sourceType === "care_task_check_in" ? activeTemplateKey : undefined,
         metric: ruleMetric,
         operator: ruleOperator,
         threshold: val,
         severity: ruleSeverity,
-        action: ruleAction,
+        reasonCode: reasonCode.trim() || undefined,
       });
     } finally {
       setIsSubmitting(false);
@@ -146,19 +161,18 @@ export function AddRuleModal({
               {t("careProgram.modals.targetProgram", "Apply to Program")}
             </label>
             <select
-              value={ruleProg}
-              onChange={(e) => setRuleProg(e.target.value)}
+              value={selectedProgramId}
+              onChange={(e) => setSelectedProgramId(e.target.value)}
               className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3 py-2 text-slate-900 dark:text-slate-100 outline-none focus:border-brand"
             >
               {programs.map((p) => (
-                <option key={p.id} value={p.name}>
-                  {p.name}
+                <option key={p.id} value={p.id}>
+                  {p.name} (v{p.version})
                 </option>
               ))}
             </select>
           </div>
 
-          {/* Data Source Selection */}
           <div>
             <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
               {t("careProgram.modals.dataSourceLabel", "Evaluation Data Source")}
@@ -191,14 +205,41 @@ export function AddRuleModal({
             </div>
           </div>
 
-          {/* Condition Section */}
+          {sourceType === "care_task_check_in" && (
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                {t("careProgram.modals.checkInTemplate", "Linked Check-in Task")}
+              </label>
+              {checkInTemplates.length > 0 ? (
+                <select
+                  value={activeTemplateKey}
+                  onChange={(e) => setActiveTemplateKey(e.target.value)}
+                  className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3 py-2 text-xs text-slate-900 dark:text-slate-100 outline-none focus:border-brand"
+                >
+                  {checkInTemplates.map((key) => (
+                    <option key={key} value={key}>
+                      {key}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <p className="text-xs text-amber-600 dark:text-amber-400">
+                  {t(
+                    "careProgram.toasts.noCheckInTemplate",
+                    "The selected program has no symptom check-in task template configured."
+                  )}
+                </p>
+              )}
+            </div>
+          )}
+
           <div className="rounded-2xl border border-slate-200 dark:border-slate-800 p-4 bg-slate-50/50 dark:bg-slate-950/50">
             <label className="block text-xs font-bold text-slate-800 dark:text-slate-200 mb-2">
               {t("careProgram.modals.declarativeCondition", "Alert Condition")}
             </label>
             <div className="grid grid-cols-3 gap-2">
               <div>
-                <label className="block text-[11px] text-slate-500 mb-1">
+                <label className="block text-[11px] text-slate-500 dark:text-slate-400 mb-1">
                   {t("careProgram.modals.metric", "Target Field")}
                 </label>
                 {sourceType === "health_metric" ? (
@@ -207,18 +248,10 @@ export function AddRuleModal({
                     onChange={(e) => setRuleMetric(e.target.value)}
                     className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1.5 text-xs text-slate-900 dark:text-slate-100"
                   >
-                    <option value="Systolic">
-                      {t("careProgram.metrics.systolic", "Systolic BP")}
-                    </option>
-                    <option value="Diastolic">
-                      {t("careProgram.metrics.diastolic", "Diastolic BP")}
-                    </option>
-                    <option value="Glucose">
-                      {t("careProgram.metrics.glucose", "Blood Glucose")}
-                    </option>
-                    <option value="HeartRate">
-                      {t("careProgram.metrics.heartRate", "Heart Rate")}
-                    </option>
+                    <option value="Systolic">{t("careProgram.metrics.systolic", "Systolic BP")}</option>
+                    <option value="Diastolic">{t("careProgram.metrics.diastolic", "Diastolic BP")}</option>
+                    <option value="Glucose">{t("careProgram.metrics.glucose", "Blood Glucose")}</option>
+                    <option value="HeartRate">{t("careProgram.metrics.heartRate", "Heart Rate")}</option>
                   </select>
                 ) : (
                   <select
@@ -227,19 +260,13 @@ export function AddRuleModal({
                     className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1.5 text-xs text-slate-900 dark:text-slate-100"
                   >
                     <option value="SymptomSeverityRank">
-                      {t(
-                        "careProgram.metrics.symptomSeverityRank",
-                        "Symptom Severity Level"
-                      )}
+                      {t("careProgram.metrics.symptomSeverityRank", "Symptom Severity Level")}
                     </option>
                     <option value="ChestPainReported">
                       {t("careProgram.metrics.chestPainReported", "Chest Pain")}
                     </option>
                     <option value="ShortnessOfBreathReported">
-                      {t(
-                        "careProgram.metrics.shortnessOfBreathReported",
-                        "Shortness of Breath"
-                      )}
+                      {t("careProgram.metrics.shortnessOfBreathReported", "Shortness of Breath")}
                     </option>
                     <option value="DizzinessReported">
                       {t("careProgram.metrics.dizzinessReported", "Dizziness")}
@@ -248,7 +275,7 @@ export function AddRuleModal({
                 )}
               </div>
               <div>
-                <label className="block text-[11px] text-slate-500 mb-1">
+                <label className="block text-[11px] text-slate-500 dark:text-slate-400 mb-1">
                   {t("careProgram.modals.operator", "Operator")}
                 </label>
                 <select
@@ -256,25 +283,15 @@ export function AddRuleModal({
                   onChange={(e) => setRuleOperator(e.target.value)}
                   className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1.5 text-xs text-slate-900 dark:text-slate-100"
                 >
-                  <option value=">">
-                    &gt; {t("careProgram.operators.greaterThan", "Greater than")}
-                  </option>
-                  <option value=">=">
-                    &gt;= {t("careProgram.operators.greaterOrEqual", "Greater or equal")}
-                  </option>
-                  <option value="<">
-                    &lt; {t("careProgram.operators.lessThan", "Less than")}
-                  </option>
-                  <option value="<=">
-                    &lt;= {t("careProgram.operators.lessOrEqual", "Less or equal")}
-                  </option>
-                  <option value="==">
-                    == {t("careProgram.operators.equals", "Equals")}
-                  </option>
+                  <option value=">">&gt; {t("careProgram.operators.greaterThan", "Greater than")}</option>
+                  <option value=">=">&gt;= {t("careProgram.operators.greaterOrEqual", "Greater or equal")}</option>
+                  <option value="<">&lt; {t("careProgram.operators.lessThan", "Less than")}</option>
+                  <option value="<=">&lt;= {t("careProgram.operators.lessOrEqual", "Less or equal")}</option>
+                  <option value="==">== {t("careProgram.operators.equals", "Equals")}</option>
                 </select>
               </div>
               <div>
-                <label className="block text-[11px] text-slate-500 mb-1">
+                <label className="block text-[11px] text-slate-500 dark:text-slate-400 mb-1">
                   {t("careProgram.modals.threshold", "Threshold")}
                 </label>
                 <input
@@ -302,41 +319,24 @@ export function AddRuleModal({
               </label>
               <select
                 value={ruleSeverity}
-                onChange={(e) =>
-                  setRuleSeverity(e.target.value as "Attention" | "Urgent")
-                }
+                onChange={(e) => setRuleSeverity(e.target.value as "Attention" | "Urgent")}
                 className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3 py-2 text-slate-900 dark:text-slate-100 outline-none focus:border-brand"
               >
-                <option value="Attention">
-                  {t("careProgram.modals.severityAttention", "Attention")}
-                </option>
-                <option value="Urgent">
-                  {t("careProgram.modals.severityUrgent", "Urgent")}
-                </option>
+                <option value="Attention">{t("careProgram.modals.severityAttention", "Attention")}</option>
+                <option value="Urgent">{t("careProgram.modals.severityUrgent", "Urgent")}</option>
               </select>
             </div>
             <div>
               <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                {t("careProgram.modals.action", "Action")}
+                {t("careProgram.modals.reasonCodeLabel", "Alert Code")}
               </label>
-              <select
-                value={ruleAction}
-                onChange={(e) => setRuleAction(e.target.value)}
-                className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3 py-2 text-slate-900 dark:text-slate-100 outline-none focus:border-brand"
-              >
-                <option value="Send Doctor Alert">
-                  {t("careProgram.modals.actionDoctorAlert", "Send Doctor Alert")}
-                </option>
-                <option value="Emergency Protocol">
-                  {t(
-                    "careProgram.modals.actionEmergency",
-                    "Trigger Emergency Protocol"
-                  )}
-                </option>
-                <option value="Task: Retest in 2 hours">
-                  {t("careProgram.modals.actionPatientTask", "Assign Patient Task")}
-                </option>
-              </select>
+              <input
+                type="text"
+                value={reasonCode}
+                onChange={(e) => setReasonCode(e.target.value)}
+                placeholder={t("careProgram.modals.reasonCodePlaceholder", "e.g. systolic_urgent")}
+                className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3 py-2 text-xs font-mono text-slate-900 dark:text-slate-100 outline-none focus:border-brand"
+              />
             </div>
           </div>
         </div>
@@ -356,7 +356,7 @@ export function AddRuleModal({
             onClick={handleSubmit}
             className="px-5 py-2 rounded-xl bg-brand text-slate-900 font-bold hover:bg-brand/90 transition-colors shadow-sm disabled:opacity-50"
           >
-            {t("careProgram.modals.createRule", "Create Rule")}
+            {t("careProgram.modals.createRule", "Create Rule Draft")}
           </button>
         </div>
       </div>

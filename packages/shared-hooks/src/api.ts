@@ -1,5 +1,10 @@
 import axios, { type AxiosError, type InternalAxiosRequestConfig } from "axios";
 import { io, type Socket } from "socket.io-client";
+import {
+  createFeApiSdk,
+  type ApiExecutor,
+  SOCKET_NAMESPACES,
+} from "@healthcare/api-client";
 import { getStorage } from "./storage";
 
 // NOTE: We'll inject useAuthStore later to avoid circular dependencies
@@ -36,20 +41,28 @@ async function getAccessToken(): Promise<string> {
   return storeToken || "";
 }
 
-const socket: Socket = io(`${SOCKET_BASE_URL}/chat`, {
+const socket: Socket = io(`${SOCKET_BASE_URL}${SOCKET_NAMESPACES.chat}`, {
   autoConnect: false,
   reconnectionAttempts: 3,
 });
 
-const sessionSocket: Socket = io(`${SOCKET_BASE_URL}/session`, {
-  autoConnect: false,
-  reconnectionAttempts: 3,
-});
+const consultationsSocket: Socket = io(
+  `${SOCKET_BASE_URL}${SOCKET_NAMESPACES.consultations}`,
+  {
+    autoConnect: false,
+    reconnectionAttempts: 3,
+  },
+);
 
-const notificationsSocket: Socket = io(`${SOCKET_BASE_URL}/notifications`, {
-  autoConnect: false,
-  reconnectionAttempts: 3,
-});
+const sessionSocket: Socket = consultationsSocket;
+
+const notificationsSocket: Socket = io(
+  `${SOCKET_BASE_URL}${SOCKET_NAMESPACES.notifications}`,
+  {
+    autoConnect: false,
+    reconnectionAttempts: 3,
+  },
+);
 
 const presenceSocket: Socket = io(`${SOCKET_BASE_URL}`, {
   autoConnect: false,
@@ -58,7 +71,7 @@ const presenceSocket: Socket = io(`${SOCKET_BASE_URL}`, {
 
 function updateSocketAuth(token: string) {
   socket.auth = { token };
-  sessionSocket.auth = { token };
+  consultationsSocket.auth = { token };
   notificationsSocket.auth = { token };
   presenceSocket.auth = { token };
 }
@@ -73,15 +86,19 @@ export async function connectSocket(token?: string): Promise<boolean> {
   return true;
 }
 
-export async function connectSessionSocket(token?: string): Promise<boolean> {
+export async function connectConsultationsSocket(
+  token?: string,
+): Promise<boolean> {
   if (!token) {
-    if (sessionSocket.connected) sessionSocket.disconnect();
+    if (consultationsSocket.connected) consultationsSocket.disconnect();
     return false;
   }
   updateSocketAuth(token);
-  if (!sessionSocket.connected) sessionSocket.connect();
+  if (!consultationsSocket.connected) consultationsSocket.connect();
   return true;
 }
+
+export const connectSessionSocket = connectConsultationsSocket;
 
 export async function connectNotificationsSocket(token?: string): Promise<boolean> {
   if (!token) {
@@ -305,11 +322,16 @@ api.interceptors.response.use(
   },
 );
 
+const mobileApi = createFeApiSdk(api as unknown as ApiExecutor);
+
 export {
   API_BASE_URL,
   api,
+  mobileApi,
   socket,
+  consultationsSocket,
   sessionSocket,
   notificationsSocket,
   presenceSocket,
+  updateSocketAuth,
 };

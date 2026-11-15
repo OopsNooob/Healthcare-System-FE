@@ -108,7 +108,20 @@
       "followUpConversion": "Follow-up Conversion",
       "followUpConversionDesc": "Conversion from alert to consultation",
       "tierUsage": "Consultation & Tier Usage",
-      "tierUsageDesc": "Usage of AI & Consultations across Premium Tiers"
+      "tierUsageDesc": "Usage of AI & Consultations across Premium Tiers",
+      "acknowledgedAlertsCount": "{{count}} alerts acknowledged",
+      "activeEnrollments": "Active Care Enrollments",
+      "activeEnrollmentsDesc": "Patients enrolled in care programs",
+      "aiKnowledgeDocs": "AI Knowledge Documents",
+      "bannedCount": "{{count}} banned accounts",
+      "consultationsTotal": "{{count}} total consultations",
+      "healthLive": "Service Status",
+      "healthReady": "System Readiness",
+      "openCareAlerts": "Open Care Alerts",
+      "ordersCount": "Orders Count",
+      "refresh": "Refresh",
+      "resolvedCareAlerts": "Resolved Care Alerts",
+      "violationTotalCount": "{{count}} violation reports"
     },
     "userManagement": {
       "title": "User & Doctor Management",
@@ -151,7 +164,9 @@
         "viewProfile": "View profile",
         "lockUser": "Lock user",
         "unlockUser": "Unlock user",
-        "operationalSummary": "Operational Summary"
+        "operationalSummary": "Operational Summary",
+        "deactivateUser": "Deactivate account",
+        "deleteAdmin": "Remove admin"
       },
       "roles": {
         "superAdmin": "Super admin",
@@ -174,14 +189,24 @@
           "aiAdmin": "AI Manager - AI Knowledge Base"
         },
         "cancel": "Cancel",
-        "createAdmin": "Create Admin"
+        "createAdmin": "Create Admin",
+        "errors": {
+          "createFailed": "Failed to create admin account.",
+          "duplicateEmail": "This email is already in use.",
+          "invalidEmail": "Please enter a valid email address.",
+          "passwordLength": "Temporary password must be at least 8 characters.",
+          "required": "Please fill in all required fields."
+        }
       },
       "toasts": {
         "reportSuccess": "Report submitted successfully",
         "defaultBanReason": "System policy violation",
         "reasonRequired": "Please enter a reason for locking the account",
         "unlockedSuccess": "User unlocked successfully",
-        "lockedSuccess": "User locked & all active sessions revoked"
+        "lockedSuccess": "User locked & all active sessions revoked",
+        "adminCreated": "Admin account created.",
+        "adminDeleted": "Admin profile removed.",
+        "userDeactivated": "Account deactivated."
       },
       "lockModal": {
         "title": "Lock User Account",
@@ -203,7 +228,25 @@
       "sessionsCount": "{{count}} active sessions",
       "sessionsRevoked": "0 (Revoked)",
       "privacyBoundaryTitle": "Clinical Privacy Boundary:",
-      "privacyBoundaryDesc": "Clinical records (care enrollments, care tasks, vital readings, symptoms, and AI transcripts) are strictly protected and excluded from the administrator view."
+      "privacyBoundaryDesc": "Clinical records including care enrollments, care tasks, vital readings, symptoms, and AI transcripts are strictly protected and excluded from the administrator view.",
+      "confirmDeactivate": {
+        "desc": "This will deactivate the selected user account.",
+        "title": "Deactivate user account"
+      },
+      "confirmDeleteAdmin": {
+        "desc": "This will permanently remove admin privileges for this account.",
+        "title": "Remove admin account"
+      },
+      "contactPhone": "Phone",
+      "doctorRating": "Doctor rating",
+      "pagination": {
+        "showing": "Showing {{shown}} of {{total}} users"
+      },
+      "presence": {
+        "label": "Presence",
+        "offline": "Offline",
+        "online": "Online"
+      }
     },
     "medicalFacilities": {
       "description": "Review and manage medical facilities on the map.",
@@ -377,7 +420,27 @@
         "showing": "Showing",
         "of": "of",
         "results": "results"
-      }
+      },
+      "lookup": {
+        "button": "Lookup by Email",
+        "notFound": "Doctor application not found",
+        "placeholder": "doctor@example.com",
+        "title": "Find Doctor by Email"
+      },
+      "storage": {
+        "button": "Storage Files",
+        "deletedBulk": "Deleted {{count}} files",
+        "deletedSingle": "File deleted",
+        "deleteFailed": "Failed to delete file",
+        "deleteSelected": "Delete {{count}} selected",
+        "empty": "No storage files found",
+        "inspect": "Info",
+        "inspectFailed": "Failed to inspect file",
+        "loadFailed": "Failed to load storage files",
+        "subtitle": "Inspect uploaded media metadata or clean up unused files.",
+        "title": "Uploaded Storage Files"
+      },
+      "yearsCount": "{{count}} years"
     },
     "premiumManagement": {
       "title": "Premium & Payments",
@@ -385,12 +448,16 @@
       "stats": {
         "totalRevenue": "Total Revenue",
         "successfulTransactions": "Successful Transactions",
-        "activeUsers": "Active Premium Users"
+        "activeUsers": "Active Premium Users",
+        "draftPlans": "Pending Draft Versions",
+        "inspectedOrders": "Inspected Payment Orders",
+        "publishedPlans": "Published Plan Tiers"
       },
       "tabs": {
         "transactions": "VNPAY Transactions",
         "config": "Package Configuration",
-        "refunds": "Refund Requests"
+        "refunds": "Refund Requests",
+        "evidence": "Payment Order Evidence"
       },
       "searchPlaceholder": "Search transaction...",
       "table": {
@@ -455,7 +522,8 @@
         "limits": "Limits & Quotas",
         "deployDefaults": "Deploy Default Configurations",
         "retirePlan": "Retire Plan",
-        "publishPlan": "Publish Plan"
+        "publishPlan": "Publish Plan",
+        "newDraft": "New Plan Draft"
       },
       "refundModal": {
         "title": "Review Refund Request",
@@ -503,7 +571,16 @@
         "active": "Active",
         "inactive": "Inactive",
         "cancel": "Cancel",
-        "save": "Save Changes"
+        "save": "Save Changes",
+        "aiRequests": "AI Requests",
+        "cloneTitle": "Create Next Draft Plan Version",
+        "createDraftBtn": "Create Draft Version",
+        "description": "Description",
+        "durationDays": "Duration in days",
+        "periodCycle": "Per Subscription Cycle",
+        "periodDay": "Per Day",
+        "quotaPeriod": "AI Quota Period",
+        "refundDays": "Refund Window in days"
       },
       "transactionModal": {
         "title": "Payment Transaction Details",
@@ -553,7 +630,9 @@
         "orderReconciled": "Order {{orderId}} reconciled successfully: Payment verified & subscription activated.",
         "draftCreatedForPlan": "Created new draft version for {{code}} ({{version}})",
         "versionPublished": "Published {{code}} {{version}}",
-        "versionRetired": "Retired {{code}} {{version}}"
+        "versionRetired": "Retired {{code}} {{version}}",
+        "invalidCode": "Plan code must start with an uppercase letter, 2–32 chars of A–Z, 0–9, and underscore.",
+        "invalidNumbers": "Please enter valid numeric price and duration."
       },
       "catalog": {
         "title": "Subscription Plan Versions Catalog",
@@ -576,6 +655,30 @@
         "consultations": "Consultations:",
         "carePrograms": "Care Programs:",
         "familyLinks": "Family Links:"
+      },
+      "empty": {
+        "noPlans": "No billing plans found yet. Deploy default plans or create a new draft."
+      },
+      "errors": {
+        "createDraftFailed": "Failed to create plan draft.",
+        "deployFailed": "Failed to deploy default plans.",
+        "evidenceNotFound": "Payment order evidence not found.",
+        "loadPlansFailed": "Failed to load subscription plans.",
+        "publishFailed": "Failed to publish plan version.",
+        "retireFailed": "Failed to retire plan version."
+      },
+      "evidence": {
+        "emptyPrompt": "Enter a patient payment order ID above to inspect payment gateway verification, outbox delivery, and subscription activation evidence.",
+        "grantSection": "Subscription Grant",
+        "inspectBtn": "Inspect Order Evidence",
+        "noGrant": "No subscription grant created for this order.",
+        "noOutbox": "No outbox entry recorded.",
+        "noTransaction": "No gateway transaction recorded yet.",
+        "orderSection": "Payment Order",
+        "outboxSection": "Outbox Dispatch",
+        "recentLookups": "Recent Lookups",
+        "searchPlaceholder": "Enter Payment Order ID to verify...",
+        "transactionSection": "Gateway & IPN"
       }
     },
     "appointmentManagement": {
@@ -601,7 +704,11 @@
           "completionRate": "66% Completion Rate",
           "cancelRate": "7% Cancelation Rate",
           "thanAverage": "+1.5m than average"
-        }
+        },
+        "liveQueueSub": "Based on live queue telemetry",
+        "minutesUnit": "min",
+        "shownInPage": "{{count}} items on this page",
+        "totalAll": "Total Consultations"
       },
       "queue": {
         "title": "Today's Queue & Appointments",
@@ -678,15 +785,36 @@
         "noShowReason": "No-show Reason:",
         "patientAbsent": "Patient absent",
         "clinicalDataRedacted": "Clinical Data Redacted",
-        "viewAuditLogs": "View Audit Logs"
-      }
+        "viewAuditLogs": "View Audit Logs",
+        "adminNotes": "Moderation Notes",
+        "careProgramIncluded": "Care Program",
+        "consultationLimit": "Consultation Limit",
+        "flaggedReview": "Flagged",
+        "noReview": "No patient review recorded for this consultation.",
+        "noReviewComment": "No written comment provided.",
+        "reviewTitle": "Patient Review",
+        "roomCode": "Room Code",
+        "statusReason": "Status Reason",
+        "waitTime": "Wait Time"
+      },
+      "errors": {
+        "loadFailed": "Failed to load appointments."
+      },
+      "pagination": {
+        "next": "Next",
+        "prev": "Previous",
+        "summary": "Page {{page}} / {{totalPages}} · {{total}} results"
+      },
+      "refresh": "Refresh",
+      "retry": "Retry"
     },
     "aiManagement": {
       "title": "AI Knowledge Base",
       "subtitle": "Manage RAG documents and content restrictions for AI medical assistance.",
       "tabs": {
         "documents": "Knowledge Documents",
-        "blacklist": "Blacklist Words"
+        "blacklist": "Blacklist Words",
+        "feedbacks": "AI Feedback"
       },
       "stats": {
         "total": "Total Documents",
@@ -718,7 +846,12 @@
         "inputPlaceholder": "Type a new word to blacklist...",
         "addWord": "+ Add Word",
         "allWords": "ALL RESTRICTED WORDS",
-        "noWordsFound": "No matching restricted words found."
+        "noWordsFound": "No matching restricted words found.",
+        "checkBtn": "Check Content",
+        "checkPlaceholder": "Enter sample text to test moderation rules...",
+        "checkTitle": "Content Moderation Filter Tester",
+        "cleanResult": "Content is clean and contains no blocked keywords.",
+        "flaggedResult": "Blocked keyword detected"
       },
       "actions": {
         "upload": "Upload New Document",
@@ -732,7 +865,9 @@
         "review": "Approve / Reject",
         "reindex": "Re-index Document",
         "reindexSuccess": "Document re-indexed successfully",
-        "archive": "Archive Document"
+        "archive": "Archive Document",
+        "editMeta": "Edit Metadata",
+        "reindexFailed": "Failed to reindex document"
       },
       "table": {
         "docName": "DOCUMENT NAME",
@@ -750,7 +885,8 @@
         "previewDesc": "document preview",
         "notSupported": "Preview is not supported for this file type.",
         "downloadPrompt": "Please download the file to view full content.",
-        "downloadBtn": "Download file"
+        "downloadBtn": "Download file",
+        "validUntil": "Valid Until"
       },
       "chunksModal": {
         "title": "Document Chunks Management",
@@ -775,7 +911,27 @@
         "reasonRequired": "Please provide an exclusion reason",
         "exclusionNotice": "* Chunk exclusion disables RAG retrieval on this fragment without changing document publishing status.",
         "successExclude": "Chunk excluded from RAG retrieval",
-        "successRestore": "Chunk restored to RAG retrieval"
+        "successRestore": "Chunk restored to RAG retrieval",
+        "addBtn": "Add Chunk",
+        "addFormLabel": "Chunk content — separate blocks with a blank line for bulk import",
+        "addPlaceholder": "Enter medical knowledge content...",
+        "clearAllBtn": "Clear All",
+        "confirmClearAll": "Confirm deleting all chunks for this document?",
+        "contentRequired": "Please enter chunk content.",
+        "createFailed": "Failed to create chunk.",
+        "createSuccess": "Created knowledge chunk.",
+        "deleteAllSuccess": "Deleted all document chunks.",
+        "deleteFailed": "Failed to delete chunk.",
+        "deleteSuccess": "Chunk deleted.",
+        "editBtn": "Edit",
+        "empty": "No knowledge chunks recorded for this document yet.",
+        "emptyDesc": "Chunks are generated automatically on upload or added manually here.",
+        "loadFailed": "Failed to load document chunks.",
+        "pageLabel": "Page {{page}} / {{totalPages}}",
+        "saveBtn": "Save Chunk",
+        "searchPlaceholder": "Search chunks...",
+        "updateFailed": "Failed to update chunk.",
+        "updateSuccess": "Updated chunk."
       },
       "status": {
         "active": "Active",
@@ -788,7 +944,14 @@
         "addKeywordFailed": "Failed to add keyword.",
         "addKeywordSuccess": "Keyword added successfully",
         "removeKeywordFailed": "Failed to remove keyword. Please login and try again.",
-        "removeKeywordSuccess": "Keyword removed successfully"
+        "removeKeywordSuccess": "Keyword removed successfully",
+        "activated": "Document activated",
+        "archivedSuccess": "Document archived",
+        "deactivated": "Document deactivated",
+        "statusUpdateFailed": "Failed to update status",
+        "updateKeywordSuccess": "Updated keyword",
+        "uploadFailed": "Failed to upload document",
+        "uploadSuccess": "Uploaded {{count}} document(s)"
       },
       "ingestionStatus": {
         "indexed": "Indexed",
@@ -812,8 +975,26 @@
         "reasonRequired": "Please enter a reason for rejection or archiving",
         "statusUpdated": "Document review status updated",
         "confirm": "Confirm",
-        "cancel": "Cancel"
-      }
+        "cancel": "Cancel",
+        "titleRequired": "Document title is required"
+      },
+      "feedbacks": {
+        "contentCol": "Feedback",
+        "conversationCol": "Conversation",
+        "empty": "No AI feedback entries found.",
+        "filterConvPlaceholder": "Filter by conversation ID...",
+        "helpfulCol": "Helpful",
+        "patientCol": "Patient",
+        "subtitle": "Review and verify quality of AI assistant responses",
+        "summary": "Page {{page}} / {{totalPages}} · {{total}} entries",
+        "title": "User Feedback on AI Assistant",
+        "unverified": "Pending Review",
+        "verified": "Verified",
+        "verifiedSuccess": "Verified AI response feedback.",
+        "verifyBtn": "Verify",
+        "verifyCol": "Status"
+      },
+      "processing": "Processing changes..."
     },
     "violationReport": {
       "title": "Violation Reports",
@@ -871,7 +1052,31 @@
         "decisionDesc": "Select an appropriate enforcement action based on report findings",
         "severityLabel": "Severity:",
         "assigneeLabel": "Assignee:",
-        "actionTakenLabel": "Action taken:"
+        "actionTakenLabel": "Action Taken",
+        "actions": {
+          "ban": "Ban Account",
+          "none": "No Penalty",
+          "suspend": "Suspend Account",
+          "warning": "Send Warning"
+        },
+        "chooseAction": "Choose Enforcement Action",
+        "confirmDelete": "Confirm Delete",
+        "confirmResolve": "Confirm Resolution",
+        "delete": "Delete Report",
+        "dismiss": "Dismiss",
+        "markProcessing": "Mark Processing",
+        "noPriorHistory": "No prior violation reports recorded for this user.",
+        "noteLabel": "Resolution Note",
+        "notePlaceholder": "Enter investigation outcome or decision rationale...",
+        "noteRequired": "Please enter a resolution note before confirming.",
+        "reasonLabel": "Report Reason",
+        "recordsCount": "prior reports",
+        "reportedUser": "Reported User",
+        "reporter": "Reporter",
+        "resolutionMeta": "Resolution Summary",
+        "resolvedAt": "Resolved At",
+        "title": "Violation Report Detail",
+        "userHistory": "Prior Violation History"
       },
       "table": {
         "type": "TYPE",
@@ -883,20 +1088,25 @@
         "actions": "ACTIONS",
         "view": "View",
         "noReports": "No reports found",
-        "tryAdjusting": "Try adjusting your search filters or status"
+        "tryAdjusting": "Try adjusting your search filters or status",
+        "action": "Action",
+        "reason": "Reason",
+        "reportedUser": "Reported User",
+        "reporter": "Reporter"
       },
       "filters": {
         "search": "Search by reporter, account or details...",
         "filterType": "Filter by type",
         "filterStatus": "Filter by status",
-        "allTypes": "All types",
+        "allTypes": "All Report Types",
         "allStatus": "All status",
         "pending": "Pending",
         "resolved": "Resolved",
         "dismissed": "Dismissed",
         "noTypeFound": "No type found.",
         "noStatusFound": "No status found.",
-        "processing": "Processing"
+        "processing": "Processing",
+        "allStatuses": "All Statuses"
       },
       "loading": "Loading violation reports...",
       "pagination": {
@@ -908,7 +1118,70 @@
         "processingStarted": "Report moved to processing",
         "resolutionApplied": "Resolution applied ({{action}})",
         "dismissSuccess": "Report dismissed."
-      }
+      },
+      "empty": "No violation reports match the current filters.",
+      "loadError": "Failed to load violation reports.",
+      "reviews": {
+        "adminNotesLabel": "Internal Moderation Notes",
+        "adminNotesPlaceholder": "Enter reason for flagging inappropriate content...",
+        "allRatings": "All Ratings",
+        "clearDoctorFilter": "Show All Doctors",
+        "comment": "Comment",
+        "doctor": "Doctor",
+        "empty": "No reviews match the current criteria.",
+        "flagged": "Flagged",
+        "flaggedFailed": "Failed to flag review.",
+        "flaggedSuccess": "Review flagged successfully.",
+        "flagNoteRequired": "Please enter moderation notes when flagging a review.",
+        "flagStatus": "Moderation",
+        "generalSpecialty": "General Medicine",
+        "inspectFlag": "Inspect",
+        "modalTitle": "Review Moderation",
+        "normal": "Approved",
+        "noTopDoctors": "No top-rated doctor data available yet.",
+        "patient": "Patient",
+        "rating": "Rating",
+        "ratingBreakdown": "Rating Distribution",
+        "reviewCountUnit": "reviews",
+        "sortNewest": "Newest First",
+        "sortRating": "Highest Rating",
+        "submitFlag": "Flag Review",
+        "topDoctorsTitle": "Top Rated Doctors"
+      },
+      "searchPlaceholder": "Search by reporter, reported user, or reason...",
+      "stats": {
+        "allRecorded": "System-wide total",
+        "categories": "Violation Categories",
+        "categoriesSub": "Distinct categories recorded",
+        "pending": "Pending Review",
+        "pendingSub": "Requires moderation review",
+        "resolved": "Resolved",
+        "resolvedSub": "Finalized and archived",
+        "total": "Total Reports"
+      },
+      "status": {
+        "dismissed": "Dismissed",
+        "pending": "Pending",
+        "processing": "Processing",
+        "resolved": "Resolved"
+      },
+      "tabs": {
+        "reviews": "Reviews Moderation",
+        "violations": "Violation Reports"
+      },
+      "toast": {
+        "actionFailed": "Failed to update report status.",
+        "deletedSuccess": "Violation report deleted.",
+        "deleteFailed": "Failed to delete violation report.",
+        "dismissedSuccess": "Violation report dismissed.",
+        "processingUpdated": "Marked report as processing.",
+        "resolvedSuccess": "Violation report resolved successfully."
+      },
+      "unknownUser": "Unknown User",
+      "userStatus": {
+        "banned": "Banned"
+      },
+      "viewDetail": "Inspect"
     },
     "profile": {
       "titles": {
@@ -974,7 +1247,8 @@
         "createProgram": "Create Program",
         "addRule": "Add Rule",
         "runSimulation": "Run Simulation",
-        "searchPlaceholder": "Search programs..."
+        "searchPlaceholder": "Search programs...",
+        "scheduleTasks": "Run Task Scheduler"
       },
       "cards": {
         "published": "Published",
@@ -986,7 +1260,11 @@
         "completionCriteria": "Completion Criteria",
         "updated": "Updated",
         "editProgram": "Edit Program",
-        "noPrograms": "No matching care programs found"
+        "noPrograms": "No matching care programs found",
+        "baseline": "Baseline Survey",
+        "completion": "Completion",
+        "dailyTasks": "Daily Tasks",
+        "edit": "Edit"
       },
       "rules": {
         "program": "PROGRAM",
@@ -1000,7 +1278,12 @@
         "retired": "Retired",
         "draft": "Draft",
         "activate": "Activate",
-        "retire": "Retire"
+        "retire": "Retire",
+        "noTestSummary": "Not tested",
+        "saveTestEvidence": "Save Test Evidence",
+        "testSummaryLabel": "Verification Summary",
+        "viewActive": "Active Projection",
+        "viewDraft": "Draft Projection"
       },
       "baseline": {
         "bloodPressure": "Blood Pressure",
@@ -1146,7 +1429,12 @@
         "actionFired": "Action Fired",
         "run": "Run Simulation",
         "activateRule": "Activate Rule",
-        "close": "Close"
+        "close": "Close",
+        "checkInTemplate": "Linked Check-in Task",
+        "programCode": "Program Code",
+        "programCodePlaceholder": "Auto-generated from name if left blank",
+        "reasonCodeLabel": "Alert Code",
+        "reasonCodePlaceholder": "Example: systolic_urgent"
       },
       "editModal": {
         "title": "Edit Care Program Template",
@@ -1165,7 +1453,9 @@
         "completionCriteria": "Completion Criteria",
         "completionCriteriaPlaceholder": "e.g. 80% adherence over 90 days",
         "cancel": "Cancel",
-        "save": "Save Changes"
+        "save": "Save Changes",
+        "immutableNotice": "Published and retired versions cannot be edited in place. Saving will create a new draft version.",
+        "saveNewVersion": "Create New Draft Version"
       },
       "toasts": {
         "nameRequired": "Please enter a program name",
@@ -1180,7 +1470,47 @@
         "educationStatusUpdated": "Educational material status updated",
         "updateSuccess": "Care program updated successfully",
         "publishSuccess": "Program published successfully",
-        "draftSuccess": "Draft saved successfully"
+        "draftSuccess": "Draft saved successfully",
+        "activatedRule": "Activated alert rule for {{program}}",
+        "addedRule": "Added new rule draft for {{metric}}",
+        "createdPublished": "Created and published care program!",
+        "newVersionCreated": "Created new draft version for {{name}}",
+        "noCheckInTemplate": "The selected program has no symptom check-in task template configured.",
+        "publishedProgram": "Published program {{name}}",
+        "retiredProgram": "Retired program {{name}}",
+        "retiredRule": "Retired alert rule for {{program}}",
+        "savedDraft": "Saved program template as Draft.",
+        "savedTestEvidence": "Saved dry-run verification evidence to draft rule",
+        "selectProgramFirst": "Please select a care program first",
+        "tasksScheduled": "Scheduled daily tasks — {{count}} created",
+        "thresholdInvalid": "Please enter a valid numeric threshold",
+        "updatedProgram": "Updated template {{name}}"
+      },
+      "desc": "Manage chronic care protocol templates, declarative alert rules, and dry-run simulations.",
+      "empty": {
+        "activeRules": "No active rules found across programs.",
+        "draftRules": "No draft rules found across programs.",
+        "education": "No educational materials have been attached to care programs yet. Add an education task template in a draft care program to configure materials.",
+        "programsTitle": "No care programs created yet"
+      },
+      "errors": {
+        "activateRuleFailed": "Failed to activate rule",
+        "createFailed": "Failed to create care program",
+        "createRuleFailed": "Failed to create rule draft",
+        "loadDetailFailed": "Failed to load program details",
+        "loadFailed": "Unable to load care programs from server.",
+        "publishFailed": "Failed to publish care program",
+        "retireFailed": "Failed to retire care program",
+        "retireRuleFailed": "Failed to retire rule",
+        "saveTestEvidenceFailed": "Failed to save verification evidence",
+        "scheduleFailed": "Failed to run daily task scheduler",
+        "updateFailed": "Failed to save program changes"
+      },
+      "stats": {
+        "activeRules": "Loaded Rules",
+        "careAlerts": "Care Inbox Alerts",
+        "draftPrograms": "Draft Programs",
+        "publishedPrograms": "Published Programs"
       }
     },
     "sharedPages": {
@@ -1368,7 +1698,14 @@
       "confirm": "Confirm",
       "loading": "Loading...",
       "failed": "Failed",
-      "refresh": "Refresh"
+      "refresh": "Refresh",
+      "days": "days",
+      "page": "Page",
+      "processing": "Processing...",
+      "records": "records",
+      "retry": "Retry",
+      "saving": "Saving...",
+      "searching": "Searching..."
     },
     "auditLogs": {
       "tabSystemLogs": "System Audit Logs",
@@ -1408,7 +1745,10 @@
         "status": "Status",
         "relationship": "Relationship",
         "permissions": "Permissions",
-        "revoke": "Revoke"
+        "revoke": "Revoke",
+        "ip": "IP Address",
+        "reason": "Reason",
+        "transition": "Transition"
       },
       "status": {
         "active": "Active",
@@ -1436,6 +1776,35 @@
         "refreshed": "Audit logs refreshed",
         "reasonRequired": "Please enter a reason for revoking this link",
         "revokeSuccess": "Family link revoked and audit logged successfully"
+      },
+      "careAlert": {
+        "idlePrompt": "Enter a care alert ID to inspect its audit trail.",
+        "idRequired": "Please enter a care alert ID to search.",
+        "inputPlaceholder": "Example: 6791b4c2d1e8f9a012345678",
+        "loadError": "Unable to load audit trail for this alert.",
+        "noEventsFound": "No audit events found for this care alert ID.",
+        "promptTitle": "Enter an alert ID to inspect status transitions and actors",
+        "searchBtn": "Search Audit Trail",
+        "searching": "Searching..."
+      },
+      "inspect": "Inspect",
+      "operations": {
+        "allSources": "All Sources",
+        "empty": "No matching operational records found.",
+        "loadError": "Unable to load operational audit feed.",
+        "searchPlaceholder": "Filter by action, actor, or summary...",
+        "source": "Source",
+        "sources": {
+          "consultation": "Consultation",
+          "review": "Review",
+          "violation": "Violation"
+        },
+        "subject": "Subject",
+        "time": "Timestamp"
+      },
+      "tabs": {
+        "careAlertAudit": "Care Alert Audit",
+        "operationsFeed": "Recent Operations Feed"
       }
     }
   }

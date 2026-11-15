@@ -2,48 +2,111 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { X, Sparkles } from "lucide-react";
 import { toast } from "react-toastify";
-
-export interface PlanConfig {
-  name: string;
-  price: string;
-  billingCycle: string;
-  aiLimit: string;
-  consultsLimit: string;
-  familyLimit: string;
-  features: string[];
-  isActive: boolean;
-}
+import type {
+  CreatePlanDraftInput,
+  PlanVersionRecord,
+} from "../services/premium-management.service";
 
 interface EditPlanModalProps {
   isOpen: boolean;
   onClose: () => void;
-  plan: PlanConfig;
-  onSave: (updatedPlan: PlanConfig) => void;
+  initialPlan: PlanVersionRecord | null;
+  onSave: (draftInput: CreatePlanDraftInput) => Promise<void>;
 }
 
 export function EditPlanModal({
   isOpen,
   onClose,
-  plan,
+  initialPlan,
   onSave,
 }: EditPlanModalProps) {
   const { t } = useTranslation();
-
-  const [form, setForm] = useState<PlanConfig>(plan);
+  const [code, setCode] = useState(initialPlan?.code || "CARE");
+  const [name, setName] = useState(initialPlan?.name || "");
+  const [description, setDescription] = useState(initialPlan?.description || "");
+  const [price, setPrice] = useState(String(initialPlan?.price ?? 299000));
+  const [durationDays, setDurationDays] = useState(String(initialPlan?.durationDays ?? 30));
+  const [aiRequestLimit, setAiRequestLimit] = useState(
+    String(initialPlan?.aiRequestLimit ?? 500)
+  );
+  const [aiTokenLimit, setAiTokenLimit] = useState(
+    String(initialPlan?.aiTokenLimit ?? 150000)
+  );
+  const [aiQuotaPeriod, setAiQuotaPeriod] = useState<"day" | "subscription_cycle">(
+    initialPlan?.aiQuotaPeriod || "subscription_cycle"
+  );
+  const [consultationLimit, setConsultationLimit] = useState(
+    String(initialPlan?.consultationLimitPerCycle ?? 3)
+  );
+  const [careProgramLimit, setCareProgramLimit] = useState(
+    String(initialPlan?.activeCareProgramLimit ?? 5)
+  );
+  const initialFeatures = Array.isArray(initialPlan?.benefits?.highlights)
+    ? (initialPlan?.benefits?.highlights as unknown[]).map((f) => String(f))
+    : [];
+  const [featuresText, setFeaturesText] = useState(initialFeatures.join("\n"));
+  const [refundWindowDays, setRefundWindowDays] = useState(
+    String((initialPlan?.refundPolicy?.eligibleWithinDays as number) ?? 7)
+  );
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (!isOpen) return null;
 
-  const handleSubmit = () => {
-    if (!form.name.trim()) {
+  const handleSubmit = async () => {
+    if (isSubmitting) return;
+    const normalizedCode = code.trim().toUpperCase();
+    if (!/^[A-Z][A-Z0-9_]{1,31}$/.test(normalizedCode)) {
       toast.warning(
         t(
-          "premiumManagement.toasts.planNameRequired",
-          "Please enter a valid plan name."
+          "premiumManagement.toasts.invalidCode",
+          "Plan code must start with an uppercase letter (2-32 chars, A-Z, 0-9, _)."
         )
       );
       return;
     }
-    onSave(form);
+    if (!name.trim()) {
+      toast.warning(
+        t("premiumManagement.toasts.planNameRequired", "Please enter a valid plan name.")
+      );
+      return;
+    }
+
+    const parsedPrice = Number(price);
+    const parsedDays = Number(durationDays);
+    if (!Number.isFinite(parsedPrice) || parsedPrice < 0 || !Number.isFinite(parsedDays) || parsedDays < 1) {
+      toast.warning(
+        t("premiumManagement.toasts.invalidNumbers", "Please enter valid numeric price and duration.")
+      );
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const highlights = featuresText
+        .split("\n")
+        .map((s) => s.trim())
+        .filter(Boolean);
+
+      await onSave({
+        code: normalizedCode,
+        name: name.trim(),
+        description: description.trim() || undefined,
+        price: Math.round(parsedPrice),
+        currency: "VND",
+        durationDays: Math.max(1, Math.min(366, Math.round(parsedDays))),
+        aiRequestLimit: Math.max(0, parseInt(aiRequestLimit, 10) || 0),
+        aiTokenLimit: Math.max(0, parseInt(aiTokenLimit, 10) || 0),
+        aiQuotaPeriod,
+        consultationLimitPerCycle: Math.max(0, parseInt(consultationLimit, 10) || 0),
+        activeCareProgramLimit: Math.max(0, Math.min(100, parseInt(careProgramLimit, 10) || 0)),
+        benefits: { highlights },
+        refundPolicy: {
+          eligibleWithinDays: Math.max(0, parseInt(refundWindowDays, 10) || 7),
+        },
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -53,55 +116,123 @@ export function EditPlanModal({
           <div>
             <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
               <Sparkles className="text-brand" size={20} />
-              {t("premiumManagement.editPlanModal.title", "Edit Premium Plan Configuration")}
+              {initialPlan
+                ? t("premiumManagement.editPlanModal.cloneTitle", "Create Next Draft Plan Version")
+                : t("premiumManagement.editPlanModal.title", "Create Draft Plan Configuration")}
             </h3>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-              {t("premiumManagement.editPlanModal.desc", "Update pricing, billing, and resource quotas.")}
+              {t(
+                "premiumManagement.editPlanModal.desc",
+                "Configure pricing, cycle duration, and resource quotas for a new plan draft."
+              )}
             </p>
           </div>
           <button
+            type="button"
+            disabled={isSubmitting}
             onClick={onClose}
-            className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors disabled:opacity-50"
           >
             <X size={20} />
           </button>
         </div>
 
         <div className="space-y-4 py-4 text-sm">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                {t("premiumManagement.catalog.code", "Code")} *
+              </label>
+              <input
+                type="text"
+                value={code}
+                onChange={(e) => setCode(e.target.value.toUpperCase())}
+                placeholder="CARE"
+                className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3.5 py-2 text-slate-900 dark:text-slate-100 font-mono uppercase outline-none focus:border-brand"
+              />
+            </div>
+            <div className="md:col-span-2">
               <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                 {t("premiumManagement.editPlanModal.planName", "Plan Name")} *
               </label>
               <input
                 type="text"
-                value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
-                className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3.5 py-2 text-slate-900 dark:text-slate-100 outline-none focus:border-brand"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                {t("premiumManagement.editPlanModal.price", "Price")} *
-              </label>
-              <input
-                type="text"
-                value={form.price}
-                onChange={(e) => setForm({ ...form, price: e.target.value })}
+                value={name}
+                onChange={(e) => setName(e.target.value)}
                 className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3.5 py-2 text-slate-900 dark:text-slate-100 outline-none focus:border-brand"
               />
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                {t("premiumManagement.editPlanModal.price", "Price (VND)")} *
+              </label>
+              <input
+                type="number"
+                min={0}
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+                className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3.5 py-2 text-slate-900 dark:text-slate-100 outline-none focus:border-brand"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                {t("premiumManagement.editPlanModal.durationDays", "Duration (days)")} *
+              </label>
+              <input
+                type="number"
+                min={1}
+                max={366}
+                value={durationDays}
+                onChange={(e) => setDurationDays(e.target.value)}
+                className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3.5 py-2 text-slate-900 dark:text-slate-100 outline-none focus:border-brand"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                {t("premiumManagement.editPlanModal.quotaPeriod", "AI Quota Period")}
+              </label>
+              <select
+                value={aiQuotaPeriod}
+                onChange={(e) =>
+                  setAiQuotaPeriod(e.target.value as "day" | "subscription_cycle")
+                }
+                className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3 py-2 text-xs text-slate-900 dark:text-slate-100 outline-none focus:border-brand"
+              >
+                <option value="subscription_cycle">
+                  {t("premiumManagement.editPlanModal.periodCycle", "Per Subscription Cycle")}
+                </option>
+                <option value="day">
+                  {t("premiumManagement.editPlanModal.periodDay", "Per Day")}
+                </option>
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                {t("premiumManagement.editPlanModal.aiRequests", "AI Requests")}
+              </label>
+              <input
+                type="number"
+                min={0}
+                value={aiRequestLimit}
+                onChange={(e) => setAiRequestLimit(e.target.value)}
+                className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3 py-1.5 text-xs text-slate-900 dark:text-slate-100 outline-none focus:border-brand"
+              />
+            </div>
             <div>
               <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                 {t("premiumManagement.editPlanModal.aiTokenLimit", "AI Token Quota")}
               </label>
               <input
-                type="text"
-                value={form.aiLimit}
-                onChange={(e) => setForm({ ...form, aiLimit: e.target.value })}
+                type="number"
+                min={0}
+                value={aiTokenLimit}
+                onChange={(e) => setAiTokenLimit(e.target.value)}
                 className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3 py-1.5 text-xs text-slate-900 dark:text-slate-100 outline-none focus:border-brand"
               />
             </div>
@@ -110,20 +241,49 @@ export function EditPlanModal({
                 {t("premiumManagement.editPlanModal.consultsLimit", "Consults Quota")}
               </label>
               <input
-                type="text"
-                value={form.consultsLimit}
-                onChange={(e) => setForm({ ...form, consultsLimit: e.target.value })}
+                type="number"
+                min={0}
+                value={consultationLimit}
+                onChange={(e) => setConsultationLimit(e.target.value)}
                 className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3 py-1.5 text-xs text-slate-900 dark:text-slate-100 outline-none focus:border-brand"
               />
             </div>
             <div>
               <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                {t("premiumManagement.editPlanModal.familyLimit", "Family Quota")}
+                {t("premiumManagement.catalog.carePrograms", "Care Programs")}
+              </label>
+              <input
+                type="number"
+                min={0}
+                max={100}
+                value={careProgramLimit}
+                onChange={(e) => setCareProgramLimit(e.target.value)}
+                className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3 py-1.5 text-xs text-slate-900 dark:text-slate-100 outline-none focus:border-brand"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="md:col-span-2">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                {t("premiumManagement.editPlanModal.description", "Description")}
               </label>
               <input
                 type="text"
-                value={form.familyLimit}
-                onChange={(e) => setForm({ ...form, familyLimit: e.target.value })}
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3 py-1.5 text-xs text-slate-900 dark:text-slate-100 outline-none focus:border-brand"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                {t("premiumManagement.editPlanModal.refundDays", "Refund Window (days)")}
+              </label>
+              <input
+                type="number"
+                min={0}
+                value={refundWindowDays}
+                onChange={(e) => setRefundWindowDays(e.target.value)}
                 className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3 py-1.5 text-xs text-slate-900 dark:text-slate-100 outline-none focus:border-brand"
               />
             </div>
@@ -134,52 +294,30 @@ export function EditPlanModal({
               {t("premiumManagement.editPlanModal.features", "Features (one per line)")}
             </label>
             <textarea
-              rows={4}
-              value={form.features.join("\n")}
-              onChange={(e) =>
-                setForm({
-                  ...form,
-                  features: e.target.value.split("\n").filter((f) => f.trim() !== ""),
-                })
-              }
+              rows={3}
+              value={featuresText}
+              onChange={(e) => setFeaturesText(e.target.value)}
               className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 p-3 text-xs text-slate-900 dark:text-slate-100 outline-none focus:border-brand resize-none font-mono"
             />
-          </div>
-
-          <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700">
-            <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-              {t("premiumManagement.editPlanModal.status", "Plan Status")}
-            </span>
-            <button
-              type="button"
-              onClick={() => setForm({ ...form, isActive: !form.isActive })}
-              className={`px-3 py-1 rounded-full text-xs font-bold transition-colors ${
-                form.isActive
-                  ? "bg-emerald-500 text-white"
-                  : "bg-slate-300 dark:bg-slate-700 text-slate-700 dark:text-slate-300"
-              }`}
-            >
-              {form.isActive
-                ? t("premiumManagement.editPlanModal.active", "Active")
-                : t("premiumManagement.editPlanModal.inactive", "Inactive")}
-            </button>
           </div>
         </div>
 
         <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
           <button
             type="button"
+            disabled={isSubmitting}
             onClick={onClose}
-            className="px-4 py-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 font-medium transition-colors"
+            className="px-4 py-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 font-medium transition-colors disabled:opacity-50"
           >
             {t("premiumManagement.editPlanModal.cancel", "Cancel")}
           </button>
           <button
             type="button"
+            disabled={isSubmitting}
             onClick={handleSubmit}
-            className="px-5 py-2 rounded-xl bg-brand text-slate-900 font-bold hover:bg-brand/90 transition-colors shadow-sm"
+            className="px-5 py-2 rounded-xl bg-brand text-slate-900 font-bold hover:bg-brand/90 transition-colors shadow-sm disabled:opacity-50"
           >
-            {t("premiumManagement.editPlanModal.save", "Save Changes")}
+            {t("premiumManagement.editPlanModal.createDraftBtn", "Create Draft Version")}
           </button>
         </div>
       </div>

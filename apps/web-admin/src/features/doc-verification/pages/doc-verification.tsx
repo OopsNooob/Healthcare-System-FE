@@ -22,12 +22,29 @@ import {
   useApproveDoctor,
   useRejectDoctor,
 } from "../hooks/useDocumentVerification";
-import type {
-  DocumentItemReceiver,
-  VerificationFile,
+import {
+  deleteMultipleStorageFiles,
+  deleteStorageFile,
+  getStorageFileInfo,
+  listStorageFiles,
+  lookupDoctorByEmail,
+  type DebugUploadFileItem,
+  type DocumentItemReceiver,
+  type VerificationFile,
 } from "../services/doc-verification.service";
+import type { UsersFindDoctorByEmailResponse } from "@healthcare/api-client";
 
-import { Check, X, Search, Database } from "lucide-react";
+import {
+  Check,
+  X,
+  Search,
+  Database,
+  HardDrive,
+  Trash2,
+  FileText,
+  Mail,
+  RefreshCw,
+} from "lucide-react";
 import { Button } from "@repo/ui/components/ui/button";
 import { showToast } from "@repo/ui/components/ui/toasts";
 import { useTranslation } from "react-i18next";
@@ -247,9 +264,14 @@ function ReviewModal({
                       </p>
                     </div>
                     <div>
-                      <p className="text-slate-500 dark:text-slate-400 dark:text-slate-500 text-xs">{t("docVerification.modal.experience")}</p>
+                      <p className="text-slate-500 dark:text-slate-400 text-xs">{t("docVerification.modal.experience")}</p>
                       <p className="text-slate-900 dark:text-slate-100 font-semibold">
-                        {document.experience}
+                        {document.experienceYears != null
+                          ? t("docVerification.yearsCount", {
+                              count: document.experienceYears,
+                              defaultValue: `${document.experienceYears} years`,
+                            })
+                          : document.experience || "-"}
                       </p>
                     </div>
                     <div>
@@ -359,7 +381,8 @@ function ReviewModal({
 }
 
 export function DocumentVerification() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const dateLocale = i18n.language?.startsWith("vi") ? "vi-VN" : "en-US";
   type StatusFilter = "all" | "pending" | "approved" | "rejected";
 
   const [selectedStatus, setSelectedStatus] = useState<StatusFilter>("all");
@@ -370,6 +393,26 @@ export function DocumentVerification() {
   const [statusOverrides, setStatusOverrides] = useState<
     Record<string, Partial<Pick<DocumentRecord, "status" | "rejectionReason">>>
   >({});
+
+  const [isLookupOpen, setIsLookupOpen] = useState(false);
+  const [lookupEmail, setLookupEmail] = useState("");
+  const [isLookingUp, setIsLookingUp] = useState(false);
+  const [lookupResult, setLookupResult] =
+    useState<UsersFindDoctorByEmailResponse | null>(null);
+  const [lookupError, setLookupError] = useState<string | null>(null);
+
+  const [isStorageOpen, setIsStorageOpen] = useState(false);
+  const [storageFiles, setStorageFiles] = useState<DebugUploadFileItem[]>([]);
+  const [isStorageLoading, setIsStorageLoading] = useState(false);
+  const [selectedPublicIds, setSelectedPublicIds] = useState<string[]>([]);
+  const [inspectingFileInfo, setInspectingFileInfo] = useState<{
+    publicId: string;
+    size?: unknown;
+    format?: unknown;
+    uploadedAt?: string;
+    secureUrl?: unknown;
+  } | null>(null);
+  const [isStorageBusy, setIsStorageBusy] = useState(false);
 
   const itemsPerPage = 10;
   const deferredSearchQuery = useDeferredValue(searchQuery.trim());
@@ -508,15 +551,139 @@ export function DocumentVerification() {
     setIsReviewOpen(true);
   };
 
+  const handleLookupDoctor = async () => {
+    const email = lookupEmail.trim();
+    if (!email || isLookingUp) {
+      return;
+    }
+
+    setIsLookingUp(true);
+    setLookupError(null);
+    setLookupResult(null);
+
+    try {
+      const result = await lookupDoctorByEmail(email);
+      setLookupResult(result);
+    } catch (err) {
+      setLookupError(
+        err instanceof Error
+          ? err.message
+          : t("docVerification.lookup.notFound", "Doctor application not found"),
+      );
+    } finally {
+      setIsLookingUp(false);
+    }
+  };
+
+  const loadStorageFiles = async () => {
+    setIsStorageLoading(true);
+    try {
+      const files = await listStorageFiles();
+      setStorageFiles(files);
+      setSelectedPublicIds([]);
+    } catch (err) {
+      showToast.error(
+        err instanceof Error
+          ? err.message
+          : t("docVerification.storage.loadFailed", "Failed to load storage files"),
+      );
+    } finally {
+      setIsStorageLoading(false);
+    }
+  };
+
+  const handleOpenStorageModal = () => {
+    setIsStorageOpen(true);
+    setInspectingFileInfo(null);
+    void loadStorageFiles();
+  };
+
+  const handleInspectStorageFile = async (publicId: string) => {
+    if (isStorageBusy) return;
+    setIsStorageBusy(true);
+    try {
+      const res = await getStorageFileInfo(publicId);
+      setInspectingFileInfo({
+        publicId: String(res.data?.publicId ?? publicId),
+        size: res.data?.size,
+        format: res.data?.format,
+        uploadedAt: res.data?.uploadedAt,
+        secureUrl: res.data?.secureUrl ?? res.data?.url,
+      });
+    } catch (err) {
+      showToast.error(
+        err instanceof Error
+          ? err.message
+          : t("docVerification.storage.inspectFailed", "Failed to inspect file"),
+      );
+    } finally {
+      setIsStorageBusy(false);
+    }
+  };
+
+  const handleDeleteSingleStorageFile = async (publicId: string) => {
+    if (isStorageBusy) return;
+    setIsStorageBusy(true);
+    try {
+      await deleteStorageFile(publicId);
+      setStorageFiles((prev) =>
+        prev.filter((item) => item.publicId !== publicId),
+      );
+      setSelectedPublicIds((prev) => prev.filter((id) => id !== publicId));
+      if (inspectingFileInfo?.publicId === publicId) {
+        setInspectingFileInfo(null);
+      }
+      showToast.success(
+        t("docVerification.storage.deletedSingle", "File deleted"),
+      );
+    } catch (err) {
+      showToast.error(
+        err instanceof Error
+          ? err.message
+          : t("docVerification.storage.deleteFailed", "Failed to delete file"),
+      );
+    } finally {
+      setIsStorageBusy(false);
+    }
+  };
+
+  const handleDeleteSelectedStorageFiles = async () => {
+    if (isStorageBusy || selectedPublicIds.length === 0) return;
+    setIsStorageBusy(true);
+    try {
+      const res = await deleteMultipleStorageFiles(selectedPublicIds);
+      const removedSet = new Set(selectedPublicIds);
+      setStorageFiles((prev) =>
+        prev.filter((item) => !removedSet.has(item.publicId)),
+      );
+      setSelectedPublicIds([]);
+      setInspectingFileInfo(null);
+      showToast.success(
+        t("docVerification.storage.deletedBulk", {
+          count: res.data?.deleted ?? removedSet.size,
+          defaultValue: `Deleted ${res.data?.deleted ?? removedSet.size} files`,
+        }),
+      );
+    } catch (err) {
+      showToast.error(
+        err instanceof Error
+          ? err.message
+          : t("docVerification.storage.deleteFailed", "Failed to delete files"),
+      );
+    } finally {
+      setIsStorageBusy(false);
+    }
+  };
+
   return (
     <div className="w-full p-6">
       <div className="rounded-3xl border border-slate-200/70 bg-white dark:border-slate-800 dark:bg-slate-900 p-6 shadow-sm">
-        <div className="mb-5 flex items-center justify-between gap-3">
+        <div className="mb-5 flex flex-wrap items-start justify-between gap-4">
           <div>
             <h1 className="text-3xl font-semibold text-slate-900 dark:text-slate-100">
               {t("docVerification.title")}
             </h1>
-            <p className="text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500">
+            <p className="text-sm text-slate-500 dark:text-slate-400">
               {t("docVerification.subtitle")}
             </p>
             <p className="py-6 text-2xl dark:text-slate-100">
@@ -524,6 +691,33 @@ export function DocumentVerification() {
               <span className="font-bold text-[#F59E0B]">{pendingCount}</span>
               {t("docVerification.pendingReviews_part2")}
             </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="rounded-xl gap-2"
+              onClick={() => {
+                setIsLookupOpen(true);
+                setLookupResult(null);
+                setLookupError(null);
+              }}
+            >
+              <Mail className="h-4 w-4" />
+              {t("docVerification.lookup.button", "Lookup by Email")}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="rounded-xl gap-2"
+              onClick={handleOpenStorageModal}
+            >
+              <HardDrive className="h-4 w-4" />
+              {t("docVerification.storage.button", "Storage Files")}
+            </Button>
           </div>
         </div>
 
@@ -668,8 +862,14 @@ export function DocumentVerification() {
                     <TableCell className="px-3 text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500">
                       {doc.workplace}
                     </TableCell>
-                    <TableCell className="px-3 text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500">
-                      {doc.sent_at}
+                    <TableCell className="px-3 text-sm text-slate-500 dark:text-slate-400">
+                      {doc.sentAtRaw
+                        ? new Date(doc.sentAtRaw).toLocaleDateString(dateLocale, {
+                            month: "short",
+                            day: "numeric",
+                            year: "numeric",
+                          })
+                        : doc.sent_at}
                     </TableCell>
                     <TableCell className="px-3">
                       <Badge
@@ -797,6 +997,223 @@ export function DocumentVerification() {
           onReject={handleReject}
           isProcessing={isProcessing}
         />
+
+        {/* Lookup Doctor By Email Modal */}
+        {isLookupOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+            <div className="w-full max-w-lg rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-2xl">
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+                <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                  <Mail className="h-5 w-5 text-brand" />
+                  {t("docVerification.lookup.title", "Find Doctor by Email")}
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setIsLookupOpen(false)}
+                  className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              <div className="mt-4 flex gap-2">
+                <input
+                  type="email"
+                  value={lookupEmail}
+                  onChange={(e) => setLookupEmail(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") void handleLookupDoctor();
+                  }}
+                  placeholder={t(
+                    "docVerification.lookup.placeholder",
+                    "doctor@example.com",
+                  )}
+                  className="h-10 flex-1 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-brand"
+                />
+                <Button
+                  type="button"
+                  onClick={() => void handleLookupDoctor()}
+                  disabled={isLookingUp || !lookupEmail.trim()}
+                >
+                  {isLookingUp
+                    ? t("common.searching", "Searching...")
+                    : t("common.search", "Search")}
+                </Button>
+              </div>
+
+              {lookupError && (
+                <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-xs text-red-700 dark:border-red-900/40 dark:bg-red-950/30 dark:text-red-300">
+                  {lookupError}
+                </div>
+              )}
+
+              {lookupResult && (
+                <div className="mt-4 space-y-2 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 p-4 text-xs">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-sm font-bold text-slate-900 dark:text-slate-100">
+                      {lookupResult.fullName}
+                    </span>
+                    <Badge variant="outline">{lookupResult.verificationStatus}</Badge>
+                  </div>
+                  <p className="text-slate-600 dark:text-slate-300">
+                    {lookupResult.email} • {lookupResult.phoneNumber || "-"}
+                  </p>
+                  <p className="text-slate-600 dark:text-slate-300">
+                    {lookupResult.specialty || "-"} • {lookupResult.workplace || "-"}
+                  </p>
+                  {lookupResult.rejectReason && (
+                    <p className="text-red-600 dark:text-red-400">
+                      {lookupResult.rejectReason}
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Storage Files Modal */}
+        {isStorageOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+            <div className="w-full max-w-4xl rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-2xl max-h-[90vh] flex flex-col">
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                    <HardDrive className="h-5 w-5 text-brand" />
+                    {t("docVerification.storage.title", "Uploaded Storage Files")}
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    {t(
+                      "docVerification.storage.subtitle",
+                      "Inspect uploaded media metadata or clean up unused files.",
+                    )}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  {selectedPublicIds.length > 0 && (
+                    <Button
+                      type="button"
+                      size="sm"
+                      className="bg-red-600 hover:bg-red-700 text-white gap-1.5"
+                      disabled={isStorageBusy}
+                      onClick={() => void handleDeleteSelectedStorageFiles()}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                      {t("docVerification.storage.deleteSelected", {
+                        count: selectedPublicIds.length,
+                        defaultValue: `Delete (${selectedPublicIds.length})`,
+                      })}
+                    </Button>
+                  )}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={isStorageLoading}
+                    onClick={() => void loadStorageFiles()}
+                  >
+                    <RefreshCw
+                      className={`h-3.5 w-3.5 ${isStorageLoading ? "animate-spin" : ""}`}
+                    />
+                  </Button>
+                  <button
+                    type="button"
+                    onClick={() => setIsStorageOpen(false)}
+                    className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+              </div>
+
+              <div className="mt-4 flex-1 overflow-y-auto space-y-2">
+                {isStorageLoading ? (
+                  Array.from({ length: 4 }).map((_, idx) => (
+                    <Skeleton key={idx} className="h-12 w-full rounded-xl" />
+                  ))
+                ) : storageFiles.length === 0 ? (
+                  <div className="py-10 text-center text-sm text-slate-500 dark:text-slate-400">
+                    {t("docVerification.storage.empty", "No storage files found")}
+                  </div>
+                ) : (
+                  storageFiles.map((file) => {
+                    const checked = selectedPublicIds.includes(file.publicId);
+                    return (
+                      <div
+                        key={file.publicId}
+                        className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40 px-3 py-2.5 text-xs"
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() =>
+                              setSelectedPublicIds((prev) =>
+                                checked
+                                  ? prev.filter((id) => id !== file.publicId)
+                                  : [...prev, file.publicId],
+                              )
+                            }
+                            className="h-4 w-4 rounded border-slate-300"
+                          />
+                          <FileText className="h-4 w-4 shrink-0 text-slate-400" />
+                          <span className="truncate font-mono text-slate-800 dark:text-slate-200">
+                            {file.publicId}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            disabled={isStorageBusy}
+                            onClick={() =>
+                              void handleInspectStorageFile(file.publicId)
+                            }
+                          >
+                            {t("docVerification.storage.inspect", "Info")}
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            disabled={isStorageBusy}
+                            className="text-red-600 border-red-200 dark:border-red-900/50"
+                            onClick={() =>
+                              void handleDeleteSingleStorageFile(file.publicId)
+                            }
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+
+              {inspectingFileInfo && (
+                <div className="mt-4 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/70 p-3 text-xs space-y-1">
+                  <div className="font-semibold text-slate-900 dark:text-slate-100">
+                    {inspectingFileInfo.publicId}
+                  </div>
+                  <div className="text-slate-500 dark:text-slate-400">
+                    {String(inspectingFileInfo.format ?? "-").toUpperCase()} •{" "}
+                    {typeof inspectingFileInfo.size === "number"
+                      ? `${Math.max(inspectingFileInfo.size / 1024, 1).toFixed(1)} KB`
+                      : "-"}{" "}
+                    •{" "}
+                    {inspectingFileInfo.uploadedAt
+                      ? new Date(inspectingFileInfo.uploadedAt).toLocaleString(
+                          dateLocale,
+                        )
+                      : "-"}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

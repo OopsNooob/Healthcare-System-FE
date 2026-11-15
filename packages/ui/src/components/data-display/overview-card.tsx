@@ -22,7 +22,11 @@ export function OverviewCard({
   comparedStats,
   iconClassName = "bg-[var(--color-brand-light)] text-slate-800",
 }: CardProps) {
-  const isPositive = comparedStats ? comparedStats >= 0 : null;
+  const hasComparison =
+    comparedStats !== undefined &&
+    comparedStats !== null &&
+    Number.isFinite(comparedStats);
+  const isPositive = hasComparison ? comparedStats >= 0 : null;
 
   return (
     <li className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-sm">
@@ -32,19 +36,21 @@ export function OverviewCard({
         >
           {icon}
         </div>
-        <div
-          className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ${
-            isPositive
-              ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400"
-              : "bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400"
-          }`}
-        >
-          {isPositive ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
-          <span>
-            {isPositive ? "+" : ""}
-            {comparedStats}%
-          </span>
-        </div>
+        {hasComparison && (
+          <div
+            className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ${
+              isPositive
+                ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400"
+                : "bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400"
+            }`}
+          >
+            {isPositive ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
+            <span>
+              {isPositive ? "+" : ""}
+              {comparedStats}%
+            </span>
+          </div>
+        )}
       </div>
 
       <p className="text-2xl font-bold leading-none text-slate-900 dark:text-slate-100">

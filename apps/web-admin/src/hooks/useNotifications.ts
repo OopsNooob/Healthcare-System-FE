@@ -4,6 +4,7 @@ import { connectNotificationsSocket, notificationsSocket } from "@/lib/api";
 import {
   deleteNotification,
   getNotifications,
+  getUnreadNotificationCount,
   markAllNotificationsAsRead,
   markNotificationAsRead,
   type NotificationItem,
@@ -12,9 +13,16 @@ import {
 
 export { useNotificationSync } from "./useNotificationSync";
 
+export const CARE_ALERTS_INVALIDATED_EVENT = "care:alerts-invalidated";
+
 type SocketNotificationPayload = {
   userId?: string;
-  action?: "send" | "mark_read" | "mark_all_read" | "deleted";
+  action?:
+    | "send"
+    | "mark_read"
+    | "mark_all_read"
+    | "deleted"
+    | "care_alerts_invalidated";
   notification?: {
     id?: string;
     title?: string;
@@ -83,8 +91,20 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
   const accessToken = useAuthStore((state) => state.token);
   const currentUserId = useAuthStore((state) => state.user?.id);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const [serverUnreadCount, setServerUnreadCount] = useState<number | null>(
+    null,
+  );
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const syncUnreadCount = useCallback(async () => {
+    try {
+      const count = await getUnreadNotificationCount();
+      setServerUnreadCount(count);
+    } catch {
+      // Keep local derived unread count if count-unread fails transiently
+    }
+  }, []);
 
   const fetchNotifications = useCallback(async () => {
     if (!enabled) return;
@@ -93,12 +113,16 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
     setError(null);
 
     try {
-      const items = await getNotifications();
+      const [items, count] = await Promise.all([
+        getNotifications(),
+        getUnreadNotificationCount().catch(() => null),
+      ]);
       const sorted = items.sort(
         (a: NotificationItem, b: NotificationItem) =>
           new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
       );
       setNotifications(sorted);
+      setServerUnreadCount(count);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Failed to load notifications",
@@ -114,13 +138,17 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
 
     void (async () => {
       try {
-        const items = await getNotifications();
+        const [items, count] = await Promise.all([
+          getNotifications(),
+          getUnreadNotificationCount().catch(() => null),
+        ]);
         if (!isMounted) return;
         const sorted = items.sort(
           (a: NotificationItem, b: NotificationItem) =>
             new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
         );
         setNotifications(sorted);
+        setServerUnreadCount(count);
       } catch (err) {
         if (!isMounted) return;
         setError(
@@ -150,10 +178,18 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
 
       if (!action) return;
 
+      if (action === "care_alerts_invalidated") {
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new CustomEvent(CARE_ALERTS_INVALIDATED_EVENT));
+        }
+        return;
+      }
+
       if (action === "mark_all_read") {
         setNotifications((prev) =>
           prev.map((item) => ({ ...item, isRead: true })),
         );
+        setServerUnreadCount(0);
         return;
       }
 
@@ -180,6 +216,7 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
           playNotificationSound();
           return [nextItem, ...prev];
         });
+        void syncUnreadCount();
         return;
       }
 
@@ -191,6 +228,7 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
               : item,
           ),
         );
+        void syncUnreadCount();
         return;
       }
 
@@ -198,6 +236,7 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
         setNotifications((prev) =>
           prev.filter((item) => item.id !== notification.id),
         );
+        void syncUnreadCount();
       }
     };
 
@@ -209,7 +248,7 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
         handleNotificationEvent,
       );
     };
-  }, [accessToken, currentUserId, enabled, fetchNotifications]);
+  }, [accessToken, currentUserId, enabled, fetchNotifications, syncUnreadCount]);
 
   const markAllAsRead = useCallback(async () => {
     setError(null);
@@ -218,6 +257,7 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
       setNotifications((prev) =>
         prev.map((item) => ({ ...item, isRead: true })),
       );
+      setServerUnreadCount(0);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Failed to mark all as read",
@@ -225,37 +265,46 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
     }
   }, []);
 
-  const markAsRead = useCallback(async (notificationId: string) => {
-    setError(null);
-    try {
-      const updated = await markNotificationAsRead(notificationId);
-      setNotifications((prev) =>
-        prev.map((item) =>
-          item.id === updated.id ? { ...item, isRead: updated.isRead } : item,
-        ),
-      );
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to mark notification",
-      );
-    }
-  }, []);
+  const markAsRead = useCallback(
+    async (notificationId: string) => {
+      setError(null);
+      try {
+        const updated = await markNotificationAsRead(notificationId);
+        setNotifications((prev) =>
+          prev.map((item) =>
+            item.id === updated.id ? { ...item, isRead: updated.isRead } : item,
+          ),
+        );
+        void syncUnreadCount();
+      } catch (err) {
+        setError(
+          err instanceof Error ? err.message : "Failed to mark notification",
+        );
+      }
+    },
+    [syncUnreadCount],
+  );
 
-  const remove = useCallback(async (notificationId: string) => {
-    setError(null);
-    try {
-      await deleteNotification(notificationId);
-      setNotifications((prev) =>
-        prev.filter((item) => item.id !== notificationId),
-      );
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to delete notification",
-      );
-    }
-  }, []);
+  const remove = useCallback(
+    async (notificationId: string) => {
+      setError(null);
+      try {
+        await deleteNotification(notificationId);
+        setNotifications((prev) =>
+          prev.filter((item) => item.id !== notificationId),
+        );
+        void syncUnreadCount();
+      } catch (err) {
+        setError(
+          err instanceof Error ? err.message : "Failed to delete notification",
+        );
+      }
+    },
+    [syncUnreadCount],
+  );
 
-  const unreadCount = notifications.filter((item) => !item.isRead).length;
+  const localUnreadCount = notifications.filter((item) => !item.isRead).length;
+  const unreadCount = serverUnreadCount ?? localUnreadCount;
 
   return {
     notifications,

@@ -1,5 +1,18 @@
 export * from "./storage";
 export * from "./api";
+export {
+  createFeApiSdk,
+  normalizePaginatedList,
+  normalizeCursorList,
+  buildPaginationParams,
+  generateIdempotencyKey,
+  SOCKET_NAMESPACES,
+  SOCKET_EVENTS,
+  type ApiExecutor,
+  type FeApiSdk,
+  type PaginatedResult,
+  type CursorPaginatedResult,
+} from "@healthcare/api-client";
 export * from "./hooks/auth/useLogin";
 export * from "./hooks/auth/useLogout";
 export * from "./hooks/auth/useSignUp";

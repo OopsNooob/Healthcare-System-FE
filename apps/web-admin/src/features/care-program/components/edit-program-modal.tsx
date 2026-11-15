@@ -16,32 +16,36 @@ import type { TFunction } from "i18next";
 import {
   BASELINE_OPTIONS,
   DEFAULT_PROGRAM_TASK_TEMPLATES,
+  DISEASE_KEY_OPTIONS,
   SYMPTOM_OPTIONS,
   TASK_TYPE_OPTIONS,
-  type CareContentCatalogItem,
   type CareTaskTemplateItem,
   type CareTaskType,
+  type EducationCatalogItem,
 } from "../constants";
+import type { CareProgramRecord } from "../services/care-program.service";
 
-export interface ProgramItem {
-  id: number;
+export interface EditProgramSavePayload {
+  id: string;
+  programCode: string;
+  revision: number;
+  diseaseKey: string;
   name: string;
-  version: string;
-  status: "published" | "draft";
-  patients: number;
-  lastUpdated: string;
-  baseline: string[];
-  tasks: number;
-  taskTemplates?: CareTaskTemplateItem[];
-  completion: string;
+  description: string;
+  baselineKeys: string[];
+  taskTemplates: CareTaskTemplateItem[];
+  completionSummary: string;
 }
 
 interface EditProgramModalProps {
   isOpen: boolean;
   onClose: () => void;
-  program: ProgramItem | null;
-  educationCatalog: CareContentCatalogItem[];
-  onSave: (updated: ProgramItem) => Promise<void> | void;
+  program: CareProgramRecord | null;
+  educationCatalog: EducationCatalogItem[];
+  onSave: (
+    updated: EditProgramSavePayload,
+    options: { publishNow: boolean; asNewVersion: boolean }
+  ) => Promise<void> | void;
 }
 
 function resolveInitialBaselines(baseline: string[], t: TFunction): string[] {
@@ -71,10 +75,13 @@ function resolveInitialBaselines(baseline: string[], t: TFunction): string[] {
 }
 
 interface EditProgramFormProps {
-  program: ProgramItem;
-  educationCatalog: CareContentCatalogItem[];
+  program: CareProgramRecord;
+  educationCatalog: EducationCatalogItem[];
   onClose: () => void;
-  onSave: (updated: ProgramItem) => Promise<void> | void;
+  onSave: (
+    updated: EditProgramSavePayload,
+    options: { publishNow: boolean; asNewVersion: boolean }
+  ) => Promise<void> | void;
 }
 
 function EditProgramForm({
@@ -86,17 +93,21 @@ function EditProgramForm({
   const { t } = useTranslation();
 
   const [name, setName] = useState(program.name);
-  const [version, setVersion] = useState(program.version);
-  const [status, setStatus] = useState<"published" | "draft">(program.status);
+  const [diseaseKey, setDiseaseKey] = useState(program.diseaseKey || "hypertension");
+  const [description, setDescription] = useState(program.description || "");
   const [selectedBaselines, setSelectedBaselines] = useState<string[]>(() =>
-    resolveInitialBaselines(program.baseline, t)
+    program.baselineKeys.length > 0
+      ? program.baselineKeys
+      : resolveInitialBaselines([], t)
   );
   const [taskTemplates, setTaskTemplates] = useState<CareTaskTemplateItem[]>(
     program.taskTemplates && program.taskTemplates.length > 0
       ? program.taskTemplates
-      : DEFAULT_PROGRAM_TASK_TEMPLATES.slice(0, Math.max(1, program.tasks))
+      : DEFAULT_PROGRAM_TASK_TEMPLATES
   );
-  const [completionCriteria, setCompletionCriteria] = useState(program.completion);
+  const [completionCriteria, setCompletionCriteria] = useState(
+    program.completionSummary
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const publishedContents = educationCatalog.filter((c) => c.status === "published");
@@ -199,35 +210,34 @@ function EditProgramForm({
     );
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (publishNow = false, asNewVersion = false) => {
     if (isSubmitting) return;
     if (!name.trim()) {
       toast.warning(t("careProgram.toasts.nameRequired", "Please enter a program name"));
       return;
     }
 
-    const baselineLabels = selectedBaselines.map((key) =>
-      t(`careProgram.baseline.${key}`, key)
-    );
-
     setIsSubmitting(true);
     try {
-      await onSave({
-        ...program,
-        name: name.trim(),
-        version: version.trim() || "v1.0",
-        status,
-        baseline: baselineLabels.length > 0 ? baselineLabels : program.baseline,
-        tasks: taskTemplates.length,
-        taskTemplates,
-        completion:
-          completionCriteria.trim() ||
-          t(
-            "careProgram.editModal.completionCriteriaPlaceholder",
-            "80% adherence over 90 days"
-          ),
-        lastUpdated: new Date().toISOString().split("T")[0],
-      });
+      await onSave(
+        {
+          id: program.id,
+          programCode: program.programCode,
+          revision: program.revision,
+          diseaseKey,
+          name: name.trim(),
+          description: description.trim(),
+          baselineKeys: selectedBaselines,
+          taskTemplates,
+          completionSummary:
+            completionCriteria.trim() ||
+            t(
+              "careProgram.editModal.completionCriteriaPlaceholder",
+              "80% adherence over 90 days"
+            ),
+        },
+        { publishNow, asNewVersion }
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -265,22 +275,29 @@ function EditProgramForm({
 
       {/* Form Body */}
       <div className="space-y-4 py-4 text-sm max-h-[70vh] overflow-y-auto pr-1">
-        {/* Enrolled Patients Snapshot */}
-        <div className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800">
+        {/* Program Metadata Snapshot */}
+        <div className="flex flex-wrap items-center justify-between gap-2 p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800">
           <div className="flex items-center gap-2">
             <Users size={16} className="text-brand" />
-            <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-              {t("careProgram.editModal.enrolledPatients", "Active Enrolled Patients")}
+            <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 font-mono">
+              {program.programCode}
             </span>
           </div>
           <span className="text-xs font-bold font-mono text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-900 px-3 py-1 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
-            {t("careProgram.editModal.enrolledCount", "{{count}} patients", {
-              count: program.patients,
-            })}
+            v{program.version} • r{program.revision}
           </span>
         </div>
 
-        {/* Program Name & Version */}
+        {program.status !== "draft" && (
+          <div className="p-3 rounded-xl border border-amber-200 dark:border-amber-900/50 bg-amber-50/70 dark:bg-amber-950/30 text-xs text-amber-800 dark:text-amber-300">
+            {t(
+              "careProgram.editModal.immutableNotice",
+              "Published and retired versions cannot be edited in place. Saving will create a new draft version."
+            )}
+          </div>
+        )}
+
+        {/* Program Name & Condition */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="md:col-span-2">
             <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
@@ -299,56 +316,37 @@ function EditProgramForm({
           </div>
           <div>
             <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-              {t("careProgram.editModal.version", "Version")}
+              {t("careProgram.modals.diseaseKey", "Condition Group")}
             </label>
-            <input
-              type="text"
-              value={version}
-              onChange={(e) => setVersion(e.target.value)}
+            <select
+              value={diseaseKey}
+              onChange={(e) => setDiseaseKey(e.target.value)}
               className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3.5 py-2 text-slate-900 dark:text-slate-100 outline-none focus:border-brand"
-            />
+            >
+              {DISEASE_KEY_OPTIONS.map((opt) => (
+                <option key={opt.key} value={opt.key}>
+                  {t(`careProgram.diseases.${opt.key}`, opt.defaultLabel)}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
 
-        {/* Operational Status (Draft vs Published) */}
+        {/* Description */}
         <div>
-          <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-            {t("careProgram.editModal.status", "Operational Status")}
+          <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+            {t("careProgram.modals.description", "Description")}
           </label>
-          <div className="grid grid-cols-2 gap-3">
-            <button
-              type="button"
-              onClick={() => setStatus("published")}
-              className={`py-2 px-3 rounded-xl border text-xs font-semibold transition-all flex items-center justify-center gap-2 ${
-                status === "published"
-                  ? "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-500 text-emerald-700 dark:text-emerald-300 shadow-sm"
-                  : "bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
-              }`}
-            >
-              <div
-                className={`h-2.5 w-2.5 rounded-full ${
-                  status === "published" ? "bg-emerald-500" : "bg-slate-300 dark:bg-slate-600"
-                }`}
-              />
-              {t("careProgram.editModal.published", "Published")}
-            </button>
-            <button
-              type="button"
-              onClick={() => setStatus("draft")}
-              className={`py-2 px-3 rounded-xl border text-xs font-semibold transition-all flex items-center justify-center gap-2 ${
-                status === "draft"
-                  ? "bg-amber-50 dark:bg-amber-950/40 border-amber-500 text-amber-700 dark:text-amber-300 shadow-sm"
-                  : "bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
-              }`}
-            >
-              <div
-                className={`h-2.5 w-2.5 rounded-full ${
-                  status === "draft" ? "bg-amber-500" : "bg-slate-300 dark:bg-slate-600"
-                }`}
-              />
-              {t("careProgram.editModal.draft", "Draft")}
-            </button>
-          </div>
+          <textarea
+            rows={2}
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder={t(
+              "careProgram.modals.descriptionPlaceholder",
+              "Monitoring goals and target patient cohort..."
+            )}
+            className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 p-3 text-slate-900 dark:text-slate-100 outline-none focus:border-brand resize-none"
+          />
         </div>
 
         {/* Baseline Survey Requirements */}
@@ -549,7 +547,7 @@ function EditProgramForm({
                     >
                       {publishedContents.map((c) => (
                         <option key={c.id} value={c.contentId}>
-                          {t(`careProgram.educationCatalogItems.${c.contentId}.title`, c.titleEn)} • {c.version}
+                          {t(`careProgram.educationCatalogItems.${c.contentId}.title`, c.title)} • {c.version}
                         </option>
                       ))}
                     </select>
@@ -579,7 +577,7 @@ function EditProgramForm({
       </div>
 
       {/* Footer */}
-      <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
+      <div className="flex flex-wrap items-center justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
         <button
           type="button"
           disabled={isSubmitting}
@@ -588,14 +586,35 @@ function EditProgramForm({
         >
           {t("careProgram.editModal.cancel", "Cancel")}
         </button>
-        <button
-          type="button"
-          disabled={isSubmitting}
-          onClick={handleSubmit}
-          className="px-5 py-2 rounded-xl bg-brand text-slate-900 font-bold hover:bg-brand/90 transition-colors shadow-sm disabled:opacity-50"
-        >
-          {t("careProgram.editModal.save", "Save Changes")}
-        </button>
+        {program.status === "draft" ? (
+          <>
+            <button
+              type="button"
+              disabled={isSubmitting}
+              onClick={() => handleSubmit(false, false)}
+              className="px-4 py-2 rounded-xl border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 font-semibold transition-colors disabled:opacity-50"
+            >
+              {t("careProgram.editModal.save", "Save Changes")}
+            </button>
+            <button
+              type="button"
+              disabled={isSubmitting}
+              onClick={() => handleSubmit(true, false)}
+              className="px-5 py-2 rounded-xl bg-brand text-slate-900 font-bold hover:bg-brand/90 transition-colors shadow-sm disabled:opacity-50"
+            >
+              {t("careProgram.modals.publish", "Publish Program")}
+            </button>
+          </>
+        ) : (
+          <button
+            type="button"
+            disabled={isSubmitting}
+            onClick={() => handleSubmit(false, true)}
+            className="px-5 py-2 rounded-xl bg-brand text-slate-900 font-bold hover:bg-brand/90 transition-colors shadow-sm disabled:opacity-50"
+          >
+            {t("careProgram.editModal.saveNewVersion", "Create New Draft Version")}
+          </button>
+        )}
       </div>
     </div>
   );

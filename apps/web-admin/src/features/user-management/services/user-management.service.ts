@@ -1,10 +1,18 @@
-import { api } from "@/lib/api";
+import { normalizePaginatedList, webAdminApi } from "@/lib/api";
+import type {
+  AdminGetDoctorApplicationRequest,
+  AdminLockAccountRequest,
+  PresenceCheckUsersStatusRequest,
+  ReviewsGetDoctorRatingResponse,
+  UsersFindOneResponse,
+} from "@healthcare/api-client";
 
 export interface UserManagement {
   totalUser: number;
   activeDoctors: number;
   pendingVerifications: number;
   bannedUsers: number;
+  totalPatients: number;
   userList: UserManagementUser[];
 }
 
@@ -21,8 +29,14 @@ export type UserManagementUser = {
   joined: string;
   role: UserRole;
   status: UserStatus;
+  isOnline?: boolean;
   specialty?: string;
   assigned_role?: AdminAssignedRole;
+};
+
+export type UserOperationalDetails = {
+  profile: UsersFindOneResponse;
+  doctorRating?: ReviewsGetDoctorRatingResponse["data"];
 };
 
 type ApiAddress = {
@@ -38,15 +52,11 @@ type ApiUser = {
   email?: string;
   role?: UserRole;
   accountStatus?: UserStatus;
+  isOnline?: boolean;
   createdAt?: string;
   address?: ApiAddress;
   specialty?: string;
 };
-
-// type ApiDoctorRecord = {
-//   userId?: ApiUser | string;
-//   specialty?: string;
-// };
 
 type ApiAdminRecord = {
   _id?: string;
@@ -84,22 +94,6 @@ type ApiDoctor = {
   createdAt: string;
 };
 
-type ApiDoctorApplicationsResponse = {
-  data: ApiDoctor[];
-  pagination: {
-    total: number;
-    page: number;
-    limit: number;
-    pages: number;
-  };
-  summary: {
-    total: number;
-    pending: number;
-    approved: number;
-    rejected: number;
-  };
-};
-
 function resolveId(record: { _id?: string; id?: string }) {
   return record._id ?? record.id ?? "";
 }
@@ -118,37 +112,84 @@ function resolveJoinedDate(value?: string) {
     return "-";
   }
 
-  return new Date(value).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
+  return new Date(value).toISOString();
 }
 
-async function fetchAllPendingDoctorApplications(): Promise<ApiDoctor[]> {
+async function fetchAllPagedUsers(): Promise<{
+  items: ApiUser[];
+  total: number;
+}> {
   const limit = 100;
   let page = 1;
-  let pages = 1;
-  const allDoctors: ApiDoctor[] = [];
+  let totalPages = 1;
+  let total = 0;
+  const collected: ApiUser[] = [];
 
-  while (page <= pages) {
-    const response = await api.get<ApiDoctorApplicationsResponse>(
-      "/admin/doctors/applications",
-      {
-        params: {
-          status: "pending",
-          page,
-          limit,
-        },
-      },
-    );
+  try {
+    do {
+      const response = await webAdminApi.usersFindAllPaged({
+        query: { page, limit },
+      });
+      const normalized = normalizePaginatedList<ApiUser>(
+        response,
+        page,
+        limit,
+      );
+      collected.push(...normalized.items);
+      total = normalized.total;
+      totalPages = Math.max(1, normalized.totalPages);
+      page += 1;
+    } while (page <= totalPages && page <= 10);
 
-    allDoctors.push(...response.data.data);
-    pages = Math.max(1, response.data.pagination.pages || 1);
-    page += 1;
+    return { items: collected, total };
+  } catch {
+    const rawList = await webAdminApi.usersFindAll();
+    const items = Array.isArray(rawList) ? (rawList as unknown as ApiUser[]) : [];
+    return { items, total: items.length };
   }
+}
 
-  return allDoctors;
+async function fetchDoctorsDirectory(): Promise<{
+  items: ApiUser[];
+  total: number;
+}> {
+  try {
+    const response = await webAdminApi.usersSearchDoctors({
+      query: { page: 1, limit: 100 },
+    });
+    const normalized = normalizePaginatedList<ApiUser>(response, 1, 100);
+    return { items: normalized.items, total: normalized.total };
+  } catch {
+    const rawDoctors = await webAdminApi.usersFindDoctors();
+    const items = Array.isArray(rawDoctors)
+      ? (rawDoctors as unknown as ApiUser[])
+      : [];
+    return { items, total: items.length };
+  }
+}
+
+async function fetchAllPendingDoctorApplicationsCount(): Promise<number> {
+  const response = await webAdminApi.adminGetDoctorApplication({
+    query: {
+      status: "pending",
+      page: 1,
+      limit: 1,
+    } as unknown as AdminGetDoctorApplicationRequest["query"],
+  });
+
+  const payload = response as unknown as {
+    summary?: { pending?: number };
+    pagination?: { total?: number };
+    data?: ApiDoctor[];
+  };
+
+  if (typeof payload.summary?.pending === "number") {
+    return payload.summary.pending;
+  }
+  if (typeof payload.pagination?.total === "number") {
+    return payload.pagination.total;
+  }
+  return Array.isArray(payload.data) ? payload.data.length : 0;
 }
 
 function mapApiUserToUiUser(user: ApiUser): UserManagementUser | null {
@@ -166,38 +207,86 @@ function mapApiUserToUiUser(user: ApiUser): UserManagementUser | null {
     joined: resolveJoinedDate(user.createdAt),
     role: user.role,
     status: user.accountStatus ?? "active",
+    isOnline: Boolean(user.isOnline),
     specialty: user.specialty,
   };
 }
 
+export async function checkUsersOnlineStatus(
+  userIds: string[],
+): Promise<Set<string>> {
+  const cleanIds = Array.from(new Set(userIds.filter(Boolean)));
+  if (cleanIds.length === 0) {
+    return new Set();
+  }
+
+  try {
+    const res = await webAdminApi.presenceCheckUsersStatus({
+      userIds: cleanIds,
+    } as unknown as PresenceCheckUsersStatusRequest);
+    const onlineIds = res.data?.onlineUserIds ?? [];
+    return new Set(onlineIds.map((id) => String(id)));
+  } catch {
+    return new Set();
+  }
+}
+
 export async function banUser(payload: ApiBanUser) {
-  const res = await api.post(`/admin/users/${payload.id}/lock`, {
-    reason: payload.reason ?? "Banned by admin",
+  return webAdminApi.adminLockAccount({
+    params: { id: payload.id },
+    body: {
+      reason: payload.reason ?? "Banned by admin",
+    } as unknown as AdminLockAccountRequest["body"],
   });
-  return res.data;
 }
 
 export async function unbanUser(payload: ApiUnbanUser) {
-  const res = await api.post(`/admin/users/${payload.id}/unlock`);
-  return res.data;
+  return webAdminApi.adminUnlockAccount({
+    params: { id: payload.id },
+  });
+}
+
+export async function deactivateUser(userId: string) {
+  return webAdminApi.usersDeactivate({
+    params: { id: userId },
+  });
+}
+
+export async function getUserOperationalDetails(
+  userId: string,
+  role: UserRole,
+): Promise<UserOperationalDetails> {
+  const [profile, ratingRes] = await Promise.all([
+    webAdminApi.usersFindOne({ params: { id: userId } }),
+    role === "doctor"
+      ? webAdminApi.reviewsGetDoctorRating({ params: { doctorId: userId } }).catch(() => null)
+      : Promise.resolve(null),
+  ]);
+
+  return {
+    profile,
+    doctorRating: ratingRes?.data ?? undefined,
+  };
 }
 
 export async function getUserManagement(): Promise<UserManagement> {
   const [
-    totalUserResponse,
-    activeDoctorsResponse,
-    pendingVerificationsResponse,
+    pagedUsers,
+    doctorsDirectory,
+    pendingVerificationsCount,
     adminProfilesResponse,
+    patientsResponse,
   ] = await Promise.all([
-    api.get<ApiUser[]>("/users"),
-    api.get<ApiUser[]>("/users/doctors"),
-    fetchAllPendingDoctorApplications(),
-    api.get<{ data?: { admins?: ApiAdminRecord[] } }>("/admins"),
+    fetchAllPagedUsers(),
+    fetchDoctorsDirectory(),
+    fetchAllPendingDoctorApplicationsCount(),
+    webAdminApi.adminsFindAll({ query: { page: 1, limit: 100 } }),
+    webAdminApi.patientProfileFindAll({ query: { page: 1, limit: 1 } }).catch(() => null),
   ]);
 
   const mergedUsers = new Map<string, UserManagementUser>();
 
-  for (const apiUser of totalUserResponse.data) {
+  for (const apiUser of pagedUsers.items) {
     const mapped = mapApiUserToUiUser(apiUser);
     if (!mapped) {
       continue;
@@ -206,7 +295,23 @@ export async function getUserManagement(): Promise<UserManagement> {
     mergedUsers.set(mapped.id, mapped);
   }
 
-  const adminProfiles = adminProfilesResponse.data.data?.admins ?? [];
+  for (const doctorUser of doctorsDirectory.items) {
+    const mappedDoctor = mapApiUserToUiUser({
+      ...doctorUser,
+      role: doctorUser.role ?? "doctor",
+    });
+    if (!mappedDoctor) {
+      continue;
+    }
+
+    const existing = mergedUsers.get(mappedDoctor.id);
+    mergedUsers.set(mappedDoctor.id, {
+      ...(existing ?? mappedDoctor),
+      specialty: mappedDoctor.specialty ?? existing?.specialty,
+    });
+  }
+
+  const adminProfiles = (adminProfilesResponse.data?.admins ?? []) as unknown as ApiAdminRecord[];
 
   for (const adminProfile of adminProfiles) {
     const adminUser =
@@ -234,19 +339,30 @@ export async function getUserManagement(): Promise<UserManagement> {
     });
   }
 
-  const userList = Array.from(mergedUsers.values()).sort((a, b) =>
-    a.fullName.localeCompare(b.fullName),
-  );
+  const allUserIds = Array.from(mergedUsers.keys());
+  const onlineSet = await checkUsersOnlineStatus(allUserIds);
+
+  const userList = Array.from(mergedUsers.values())
+    .map((user) => ({
+      ...user,
+      isOnline: onlineSet.has(user.id) || Boolean(user.isOnline),
+    }))
+    .sort((a, b) => a.fullName.localeCompare(b.fullName));
 
   const bannedUsers = userList.filter(
     (user) => user.status === "banned",
   ).length;
 
+  const totalPatients =
+    patientsResponse?.data?.pagination?.total ??
+    userList.filter((user) => user.role === "patient").length;
+
   return {
-    totalUser: userList.length,
-    activeDoctors: activeDoctorsResponse.data.length,
-    pendingVerifications: pendingVerificationsResponse.length,
+    totalUser: Math.max(pagedUsers.total, userList.length),
+    activeDoctors: doctorsDirectory.total || userList.filter((u) => u.role === "doctor").length,
+    pendingVerifications: pendingVerificationsCount,
     bannedUsers,
+    totalPatients,
     userList,
   };
 }

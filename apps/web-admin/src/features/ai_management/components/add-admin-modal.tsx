@@ -47,6 +47,7 @@ interface AddAdminModalProps {
   password: string;
   role: AdminAssignedRole;
   errorMessage?: string;
+  isSubmitting?: boolean;
   onChangeFullName: (value: string) => void;
   onChangeEmail: (value: string) => void;
   onChangePassword: (value: string) => void;
@@ -62,6 +63,7 @@ export function AddAdminModal({
   password,
   role,
   errorMessage,
+  isSubmitting = false,
   onChangeFullName,
   onChangeEmail,
   onChangePassword,
@@ -201,11 +203,13 @@ export function AddAdminModal({
         </div>
 
         <div className="flex items-center justify-end gap-3 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950/50 p-4">
-          <Button type="button" variant="outline" onClick={onClose}>
+          <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>
             {t("userManagement.addAdminModal.cancel", "Cancel")}
           </Button>
-          <Button type="button" onClick={onAdd}>
-            {t("userManagement.addAdminModal.createAdmin", "Create Admin")}
+          <Button type="button" onClick={onAdd} disabled={isSubmitting}>
+            {isSubmitting
+              ? t("userManagement.creating", "Creating...")
+              : t("userManagement.addAdminModal.createAdmin", "Create Admin")}
           </Button>
         </div>
       </div>

@@ -1,4 +1,5 @@
 import { client } from './gen/client.gen';
+import { createFeApiSdk, type ApiExecutor } from './fe-api-sdk';
 
 declare const process: any;
 
@@ -50,13 +51,7 @@ export const setTokenGetter = (getter: () => string | null | Promise<string | nu
   tokenGetter = getter;
 };
 
-export const generateIdempotencyKey = (): string => {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-    const r = (Math.random() * 16) | 0;
-    const v = c === 'x' ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
-  });
-};
+// generateIdempotencyKey is exported via ./pagination
 
 client.instance.interceptors.request.use(async (config) => {
   let token = activeToken;
@@ -77,6 +72,22 @@ client.instance.interceptors.request.use(async (config) => {
   return config;
 });
 
+export const feApi = createFeApiSdk(client.instance as unknown as ApiExecutor);
+
 export { client };
 export * from './gen/index';
 export * from './gen/@tanstack/react-query.gen';
+export * from './pagination';
+export * from './fe-api-sdk';
+export * from './fe-api-types';
+export * as FeTypes from './fe-api-types';
+export type {
+  HealthLiveResponse,
+  HealthReadyResponse,
+  ViolationsCreateResponse,
+  ViolationsDeleteResponse,
+  ViolationsFindByIdResponse,
+  ViolationsUpdateResponse,
+  ViolationsResolveResponse,
+  ChatRemoveMessageResponse,
+} from './fe-api-types';

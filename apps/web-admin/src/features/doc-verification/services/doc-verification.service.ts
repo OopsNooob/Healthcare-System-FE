@@ -1,4 +1,9 @@
-import { api } from "@/lib/api";
+import { webAdminApi } from "@/lib/api";
+import type {
+  AdminGetDoctorApplicationRequest,
+  AdminRejectDoctorRequest,
+  UsersFindDoctorByEmailResponse,
+} from "@healthcare/api-client";
 
 export type VerificationFile = {
   name: string;
@@ -22,12 +27,23 @@ export type DocumentItemReceiver = {
   email: string;
   phone: string;
   specialty: string;
+  experienceYears?: number;
   experience: string;
   workplace: string;
   sent_at: string;
+  sentAtRaw?: string;
   status: VerificationStatus;
   verificationFiles: VerificationFile[];
   rejectionReason?: string;
+};
+
+export type DebugUploadFileItem = {
+  publicId: string;
+  url: string;
+  secureUrl: string;
+  format?: string;
+  size?: number;
+  createdAt?: string;
 };
 
 type User = {
@@ -94,7 +110,7 @@ function resolveJoinedDate(value?: string) {
 }
 
 function mapApitoUi(item: ApiDoctor): DocumentItemReceiver | null {
-  if (!item._id || !item.userId._id) return null;
+  if (!item._id || !item.userId?._id) return null;
 
   return {
     id: item.userId._id,
@@ -102,10 +118,12 @@ function mapApitoUi(item: ApiDoctor): DocumentItemReceiver | null {
     email: item.userId.email,
     phone: item.userId.phoneNumber ?? "",
     specialty: item.specialty ?? "",
+    experienceYears: item.experienceYears,
     experience:
-      item.experienceYears != null ? `${item.experienceYears} years` : "",
+      item.experienceYears != null ? String(item.experienceYears) : "",
     workplace: item.workplace ?? "",
     sent_at: resolveJoinedDate(item.createdAt),
+    sentAtRaw: item.createdAt,
     status: item.verificationStatus,
     verificationFiles: (item.verificationDocuments ?? []).map((url) => {
       const normalizedUrl = String(url);
@@ -130,35 +148,95 @@ function mapApitoUi(item: ApiDoctor): DocumentItemReceiver | null {
 export async function getDoctorDocuments(
   query: DoctorApplicationQuery = {},
 ): Promise<DoctorDocumentList> {
-  const doctorDocumentResponse = await api.get<ApiDoctorApplicationsResponse>(
-    "/admin/doctors/applications",
-    {
-      params: {
-        status: query.status,
-        page: query.page,
-        limit: query.limit,
-        search: query.search,
-      },
-    },
-  );
+  const response = await webAdminApi.adminGetDoctorApplication({
+    query: {
+      status: query.status,
+      page: query.page,
+      limit: query.limit,
+      search: query.search,
+    } as unknown as AdminGetDoctorApplicationRequest["query"],
+  });
+
+  const payload = response as unknown as ApiDoctorApplicationsResponse;
 
   return {
-    doctorDocumentList: doctorDocumentResponse.data.data
+    doctorDocumentList: (payload.data ?? [])
       .map(mapApitoUi)
       .filter((item): item is DocumentItemReceiver => item !== null),
-    pagination: doctorDocumentResponse.data.pagination,
-    summary: doctorDocumentResponse.data.summary,
+    pagination: payload.pagination,
+    summary: payload.summary,
   };
 }
 
-export async function approveDoctorDocument(id: string) {
-  const response = await api.post(`/admin/doctors/${id}/verify`, {});
-  return response.data;
+export async function approveDoctorDocument(
+  id: string,
+  verificationNotes?: string,
+) {
+  return webAdminApi.adminVerifyDoctor({
+    params: { id },
+    body: verificationNotes ? { verificationNotes } : {},
+  });
 }
 
 export async function rejectDoctorDocument(id: string, reason: string) {
-  const response = await api.post(`/admin/doctors/${id}/reject`, {
-    reason,
+  return webAdminApi.adminRejectDoctor({
+    params: { id },
+    body: {
+      reason,
+    } as unknown as AdminRejectDoctorRequest["body"],
   });
-  return response.data;
+}
+
+export async function lookupDoctorByEmail(
+  email: string,
+): Promise<UsersFindDoctorByEmailResponse> {
+  return webAdminApi.usersFindDoctorByEmail({
+    params: { email: email.trim() },
+  });
+}
+
+export async function listStorageFiles(): Promise<DebugUploadFileItem[]> {
+  const res = await webAdminApi.uploadDebugListFiles();
+  const raw = res.data as
+    | DebugUploadFileItem[]
+    | { files?: DebugUploadFileItem[]; resources?: DebugUploadFileItem[] }
+    | null
+    | undefined;
+
+  if (Array.isArray(raw)) {
+    return raw;
+  }
+  if (raw && Array.isArray(raw.files)) {
+    return raw.files;
+  }
+  if (raw && Array.isArray(raw.resources)) {
+    return raw.resources;
+  }
+  return [];
+}
+
+export async function getStorageFileInfo(publicId: string) {
+  return webAdminApi.uploadGetFileInfo({
+    query: { publicId },
+  });
+}
+
+export async function deleteStorageFile(
+  publicId: string,
+  fileType?: "image" | "document",
+) {
+  return webAdminApi.uploadDeleteFile({
+    query: { publicId },
+    body: fileType ? { fileType } : {},
+  });
+}
+
+export async function deleteMultipleStorageFiles(
+  publicIds: string[],
+  fileType?: "image" | "document",
+) {
+  return webAdminApi.uploadDeleteMultiple({
+    publicIds,
+    fileType,
+  });
 }

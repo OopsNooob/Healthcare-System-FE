@@ -1,116 +1,163 @@
-import { useState, useEffect, useMemo } from "react";
-import {
-  Calendar,
-  Clock,
-  Video,
-  XCircle,
-  Search,
-  Filter,
-  Database,
-  Eye,
-  X,
-} from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { OverviewCard } from "@repo/ui/components/data-display/overview-card";
 import { Badge } from "@repo/ui/components/ui/badge";
 import { Skeleton } from "@repo/ui/components/ui/skeleton";
-import { useTranslation } from "react-i18next";
+import { useAuthStore } from "@repo/ui/store/useAuthStore";
+import {
+  Calendar,
+  CheckCircle2,
+  Clock,
+  Database,
+  Eye,
+  Filter,
+  MessageSquare,
+  RefreshCw,
+  Search,
+  Stethoscope,
+  Video,
+  X,
+  XCircle,
+  AlertTriangle,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
+import {
+  connectConsultationsSocket,
+  consultationsSocket,
+  SOCKET_EVENTS,
+} from "@/lib/api";
 import { AppointmentDetailModal } from "../components/appointment-detail-modal";
-import type { Appointment } from "../components/appointment-detail-modal";
+import {
+  appointmentManagementService,
+  type Appointment,
+} from "../services/appointment-management.service";
+
+const PAGE_LIMIT = 20;
 
 export function AppointmentManagement() {
-  const { t } = useTranslation();
-  const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
-  const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const { t, i18n } = useTranslation();
+  const locale = i18n.language?.startsWith("vi") ? "vi-VN" : "en-US";
+  const token = useAuthStore((state) => state.token);
 
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+
+  const [searchQuery, setSearchQuery] = useState("");
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
   const [selectedType, setSelectedType] = useState<string>("all");
   const [selectedDoctor, setSelectedDoctor] = useState<string>("all");
 
+  const [selectedAppointment, setSelectedAppointment] =
+    useState<Appointment | null>(null);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
+
+  const inFlightRef = useRef(false);
+
+  const fetchAppointments = useCallback(
+    async (targetPage: number, statusFilter: string) => {
+      if (inFlightRef.current) return;
+      inFlightRef.current = true;
+      setLoading(true);
+      setError(null);
+      try {
+        const result = await appointmentManagementService.listAppointments({
+          page: targetPage,
+          limit: PAGE_LIMIT,
+          status: statusFilter,
+          locale,
+        });
+        setAppointments(result.items);
+        setTotalCount(result.total);
+        setPage(result.page);
+        setTotalPages(result.totalPages);
+      } catch (err) {
+        const msg =
+          err instanceof Error
+            ? err.message
+            : t(
+                "appointmentManagement.errors.loadFailed",
+                "Không thể tải danh sách lịch hẹn.",
+              );
+        setError(msg);
+      } finally {
+        setLoading(false);
+        inFlightRef.current = false;
+      }
+    },
+    [locale, t],
+  );
+
   useEffect(() => {
-    // Simulate loading data
-    const timer = setTimeout(() => {
-      setAppointments([
-        {
-          id: "APT-101",
-          time: "09:00 AM",
-          patient: "Vu Quoc Huy",
-          doctor: "Dr. Sarah Connor",
-          type: "Video Call",
-          mode: "scheduled",
-          requestStatus: "accepted",
-          sessionStatus: "completed",
-          status: "Completed",
-          queuePosition: null,
-          calledAt: "08:59 AM",
-          duration: "18 mins",
-        },
-        {
-          id: "APT-102",
-          time: "In Session",
-          patient: "Do Dinh Khang",
-          doctor: "Dr. John Doe",
-          type: "Video Call",
-          mode: "scheduled",
-          requestStatus: "accepted",
-          sessionStatus: "in_consultation",
-          status: "In Progress",
-          queuePosition: null,
-          calledAt: "10:02 AM",
-          duration: "Active (12m)",
-        },
-        {
-          id: "APT-103",
-          time: "Queue #1",
-          patient: "Nguyen Van A",
-          doctor: "Dr. John Doe",
-          type: "Chat",
-          mode: "on_demand",
-          requestStatus: "accepted",
-          sessionStatus: "waiting",
-          status: "Waiting",
-          queuePosition: 1,
-          calledAt: "10:14 AM",
-          duration: "Queued (4m)",
-        },
-        {
-          id: "APT-104",
-          time: "11:30 AM",
-          patient: "Tran Thi B",
-          doctor: "Dr. Sarah Connor",
-          type: "Video Call",
-          mode: "scheduled",
-          requestStatus: "accepted",
-          sessionStatus: "scheduled",
-          status: "Scheduled",
-          queuePosition: null,
-          calledAt: null,
-          duration: "Estimated 15 mins",
-        },
-        {
-          id: "APT-105",
-          time: "10:00 AM",
-          patient: "Le Van C",
-          doctor: "Dr. Emily Chen",
-          type: "Chat",
-          mode: "scheduled",
-          requestStatus: "accepted",
-          sessionStatus: "no_show",
-          status: "Canceled",
-          noShowReasonCode: "patient_absent",
-          duration: "0 mins",
-        },
-      ]);
-      setLoading(false);
-    }, 1200);
-    return () => clearTimeout(timer);
-  }, []);
+    const timer = window.setTimeout(() => {
+      void fetchAppointments(page, selectedStatus);
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [fetchAppointments, page, selectedStatus]);
+
+  // Realtime updates via /consultations Socket.IO namespace
+  useEffect(() => {
+    if (!token) return;
+    connectConsultationsSocket(token);
+
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const scheduleRefresh = () => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => {
+        void fetchAppointments(page, selectedStatus);
+      }, 300);
+    };
+
+    const events = [
+      SOCKET_EVENTS.consultations.server.consultationChanged,
+      SOCKET_EVENTS.consultations.server.queueChanged,
+      SOCKET_EVENTS.consultations.server.queueCalled,
+    ] as const;
+
+    events.forEach((eventName) => {
+      consultationsSocket.on(eventName, scheduleRefresh);
+    });
+
+    return () => {
+      if (timer) clearTimeout(timer);
+      events.forEach((eventName) => {
+        consultationsSocket.off(eventName, scheduleRefresh);
+      });
+    };
+  }, [fetchAppointments, page, selectedStatus, token]);
 
   const doctorOptions = useMemo(() => {
-    return Array.from(new Set(appointments.map((a) => a.doctor))).filter(Boolean);
+    const unique = new Set<string>();
+    for (const apt of appointments) {
+      if (apt.doctor && apt.doctor !== "-") unique.add(apt.doctor);
+    }
+    return Array.from(unique).sort((a, b) => a.localeCompare(b));
   }, [appointments]);
+
+  const filteredAppointments = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    return appointments.filter((apt) => {
+      if (selectedStatus === "Canceled" && apt.status !== "Canceled") {
+        return false;
+      }
+      if (selectedType !== "all" && apt.type !== selectedType) {
+        return false;
+      }
+      if (selectedDoctor !== "all" && apt.doctor !== selectedDoctor) {
+        return false;
+      }
+      if (q) {
+        const hay = `${apt.patient} ${apt.doctor} ${apt.id}`.toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+  }, [appointments, searchQuery, selectedStatus, selectedType, selectedDoctor]);
 
   const activeFiltersCount =
     (selectedStatus !== "all" ? 1 : 0) +
@@ -121,132 +168,156 @@ export function AppointmentManagement() {
     setSelectedStatus("all");
     setSelectedType("all");
     setSelectedDoctor("all");
+    setSearchQuery("");
+    setPage(1);
   };
 
-  const filteredAppointments = useMemo(() => {
-    const query = searchQuery.trim().toLowerCase();
-    return appointments.filter((apt) => {
-      const matchesSearch =
-        query === "" ||
-        apt.patient.toLowerCase().includes(query) ||
-        apt.doctor.toLowerCase().includes(query) ||
-        apt.id.toLowerCase().includes(query);
+  const statsSummary = useMemo(() => {
+    const pageLen = appointments.length;
+    const completed = appointments.filter(
+      (a) => a.status === "Completed",
+    ).length;
+    const canceled = appointments.filter(
+      (a) => a.status === "Canceled",
+    ).length;
+    const waitValues = appointments
+      .map((a) => a.estimatedWaitMinutes)
+      .filter((v): v is number => typeof v === "number" && Number.isFinite(v));
+    const avgWait =
+      waitValues.length > 0
+        ? Math.round(
+            (waitValues.reduce((acc, v) => acc + v, 0) / waitValues.length) *
+              10,
+          ) / 10
+        : null;
 
-      const matchesStatus =
-        selectedStatus === "all" ||
-        apt.status.toLowerCase() === selectedStatus.toLowerCase() ||
-        apt.sessionStatus?.toLowerCase() === selectedStatus.toLowerCase();
+    const completionRate =
+      pageLen > 0 ? Math.round((completed / pageLen) * 100) : 0;
+    const cancelRate =
+      pageLen > 0 ? Math.round((canceled / pageLen) * 100) : 0;
 
-      const matchesType =
-        selectedType === "all" ||
-        apt.type.toLowerCase() === selectedType.toLowerCase();
-
-      const matchesDoctor =
-        selectedDoctor === "all" ||
-        apt.doctor === selectedDoctor;
-
-      return matchesSearch && matchesStatus && matchesType && matchesDoctor;
-    });
-  }, [appointments, searchQuery, selectedStatus, selectedType, selectedDoctor]);
+    return {
+      total: totalCount,
+      completed,
+      canceled,
+      completionRate,
+      cancelRate,
+      avgWaitText:
+        avgWait !== null
+          ? `${avgWait} ${t("appointmentManagement.stats.minutesUnit", "phút")}`
+          : "—",
+    };
+  }, [appointments, t, totalCount]);
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
+    <div className="p-6 max-w-7xl mx-auto space-y-6">
+      {/* Header */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
             {t("appointmentManagement.title")}
           </h1>
-          <p className="text-gray-500 dark:text-gray-400 mt-1">
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
             {t("appointmentManagement.subtitle")}
           </p>
         </div>
+
+        <button
+          type="button"
+          disabled={loading}
+          onClick={() => void fetchAppointments(page, selectedStatus)}
+          className="inline-flex items-center gap-2 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3.5 py-2 text-xs font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-800 disabled:opacity-50 transition-colors cursor-pointer"
+        >
+          <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
+          {t("appointmentManagement.refresh", "Làm mới")}
+        </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-        <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-gray-100 dark:border-slate-800 p-5">
-          <div className="flex justify-between items-start mb-2">
-            <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
-              {t("appointmentManagement.stats.totalToday")}
-            </p>
-            <div className="w-8 h-8 rounded-full bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center">
-              <Calendar className="w-4 h-4 text-blue-500" />
-            </div>
+      {/* Error banner */}
+      {error && (
+        <div className="rounded-xl border border-red-200 dark:border-red-900/60 bg-red-50 dark:bg-red-950/30 px-4 py-3 flex items-center justify-between gap-3 text-xs text-red-700 dark:text-red-300">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 shrink-0" />
+            <span>{error}</span>
           </div>
-          <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100">42</h3>
-          <p className="text-xs text-green-500 font-medium mt-2">{t("appointmentManagement.stats.subtitles.increaseFromYesterday", "+12% from yesterday")}</p>
+          <button
+            type="button"
+            disabled={loading}
+            onClick={() => void fetchAppointments(page, selectedStatus)}
+            className="font-semibold underline hover:no-underline cursor-pointer disabled:opacity-50"
+          >
+            {t("appointmentManagement.retry", "Thử lại")}
+          </button>
         </div>
+      )}
 
-        <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-gray-100 dark:border-slate-800 p-5">
-          <div className="flex justify-between items-start mb-2">
-            <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
-              {t("appointmentManagement.stats.completed")}
-            </p>
-            <div className="w-8 h-8 rounded-full bg-green-50 dark:bg-green-900/20 flex items-center justify-center">
-              <Video className="w-4 h-4 text-green-500" />
-            </div>
-          </div>
-          <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100">28</h3>
-          <p className="text-xs text-gray-400 font-medium mt-2">{t("appointmentManagement.stats.subtitles.completionRate", "66% Completion Rate")}</p>
-        </div>
+      {/* Overview Stats */}
+      <ul className="m-0 p-0 list-none grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <OverviewCard
+          title={t("appointmentManagement.stats.totalAll", "Tổng ca tư vấn")}
+          stats={statsSummary.total}
+          subText={t("appointmentManagement.stats.shownInPage", {
+            count: appointments.length,
+            defaultValue: `${appointments.length} ca trên trang này`,
+          })}
+          icon={<Calendar className="w-5 h-5" />}
+          iconClassName="bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400"
+        />
+        <OverviewCard
+          title={t("appointmentManagement.stats.completed")}
+          stats={statsSummary.completed}
+          subText={`${t("appointmentManagement.stats.completionRate")}: ${statsSummary.completionRate}%`}
+          icon={<CheckCircle2 className="w-5 h-5" />}
+          iconClassName="bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400"
+        />
+        <OverviewCard
+          title={t("appointmentManagement.stats.canceled")}
+          stats={statsSummary.canceled}
+          subText={`${t("appointmentManagement.stats.cancelationRate")}: ${statsSummary.cancelRate}%`}
+          icon={<XCircle className="w-5 h-5" />}
+          iconClassName="bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400"
+        />
+        <OverviewCard
+          title={t("appointmentManagement.stats.avgWaitTime")}
+          stats={statsSummary.avgWaitText}
+          subText={t("appointmentManagement.stats.liveQueueSub", "Theo dữ liệu hàng chờ")}
+          icon={<Clock className="w-5 h-5" />}
+          iconClassName="bg-amber-50 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400"
+        />
+      </ul>
 
-        <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-gray-100 dark:border-slate-800 p-5">
-          <div className="flex justify-between items-start mb-2">
-            <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
-              {t("appointmentManagement.stats.canceled")}
-            </p>
-            <div className="w-8 h-8 rounded-full bg-red-50 dark:bg-red-900/20 flex items-center justify-center">
-              <XCircle className="w-4 h-4 text-red-500" />
-            </div>
-          </div>
-          <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100">3</h3>
-          <p className="text-xs text-gray-400 font-medium mt-2">{t("appointmentManagement.stats.subtitles.cancelRate", "7% Cancelation Rate")}</p>
-        </div>
-
-        <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-gray-100 dark:border-slate-800 p-5">
-          <div className="flex justify-between items-start mb-2">
-            <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
-              {t("appointmentManagement.stats.avgWaitTime")}
-            </p>
-            <div className="w-8 h-8 rounded-full bg-amber-50 dark:bg-amber-900/20 flex items-center justify-center">
-              <Clock className="w-4 h-4 text-amber-500" />
-            </div>
-          </div>
-          <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100">8.5 min</h3>
-          <p className="text-xs text-red-500 font-medium mt-2">{t("appointmentManagement.stats.subtitles.thanAverage", "+1.5m than average")}</p>
-        </div>
-      </div>
-
-      <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-gray-100 dark:border-slate-800 overflow-hidden">
-        <div className="border-b border-gray-100 dark:border-slate-800 px-6 py-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      {/* Queue & Consultations Table */}
+      <div className="bg-white dark:bg-slate-900 rounded-xl shadow-xs border border-gray-100 dark:border-slate-800 overflow-hidden">
+        <div className="p-6 border-b border-gray-100 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
             {t("appointmentManagement.queue.title")}
           </h2>
 
-          <div className="flex items-center space-x-3 w-full sm:w-auto">
-            <div className="relative flex-1 sm:flex-initial">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3 w-full sm:w-auto">
+            <div className="relative flex-1 sm:w-64">
+              <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
-                placeholder={t("appointmentManagement.queue.searchPlaceholder")}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 pr-4 py-2 border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 rounded-lg text-sm text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent w-full sm:w-56"
+                placeholder={t("appointmentManagement.queue.searchPlaceholder")}
+                className="w-full text-sm rounded-lg border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 py-2 pl-9 pr-4 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-colors"
               />
             </div>
 
             <button
               type="button"
               onClick={() => setIsFilterOpen((prev) => !prev)}
-              className={`flex items-center px-3 py-2 border rounded-lg text-sm font-medium transition-colors cursor-pointer ${
-                activeFiltersCount > 0 || isFilterOpen
-                  ? "border-brand bg-brand/10 text-slate-900 dark:text-brand font-semibold"
-                  : "border-gray-200 dark:border-slate-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800"
+              className={`px-3 py-2 border rounded-lg text-sm font-medium flex items-center gap-2 transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+                isFilterOpen || activeFiltersCount > 0
+                  ? "bg-brand text-slate-950 border-brand"
+                  : "border-gray-200 dark:border-slate-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800"
               }`}
             >
-              <Filter className="w-4 h-4 mr-2" />
+              <Filter className="w-4 h-4" />
               {t("appointmentManagement.queue.filter")}
               {activeFiltersCount > 0 && (
-                <span className="ml-1.5 w-5 h-5 rounded-full bg-brand text-slate-900 text-xs font-bold flex items-center justify-center">
+                <span className="ml-0.5 px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-slate-900 text-white">
                   {activeFiltersCount}
                 </span>
               )}
@@ -254,89 +325,72 @@ export function AppointmentManagement() {
           </div>
         </div>
 
-        {/* Expandable Filter Bar */}
+        {/* Advanced Filter Panel */}
         {isFilterOpen && (
-          <div className="border-b border-gray-100 dark:border-slate-800 bg-slate-50/75 dark:bg-slate-800/40 px-6 py-4 space-y-3.5 transition-all">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Filter className="w-4 h-4 text-brand" />
-                <span className="font-semibold text-sm text-gray-900 dark:text-gray-100">
-                  {t("appointmentManagement.filters.title", "Bộ lọc nâng cao")}
-                </span>
-                {activeFiltersCount > 0 && (
-                  <span className="px-2 py-0.5 rounded-full bg-brand/20 text-brand text-xs font-bold">
-                    {activeFiltersCount}
-                  </span>
-                )}
-              </div>
-              <div className="flex items-center gap-3">
-                {activeFiltersCount > 0 && (
-                  <button
-                    type="button"
-                    onClick={handleResetFilters}
-                    className="text-xs text-rose-500 hover:text-rose-600 font-semibold cursor-pointer"
-                  >
-                    {t("appointmentManagement.filters.reset", "Đặt lại")}
-                  </button>
-                )}
+          <div className="px-6 py-4 bg-gray-50/80 dark:bg-slate-800/50 border-b border-gray-100 dark:border-slate-800">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                {t("appointmentManagement.filters.title")}
+              </span>
+              {activeFiltersCount > 0 && (
                 <button
                   type="button"
-                  onClick={() => setIsFilterOpen(false)}
-                  className="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 cursor-pointer"
-                  title={t("common.close", "Đóng")}
+                  onClick={handleResetFilters}
+                  className="text-xs font-semibold text-rose-500 hover:underline cursor-pointer"
                 >
-                  <X className="w-4 h-4" />
+                  {t("appointmentManagement.filters.reset")}
                 </button>
-              </div>
+              )}
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              {/* Trạng thái (Status) */}
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
-                  {t("appointmentManagement.filters.status", "Trạng thái")}
+                  {t("appointmentManagement.filters.status")}
                 </label>
                 <select
                   value={selectedStatus}
-                  onChange={(e) => setSelectedStatus(e.target.value)}
+                  onChange={(e) => {
+                    setSelectedStatus(e.target.value);
+                    setPage(1);
+                  }}
                   className="w-full text-xs rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 py-2 px-2.5 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-brand"
                 >
-                  <option value="all">{t("appointmentManagement.filters.allStatuses", "Tất cả trạng thái")}</option>
-                  <option value="In Progress">{t("appointmentManagement.status.inProgress", "Đang khám")}</option>
-                  <option value="Waiting">{t("appointmentManagement.status.waiting", "Đang chờ")}</option>
-                  <option value="Scheduled">{t("appointmentManagement.status.scheduled", "Đã lên lịch")}</option>
-                  <option value="Completed">{t("appointmentManagement.status.completed", "Hoàn thành")}</option>
-                  <option value="Canceled">{t("appointmentManagement.status.canceled", "Đã huỷ")}</option>
+                  <option value="all">{t("appointmentManagement.filters.allStatuses")}</option>
+                  <option value="In Progress">{t("appointmentManagement.status.inProgress")}</option>
+                  <option value="Waiting">{t("appointmentManagement.status.waiting")}</option>
+                  <option value="Scheduled">{t("appointmentManagement.status.scheduled")}</option>
+                  <option value="Completed">{t("appointmentManagement.status.completed")}</option>
+                  <option value="Canceled">{t("appointmentManagement.status.canceled")}</option>
                 </select>
               </div>
 
-              {/* Hình thức (Type) */}
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
-                  {t("appointmentManagement.filters.type", "Hình thức")}
+                  {t("appointmentManagement.filters.type")}
                 </label>
                 <select
                   value={selectedType}
                   onChange={(e) => setSelectedType(e.target.value)}
                   className="w-full text-xs rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 py-2 px-2.5 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-brand"
                 >
-                  <option value="all">{t("appointmentManagement.filters.allTypes", "Tất cả hình thức")}</option>
-                  <option value="Video Call">{t("appointmentManagement.types.videoCall", "Cuộc gọi Video")}</option>
-                  <option value="Chat">{t("appointmentManagement.types.chat", "Nhắn tin Chat")}</option>
+                  <option value="all">{t("appointmentManagement.filters.allTypes")}</option>
+                  <option value="Video Call">{t("appointmentManagement.types.videoCall")}</option>
+                  <option value="Chat">{t("appointmentManagement.types.chat")}</option>
+                  <option value="Direct Consultation">{t("appointmentManagement.types.consultation")}</option>
                 </select>
               </div>
 
-              {/* Bác sĩ (Doctor) */}
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
-                  {t("appointmentManagement.filters.doctor", "Bác sĩ phụ trách")}
+                  {t("appointmentManagement.filters.doctor")}
                 </label>
                 <select
                   value={selectedDoctor}
                   onChange={(e) => setSelectedDoctor(e.target.value)}
                   className="w-full text-xs rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 py-2 px-2.5 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-brand"
                 >
-                  <option value="all">{t("appointmentManagement.filters.allDoctors", "Tất cả bác sĩ")}</option>
+                  <option value="all">{t("appointmentManagement.filters.allDoctors")}</option>
                   {doctorOptions.map((doc) => (
                     <option key={doc} value={doc}>
                       {doc}
@@ -348,28 +402,29 @@ export function AppointmentManagement() {
           </div>
         )}
 
-        {/* Filter tags row */}
+        {/* Active filter pills */}
         {activeFiltersCount > 0 && (
           <div className="flex flex-wrap items-center gap-2 px-6 py-2.5 bg-slate-50 dark:bg-slate-800/40 border-b border-gray-100 dark:border-slate-800 text-xs">
             <span className="text-gray-500 dark:text-gray-400 font-medium">
-              {t("appointmentManagement.filters.filteringBy", "Đang lọc theo")}:
+              {t("appointmentManagement.filters.filteringBy")}:
             </span>
             {selectedStatus !== "all" && (
               <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-brand/20 text-slate-800 dark:text-brand font-medium">
                 {selectedStatus === "In Progress"
                   ? t("appointmentManagement.status.inProgress")
                   : selectedStatus === "Waiting"
-                  ? t("appointmentManagement.status.waiting")
-                  : selectedStatus === "Scheduled"
-                  ? t("appointmentManagement.status.scheduled")
-                  : selectedStatus === "Completed"
-                  ? t("appointmentManagement.status.completed")
-                  : selectedStatus === "Canceled"
-                  ? t("appointmentManagement.status.canceled")
-                  : selectedStatus}
+                    ? t("appointmentManagement.status.waiting")
+                    : selectedStatus === "Scheduled"
+                      ? t("appointmentManagement.status.scheduled")
+                      : selectedStatus === "Completed"
+                        ? t("appointmentManagement.status.completed")
+                        : t("appointmentManagement.status.canceled")}
                 <button
                   type="button"
-                  onClick={() => setSelectedStatus("all")}
+                  onClick={() => {
+                    setSelectedStatus("all");
+                    setPage(1);
+                  }}
                   className="hover:text-rose-500 ml-0.5 cursor-pointer"
                 >
                   <X className="w-3 h-3" />
@@ -381,8 +436,8 @@ export function AppointmentManagement() {
                 {selectedType === "Video Call"
                   ? t("appointmentManagement.types.videoCall")
                   : selectedType === "Chat"
-                  ? t("appointmentManagement.types.chat")
-                  : selectedType}
+                    ? t("appointmentManagement.types.chat")
+                    : t("appointmentManagement.types.consultation")}
                 <button
                   type="button"
                   onClick={() => setSelectedType("all")}
@@ -409,97 +464,130 @@ export function AppointmentManagement() {
               onClick={handleResetFilters}
               className="text-xs text-rose-500 hover:underline ml-auto font-medium cursor-pointer"
             >
-              {t("appointmentManagement.filters.clearAll", "Xoá tất cả lọc")}
+              {t("appointmentManagement.filters.clearAll")}
             </button>
           </div>
         )}
 
-        <div className="overflow-x-auto max-h-[500px] overflow-y-auto">
+        {/* Table */}
+        <div className="overflow-x-auto max-h-[540px] overflow-y-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-gray-50 dark:bg-slate-800 text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wider sticky top-0 z-10 shadow-sm">
-                <th className="px-6 py-3 font-medium whitespace-nowrap">{t("appointmentManagement.table.timePos")}</th>
-                <th className="px-6 py-3 font-medium whitespace-nowrap">{t("appointmentManagement.table.patient")}</th>
-                <th className="px-6 py-3 font-medium whitespace-nowrap">{t("appointmentManagement.table.doctor")}</th>
-                <th className="px-6 py-3 font-medium whitespace-nowrap">{t("appointmentManagement.table.type")}</th>
-                <th className="px-6 py-3 font-medium whitespace-nowrap">{t("appointmentManagement.table.status")}</th>
-                <th className="px-6 py-3 font-medium text-right whitespace-nowrap">{t("appointmentManagement.table.actions", "Actions")}</th>
+              <tr className="bg-gray-50 dark:bg-slate-800 text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wider sticky top-0 z-10 shadow-xs">
+                <th className="px-6 py-3 font-medium whitespace-nowrap">
+                  {t("appointmentManagement.table.timePos")}
+                </th>
+                <th className="px-6 py-3 font-medium whitespace-nowrap">
+                  {t("appointmentManagement.table.patient")}
+                </th>
+                <th className="px-6 py-3 font-medium whitespace-nowrap">
+                  {t("appointmentManagement.table.doctor")}
+                </th>
+                <th className="px-6 py-3 font-medium whitespace-nowrap">
+                  {t("appointmentManagement.table.type")}
+                </th>
+                <th className="px-6 py-3 font-medium whitespace-nowrap">
+                  {t("appointmentManagement.table.status")}
+                </th>
+                <th className="px-6 py-3 font-medium text-right whitespace-nowrap">
+                  {t("appointmentManagement.table.actions")}
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-slate-800 text-sm">
               {loading ? (
                 Array.from({ length: 5 }).map((_, i) => (
                   <tr key={`skeleton-${i}`}>
+                    <td className="px-6 py-4"><Skeleton className="h-5 w-28" /></td>
+                    <td className="px-6 py-4"><Skeleton className="h-5 w-32" /></td>
+                    <td className="px-6 py-4"><Skeleton className="h-5 w-32" /></td>
                     <td className="px-6 py-4"><Skeleton className="h-5 w-24" /></td>
-                    <td className="px-6 py-4"><Skeleton className="h-5 w-32" /></td>
-                    <td className="px-6 py-4"><Skeleton className="h-5 w-32" /></td>
-                    <td className="px-6 py-4"><Skeleton className="h-5 w-20" /></td>
                     <td className="px-6 py-4"><Skeleton className="h-6 w-24 rounded-full" /></td>
                     <td className="px-6 py-4 text-right"><Skeleton className="h-6 w-8 rounded ml-auto" /></td>
                   </tr>
                 ))
               ) : filteredAppointments.length > 0 ? (
                 filteredAppointments.map((apt) => (
-                  <tr key={apt.id} className="hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors">
-                    <td className="px-6 py-4 font-medium text-gray-900 dark:text-gray-100 whitespace-nowrap">{apt.time}</td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="font-medium text-gray-900 dark:text-gray-100">{apt.patient}</div>
+                  <tr
+                    key={apt.id}
+                    className="hover:bg-gray-50 dark:hover:bg-slate-800/70 transition-colors"
+                  >
+                    <td className="px-6 py-4 font-medium text-gray-900 dark:text-gray-100 whitespace-nowrap">
+                      <div>{apt.time}</div>
+                      <div className="text-[11px] font-normal text-gray-400 dark:text-gray-500">
+                        {apt.mode === "on_demand"
+                          ? t("appointmentManagement.detailModal.modeOnDemand", "Khám ngay")
+                          : t("appointmentManagement.detailModal.modeScheduled", "Đặt lịch trước")}
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-gray-600 dark:text-gray-300">{apt.doctor}</div>
+                      <div className="font-medium text-gray-900 dark:text-gray-100">
+                        {apt.patient}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-gray-700 dark:text-gray-300">
+                        {apt.doctor}
+                      </div>
+                      {apt.doctorSpecialty && (
+                        <div className="text-[11px] text-gray-400 dark:text-gray-500">
+                          {apt.doctorSpecialty}
+                        </div>
+                      )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="inline-flex items-center text-gray-600 dark:text-gray-300 whitespace-nowrap">
-                        {apt.type === "Video Call" ? <Video className="w-3 h-3 mr-1 text-gray-400" /> : null}
+                        {apt.type === "Video Call" ? (
+                          <Video className="w-3.5 h-3.5 mr-1.5 text-brand" />
+                        ) : apt.type === "Chat" ? (
+                          <MessageSquare className="w-3.5 h-3.5 mr-1.5 text-blue-500" />
+                        ) : (
+                          <Stethoscope className="w-3.5 h-3.5 mr-1.5 text-emerald-500" />
+                        )}
                         {apt.type === "Video Call"
-                          ? t("appointmentManagement.types.videoCall", "Video Call")
+                          ? t("appointmentManagement.types.videoCall")
                           : apt.type === "Chat"
-                          ? t("appointmentManagement.types.chat", "Chat")
-                          : apt.type === "Routine Checkup"
-                          ? t("appointmentManagement.types.routineCheckup", "Routine Checkup")
-                          : apt.type === "Direct Consultation"
-                          ? t("appointmentManagement.types.consultation", "Direct Consultation")
-                          : apt.type}
+                            ? t("appointmentManagement.types.chat")
+                            : t("appointmentManagement.types.consultation")}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <Badge
                         variant={
-                          apt.status === "Completed"
-                            ? "default"
-                            : apt.status === "In Progress"
+                          apt.status === "Completed" || apt.status === "In Progress"
                             ? "default"
                             : apt.status === "Waiting" || apt.status === "Scheduled"
-                            ? "secondary"
-                            : "destructive"
+                              ? "secondary"
+                              : "destructive"
                         }
                         className={`whitespace-nowrap inline-flex items-center ${
                           apt.status === "Completed"
-                            ? "bg-green-500 hover:bg-green-600 dark:bg-green-600 dark:hover:bg-green-700"
+                            ? "bg-green-500 hover:bg-green-600 dark:bg-green-600 dark:hover:bg-green-700 text-white"
                             : apt.status === "Waiting" || apt.status === "Scheduled"
-                            ? "bg-amber-500 hover:bg-amber-600 dark:bg-amber-600 dark:hover:bg-amber-700 text-white"
-                            : ""
+                              ? "bg-amber-500 hover:bg-amber-600 dark:bg-amber-600 dark:hover:bg-amber-700 text-white"
+                              : ""
                         }`}
                       >
                         {apt.status === "Completed"
                           ? t("appointmentManagement.status.completed")
                           : apt.status === "In Progress"
-                          ? t("appointmentManagement.status.inProgress")
-                          : apt.status === "Waiting"
-                          ? t("appointmentManagement.status.waiting")
-                          : apt.status === "Scheduled"
-                          ? t("appointmentManagement.status.scheduled")
-                          : t("appointmentManagement.status.canceled")}
+                            ? t("appointmentManagement.status.inProgress")
+                            : apt.status === "Waiting"
+                              ? t("appointmentManagement.status.waiting")
+                              : apt.status === "Scheduled"
+                                ? t("appointmentManagement.status.scheduled")
+                                : t("appointmentManagement.status.canceled")}
                       </Badge>
                     </td>
                     <td className="px-6 py-4 text-right whitespace-nowrap">
                       <button
+                        type="button"
                         onClick={() => {
                           setSelectedAppointment(apt);
                           setIsDetailOpen(true);
                         }}
                         className="p-1.5 text-gray-400 hover:text-brand hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
-                        title="View Details"
+                        title={t("appointmentManagement.table.viewDetails")}
                       >
                         <Eye className="w-4 h-4" />
                       </button>
@@ -525,7 +613,7 @@ export function AppointmentManagement() {
                           onClick={handleResetFilters}
                           className="mt-3 px-3 py-1.5 text-xs font-semibold text-brand bg-brand/10 hover:bg-brand/20 rounded-lg transition-colors cursor-pointer"
                         >
-                          {t("appointmentManagement.filters.reset", "Đặt lại bộ lọc")}
+                          {t("appointmentManagement.filters.reset")}
                         </button>
                       )}
                     </div>
@@ -534,6 +622,38 @@ export function AppointmentManagement() {
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* Pagination footer */}
+        <div className="px-6 py-3.5 border-t border-gray-100 dark:border-slate-800 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+          <span>
+            {t("appointmentManagement.pagination.summary", {
+              page,
+              totalPages,
+              total: totalCount,
+              defaultValue: `Trang ${page} / ${totalPages} (${totalCount} kết quả)`,
+            })}
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              disabled={loading || page <= 1}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-700 disabled:opacity-40 cursor-pointer"
+            >
+              <ChevronLeft className="w-3.5 h-3.5" />
+              {t("appointmentManagement.pagination.prev", "Trước")}
+            </button>
+            <button
+              type="button"
+              disabled={loading || page >= totalPages}
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-700 disabled:opacity-40 cursor-pointer"
+            >
+              {t("appointmentManagement.pagination.next", "Sau")}
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
         </div>
       </div>
 

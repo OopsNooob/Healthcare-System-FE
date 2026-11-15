@@ -1,4 +1,4 @@
-import { api } from "@/lib/api";
+import { webAdminApi } from "@/lib/api";
 
 export type UserRole = "admin" | "patient" | "doctor";
 
@@ -102,48 +102,6 @@ type UpdateMyProfilePayload = {
   };
 };
 
-type UploadFolder =
-  | "healthcare/avatars/admin"
-  | "healthcare/avatars/doctor"
-  | "healthcare/avatars/patient";
-
-type CloudinaryUploadResponse = {
-  statusCode: number;
-  message: string;
-  data: {
-    files: Array<{
-      originalName: string;
-      publicId: string;
-      url: string;
-      secureUrl: string;
-      size: number;
-    }>;
-    uploadedAt: string;
-    totalSize: number;
-  };
-};
-
-function capitalize(value?: string) {
-  if (!value) {
-    return "";
-  }
-
-  return value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
-}
-
-function normalizeGender(value?: GenderValue) {
-  if (!value) {
-    return "";
-  }
-
-  const lowerCase = value.toLowerCase();
-  if (lowerCase === "male" || lowerCase === "female" || lowerCase === "other") {
-    return capitalize(lowerCase);
-  }
-
-  return value;
-}
-
 function normalizeAdminRole(value?: AdminRole) {
   if (!value) {
     return "";
@@ -151,20 +109,10 @@ function normalizeAdminRole(value?: AdminRole) {
 
   return value
     .split("_")
-    .map((part) => capitalize(part))
+    .map((part) =>
+      part ? `${part.charAt(0).toUpperCase()}${part.slice(1).toLowerCase()}` : "",
+    )
     .join(" ");
-}
-
-function resolveAvatarUploadFolder(role: UserRole): UploadFolder {
-  if (role === "doctor") {
-    return "healthcare/avatars/doctor";
-  }
-
-  if (role === "patient") {
-    return "healthcare/avatars/patient";
-  }
-
-  return "healthcare/avatars/admin";
 }
 
 export function mapApiProfileToUiProfile(
@@ -182,7 +130,11 @@ export function mapApiProfileToUiProfile(
     role: payload.role,
     email: payload.email ?? "",
     phone: payload.phoneNumber ?? "",
-    gender: normalizeGender(payload.gender),
+    gender:
+      typeof payload.gender === "string" && payload.gender.trim()
+        ? payload.gender.trim().charAt(0).toUpperCase() +
+          payload.gender.trim().slice(1).toLowerCase()
+        : "--",
     street: payload.address?.street ?? "",
     ward: payload.address?.ward ?? "",
     district: payload.address?.district ?? "",
@@ -200,39 +152,28 @@ export function mapApiProfileToUiProfile(
 }
 
 export async function getMyProfile() {
-  const res = await api.get<UserProfileResponse>("/auth/me");
-  return mapApiProfileToUiProfile(res.data);
+  const data = await webAdminApi.usersGetMe();
+  return mapApiProfileToUiProfile(data as unknown as UserProfileResponse);
 }
 
-export async function uploadProfileAvatar(file: File, role: UserRole) {
-  const formData = new FormData();
-  formData.append("file", file);
-  formData.append("folder", resolveAvatarUploadFolder(role));
-  formData.append("fileType", "image");
-
-  const response = await api.post<CloudinaryUploadResponse>(
-    "/upload/single",
-    formData,
-  );
+export async function uploadProfileAvatar(file: File, role?: UserRole) {
+  void role;
+  const response = await webAdminApi.uploadUploadAvatar({ file });
 
   return {
     avatarUrl:
-      response.data.data.files[0]?.secureUrl ??
-      response.data.data.files[0]?.url ??
+      response.data.files[0]?.secureUrl ??
+      response.data.files[0]?.url ??
       "",
-    avatarPublicId: response.data.data.files[0]?.publicId ?? "",
+    avatarPublicId: response.data.files[0]?.publicId ?? "",
   };
 }
 
 export async function deleteProfileAvatar(publicId: string) {
-  const response = await api.delete(
-    `/upload/delete?publicId=${encodeURIComponent(publicId)}`,
-    {
-      data: { fileType: "image" },
-    },
-  );
-
-  return response;
+  return webAdminApi.uploadDeleteFile({
+    query: { publicId },
+    body: { fileType: "image" },
+  });
 }
 
 export async function updateMyProfile(payload: ProfileDataReceiver) {
@@ -270,5 +211,5 @@ export async function updateMyProfile(payload: ProfileDataReceiver) {
     }
   }
 
-  await api.patch("/users/me", body);
+  await webAdminApi.usersUpdateMe(body);
 }
