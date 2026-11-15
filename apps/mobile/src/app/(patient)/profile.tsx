@@ -38,6 +38,7 @@ import {
   Save,
   Shield,
   ShieldCheck,
+  Stethoscope,
   Sun,
   User,
   Users,
@@ -489,31 +490,31 @@ export default function PatientProfileScreen() {
               <TouchableOpacity
                 onPress={() => router.push('/(patient)/premium')}
                 style={tw(
-                  'mt-4 w-full bg-slate-50 dark:bg-slate-800/70 rounded-2xl p-3.5 border border-slate-200 dark:border-slate-700 flex-row items-center justify-between'
+                  'mt-4 w-full bg-amber-50 dark:bg-amber-950/30 rounded-2xl p-3.5 border border-amber-200 dark:border-amber-800/50 flex-row items-center justify-between'
                 )}
               >
                 <View style={tw('flex-row items-center flex-1 mr-2')}>
                   <View
                     style={tw(
-                      'w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-900/30 items-center justify-center mr-3'
+                      'w-10 h-10 rounded-xl bg-amber-500/15 dark:bg-amber-500/20 items-center justify-center mr-3'
                     )}
                   >
-                    <Crown size={18} color={twInstance.color('text-amber-500')} />
+                    <Crown size={18} color="#f59e0b" />
                   </View>
                   <View style={tw('flex-1')}>
-                    <Text style={tw('text-xs text-slate-500 dark:text-slate-400 font-medium')}>
+                    <Text style={tw('text-xs text-amber-700 dark:text-amber-300 font-semibold')}>
                       {t('mobile.current_plan')}
                     </Text>
                     <Text style={tw('text-sm font-bold text-slate-900 dark:text-white')}>
                       {activeSubscription?.plan?.name || t('mobile.free_tier')}
                     </Text>
                     {activeSubscription?.expiresAt ? (
-                      <Text style={tw('text-xs text-slate-400 dark:text-slate-500 mt-0.5')}>
+                      <Text style={tw('text-xs text-slate-500 dark:text-slate-400 mt-0.5')}>
                         {t('mobile.expires_on')}:{' '}
                         {new Date(activeSubscription.expiresAt).toLocaleDateString(dateLocale)}
                       </Text>
                     ) : usageSummary?.consultations ? (
-                      <Text style={tw('text-xs text-slate-400 dark:text-slate-500 mt-0.5')}>
+                      <Text style={tw('text-xs text-slate-500 dark:text-slate-400 mt-0.5')}>
                         {t('mobile.consultations_quota', 'Consultations')}:{' '}
                         {usageSummary.consultations.counted} /{' '}
                         {usageSummary.consultations.unlimited
@@ -525,7 +526,7 @@ export default function PatientProfileScreen() {
                 </View>
                 <ChevronRight
                   size={18}
-                  color={twInstance.color('text-slate-400 dark:text-slate-500')}
+                  color={twInstance.color('text-amber-600 dark:text-amber-400')}
                 />
               </TouchableOpacity>
             </View>
@@ -643,10 +644,18 @@ export default function PatientProfileScreen() {
                   <TouchableOpacity
                     onPress={() => router.push('/(patient)/my-doctors')}
                     style={tw(
-                      'self-start py-2 px-4 rounded-xl bg-slate-100 dark:bg-slate-800'
+                      'self-start flex-row items-center py-2.5 px-4 rounded-xl bg-indigo-50 dark:bg-indigo-950/40'
                     )}
                   >
-                    <Text style={tw('text-xs font-bold text-slate-800 dark:text-slate-200')}>
+                    <Stethoscope
+                      size={15}
+                      color={twInstance.color('text-indigo-600 dark:text-indigo-400')}
+                      style={tw('mr-1.5')}
+                    />
+                    <Text
+                      numberOfLines={1}
+                      style={tw('text-xs font-bold text-indigo-700 dark:text-indigo-300 shrink-0')}
+                    >
                       {t('mobile.find_doctor')}
                     </Text>
                   </TouchableOpacity>

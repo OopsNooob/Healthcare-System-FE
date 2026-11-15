@@ -504,7 +504,7 @@ export default function AiChatHistoryScreen() {
                 key={tab}
                 onPress={() => setActiveTab(tab)}
                 style={tw(
-                  `flex-1 py-2 rounded-xl items-center border ${
+                  `flex-1 px-2 py-2 rounded-xl items-center justify-center border ${
                     active
                       ? 'bg-indigo-600 border-indigo-600'
                       : 'bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700'
@@ -512,8 +512,9 @@ export default function AiChatHistoryScreen() {
                 )}
               >
                 <Text
+                  numberOfLines={1}
                   style={tw(
-                    `text-xs font-bold ${
+                    `w-full text-center text-xs font-bold ${
                       active ? 'text-white' : 'text-slate-600 dark:text-slate-300'
                     }`
                   )}

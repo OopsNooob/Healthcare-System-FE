@@ -19,10 +19,16 @@ import {
   ChevronRight,
   Circle,
   ClipboardCheck,
+  ClipboardList,
   Clock,
+  Crown,
+  Flame,
   Heart,
+  Link2,
   LogOut,
+  MessageSquare,
   PauseCircle,
+  Pill,
   RefreshCw,
   Shield,
   Sparkles,
@@ -402,6 +408,47 @@ export default function PatientHomeScreen() {
 
   const completedTasksCount = completionRate?.completed ?? tasks.filter((x) => x.status === 'completed').length;
   const totalTasksCount = completionRate?.expected ?? tasks.length;
+  const adherencePercent =
+    typeof completionRate?.completionRate === 'number'
+      ? Math.min(100, Math.max(0, Math.round(completionRate.completionRate * 100)))
+      : totalTasksCount > 0
+        ? Math.round((completedTasksCount / totalTasksCount) * 100)
+        : 0;
+
+  const getTaskVisual = (taskType: TaskRow['taskType']) => {
+    switch (taskType) {
+      case 'metric':
+        return {
+          Icon: Activity,
+          color: '#f43f5e',
+          bg: 'bg-rose-100 dark:bg-rose-900/30',
+        };
+      case 'check_in':
+        return {
+          Icon: ClipboardCheck,
+          color: '#6366f1',
+          bg: 'bg-indigo-100 dark:bg-indigo-900/30',
+        };
+      case 'education':
+        return {
+          Icon: Flame,
+          color: '#f59e0b',
+          bg: 'bg-amber-100 dark:bg-amber-900/30',
+        };
+      case 'appointment':
+        return {
+          Icon: Link2,
+          color: '#3b82f6',
+          bg: 'bg-blue-100 dark:bg-blue-900/30',
+        };
+      default:
+        return {
+          Icon: Pill,
+          color: '#a855f7',
+          bg: 'bg-purple-100 dark:bg-purple-900/30',
+        };
+    }
+  };
 
   return (
     <SafeAreaView style={tw('flex-1 bg-slate-50 dark:bg-slate-950')} edges={['top']}>
@@ -459,136 +506,145 @@ export default function PatientHomeScreen() {
             <Skeleton className="h-44 w-full rounded-3xl" />
           </View>
         ) : (
-          <View style={tw('px-6 gap-5')}>
-            <TouchableOpacity
-              onPress={() => router.push('/(patient)/premium')}
-              activeOpacity={0.85}
-              style={tw('flex-row items-center justify-between bg-white dark:bg-slate-900 px-4 py-3.5 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm')}
-            >
-              <View style={tw('flex-row items-center gap-3')}>
-                <View style={tw('flex-row items-center gap-1.5')}>
-                  <Bot color={twInstance.color('text-indigo-500')} size={16} />
-                  <Text style={tw('text-xs font-bold text-slate-700 dark:text-slate-200')}>
-                    {t('mobile.ai_chats_quota', 'AI Queries')}:{' '}
-                    {quota.aiLimit !== null ? `${quota.aiUsed}/${quota.aiLimit}` : `${quota.aiUsed}`}
-                  </Text>
-                </View>
-                <View style={tw('w-[1px] h-3.5 bg-slate-200 dark:bg-slate-700')} />
-                <View style={tw('flex-row items-center gap-1.5')}>
-                  <Video color={twInstance.color('text-emerald-500')} size={16} />
-                  <Text style={tw('text-xs font-bold text-slate-700 dark:text-slate-200')}>
-                    {t('mobile.consultations_quota', 'Consultations')}:{' '}
-                    {quota.consultationsLimit !== null
-                      ? `${quota.consultationsUsed}/${quota.consultationsLimit}`
-                      : `${quota.consultationsUsed}`}
-                  </Text>
-                </View>
-              </View>
-              <ChevronRight color={twInstance.color('text-slate-400')} size={16} />
-            </TouchableOpacity>
-
-            {needsSetup && enrollment ? (
+          <View style={tw('px-6 gap-6')}>
+            {/* Colored Dual Quota Pills Bar */}
+            <View style={tw('flex-row gap-3')}>
               <TouchableOpacity
-                onPress={() =>
-                  router.push({
-                    pathname: '/(patient)/baseline-assessment',
-                    params: { enrollmentId: enrollment.id },
-                  })
-                }
-                activeOpacity={0.88}
-                style={tw('bg-indigo-600 dark:bg-indigo-700 rounded-3xl p-5 shadow-lg')}
+                onPress={() => router.push('/(patient)/premium')}
+                activeOpacity={0.85}
+                style={tw('flex-row items-center bg-emerald-50 dark:bg-emerald-900/30 px-3.5 py-2.5 rounded-full border border-emerald-200/80 dark:border-emerald-800/50 flex-1')}
               >
-                <View style={tw('flex-row items-center justify-between mb-2')}>
+                <MessageSquare size={16} color={twInstance.color('text-emerald-600 dark:text-emerald-400')} />
+                <Text
+                  numberOfLines={1}
+                  style={tw('ml-2 text-xs font-bold text-emerald-800 dark:text-emerald-300 flex-1')}
+                >
+                  {t('mobile.ai_chats_quota', 'AI Queries')}:{' '}
+                  {quota.aiLimit !== null ? `${quota.aiUsed}/${quota.aiLimit}` : `${quota.aiUsed}`}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => router.push('/(patient)/premium')}
+                activeOpacity={0.85}
+                style={tw('flex-row items-center bg-blue-50 dark:bg-blue-900/30 px-3.5 py-2.5 rounded-full border border-blue-200/80 dark:border-blue-800/50 flex-1')}
+              >
+                <Video size={16} color={twInstance.color('text-blue-600 dark:text-blue-400')} />
+                <Text
+                  numberOfLines={1}
+                  style={tw('ml-2 text-xs font-bold text-blue-800 dark:text-blue-300 flex-1')}
+                >
+                  {t('mobile.consultations_quota', 'Consultations')}:{' '}
+                  {quota.consultationsLimit !== null
+                    ? `${quota.consultationsUsed}/${quota.consultationsLimit}`
+                    : `${quota.consultationsUsed}`}
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Care Program Banner (Amber Pending Setup / Indigo Active / Indigo Discovery) */}
+            {needsSetup && enrollment ? (
+              <View style={tw('bg-amber-500 dark:bg-amber-600 rounded-3xl p-5 shadow-md border border-amber-400 dark:border-amber-500')}>
+                <View style={tw('flex-row items-center justify-between mb-2.5')}>
                   <View style={tw('flex-row items-center gap-2')}>
-                    <Sparkles color="#fde047" size={18} />
-                    <Text style={tw('text-xs font-bold uppercase tracking-wider text-indigo-100')}>
-                      {t('mobile.action_required', 'Action Required')}
-                    </Text>
+                    <View style={tw('w-7 h-7 rounded-full bg-white/20 items-center justify-center')}>
+                      <ClipboardList size={16} color="#ffffff" />
+                    </View>
+                    <View style={tw('bg-white/20 px-2.5 py-0.5 rounded-full')}>
+                      <Text numberOfLines={1} style={tw('text-white text-xs font-bold uppercase tracking-wider shrink-0')}>
+                        {t('mobile.action_required', 'Action Required')}
+                      </Text>
+                    </View>
                   </View>
-                  <ChevronRight color="#ffffff" size={18} />
                 </View>
-                <Text style={tw('text-lg font-extrabold text-white mb-1')}>
+
+                <Text style={tw('text-white font-bold text-lg mb-1 leading-snug')}>
                   {t('mobile.activate_care_program', 'Activate Care Program')}: {enrollment.program.name}
                 </Text>
-                <Text style={tw('text-xs text-indigo-100 leading-5')}>
+                <Text style={tw('text-amber-100 text-xs leading-relaxed mb-4')}>
                   {t(
                     'mobile.activate_care_program_desc',
                     'Review monitoring consent and enter baseline health values to start daily follow-up tasks.'
                   )}
                 </Text>
-              </TouchableOpacity>
+
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  onPress={() =>
+                    router.push({
+                      pathname: '/(patient)/baseline-assessment',
+                      params: { enrollmentId: enrollment.id },
+                    })
+                  }
+                  style={tw('bg-white dark:bg-slate-900 py-3 px-4 rounded-2xl flex-row items-center justify-center shadow-sm')}
+                >
+                  <Sparkles size={16} color={twInstance.color('text-amber-600 dark:text-amber-400')} style={tw('mr-2')} />
+                  <Text numberOfLines={1} style={tw('text-amber-700 dark:text-amber-300 font-bold text-sm shrink-0')}>
+                    {t('mobile.complete_assessment_now', 'Complete Assessment')}
+                  </Text>
+                  <ChevronRight size={16} color={twInstance.color('text-amber-700 dark:text-amber-300')} style={tw('ml-1')} />
+                </TouchableOpacity>
+              </View>
             ) : enrollment ? (
-              <View style={tw('bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-sm')}>
-                <View style={tw('flex-row items-start justify-between mb-3')}>
-                  <View style={tw('flex-row items-center gap-3 flex-1 mr-2')}>
-                    <View style={tw('w-11 h-11 rounded-2xl bg-indigo-50 dark:bg-indigo-900/40 items-center justify-center')}>
-                      <Shield color={twInstance.color('text-indigo-600 dark:text-indigo-400')} size={22} />
-                    </View>
-                    <View style={tw('flex-1')}>
-                      <Text style={tw('text-base font-bold text-slate-900 dark:text-white')} numberOfLines={1}>
-                        {enrollment.program.name}
-                      </Text>
-                      <Text style={tw('text-xs text-slate-500 dark:text-slate-400')}>
-                        {enrollment.assignedDoctor?.fullName || t('mobile.assigned_doctor', 'Assigned Doctor')}
-                      </Text>
-                    </View>
+              <View style={tw('bg-indigo-600 dark:bg-indigo-700 rounded-3xl p-5 shadow-md')}>
+                <View style={tw('flex-row justify-between items-start mb-4')}>
+                  <View style={tw('flex-1 mr-3')}>
+                    <Text style={tw('text-indigo-100 text-xs font-semibold uppercase tracking-wider mb-1')}>
+                      {enrollment.status === 'paused'
+                        ? t('mobile.program_paused', 'Program Paused')
+                        : t('mobile.active_program', 'Active Program')}
+                    </Text>
+                    <Text style={tw('text-white font-bold text-lg leading-tight')} numberOfLines={1}>
+                      {enrollment.program.name}
+                    </Text>
+                    <Text style={tw('text-indigo-100 text-xs mt-1')} numberOfLines={1}>
+                      {enrollment.assignedDoctor?.fullName || t('mobile.assigned_doctor', 'Assigned Doctor')}
+                    </Text>
                   </View>
-                  <View
-                    style={tw(
-                      `px-2.5 py-1 rounded-full ${
-                        enrollment.status === 'active'
-                          ? 'bg-emerald-50 dark:bg-emerald-950/50'
-                          : enrollment.status === 'paused'
-                            ? 'bg-amber-50 dark:bg-amber-950/50'
-                            : 'bg-slate-100 dark:bg-slate-800'
-                      }`
-                    )}
-                  >
-                    <Text
-                      style={tw(
-                        `text-[11px] font-bold uppercase ${
-                          enrollment.status === 'active'
-                            ? 'text-emerald-700 dark:text-emerald-300'
-                            : enrollment.status === 'paused'
-                              ? 'text-amber-700 dark:text-amber-300'
-                              : 'text-slate-600 dark:text-slate-300'
-                        }`
-                      )}
-                    >
-                      {t(`mobile.enrollment_status_${enrollment.status}`, enrollment.status)}
+                  <View style={tw('bg-white/20 px-3 py-1.5 rounded-full flex-row items-center shrink-0')}>
+                    <Flame size={14} color="#fca5a5" />
+                    <Text numberOfLines={1} style={tw('text-white text-xs font-bold ml-1 shrink-0')}>
+                      {completedTasksCount}/{totalTasksCount}
                     </Text>
                   </View>
                 </View>
 
                 {enrollment.status === 'paused' && (
-                  <View style={tw('bg-amber-50 dark:bg-amber-950/30 p-3 rounded-2xl border border-amber-200 dark:border-amber-800/50 mb-3 flex-row items-center')}>
-                    <PauseCircle color="#d97706" size={16} style={tw('mr-2 shrink-0')} />
-                    <Text style={tw('text-xs text-amber-800 dark:text-amber-200 flex-1')}>
+                  <View style={tw('bg-white/15 p-3 rounded-2xl border border-white/20 mb-3 flex-row items-center')}>
+                    <PauseCircle color="#fde68a" size={16} style={tw('mr-2 shrink-0')} />
+                    <Text style={tw('text-xs text-indigo-50 flex-1')}>
                       {t('mobile.program_paused_by_doctor', 'This care program is currently paused by your physician.')}
                     </Text>
                   </View>
                 )}
 
-                <View style={tw('flex-row items-center justify-between pt-3 border-t border-slate-100 dark:border-slate-800')}>
-                  <View>
-                    <Text style={tw('text-xs text-slate-500 dark:text-slate-400')}>
-                      {t('mobile.care_progress', 'Completed Tasks')}
+                {/* Adherence Progress Bar */}
+                <View style={tw('mb-4')}>
+                  <View style={tw('flex-row justify-between mb-1.5')}>
+                    <Text style={tw('text-indigo-100 text-xs font-medium')}>
+                      {t('mobile.adherence', 'Adherence')}
                     </Text>
-                    <Text style={tw('text-sm font-bold text-slate-900 dark:text-white mt-0.5')}>
-                      {completedTasksCount}/{totalTasksCount}
-                      {typeof completionRate?.completionRate === 'number'
-                        ? ` (${Math.round(completionRate.completionRate * 100)}%)`
-                        : ''}
+                    <Text style={tw('text-white font-bold text-xs')}>
+                      {adherencePercent}%
                     </Text>
                   </View>
+                  <View style={tw('w-full h-2 bg-indigo-900/50 rounded-full overflow-hidden')}>
+                    <View style={[tw('h-full bg-emerald-400 rounded-full'), { width: `${adherencePercent}%` }]} />
+                  </View>
+                </View>
 
+                <View style={tw('flex-row justify-between items-center')}>
+                  <View style={tw('bg-white/20 px-2.5 py-1 rounded-full')}>
+                    <Text numberOfLines={1} style={tw('text-white text-xs font-bold uppercase shrink-0')}>
+                      {t(`mobile.enrollment_status_${enrollment.status}`, enrollment.status)}
+                    </Text>
+                  </View>
                   {enrollment.allowedActions?.includes('withdraw_consent') && (
                     <TouchableOpacity
                       onPress={() => setWithdrawModalVisible(true)}
-                      style={tw('flex-row items-center px-3 py-2 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/40')}
+                      style={tw('bg-white/20 px-3.5 py-1.5 rounded-full flex-row items-center')}
                     >
-                      <LogOut color="#e11d48" size={14} style={tw('mr-1.5')} />
-                      <Text style={tw('text-xs font-bold text-rose-700 dark:text-rose-300')}>
+                      <LogOut color="#ffe4e6" size={13} style={tw('mr-1.5')} />
+                      <Text numberOfLines={1} style={tw('text-white text-xs font-bold shrink-0')}>
                         {t('mobile.withdraw_consent', 'Withdraw')}
                       </Text>
                     </TouchableOpacity>
@@ -596,131 +652,256 @@ export default function PatientHomeScreen() {
                 </View>
               </View>
             ) : (
-              <View style={tw('bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-sm')}>
-                <Text style={tw('text-base font-bold text-slate-900 dark:text-white mb-1')}>
-                  {t('mobile.no_active_care_program', 'No Active Care Program')}
-                </Text>
-                <Text style={tw('text-xs text-slate-500 dark:text-slate-400 leading-5 mb-3')}>
+              <View style={tw('bg-indigo-600 dark:bg-indigo-700 rounded-3xl p-5 shadow-md')}>
+                <View style={tw('flex-row items-center gap-3 mb-2.5')}>
+                  <View style={tw('w-10 h-10 rounded-2xl bg-white/20 items-center justify-center shrink-0')}>
+                    <Shield color="#ffffff" size={20} />
+                  </View>
+                  <View style={tw('flex-1')}>
+                    <Text style={tw('text-indigo-100 text-xs font-semibold uppercase tracking-wider')}>
+                      {t('mobile.active_program', 'Care Program')}
+                    </Text>
+                    <Text style={tw('text-white text-base font-bold')} numberOfLines={1}>
+                      {t('mobile.no_active_care_program', 'No Active Care Program')}
+                    </Text>
+                  </View>
+                </View>
+                <Text style={tw('text-xs text-indigo-100 leading-5 mb-4')}>
                   {t('mobile.no_active_care_program_desc', 'Consult with a doctor to enroll in a structured hypertension or diabetes monitoring program.')}
                 </Text>
                 <TouchableOpacity
                   onPress={() => router.push('/(patient)/my-doctors')}
-                  style={tw('bg-indigo-50 dark:bg-indigo-950/40 py-2.5 px-4 rounded-xl self-start flex-row items-center')}
+                  activeOpacity={0.85}
+                  style={tw('bg-white dark:bg-slate-900 py-2.5 px-4 rounded-xl self-start flex-row items-center shadow-sm')}
                 >
                   <Stethoscope color={twInstance.color('text-indigo-600 dark:text-indigo-400')} size={15} style={tw('mr-1.5')} />
-                  <Text style={tw('text-xs font-bold text-indigo-700 dark:text-indigo-300')}>
+                  <Text
+                    numberOfLines={1}
+                    style={tw('text-xs font-bold text-indigo-700 dark:text-indigo-300 shrink-0')}
+                  >
                     {t('mobile.find_doctor', 'Find a Doctor')}
                   </Text>
                 </TouchableOpacity>
               </View>
             )}
 
-            {upcomingConsult ? (
-              <TouchableOpacity
-                onPress={() => router.push('/(patient)/appointments')}
-                activeOpacity={0.85}
-                style={tw('bg-emerald-50 dark:bg-emerald-950/30 rounded-3xl p-4 border border-emerald-200 dark:border-emerald-800/50 flex-row items-center justify-between')}
-              >
-                <View style={tw('flex-row items-center gap-3 flex-1 mr-2')}>
-                  <View style={tw('w-11 h-11 rounded-2xl bg-emerald-500 items-center justify-center')}>
-                    <Calendar color="#ffffff" size={20} />
-                  </View>
-                  <View style={tw('flex-1')}>
-                    <Text style={tw('text-xs font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-300')}>
-                      {t('mobile.upcoming_consultation', 'Upcoming Consultation')}
-                    </Text>
-                    <Text style={tw('text-sm font-bold text-slate-900 dark:text-white mt-0.5')} numberOfLines={1}>
-                      {upcomingConsult.doctorName}
-                    </Text>
-                    <Text style={tw('text-xs text-slate-600 dark:text-slate-400')}>
-                      {upcomingConsult.specialty} • {upcomingConsult.scheduledAtText}
-                    </Text>
-                  </View>
-                </View>
-                <ChevronRight color={twInstance.color('text-emerald-700 dark:text-emerald-300')} size={18} />
-              </TouchableOpacity>
-            ) : null}
-
-            {enrollment && (
-              <View>
-                <View style={tw('flex-row items-center justify-between mb-3')}>
-                  <Text style={tw('text-lg font-bold text-slate-900 dark:text-white')}>
-                    {t('mobile.care_tasks_today', 'Care Plan Tasks')}
+            {/* Today's Tasks Section — Always Visible */}
+            <View>
+              <View style={tw('flex-row justify-between items-start mb-3.5')}>
+                <View style={tw('flex-1 mr-3')}>
+                  <Text style={tw('text-lg font-bold text-slate-900 dark:text-slate-100')}>
+                    {t('mobile.todays_tasks', "Today's Tasks")}
                   </Text>
-                  <Text style={tw('text-xs font-semibold text-slate-500 dark:text-slate-400')}>
-                    {completedTasksCount}/{totalTasksCount} {t('mobile.completed', 'Completed')}
+                  <Text style={tw('text-xs text-slate-500 dark:text-slate-400 mt-0.5')} numberOfLines={1}>
+                    {t('mobile.care_task_contract_subtitle', 'Daily vitals, symptoms & follow-ups')}
                   </Text>
                 </View>
+                <View style={tw('bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/70 dark:border-emerald-800/50 px-3 py-1 rounded-full shrink-0')}>
+                  <Text numberOfLines={1} style={tw('text-xs font-bold text-emerald-600 dark:text-emerald-400 shrink-0')}>
+                    {completedTasksCount}/{totalTasksCount} {t('mobile.done', 'Done')}
+                  </Text>
+                </View>
+              </View>
 
-                {tasks.length === 0 ? (
-                  <View style={tw('bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 items-center')}>
-                    <ClipboardCheck color={twInstance.color('text-slate-400')} size={24} />
-                    <Text style={tw('text-xs text-slate-500 dark:text-slate-400 mt-2 text-center')}>
-                      {t('mobile.no_care_tasks_scheduled', 'No tasks scheduled for this period yet.')}
-                    </Text>
+              {tasks.length === 0 ? (
+                <View style={tw('bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-sm items-center')}>
+                  <View style={tw('w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-900/30 items-center justify-center mb-3')}>
+                    <ClipboardCheck color={twInstance.color('text-indigo-500 dark:text-indigo-400')} size={24} />
                   </View>
-                ) : (
-                  <View style={tw('gap-2.5')}>
-                    {tasks.map((task) => {
-                      const isDone = task.status === 'completed';
-                      const isMissed = task.status === 'missed';
-                      return (
-                        <TouchableOpacity
-                          key={task.id}
-                          onPress={() => handleTaskPress(task)}
-                          activeOpacity={0.8}
-                          style={tw(
-                            `p-4 rounded-2xl border flex-row items-center justify-between ${
-                              isDone
-                                ? 'bg-slate-100/70 dark:bg-slate-900/60 border-slate-200 dark:border-slate-800 opacity-75'
+                  <Text style={tw('text-xs text-slate-500 dark:text-slate-400 text-center leading-5')}>
+                    {t('mobile.no_care_tasks_scheduled', 'No tasks scheduled for this period yet.')}
+                  </Text>
+                  {!enrollment && (
+                    <TouchableOpacity
+                      onPress={() => router.push('/(patient)/my-doctors')}
+                      activeOpacity={0.85}
+                      style={tw('mt-3 bg-indigo-50 dark:bg-indigo-950/40 px-4 py-2 rounded-full flex-row items-center')}
+                    >
+                      <Stethoscope color={twInstance.color('text-indigo-600 dark:text-indigo-400')} size={14} style={tw('mr-1.5')} />
+                      <Text numberOfLines={1} style={tw('text-xs font-bold text-indigo-700 dark:text-indigo-300 shrink-0')}>
+                        {t('mobile.find_doctor', 'Find a Doctor')}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              ) : (
+                <View style={tw('gap-3')}>
+                  {tasks.map((task) => {
+                    const visual = getTaskVisual(task.taskType);
+                    const TaskIcon = visual.Icon;
+                    const isDone = task.status === 'completed';
+                    const isMissed = task.status === 'missed';
+                    const isCancelled = task.status === 'cancelled';
+                    const isTerminal = isDone || isMissed || isCancelled;
+                    return (
+                      <TouchableOpacity
+                        key={task.id}
+                        onPress={() => handleTaskPress(task)}
+                        activeOpacity={0.8}
+                        style={tw(
+                          `p-4 rounded-2xl border flex-row items-center justify-between ${
+                            isTerminal
+                              ? 'bg-slate-100/70 dark:bg-slate-900/60 border-slate-200 dark:border-slate-800 opacity-75'
+                              : task.status === 'due'
+                                ? 'bg-indigo-50/70 dark:bg-indigo-950/20 border-indigo-200 dark:border-indigo-800/60 shadow-sm'
                                 : 'bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 shadow-sm'
-                            }`
-                          )}
-                        >
-                          <View style={tw('flex-row items-center gap-3 flex-1 mr-3')}>
-                            {isDone ? (
-                              <CheckCircle2 color="#10b981" size={22} />
-                            ) : isMissed ? (
-                              <AlertCircle color="#ef4444" size={22} />
-                            ) : (
-                              <Circle color={twInstance.color('text-indigo-500')} size={22} />
-                            )}
-                            <View style={tw('flex-1')}>
-                              <Text
-                                style={tw(
-                                  `text-sm font-bold ${
-                                    isDone
-                                      ? 'text-slate-500 dark:text-slate-400 line-through'
-                                      : 'text-slate-900 dark:text-white'
-                                  }`
-                                )}
-                                numberOfLines={1}
-                              >
-                                {getTaskTitle(task)}
+                          }`
+                        )}
+                      >
+                        <View style={tw('flex-row items-center flex-1 mr-3')}>
+                          <View style={tw(`w-12 h-12 rounded-xl items-center justify-center mr-3.5 shrink-0 ${visual.bg}`)}>
+                            <TaskIcon size={22} color={visual.color} />
+                          </View>
+                          <View style={tw('flex-1')}>
+                            <Text
+                              style={tw(
+                                `text-sm font-bold ${
+                                  isTerminal
+                                    ? 'text-slate-500 dark:text-slate-400 line-through'
+                                    : 'text-slate-900 dark:text-white'
+                                }`
+                              )}
+                              numberOfLines={1}
+                            >
+                              {getTaskTitle(task)}
+                            </Text>
+                            <View style={tw('flex-row items-center gap-2 mt-0.5')}>
+                              {task.scheduledFor ? (
+                                <View style={tw('flex-row items-center gap-1')}>
+                                  <Clock color={twInstance.color('text-slate-400')} size={12} />
+                                  <Text style={tw('text-xs text-slate-500 dark:text-slate-400')}>
+                                    {formatTaskTime(task.scheduledFor)}
+                                  </Text>
+                                </View>
+                              ) : null}
+                              <Text style={tw('text-xs text-slate-500 dark:text-slate-400')}>
+                                {t(`mobile.task_status_${task.status}`, task.status)}
                               </Text>
-                              <View style={tw('flex-row items-center gap-2 mt-0.5')}>
-                                {task.scheduledFor ? (
-                                  <View style={tw('flex-row items-center gap-1')}>
-                                    <Clock color={twInstance.color('text-slate-400')} size={12} />
-                                    <Text style={tw('text-xs text-slate-500 dark:text-slate-400')}>
-                                      {formatTaskTime(task.scheduledFor)}
-                                    </Text>
-                                  </View>
-                                ) : null}
-                                <Text style={tw('text-xs text-slate-400 dark:text-slate-500')}>
-                                  {t(`mobile.task_status_${task.status}`, task.status)}
-                                </Text>
-                              </View>
                             </View>
                           </View>
-                          <ChevronRight color={twInstance.color('text-slate-400')} size={18} />
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </View>
-                )}
+                        </View>
+                        <View style={tw('ml-2 shrink-0')}>
+                          {isDone ? (
+                            <CheckCircle2 color="#10b981" size={24} />
+                          ) : isMissed ? (
+                            <AlertCircle color="#ef4444" size={24} />
+                          ) : task.status === 'due' ? (
+                            <View style={tw('bg-indigo-600 px-3.5 py-1.5 rounded-full')}>
+                              <Text numberOfLines={1} style={tw('text-white text-xs font-bold shrink-0')}>
+                                {task.taskType === 'education'
+                                  ? t('mobile.view_and_ack', 'View')
+                                  : task.taskType === 'appointment'
+                                    ? t('mobile.link_btn', 'Link')
+                                    : t('mobile.start', 'Start')}
+                              </Text>
+                            </View>
+                          ) : (
+                            <Circle color={twInstance.color('text-slate-300 dark:text-slate-600')} size={24} />
+                          )}
+                        </View>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              )}
+            </View>
+
+            {/* Upgrade Premium Banner */}
+            <TouchableOpacity
+              onPress={() => router.push('/(patient)/premium')}
+              activeOpacity={0.88}
+              style={tw('bg-amber-500 dark:bg-amber-600 rounded-3xl p-5 flex-row items-center justify-between shadow-md')}
+            >
+              <View style={tw('flex-1 pr-4')}>
+                <View style={tw('flex-row items-center mb-1')}>
+                  <Crown color="#ffffff" size={20} style={tw('mr-2 shrink-0')} />
+                  <Text style={tw('text-white font-bold text-lg flex-1')} numberOfLines={1}>
+                    {t('mobile.upgrade_premium', 'Upgrade Premium')}
+                  </Text>
+                </View>
+                <Text style={tw('text-amber-50 text-xs leading-5')}>
+                  {t('mobile.unlimited_ai_chats_priority_do', 'Unlimited AI chats & priority doctor queue')}
+                </Text>
               </View>
-            )}
+              <View style={tw('w-10 h-10 bg-white/25 rounded-full items-center justify-center shrink-0')}>
+                <ChevronRight color="#ffffff" size={22} />
+              </View>
+            </TouchableOpacity>
+
+            {/* Upcoming Appointment Section — Always Visible */}
+            <View>
+              <View style={tw('flex-row justify-between items-center mb-3')}>
+                <Text style={tw('text-lg font-bold text-slate-900 dark:text-slate-100')}>
+                  {t('mobile.upcoming_appointment', 'Upcoming Appointment')}
+                </Text>
+                <TouchableOpacity onPress={() => router.push('/(patient)/appointments')}>
+                  <Text style={tw('text-sm font-semibold text-emerald-600 dark:text-emerald-400')}>
+                    {t('mobile.see_all', 'See all')}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              {upcomingConsult ? (
+                <TouchableOpacity
+                  onPress={() => router.push('/(patient)/appointments')}
+                  activeOpacity={0.88}
+                  style={tw('bg-emerald-500 dark:bg-emerald-600 rounded-3xl p-5 shadow-md')}
+                >
+                  <View style={tw('flex-row items-center mb-4')}>
+                    <View style={tw('w-12 h-12 rounded-2xl bg-white/20 items-center justify-center shrink-0')}>
+                      <Stethoscope color="#ffffff" size={24} />
+                    </View>
+                    <View style={tw('ml-3 flex-1')}>
+                      <Text style={tw('text-white font-bold text-base')} numberOfLines={1}>
+                        {upcomingConsult.doctorName}
+                      </Text>
+                      <Text style={tw('text-emerald-50 text-xs mt-0.5')} numberOfLines={1}>
+                        {upcomingConsult.specialty}
+                      </Text>
+                    </View>
+                    <View style={tw('w-10 h-10 bg-white dark:bg-slate-900 rounded-full items-center justify-center shrink-0')}>
+                      <Video color="#10b981" size={18} />
+                    </View>
+                  </View>
+
+                  <View style={tw('bg-emerald-600 dark:bg-emerald-700 rounded-2xl p-3 flex-row items-center justify-between')}>
+                    <View style={tw('flex-row items-center gap-2')}>
+                      <Calendar color="#d1fae5" size={16} />
+                      <Text style={tw('text-emerald-50 text-xs font-semibold')}>
+                        {upcomingConsult.scheduledAtText}
+                      </Text>
+                    </View>
+                    <ChevronRight color="#d1fae5" size={16} />
+                  </View>
+                </TouchableOpacity>
+              ) : (
+                <View style={tw('bg-emerald-50 dark:bg-emerald-950/30 rounded-3xl p-5 border border-emerald-200 dark:border-emerald-800/50')}>
+                  <View style={tw('flex-row items-start gap-3 mb-3')}>
+                    <View style={tw('w-11 h-11 rounded-2xl bg-emerald-500 items-center justify-center shrink-0')}>
+                      <Calendar color="#ffffff" size={20} />
+                    </View>
+                    <View style={tw('flex-1')}>
+                      <Text style={tw('text-sm font-bold text-slate-900 dark:text-white')}>
+                        {t('mobile.no_upcoming_appointments_title', 'No upcoming appointments')}
+                      </Text>
+                      <Text style={tw('text-xs text-slate-600 dark:text-slate-300 mt-0.5 leading-5')}>
+                        {t('mobile.no_upcoming_appointments_desc', 'You do not have any upcoming appointments.')}
+                      </Text>
+                    </View>
+                  </View>
+                  <TouchableOpacity
+                    onPress={() => router.push('/(patient)/my-doctors')}
+                    activeOpacity={0.85}
+                    style={tw('bg-emerald-500 dark:bg-emerald-600 py-2.5 px-4 rounded-xl self-start flex-row items-center')}
+                  >
+                    <Calendar color="#ffffff" size={14} style={tw('mr-1.5')} />
+                    <Text numberOfLines={1} style={tw('text-xs font-bold text-white shrink-0')}>
+                      {t('mobile.book_doctor', 'Find Doctors')}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
 
             <View>
               <Text style={tw('text-lg font-bold text-slate-900 dark:text-white mb-3')}>

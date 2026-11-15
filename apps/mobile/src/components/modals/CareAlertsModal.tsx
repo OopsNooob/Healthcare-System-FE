@@ -437,7 +437,7 @@ export const CareAlertsModal: React.FC<CareAlertsModalProps> = ({
                   key={tab.id}
                   onPress={() => setStatusFilter(tab.id)}
                   style={tw(
-                    `px-3 py-1.5 rounded-full border ${
+                    `px-3.5 py-1.5 rounded-full border items-center justify-center ${
                       active
                         ? 'bg-slate-900 dark:bg-brand border-slate-900 dark:border-brand'
                         : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700'
@@ -445,6 +445,7 @@ export const CareAlertsModal: React.FC<CareAlertsModalProps> = ({
                   )}
                 >
                   <Text
+                    numberOfLines={1}
                     style={tw(
                       `text-xs font-bold ${
                         active ? 'text-white dark:text-slate-900' : 'text-slate-600 dark:text-slate-300'

@@ -602,18 +602,21 @@ export default function DoctorHomeScreen() {
               {queueEntries.length === 0 ? (
                 <View
                   style={tw(
-                    'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 flex-row items-center justify-between'
+                    'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 flex-row items-center justify-between gap-3'
                   )}
                 >
-                  <View style={tw('flex-row items-center flex-1 mr-3')}>
-                    <Clock color={twInstance.color('text-slate-400')} size={18} style={tw('mr-2.5')} />
-                    <Text style={tw('text-xs text-slate-500 dark:text-slate-400')}>
+                  <View style={tw('flex-row items-center flex-1')}>
+                    <Clock color={twInstance.color('text-slate-400')} size={18} style={tw('mr-2.5 shrink-0')} />
+                    <Text
+                      numberOfLines={1}
+                      style={tw('flex-1 text-xs text-slate-500 dark:text-slate-400 leading-4')}
+                    >
                       {t('mobile.queue_empty_msg')}
                     </Text>
                   </View>
                   <TouchableOpacity
                     onPress={() => router.push('/(doctor)/consultations')}
-                    style={tw('bg-slate-100 dark:bg-slate-800 px-3 py-1.5 rounded-lg')}
+                    style={tw('bg-slate-100 dark:bg-slate-800 px-3.5 py-2 rounded-xl shrink-0')}
                   >
                     <Text style={tw('text-xs font-bold text-slate-700 dark:text-slate-200')}>
                       {t('mobile.view_all')}
@@ -708,7 +711,7 @@ export default function DoctorHomeScreen() {
                     key={tab.id}
                     onPress={() => setSeverityFilter(tab.id)}
                     style={tw(
-                      `px-3 py-1.5 rounded-full border ${
+                      `px-3.5 py-1.5 rounded-full border items-center justify-center ${
                         severityFilter === tab.id
                           ? 'bg-slate-900 dark:bg-brand border-slate-900 dark:border-brand'
                           : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800'
@@ -716,6 +719,7 @@ export default function DoctorHomeScreen() {
                     )}
                   >
                     <Text
+                      numberOfLines={1}
                       style={tw(
                         `text-xs font-bold ${
                           severityFilter === tab.id
@@ -740,7 +744,7 @@ export default function DoctorHomeScreen() {
                       setStatusFilter((prev) => (prev === tab.id ? 'all' : tab.id))
                     }
                     style={tw(
-                      `px-3 py-1.5 rounded-full border ${
+                      `px-3.5 py-1.5 rounded-full border items-center justify-center ${
                         statusFilter === tab.id
                           ? 'bg-indigo-600 border-indigo-600'
                           : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800'
@@ -748,6 +752,7 @@ export default function DoctorHomeScreen() {
                     )}
                   >
                     <Text
+                      numberOfLines={1}
                       style={tw(
                         `text-xs font-bold ${
                           statusFilter === tab.id ? 'text-white' : 'text-slate-600 dark:text-slate-300'

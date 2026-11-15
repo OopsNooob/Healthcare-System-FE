@@ -1,4 +1,6 @@
 import { useFonts } from 'expo-font';
+import { Platform } from 'react-native';
+import Constants from 'expo-constants';
 import { Stack, ThemeProvider as NavigationThemeProvider, DarkTheme, DefaultTheme, useRouter } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
@@ -19,15 +21,39 @@ import {
   connectPresenceSocket,
   notificationsSocket,
   presenceSocket,
+  setApiBaseUrl as setSharedHooksApiBaseUrl,
   setStorageProvider,
   useSharedAuthStore,
 } from '@repo/shared-hooks';
-import { setApiBaseUrl, setTokenGetter } from '@healthcare/api-client';
+import { setApiBaseUrl as setClientApiBaseUrl, setTokenGetter } from '@healthcare/api-client';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+
+function resolveMobileApiBaseUrl(): string {
+  const rawUrl =
+    (typeof process !== 'undefined' && process.env?.EXPO_PUBLIC_API_URL) ||
+    API_BASE_URL ||
+    'http://10.0.2.2:3000/api/v1';
+
+  if (Platform.OS === 'android' && /\/\/(localhost|127\.0\.0\.1)(:|\/|$)/.test(rawUrl)) {
+    const host = Constants.expoConfig?.hostUri?.split(':')[0];
+    const targetHost =
+      host && host !== 'localhost' && host !== '127.0.0.1' ? host : '10.0.2.2';
+    return rawUrl.replace(/\/\/(localhost|127\.0\.0\.1)/, `//${targetHost}`);
+  }
+
+  if ((Platform.OS === 'web' || Platform.OS === 'ios') && rawUrl.includes('10.0.2.2')) {
+    return rawUrl.replace(/\/\/10\.0\.2\.2/, '//localhost');
+  }
+
+  return rawUrl;
+}
+
+const resolvedApiBaseUrl = resolveMobileApiBaseUrl();
 
 setStorageProvider(AsyncStorage);
 setTokenGetter(() => AsyncStorage.getItem('accessToken'));
-setApiBaseUrl(API_BASE_URL);
+setSharedHooksApiBaseUrl(resolvedApiBaseUrl);
+setClientApiBaseUrl(resolvedApiBaseUrl);
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
