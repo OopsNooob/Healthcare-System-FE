@@ -1,53 +1,94 @@
-import { useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  Switch,
-  RefreshControl,
+  ActivityIndicator,
   Alert,
+  RefreshControl,
+  ScrollView,
+  Switch,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import Toast from 'react-native-toast-message';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import {
   Calendar,
-  Plus,
   Clock,
   Copy,
-  Trash2,
-  Settings2,
+  Edit2,
   Lock,
-  Unlock,
+  Plus,
+  RefreshCw,
+  Settings2,
+  Trash2,
 } from 'lucide-react-native';
+import { mobileApi, normalizePaginatedList, type FeTypes } from '@repo/shared-hooks';
 import { tw, twInstance } from '@/tw';
 import { useThemeContext } from '@/context/ThemeContext';
+import { extractApiErrorMessage } from '@/utils/apiError';
+import { extractUserProfileData } from '@/utils/userProfile';
+import { bookingPolicyLabel, timezoneLabel } from '@/utils/bookingLabels';
 import {
   AddSlotModal,
-  CopyScheduleModal,
   BookingSettingsModal,
+  CopyScheduleModal,
   type DoctorBookingSettingsDto,
 } from '@/components/modals';
+import type { EditableSlotTarget } from '@/components/modals/AddSlotModal';
+import { Skeleton } from '@/components/ui/Skeleton';
+
+const SCHEDULE_PREFS_KEY = 'doctor_schedule_prefs_v1';
 
 interface DoctorSlotItem {
   id: string;
-  time: string;
+  startAt: string;
+  endAt: string;
+  timezone: string;
   status: 'available' | 'booked' | 'blocked' | 'expired';
-  patient?: string;
+  blockReason?: string;
+  patientName?: string;
 }
 
-import { bookingPolicyLabel, timezoneLabel } from '@/utils/bookingLabels';
+const TIMEZONE_OFFSETS: Record<string, string> = {
+  'Asia/Ho_Chi_Minh': '+07:00',
+  'Asia/Bangkok': '+07:00',
+  'Asia/Singapore': '+08:00',
+  UTC: 'Z',
+};
+
+function todayYyyyMmDd(): string {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, '0');
+  const d = String(now.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+function dayRangeIso(dateStr: string, timezone: string): { from: string; to: string } {
+  const offset = TIMEZONE_OFFSETS[timezone] ?? '+07:00';
+  const start = new Date(`${dateStr}T00:00:00${offset}`);
+  const end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
+  return {
+    from: start.toISOString(),
+    to: end.toISOString(),
+  };
+}
 
 export default function DoctorScheduleScreen() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   useThemeContext();
+  const dateLocale = i18n.language?.startsWith('vi') ? 'vi-VN' : 'en-US';
 
-  const [selectedDate, setSelectedDate] = useState('2026-11-06');
+  const [selectedDate, setSelectedDate] = useState(todayYyyyMmDd);
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [isAcceptingAppts, setIsAcceptingAppts] = useState(true);
+  const [isAcceptingAppts, setIsAcceptingAppts] = useState(false);
+  const [updatingOnline, setUpdatingOnline] = useState(false);
+
   const [addSlotModalVisible, setAddSlotModalVisible] = useState(false);
+  const [editingSlot, setEditingSlot] = useState<EditableSlotTarget | null>(null);
   const [copyScheduleModalVisible, setCopyScheduleModalVisible] = useState(false);
   const [bookingSettingsVisible, setBookingSettingsVisible] = useState(false);
 
@@ -57,12 +98,34 @@ export default function DoctorScheduleScreen() {
     defaultDurationMinutes: 30,
     bufferMinutes: 10,
     minNoticeMinutes: 60,
-    cancellationDeadlineMinutes: 120,
+    cancellationDeadlineMinutes: 60,
     checkInEarlyMinutes: 15,
-    noShowAfterMinutes: 15,
+    noShowAfterMinutes: 10,
   });
 
-  const generateDates = (selectedStr: string) => {
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [slots, setSlots] = useState<DoctorSlotItem[]>([]);
+  const [busySlotId, setBusySlotId] = useState<string | null>(null);
+
+  useEffect(() => {
+    AsyncStorage.getItem(SCHEDULE_PREFS_KEY)
+      .then((raw) => {
+        if (!raw) return;
+        const parsed = JSON.parse(raw) as Partial<DoctorBookingSettingsDto>;
+        setBookingSettings((prev) => ({
+          ...prev,
+          ...(parsed.timezone ? { timezone: parsed.timezone } : {}),
+          ...(typeof parsed.defaultDurationMinutes === 'number'
+            ? { defaultDurationMinutes: parsed.defaultDurationMinutes }
+            : {}),
+        }));
+      })
+      .catch(() => {});
+  }, []);
+
+  const dates = useMemo(() => {
     const dayKeys = [
       { key: 'mobile.day_sun', fallback: 'CN' },
       { key: 'mobile.day_mon', fallback: 'T2' },
@@ -72,7 +135,7 @@ export default function DoctorScheduleScreen() {
       { key: 'mobile.day_fri', fallback: 'T6' },
       { key: 'mobile.day_sat', fallback: 'T7' },
     ];
-    const base = new Date(selectedStr);
+    const base = new Date(`${selectedDate}T12:00:00`);
     const res = [];
     for (let offset = -1; offset <= 5; offset++) {
       const d = new Date(base);
@@ -88,122 +151,244 @@ export default function DoctorScheduleScreen() {
       });
     }
     return res;
-  };
+  }, [selectedDate, t]);
 
-  const dates = generateDates(selectedDate);
-  const selectedDateObj = new Date(selectedDate);
+  const selectedDateObj = new Date(`${selectedDate}T12:00:00`);
   const monthYearTitle = t('mobile.month_year_format', {
     month: selectedDateObj.getMonth() + 1,
     year: selectedDateObj.getFullYear(),
     defaultValue: `Tháng ${selectedDateObj.getMonth() + 1}, ${selectedDateObj.getFullYear()}`,
   });
 
-  const timeSlots: DoctorSlotItem[] = [
-    { id: '1', time: '08:00 AM', status: 'expired' },
-    { id: '2', time: '09:00 AM', status: 'booked', patient: 'Alex Johnson' },
-    { id: '3', time: '10:00 AM', status: 'available' },
-    { id: '4', time: '11:00 AM', status: 'booked', patient: 'Maria Garcia' },
-    { id: '5', time: '02:00 PM', status: 'blocked' },
-    { id: '6', time: '03:30 PM', status: 'available' },
-  ];
+  const loadScheduleData = useCallback(
+    async (silent = false) => {
+      if (!silent) setLoading(true);
+      setLoadError(null);
+      try {
+        const { from, to } = dayRangeIso(selectedDate, bookingSettings.timezone);
 
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [slots, setSlots] = useState<DoctorSlotItem[]>([]);
+        const [meRes, slotsRes, consultsRes] = await Promise.allSettled([
+          mobileApi.usersGetMe(),
+          mobileApi.availabilitySlotsListMine({
+            query: { from, to, page: 1, limit: 100, sortOrder: 1 },
+          }),
+          mobileApi.consultationsFindAll({
+            query: { page: 1, limit: 50, sortOrder: -1 },
+          }),
+        ]);
 
-  useEffect(() => {
-    setLoading(true);
-    const timer = setTimeout(() => {
-      setSlots(timeSlots);
-      setLoading(false);
-    }, 600);
-    return () => clearTimeout(timer);
-  }, [selectedDate]);
+        if (meRes.status === 'fulfilled') {
+          const parsedMe = extractUserProfileData(meRes.value);
+          setIsAcceptingAppts(parsedMe.isOnline);
+        }
 
-  const onRefresh = () => {
-    setRefreshing(true);
-    setTimeout(() => setRefreshing(false), 700);
-  };
+        if (slotsRes.status !== 'fulfilled') {
+          throw slotsRes.reason;
+        }
 
-  const renderSlotSkeleton = () => (
-    <View
-      style={tw(
-        'flex-row items-center p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 mb-4'
-      )}
-    >
-      <View style={tw('w-2 h-2 rounded-full bg-slate-200 dark:bg-slate-700 mr-3')} />
-      <View style={tw('flex-1')}>
-        <View style={tw('w-24 h-5 bg-slate-200 dark:bg-slate-700 rounded mb-1')} />
-        <View style={tw('w-32 h-4 bg-slate-200 dark:bg-slate-700 rounded')} />
-      </View>
-    </View>
+        const slotPatientMap = new Map<string, string>();
+        if (consultsRes.status === 'fulfilled') {
+          const consultItems = normalizePaginatedList<Record<string, unknown>>(
+            consultsRes.value,
+            1,
+            50
+          ).items;
+          for (const c of consultItems) {
+            const slotId = typeof c.availabilitySlotId === 'string' ? c.availabilitySlotId : '';
+            const patientObj = c.patient as Record<string, unknown> | undefined;
+            const pName =
+              (typeof patientObj?.fullName === 'string' && patientObj.fullName) ||
+              (typeof c.patientName === 'string' ? c.patientName : '');
+            if (slotId && pName) {
+              slotPatientMap.set(slotId, pName);
+            }
+          }
+        }
+
+        const rawSlotsRes = slotsRes.value as FeTypes.AvailabilitySlotsListMineResponse;
+        const normalizedSlots = normalizePaginatedList<Record<string, unknown>>(
+          Array.isArray(rawSlotsRes?.data) ? rawSlotsRes.data : rawSlotsRes,
+          1,
+          100
+        ).items;
+
+        const mappedSlots: DoctorSlotItem[] = normalizedSlots
+          .map((item) => {
+            const id = String(item.id ?? item._id ?? '');
+            const statusRaw = String(item.status ?? 'available').toLowerCase();
+            const status: DoctorSlotItem['status'] =
+              statusRaw === 'booked' ||
+              statusRaw === 'blocked' ||
+              statusRaw === 'expired'
+                ? statusRaw
+                : 'available';
+            return {
+              id,
+              startAt: String(item.startAt ?? ''),
+              endAt: String(item.endAt ?? ''),
+              timezone: String(item.timezone ?? bookingSettings.timezone),
+              status,
+              blockReason:
+                typeof item.blockReason === 'string' ? item.blockReason : undefined,
+              patientName: slotPatientMap.get(id),
+            };
+          })
+          .filter((s) => s.id.length > 0);
+
+        setSlots(mappedSlots);
+      } catch (err) {
+        setLoadError(extractApiErrorMessage(err, 'mobile.schedule_load_failed'));
+      } finally {
+        setLoading(false);
+        setRefreshing(false);
+      }
+    },
+    [selectedDate, bookingSettings.timezone]
   );
 
-  const handleAddSlot = () => {
-    setAddSlotModalVisible(true);
+  useEffect(() => {
+    void loadScheduleData(false);
+  }, [loadScheduleData]);
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    void loadScheduleData(true);
+  }, [loadScheduleData]);
+
+  const handleToggleAcceptingAppts = async (next: boolean) => {
+    if (updatingOnline) return;
+    const prev = isAcceptingAppts;
+    setIsAcceptingAppts(next);
+    setUpdatingOnline(true);
+    try {
+      await mobileApi.usersUpdateMe({ isOnline: next });
+    } catch (err) {
+      setIsAcceptingAppts(prev);
+      Toast.show({
+        type: 'error',
+        text1: t('mobile.error', 'Error'),
+        text2: extractApiErrorMessage(err, 'mobile.profile_update_failed'),
+      });
+    } finally {
+      setUpdatingOnline(false);
+    }
   };
 
-  const handleCreateSlot = (newSlot: { time: string; type: string }) => {
-    const newId = (slots.length + 1).toString();
-    setSlots((prev) => [...prev, { id: newId, time: newSlot.time, status: 'available' }]);
+  const handleSavePrefs = (next: DoctorBookingSettingsDto) => {
+    setBookingSettings(next);
+    AsyncStorage.setItem(
+      SCHEDULE_PREFS_KEY,
+      JSON.stringify({
+        timezone: next.timezone,
+        defaultDurationMinutes: next.defaultDurationMinutes,
+      })
+    ).catch(() => {});
   };
 
-  // Block / Unblock available slots (CON-01..03: cannot block/delete booked slots directly)
-  const handleToggleBlockSlot = (slot: DoctorSlotItem) => {
+  const handleBlockSlot = (slot: DoctorSlotItem) => {
+    if (busySlotId) return;
     if (slot.status === 'booked') {
       Toast.show({
         type: 'error',
-        text1: t('mobile.slot_booked_locked', 'Không thể khóa khung giờ đã đặt'),
-        text2: t('mobile.slot_booked_locked_desc', 'Khung giờ đã có lịch hẹn của bệnh nhân nên không thể khóa hoặc xóa trực tiếp.'
-        ),
+        text1: t('mobile.slot_booked_locked'),
+        text2: t('mobile.slot_booked_locked_desc'),
       });
       return;
     }
-    const nextStatus = slot.status === 'blocked' ? 'available' : 'blocked';
-    setSlots((prev) =>
-      prev.map((s) => (s.id === slot.id ? { ...s, status: nextStatus } : s))
-    );
-    Toast.show({
-      type: 'success',
-      text1:
-        nextStatus === 'blocked'
-          ? t('mobile.slot_blocked', 'Đã khóa khung giờ')
-          : t('mobile.slot_unblocked', 'Đã mở lại khung giờ'),
-      text2: `${slot.time} -> ${nextStatus}`,
-    });
+
+    Alert.alert(t('mobile.block_slot_title'), t('mobile.block_slot_confirm'), [
+      { text: t('mobile.cancel'), style: 'cancel' },
+      {
+        text: t('mobile.confirm'),
+        style: 'destructive',
+        onPress: async () => {
+          setBusySlotId(slot.id);
+          try {
+            await mobileApi.availabilitySlotsBlock({
+              params: { id: slot.id },
+              body: { reason: t('mobile.block_slot_default_reason') },
+            });
+            Toast.show({
+              type: 'success',
+              text1: t('mobile.slot_blocked'),
+            });
+            await loadScheduleData(true);
+          } catch (err) {
+            Toast.show({
+              type: 'error',
+              text1: t('mobile.error', 'Error'),
+              text2: extractApiErrorMessage(err, 'mobile.slot_action_failed'),
+            });
+          } finally {
+            setBusySlotId(null);
+          }
+        },
+      },
+    ]);
   };
 
   const handleDeleteSlot = (slot: DoctorSlotItem) => {
+    if (busySlotId) return;
     if (slot.status === 'booked') {
       Toast.show({
         type: 'error',
-        text1: t('mobile.slot_booked_locked', 'Không thể xóa Slot đã đặt'),
+        text1: t('mobile.slot_booked_locked'),
       });
       return;
     }
-    Alert.alert(
-      t('mobile.delete_slot_title', 'Delete Slot'),
-      t('mobile.delete_slot_confirm', 'Are you sure you want to remove this time slot?'),
-      [
-        { text: t('mobile.cancel', 'Cancel'), style: 'cancel' },
-        {
-          text: t('mobile.delete', 'Delete'),
-          style: 'destructive',
-          onPress: () => {
+
+    Alert.alert(t('mobile.delete_slot_title'), t('mobile.delete_slot_confirm'), [
+      { text: t('mobile.cancel'), style: 'cancel' },
+      {
+        text: t('mobile.delete'),
+        style: 'destructive',
+        onPress: async () => {
+          setBusySlotId(slot.id);
+          try {
+            await mobileApi.availabilitySlotsRemove({ params: { id: slot.id } });
             setSlots((prev) => prev.filter((s) => s.id !== slot.id));
             Toast.show({
               type: 'success',
               text1: t('mobile.success', 'Success'),
-              text2: t('mobile.slot_deleted', 'Slot removed from schedule'),
+              text2: t('mobile.slot_deleted'),
             });
-          },
+          } catch (err) {
+            Toast.show({
+              type: 'error',
+              text1: t('mobile.error', 'Error'),
+              text2: extractApiErrorMessage(err, 'mobile.slot_action_failed'),
+            });
+          } finally {
+            setBusySlotId(null);
+          }
         },
-      ]
-    );
+      },
+    ]);
   };
 
+  const formatSlotWindow = (slot: DoctorSlotItem) => {
+    const start = new Date(slot.startAt);
+    const end = new Date(slot.endAt);
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+      return { label: '--:--', durationMin: bookingSettings.defaultDurationMinutes };
+    }
+    const opts: Intl.DateTimeFormatOptions = {
+      timeZone: slot.timezone || bookingSettings.timezone,
+      hour: '2-digit',
+      minute: '2-digit',
+    };
+    const startLabel = start.toLocaleTimeString(dateLocale, opts);
+    const endLabel = end.toLocaleTimeString(dateLocale, opts);
+    const durationMin = Math.max(1, Math.round((end.getTime() - start.getTime()) / 60_000));
+    return { label: `${startLabel} - ${endLabel}`, durationMin };
+  };
+
+  const availableSlotsForCopy = slots
+    .filter((s) => s.status === 'available')
+    .map((s) => ({ startAt: s.startAt, endAt: s.endAt, timezone: s.timezone }));
+
   return (
-    <SafeAreaView style={tw('flex-1 bg-slate-50 dark:bg-slate-950')}>
+    <SafeAreaView style={tw('flex-1 bg-slate-50 dark:bg-slate-950')} edges={['top']}>
       {/* Header */}
       <View
         style={tw(
@@ -213,11 +398,11 @@ export default function DoctorScheduleScreen() {
         <View style={tw('flex-row justify-between items-start')}>
           <View style={tw('flex-1 mr-3')}>
             <Text style={tw('text-2xl font-bold text-slate-900 dark:text-white')}>
-              {t('mobile.my_schedule', 'My Schedule')}
+              {t('mobile.my_schedule')}
             </Text>
             <Text style={tw('text-slate-500 dark:text-slate-400 text-xs mt-1')}>
               {timezoneLabel(bookingSettings.timezone)} • {bookingPolicyLabel(bookingSettings.bookingPolicy)} •{' '}
-              {bookingSettings.defaultDurationMinutes} {t('mobile.minutes_short', 'phút')}
+              {bookingSettings.defaultDurationMinutes} {t('mobile.minutes_short')}
             </Text>
           </View>
           <TouchableOpacity
@@ -228,7 +413,7 @@ export default function DoctorScheduleScreen() {
           >
             <Settings2 size={16} color={twInstance.color('text-indigo-600 dark:text-indigo-400')} />
             <Text style={tw('text-xs font-bold text-indigo-700 dark:text-indigo-300 ml-1.5')}>
-              {t('mobile.booking_settings', 'Cấu hình')}
+              {t('mobile.booking_settings')}
             </Text>
           </TouchableOpacity>
         </View>
@@ -238,25 +423,26 @@ export default function DoctorScheduleScreen() {
             'flex-row items-center justify-between mt-5 bg-slate-50 dark:bg-slate-950 p-4 rounded-2xl'
           )}
         >
-          <View>
+          <View style={tw('flex-1 mr-3')}>
             <Text style={tw('font-bold text-slate-900 dark:text-white')}>
-              {t('mobile.accepting_appointments', 'Accepting Appointments')}
+              {t('mobile.accepting_appointments')}
             </Text>
             <Text style={tw('text-xs text-slate-500 dark:text-slate-400')}>
-              {t('mobile.patients_can_book_available_sl', 'Patients can book available slots')}
+              {t('mobile.patients_can_book_available_sl')}
             </Text>
           </View>
           <Switch
             value={isAcceptingAppts}
-            onValueChange={setIsAcceptingAppts}
+            disabled={updatingOnline}
+            onValueChange={(v) => void handleToggleAcceptingAppts(v)}
             trackColor={{ false: '#cbd5e1', true: '#34d399' }}
-            thumbColor={'#ffffff'}
+            thumbColor="#ffffff"
           />
         </View>
       </View>
 
       <ScrollView
-        contentContainerStyle={tw('pb-20')}
+        contentContainerStyle={tw('pb-24')}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#10b981" />
@@ -274,11 +460,13 @@ export default function DoctorScheduleScreen() {
             </Text>
             <TouchableOpacity
               onPress={() => setShowDatePicker(true)}
-              style={tw('flex-row items-center px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800')}
+              style={tw(
+                'flex-row items-center px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800'
+              )}
             >
               <Calendar color="#64748b" size={16} style={tw('mr-1.5')} />
               <Text style={tw('text-slate-600 dark:text-slate-300 font-medium text-xs')}>
-                {t('mobile.pick_date', 'Pick Date')}
+                {t('mobile.pick_date')}
               </Text>
             </TouchableOpacity>
           </View>
@@ -305,7 +493,7 @@ export default function DoctorScheduleScreen() {
                   style={tw(
                     `text-xs font-bold mb-1 ${
                       selectedDate === d.date
-                        ? 'text-slate-700'
+                        ? 'text-slate-800'
                         : 'text-slate-400 dark:text-slate-500'
                     }`
                   )}
@@ -331,161 +519,228 @@ export default function DoctorScheduleScreen() {
         {/* Time Slots */}
         <View style={tw('p-6')}>
           <View style={tw('flex-row justify-between items-center mb-6')}>
-            <View>
+            <View style={tw('flex-1 mr-3')}>
               <Text style={tw('text-lg font-bold text-slate-900 dark:text-white')}>
-                {t('mobile.time_slots', 'Time Slots')}
+                {t('mobile.time_slots')}
               </Text>
-              <Text style={tw('text-xs text-slate-500 dark:text-slate-400')}>
-                {t('mobile.slot_status_legend', 'Còn trống • Đã đặt • Đã khóa • Đã qua giờ')}
+              <Text style={tw('text-xs text-slate-500 dark:text-slate-400 mt-0.5')}>
+                {t('mobile.slot_status_legend_caps')}
               </Text>
             </View>
             <TouchableOpacity
-              onPress={handleAddSlot}
-              style={tw('w-10 h-10 bg-slate-900 dark:bg-white rounded-full items-center justify-center')}
+              onPress={() => {
+                setEditingSlot(null);
+                setAddSlotModalVisible(true);
+              }}
+              style={tw(
+                'w-10 h-10 bg-slate-900 dark:bg-brand rounded-full items-center justify-center'
+              )}
             >
               <Plus color={twInstance.color('text-white dark:text-slate-900')} size={20} />
             </TouchableOpacity>
           </View>
 
-          <View style={tw('gap-4')}>
-            {loading ? (
-              <>
-                {renderSlotSkeleton()}
-                {renderSlotSkeleton()}
-                {renderSlotSkeleton()}
-              </>
-            ) : slots.length > 0 ? (
-              slots.map((slot) => (
+          {loading ? (
+            <View style={tw('gap-3')}>
+              {[1, 2, 3].map((idx) => (
                 <View
-                  key={slot.id}
+                  key={idx}
                   style={tw(
-                    `flex-row items-center p-4 rounded-2xl border ${
-                      slot.status === 'booked'
-                        ? 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700'
-                        : slot.status === 'blocked'
-                          ? 'bg-amber-50/50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800/50'
-                          : slot.status === 'expired'
-                            ? 'bg-slate-100 dark:bg-slate-900/50 border-slate-200 dark:border-slate-800 opacity-60'
-                            : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-700 border-dashed'
-                    }`
+                    'p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 gap-2'
                   )}
                 >
-                  <View style={tw('flex-row items-center flex-1')}>
+                  <Skeleton className="h-5 w-32 rounded-lg" />
+                  <Skeleton className="h-3.5 w-44 rounded-lg" />
+                </View>
+              ))}
+            </View>
+          ) : loadError ? (
+            <View
+              style={tw(
+                'p-6 rounded-2xl bg-white dark:bg-slate-900 border border-rose-200 dark:border-rose-900/40 items-center'
+              )}
+            >
+              <Text style={tw('text-sm font-bold text-slate-900 dark:text-white text-center')}>
+                {t('mobile.schedule_load_failed')}
+              </Text>
+              <Text style={tw('text-xs text-slate-500 dark:text-slate-400 text-center mt-1 mb-4')}>
+                {loadError}
+              </Text>
+              <TouchableOpacity
+                onPress={() => void loadScheduleData(false)}
+                style={tw('bg-brand px-5 py-2.5 rounded-full flex-row items-center')}
+              >
+                <RefreshCw size={14} color="#0f172a" />
+                <Text style={tw('text-slate-900 font-bold text-xs ml-1.5')}>
+                  {t('mobile.retry')}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={tw('gap-3.5')}>
+              {slots.length > 0 ? (
+                slots.map((slot) => {
+                  const win = formatSlotWindow(slot);
+                  const isBusy = busySlotId === slot.id;
+                  return (
                     <View
+                      key={slot.id}
                       style={tw(
-                        `w-2.5 h-2.5 rounded-full mr-3 ${
+                        `flex-row items-center p-4 rounded-2xl border ${
                           slot.status === 'booked'
-                            ? 'bg-red-500'
+                            ? 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700'
                             : slot.status === 'blocked'
-                              ? 'bg-amber-500'
+                              ? 'bg-amber-50/50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800/50'
                               : slot.status === 'expired'
-                                ? 'bg-slate-400'
-                                : 'bg-emerald-500'
+                                ? 'bg-slate-100 dark:bg-slate-900/50 border-slate-200 dark:border-slate-800 opacity-60'
+                                : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 border-dashed'
                         }`
                       )}
-                    />
-                    <View>
-                      <Text style={tw('text-lg font-bold text-slate-900 dark:text-white mb-0.5')}>
-                        {slot.time}
-                      </Text>
-                      {slot.status === 'booked' ? (
-                        <Text style={tw('text-xs text-slate-500 dark:text-slate-400')}>
-                          {t('mobile.booked_by', 'Booked by')}:{' '}
-                          <Text style={tw('font-bold text-slate-700 dark:text-slate-200')}>
-                            {slot.patient}
-                          </Text>{' '}
-                          ({t('mobile.slot_locked_pill', 'Đã khóa')})
-                        </Text>
-                      ) : slot.status === 'blocked' ? (
-                        <Text style={tw('text-xs text-amber-600 dark:text-amber-400 font-bold')}>
-                          {t('mobile.slot_blocked_notice', 'ĐÃ KHÓA (tạm ngưng đặt lịch)')}
-                        </Text>
-                      ) : slot.status === 'expired' ? (
-                        <Text style={tw('text-xs text-slate-400 font-medium')}>
-                          {t('mobile.slot_expired_notice', 'ĐÃ QUA GIỜ')}
-                        </Text>
-                      ) : (
-                        <Text style={tw('text-xs text-emerald-600 dark:text-emerald-400 font-bold')}>
-                          {t('mobile.slot_available_notice', 'CÒN TRỐNG')} ({bookingSettings.defaultDurationMinutes} {t('mobile.minutes_short', 'phút')})
-                        </Text>
-                      )}
-                    </View>
-                  </View>
+                    >
+                      <View style={tw('flex-row items-center flex-1 mr-2')}>
+                        <View
+                          style={tw(
+                            `w-2.5 h-2.5 rounded-full mr-3 ${
+                              slot.status === 'booked'
+                                ? 'bg-red-500'
+                                : slot.status === 'blocked'
+                                  ? 'bg-amber-500'
+                                  : slot.status === 'expired'
+                                    ? 'bg-slate-400'
+                                    : 'bg-emerald-500'
+                            }`
+                          )}
+                        />
+                        <View style={tw('flex-1')}>
+                          <Text style={tw('text-base font-bold text-slate-900 dark:text-white mb-0.5')}>
+                            {win.label}
+                          </Text>
+                          {slot.status === 'booked' ? (
+                            <Text style={tw('text-xs text-slate-500 dark:text-slate-400')}>
+                              {slot.patientName ? `${t('mobile.booked_by')}: ${slot.patientName} • ` : ''}
+                              {t('mobile.slot_booked_badge')}
+                            </Text>
+                          ) : slot.status === 'blocked' ? (
+                            <Text style={tw('text-xs text-amber-600 dark:text-amber-400 font-bold')}>
+                              {t('mobile.slot_blocked_notice')}
+                              {slot.blockReason ? ` — ${slot.blockReason}` : ''}
+                            </Text>
+                          ) : slot.status === 'expired' ? (
+                            <Text style={tw('text-xs text-slate-400 font-medium')}>
+                              {t('mobile.slot_expired_notice')}
+                            </Text>
+                          ) : (
+                            <Text style={tw('text-xs text-emerald-600 dark:text-emerald-400 font-bold')}>
+                              {t('mobile.slot_available_notice')} ({win.durationMin} {t('mobile.minutes_short')})
+                            </Text>
+                          )}
+                        </View>
+                      </View>
 
-                  {(slot.status === 'available' || slot.status === 'blocked') && (
-                    <View style={tw('flex-row items-center gap-1')}>
-                      <TouchableOpacity
-                        onPress={() => handleToggleBlockSlot(slot)}
-                        style={tw('p-2 bg-slate-100 dark:bg-slate-800 rounded-xl')}
-                      >
-                        {slot.status === 'blocked' ? (
-                          <Unlock color="#10b981" size={18} />
-                        ) : (
-                          <Lock color="#f59e0b" size={18} />
-                        )}
-                      </TouchableOpacity>
-                      <TouchableOpacity onPress={() => handleDeleteSlot(slot)} style={tw('p-2')}>
-                        <Trash2 color="#ef4444" size={18} />
-                      </TouchableOpacity>
+                      {isBusy ? (
+                        <ActivityIndicator size="small" color={twInstance.color('text-slate-500')} />
+                      ) : slot.status === 'available' || slot.status === 'blocked' ? (
+                        <View style={tw('flex-row items-center gap-1.5')}>
+                          {slot.status === 'available' ? (
+                            <>
+                              <TouchableOpacity
+                                disabled={Boolean(busySlotId)}
+                                onPress={() => {
+                                  setEditingSlot({
+                                    id: slot.id,
+                                    startAt: slot.startAt,
+                                    endAt: slot.endAt,
+                                    timezone: slot.timezone,
+                                  });
+                                  setAddSlotModalVisible(true);
+                                }}
+                                style={tw('p-2 bg-slate-100 dark:bg-slate-800 rounded-xl')}
+                              >
+                                <Edit2 color={twInstance.color('text-slate-600 dark:text-slate-300')} size={16} />
+                              </TouchableOpacity>
+                              <TouchableOpacity
+                                disabled={Boolean(busySlotId)}
+                                onPress={() => handleBlockSlot(slot)}
+                                style={tw('p-2 bg-amber-50 dark:bg-amber-900/30 rounded-xl')}
+                              >
+                                <Lock color="#f59e0b" size={16} />
+                              </TouchableOpacity>
+                            </>
+                          ) : null}
+                          <TouchableOpacity
+                            disabled={Boolean(busySlotId)}
+                            onPress={() => handleDeleteSlot(slot)}
+                            style={tw('p-2 bg-rose-50 dark:bg-rose-900/30 rounded-xl')}
+                          >
+                            <Trash2 color="#ef4444" size={16} />
+                          </TouchableOpacity>
+                        </View>
+                      ) : null}
                     </View>
+                  );
+                })
+              ) : (
+                <View
+                  style={tw(
+                    'items-center justify-center py-8 border border-slate-200 dark:border-slate-700 border-dashed rounded-2xl bg-slate-50 dark:bg-slate-950'
                   )}
+                >
+                  <Clock color="#94a3b8" size={32} style={tw('mb-2')} />
+                  <Text style={tw('text-slate-500 dark:text-slate-400 font-medium')}>
+                    {t('mobile.no_time_slots_for_this_date')}
+                  </Text>
                 </View>
-              ))
-            ) : (
-              <View
-                style={tw(
-                  'items-center justify-center py-8 border border-slate-200 dark:border-slate-700 border-dashed rounded-2xl bg-slate-50 dark:bg-slate-950'
-                )}
-              >
-                <Clock color="#94a3b8" size={32} style={tw('mb-2')} />
-                <Text style={tw('text-slate-500 dark:text-slate-400 font-medium')}>
-                  {t('mobile.no_time_slots_for_this_date', 'No time slots for this date')}
-                </Text>
-              </View>
-            )}
-          </View>
+              )}
+            </View>
+          )}
 
           <TouchableOpacity
             onPress={() => setCopyScheduleModalVisible(true)}
+            disabled={availableSlotsForCopy.length === 0}
             style={tw(
-              'mt-8 py-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl flex-row items-center justify-center border-dashed'
+              `mt-8 py-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl flex-row items-center justify-center border-dashed ${
+                availableSlotsForCopy.length === 0 ? 'opacity-50' : ''
+              }`
             )}
           >
             <Copy color="#64748b" size={18} style={tw('mr-2')} />
             <Text style={tw('text-slate-600 dark:text-slate-300 font-bold')}>
-              {t('mobile.copy_schedule_to_next_week', 'Copy schedule to next week')}
+              {t('mobile.copy_schedule_to_next_week')}
             </Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
 
-      {/* Add Slot Modal */}
       <AddSlotModal
         visible={addSlotModalVisible}
-        onClose={() => setAddSlotModalVisible(false)}
+        onClose={() => {
+          setAddSlotModalVisible(false);
+          setEditingSlot(null);
+        }}
         selectedDate={selectedDate}
-        onAddSlot={handleCreateSlot}
+        timezone={bookingSettings.timezone}
+        defaultDurationMinutes={bookingSettings.defaultDurationMinutes}
+        editingSlot={editingSlot}
+        onSaved={() => void loadScheduleData(true)}
       />
 
-      {/* Copy Schedule Modal */}
       <CopyScheduleModal
         visible={copyScheduleModalVisible}
         onClose={() => setCopyScheduleModalVisible(false)}
-        slotCount={slots.filter((s) => s.status === 'available').length || 4}
+        slotsToCopy={availableSlotsForCopy}
+        onCopied={() => void loadScheduleData(true)}
       />
 
-      {/* Booking Settings Modal (D-03, PUT /doctors/me/booking-settings) */}
       <BookingSettingsModal
         visible={bookingSettingsVisible}
         onClose={() => setBookingSettingsVisible(false)}
         settings={bookingSettings}
-        onSave={(next) => setBookingSettings(next)}
+        onSave={handleSavePrefs}
       />
 
-      {/* Date Picker Native Dialog */}
-      {showDatePicker && (
+      {showDatePicker ? (
         <DateTimePicker
-          value={new Date(selectedDate)}
+          value={selectedDateObj}
           mode="date"
           display="default"
           onChange={(event, date) => {
@@ -498,7 +753,7 @@ export default function DoctorScheduleScreen() {
             }
           }}
         />
-      )}
+      ) : null}
     </SafeAreaView>
   );
 }

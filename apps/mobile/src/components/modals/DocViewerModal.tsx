@@ -18,10 +18,10 @@ interface DocViewerModalProps {
 export const DocViewerModal: React.FC<DocViewerModalProps> = ({
   visible,
   onClose,
-  fileName = 'Medical_Telemetry_Report.pdf',
-  fileSize = '1.2 MB',
+  fileName = '',
+  fileSize = '',
   fileUri,
-  uploadDate = '17/10/2026',
+  uploadDate = '',
   summary,
 }) => {
   const { t } = useTranslation();

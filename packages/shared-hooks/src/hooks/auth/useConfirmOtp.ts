@@ -12,9 +12,6 @@ export function useConfirmOtp() {
   const [data, setData] = useState<ConfirmOtpResponse | null>(null);
 
   const confirmOtp = useCallback(async (payload: ConfirmOtpPayload) => {
-    setLoading(true);
-    setError(null);
-
     if (!payload.email.trim()) {
       const errorMsg = "Please enter your email";
       setError(errorMsg);
@@ -26,6 +23,9 @@ export function useConfirmOtp() {
       setError(errorMsg);
       throw new Error(errorMsg);
     }
+
+    setLoading(true);
+    setError(null);
 
     try {
       const res = await submitConfirmOtp(payload);

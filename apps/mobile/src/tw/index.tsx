@@ -1,5 +1,4 @@
 import { Link as RouterLink } from "expo-router";
-import React from "react";
 import {
   View as RNView,
   Text as RNText,
@@ -7,7 +6,6 @@ import {
   ScrollView as RNScrollView,
   TouchableHighlight as RNTouchableHighlight,
   TextInput as RNTextInput,
-  StyleSheet,
 } from "react-native";
 import { cssInterop } from "nativewind";
 
@@ -19,7 +17,7 @@ cssInterop(RNTextInput, { className: "style" });
 cssInterop(RouterLink as any, { className: "style" });
 
 export const Link = RouterLink as any;
-export const useCSSVariable = (variable: string) => undefined;
+export const useCSSVariable = (_variable: string) => undefined;
 export const View = RNView as any;
 export const Text = RNText as any;
 export const ScrollView = RNScrollView as any;

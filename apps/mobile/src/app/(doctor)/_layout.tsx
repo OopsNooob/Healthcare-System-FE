@@ -2,7 +2,6 @@ import { Tabs } from "expo-router";
 import { Home, Calendar, User, Users, Stethoscope } from "lucide-react-native";
 import { useTranslation } from 'react-i18next';
 import { useThemeContext } from '@/context/ThemeContext';
-import { tw } from '@/tw';
 
 export default function DoctorLayout() {
   const { t } = useTranslation();

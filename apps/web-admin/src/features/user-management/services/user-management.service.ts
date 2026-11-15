@@ -222,7 +222,7 @@ export async function checkUsersOnlineStatus(
 
   try {
     const res = await webAdminApi.presenceCheckUsersStatus({
-      userIds: cleanIds,
+      body: { userIds: cleanIds },
     } as unknown as PresenceCheckUsersStatusRequest);
     const onlineIds = res.data?.onlineUserIds ?? [];
     return new Set(onlineIds.map((id) => String(id)));

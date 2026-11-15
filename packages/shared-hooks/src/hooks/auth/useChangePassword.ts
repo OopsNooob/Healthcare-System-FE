@@ -12,9 +12,6 @@ export function useChangePassword() {
   const [data, setData] = useState<ChangePasswordResponse | null>(null);
 
   const changePassword = useCallback(async (payload: ChangePasswordPayload) => {
-    setLoading(true);
-    setError(null);
-
     if (!payload.email.trim()) {
       const errorMsg = "Email is required";
       setError(errorMsg);
@@ -32,6 +29,9 @@ export function useChangePassword() {
       setError(errorMsg);
       throw new Error(errorMsg);
     }
+
+    setLoading(true);
+    setError(null);
 
     try {
       const res = await submitChangePassword(payload);

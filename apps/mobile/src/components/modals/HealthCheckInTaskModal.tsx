@@ -1,10 +1,13 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { View, Text, Modal, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { X, ClipboardCheck, CheckCircle2, AlertCircle, ShieldCheck } from 'lucide-react-native';
+import { X, ClipboardCheck, CheckCircle2, AlertCircle, ShieldCheck, RefreshCw } from 'lucide-react-native';
 import Toast from 'react-native-toast-message';
+import { mobileApi, type FeTypes } from '@repo/shared-hooks';
 import { tw, twInstance } from '@/tw';
 import { useThemeContext } from '@/context/ThemeContext';
+import { Skeleton } from '@/components/ui/Skeleton';
+import { extractApiErrorMessage } from '@/utils/apiError';
 
 export type OverallStatus = 'improved' | 'stable' | 'worsened';
 export type CheckInSeverity = 'none' | 'mild' | 'moderate' | 'severe';
@@ -18,6 +21,7 @@ export interface HealthCheckInPayload {
 interface HealthCheckInTaskModalProps {
   visible: boolean;
   onClose: () => void;
+  taskId?: string | null;
   taskTitle?: string;
   allowedSymptomCodes?: string[];
   responseConfigured?: boolean;
@@ -28,6 +32,7 @@ const SYMPTOM_ALLOWLIST = [
   { code: 'headache', key: 'mobile.sym_headache', fallback: 'Headache' },
   { code: 'dizziness', key: 'mobile.sym_dizziness', fallback: 'Dizziness' },
   { code: 'chest_discomfort', key: 'mobile.sym_chest_discomfort', fallback: 'Chest Discomfort' },
+  { code: 'chest_tightness', key: 'mobile.sym_chest_tightness', fallback: 'Chest Tightness' },
   { code: 'shortness_of_breath', key: 'mobile.sym_shortness_of_breath', fallback: 'Shortness of Breath' },
   { code: 'fatigue', key: 'mobile.sym_fatigue', fallback: 'Unusual Fatigue' },
   { code: 'blurred_vision', key: 'mobile.sym_blurred_vision', fallback: 'Blurred Vision' },
@@ -38,9 +43,10 @@ const SYMPTOM_ALLOWLIST = [
 export const HealthCheckInTaskModal: React.FC<HealthCheckInTaskModalProps> = ({
   visible,
   onClose,
+  taskId,
   taskTitle,
-  allowedSymptomCodes,
-  responseConfigured = true,
+  allowedSymptomCodes: propAllowedSymptomCodes,
+  responseConfigured: propResponseConfigured = true,
   onSubmit,
 }) => {
   const { t } = useTranslation();
@@ -52,10 +58,70 @@ export const HealthCheckInTaskModal: React.FC<HealthCheckInTaskModalProps> = ({
   const [validationError, setValidationError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const [taskDetail, setTaskDetail] = useState<FeTypes.CareTaskDetailResponse | null>(null);
+  const [isLoadingDetail, setIsLoadingDetail] = useState(false);
+  const [detailError, setDetailError] = useState<string | null>(null);
+
+  const loadTaskDetail = useCallback(async () => {
+    if (!taskId) {
+      setTaskDetail(null);
+      setDetailError(null);
+      return;
+    }
+    setIsLoadingDetail(true);
+    setDetailError(null);
+    try {
+      const detail = await mobileApi.careTaskDetail({ params: { id: taskId } });
+      setTaskDetail(detail);
+    } catch (err) {
+      setDetailError(extractApiErrorMessage(err, 'mobile.load_task_failed'));
+    } finally {
+      setIsLoadingDetail(false);
+    }
+  }, [taskId]);
+
+  useEffect(() => {
+    if (visible) {
+      setOverallStatus('stable');
+      setSeverity('none');
+      setSymptomCodes([]);
+      setValidationError(null);
+      void loadTaskDetail();
+    }
+  }, [visible, loadTaskDetail]);
+
+  const presentation = (taskDetail?.presentation ?? {}) as Record<string, unknown>;
+  const serverAllowedSymptoms = Array.isArray(presentation.allowedSymptomCodes)
+    ? (presentation.allowedSymptomCodes.filter((s): s is string => typeof s === 'string'))
+    : undefined;
+  const resolvedAllowedSymptomCodes = serverAllowedSymptoms ?? propAllowedSymptomCodes;
+
+  const isResponseConfigured =
+    taskDetail !== null
+      ? presentation.responseConfigured !== false
+      : propResponseConfigured;
+
+  const canRespondAction =
+    !taskDetail ||
+    taskDetail.allowedActions?.includes('submit_check_in') ||
+    taskDetail.status === 'due' ||
+    taskDetail.status === 'scheduled';
+
+  const isCompletedAlready = taskDetail?.status === 'completed';
+
   const visibleSymptoms =
-    allowedSymptomCodes && allowedSymptomCodes.length > 0
-      ? SYMPTOM_ALLOWLIST.filter((s) => allowedSymptomCodes.includes(s.code))
-      : SYMPTOM_ALLOWLIST;
+    resolvedAllowedSymptomCodes && resolvedAllowedSymptomCodes.length > 0
+      ? resolvedAllowedSymptomCodes.map((code) => {
+          const match = SYMPTOM_ALLOWLIST.find((s) => s.code === code);
+          return (
+            match ?? {
+              code,
+              key: `mobile.sym_${code}`,
+              fallback: code.replace(/_/g, ' '),
+            }
+          );
+        })
+      : SYMPTOM_ALLOWLIST.slice(0, 8);
 
   const handleSelectSeverity = (nextSeverity: CheckInSeverity) => {
     setSeverity(nextSeverity);
@@ -84,7 +150,7 @@ export const HealthCheckInTaskModal: React.FC<HealthCheckInTaskModalProps> = ({
   };
 
   const handleConfirm = async () => {
-    if (isSubmitting || !responseConfigured) return;
+    if (isSubmitting || !isResponseConfigured || !canRespondAction || isCompletedAlready) return;
 
     if (severity === 'none' && symptomCodes.length > 0) {
       setValidationError(
@@ -107,7 +173,6 @@ export const HealthCheckInTaskModal: React.FC<HealthCheckInTaskModalProps> = ({
 
     setIsSubmitting(true);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 260));
       const payload: HealthCheckInPayload = {
         overallStatus,
         severity,
@@ -123,24 +188,21 @@ export const HealthCheckInTaskModal: React.FC<HealthCheckInTaskModalProps> = ({
         ),
       });
       onClose();
+    } catch (err) {
+      Toast.show({
+        type: 'error',
+        text1: t('mobile.error', 'Error'),
+        text2: extractApiErrorMessage(err, 'mobile.checkin_submit_failed'),
+      });
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const statusOptions: { id: OverallStatus; label: string }[] = [
-    {
-      id: 'improved',
-      label: t('mobile.status_improved', 'Improved'),
-    },
-    {
-      id: 'stable',
-      label: t('mobile.status_stable', 'Stable'),
-    },
-    {
-      id: 'worsened',
-      label: t('mobile.status_worsened', 'Worsened'),
-    },
+    { id: 'improved', label: t('mobile.status_improved', 'Improved') },
+    { id: 'stable', label: t('mobile.status_stable', 'Stable') },
+    { id: 'worsened', label: t('mobile.status_worsened', 'Worsened') },
   ];
 
   const severityOptions: { id: CheckInSeverity; label: string }[] = [
@@ -150,11 +212,12 @@ export const HealthCheckInTaskModal: React.FC<HealthCheckInTaskModalProps> = ({
     { id: 'severe', label: t('mobile.sev_severe', 'Severe') },
   ];
 
+  const canSubmit = !isLoadingDetail && !detailError && isResponseConfigured && canRespondAction && !isCompletedAlready;
+
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <View style={tw('flex-1 justify-end bg-black/60')}>
         <View style={tw('bg-white dark:bg-slate-900 rounded-t-3xl max-h-[88%] border-t border-slate-200 dark:border-slate-800')}>
-          {/* Header */}
           <View style={tw('p-5 border-b border-slate-100 dark:border-slate-800 flex-row items-center justify-between')}>
             <View style={tw('flex-row items-center flex-1 mr-3')}>
               <View style={tw('w-10 h-10 rounded-2xl bg-indigo-100 dark:bg-indigo-900/40 items-center justify-center mr-3')}>
@@ -178,7 +241,30 @@ export const HealthCheckInTaskModal: React.FC<HealthCheckInTaskModalProps> = ({
             </TouchableOpacity>
           </View>
 
-          {!responseConfigured ? (
+          {isLoadingDetail ? (
+            <View style={tw('p-5 gap-3')}>
+              <Skeleton className="h-5 w-44 rounded-lg" />
+              <Skeleton className="h-14 w-full rounded-2xl" />
+              <Skeleton className="h-14 w-full rounded-2xl" />
+              <Skeleton className="h-12 w-full rounded-xl mt-2" />
+            </View>
+          ) : detailError ? (
+            <View style={tw('p-6 items-center gap-3')}>
+              <AlertCircle color="#ef4444" size={28} />
+              <Text style={tw('text-sm font-bold text-slate-900 dark:text-white text-center')}>
+                {detailError}
+              </Text>
+              <TouchableOpacity
+                onPress={() => void loadTaskDetail()}
+                style={tw('px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 flex-row items-center')}
+              >
+                <RefreshCw color={twInstance.color('text-slate-700 dark:text-slate-200')} size={16} style={tw('mr-2')} />
+                <Text style={tw('text-xs font-bold text-slate-700 dark:text-slate-200')}>
+                  {t('mobile.retry', 'Retry')}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          ) : !isResponseConfigured ? (
             <View style={tw('p-6 items-center')}>
               <View style={tw('w-12 h-12 rounded-full bg-amber-100 dark:bg-amber-900/30 items-center justify-center mb-3')}>
                 <AlertCircle color="#f59e0b" size={24} />
@@ -193,9 +279,20 @@ export const HealthCheckInTaskModal: React.FC<HealthCheckInTaskModalProps> = ({
                 )}
               </Text>
             </View>
+          ) : isCompletedAlready ? (
+            <View style={tw('p-6 items-center')}>
+              <View style={tw('w-12 h-12 rounded-full bg-emerald-100 dark:bg-emerald-900/30 items-center justify-center mb-3')}>
+                <CheckCircle2 color="#10b981" size={24} />
+              </View>
+              <Text style={tw('text-base font-bold text-slate-900 dark:text-white text-center mb-1')}>
+                {t('mobile.task_already_completed_title', 'Check-in Already Completed')}
+              </Text>
+              <Text style={tw('text-xs text-slate-500 dark:text-slate-400 text-center leading-5')}>
+                {t('mobile.task_already_completed_desc', 'Your response has been recorded for this care window.')}
+              </Text>
+            </View>
           ) : (
             <ScrollView contentContainerStyle={tw('p-5 gap-5')} showsVerticalScrollIndicator={false}>
-              {/* 1. Overall Status */}
               <View>
                 <Text style={tw('text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2.5')}>
                   1. {t('mobile.overall_status_label', 'Overall Health Status Today')}
@@ -206,6 +303,7 @@ export const HealthCheckInTaskModal: React.FC<HealthCheckInTaskModalProps> = ({
                     return (
                       <TouchableOpacity
                         key={opt.id}
+                        disabled={isSubmitting}
                         onPress={() => setOverallStatus(opt.id)}
                         style={tw(
                           `p-3.5 rounded-2xl border flex-row items-center justify-between ${
@@ -231,7 +329,6 @@ export const HealthCheckInTaskModal: React.FC<HealthCheckInTaskModalProps> = ({
                 </View>
               </View>
 
-              {/* 2. Severity */}
               <View>
                 <Text style={tw('text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2.5')}>
                   2. {t('mobile.severity_label', 'Symptom Severity')}
@@ -242,6 +339,7 @@ export const HealthCheckInTaskModal: React.FC<HealthCheckInTaskModalProps> = ({
                     return (
                       <TouchableOpacity
                         key={sev.id}
+                        disabled={isSubmitting}
                         onPress={() => handleSelectSeverity(sev.id)}
                         style={tw(
                           `px-3.5 py-2.5 rounded-xl border ${
@@ -272,7 +370,6 @@ export const HealthCheckInTaskModal: React.FC<HealthCheckInTaskModalProps> = ({
                 </View>
               </View>
 
-              {/* 3. Reported Symptoms */}
               <View>
                 <View style={tw('flex-row justify-between items-center mb-2.5')}>
                   <Text style={tw('text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400')}>
@@ -301,6 +398,7 @@ export const HealthCheckInTaskModal: React.FC<HealthCheckInTaskModalProps> = ({
                     return (
                       <TouchableOpacity
                         key={sym.code}
+                        disabled={isSubmitting}
                         onPress={() => toggleSymptom(sym.code)}
                         style={tw(
                           `px-3.5 py-2.5 rounded-xl border flex-row items-center ${
@@ -325,6 +423,15 @@ export const HealthCheckInTaskModal: React.FC<HealthCheckInTaskModalProps> = ({
                 </View>
               </View>
 
+              {!canRespondAction && (
+                <View style={tw('bg-amber-50 dark:bg-amber-950/40 p-3.5 rounded-2xl border border-amber-200 dark:border-amber-800 flex-row items-center')}>
+                  <AlertCircle color="#f59e0b" size={18} style={tw('mr-2')} />
+                  <Text style={tw('text-xs text-amber-800 dark:text-amber-300 font-medium flex-1')}>
+                    {t('mobile.task_window_closed', 'This task window is currently closed or outside schedule.')}
+                  </Text>
+                </View>
+              )}
+
               {validationError && (
                 <View style={tw('bg-rose-50 dark:bg-rose-950/40 p-3.5 rounded-2xl border border-rose-200 dark:border-rose-800 flex-row items-center')}>
                   <AlertCircle color="#ef4444" size={18} style={tw('mr-2')} />
@@ -334,7 +441,6 @@ export const HealthCheckInTaskModal: React.FC<HealthCheckInTaskModalProps> = ({
             </ScrollView>
           )}
 
-          {/* Footer */}
           <View style={tw('p-4 border-t border-slate-100 dark:border-slate-800 flex-row gap-3')}>
             <TouchableOpacity
               disabled={isSubmitting}
@@ -346,11 +452,11 @@ export const HealthCheckInTaskModal: React.FC<HealthCheckInTaskModalProps> = ({
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
-              disabled={isSubmitting || !responseConfigured}
+              disabled={isSubmitting || !canSubmit}
               onPress={handleConfirm}
               style={tw(
                 `flex-1 py-3.5 rounded-xl bg-brand items-center justify-center flex-row ${
-                  isSubmitting || !responseConfigured ? 'opacity-50' : ''
+                  isSubmitting || !canSubmit ? 'opacity-50' : ''
                 }`
               )}
             >

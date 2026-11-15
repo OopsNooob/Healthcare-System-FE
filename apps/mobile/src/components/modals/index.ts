@@ -12,6 +12,7 @@ export { AttachmentPickerModal } from './AttachmentPickerModal';
 export { PauseProgramModal } from './PauseProgramModal';
 export { FacilityDetailModal } from './FacilityDetailModal';
 export { DocUploadModal } from './DocUploadModal';
+export type { VerificationDocument } from './DocUploadModal';
 export { RestoreDraftModal } from './RestoreDraftModal';
 export { ReportExportModal } from './ReportExportModal';
 export { ImageViewerModal } from './ImageViewerModal';

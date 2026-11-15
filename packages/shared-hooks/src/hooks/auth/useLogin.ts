@@ -18,9 +18,6 @@ export function useLogin() {
 
   const login = useCallback(
     async (payload: Login) => {
-      setLoading(true);
-      setError(null);
-
       if (!payload.email || !payload.email.trim()) {
         const errorMsg = "Please enter your email";
         setError(errorMsg);
@@ -32,6 +29,9 @@ export function useLogin() {
         setError(errorMsg);
         throw new Error(errorMsg);
       }
+
+      setLoading(true);
+      setError(null);
 
       try {
         const res = await submitLogin(payload);

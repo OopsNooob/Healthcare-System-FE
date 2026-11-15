@@ -1,7 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { View, Text, Pressable } from 'react-native';
-import { tw } from '../tw';
 import {
   Activity,
   Droplet,
@@ -13,8 +12,10 @@ import {
   Thermometer,
   Weight,
   Wind,
-} from "lucide-react-native";
-import type { MetricsTypes } from "@repo/shared-hooks";
+} from 'lucide-react-native';
+import type { MetricsTypes } from '@repo/shared-hooks';
+import { tw } from '../tw';
+import { useThemeContext } from '@/context/ThemeContext';
 
 interface MetricEntry {
   value: number;
@@ -31,9 +32,8 @@ interface MetricOverviewCardProps {
 
 type VariantStyle = {
   icon: React.ReactNode;
-  label: string;
-  borderColor: string;
-  bgColor: string;
+  labelKey: string;
+  fallbackLabel: string;
   textColor: string;
   iconBgColor: string;
 };
@@ -41,166 +41,109 @@ type VariantStyle = {
 const VARIANT_STYLES: Record<MetricsTypes, VariantStyle> = {
   blood_pressure: {
     icon: <Heart color="#dc2626" size={24} />,
-    label: "Blood Pressure",
-    borderColor: "border-red-200",
-    bgColor: "bg-red-50",
-    textColor: "text-red-600",
-    iconBgColor: "bg-red-100",
+    labelKey: 'mobile.blood_pressure',
+    fallbackLabel: 'Blood Pressure',
+    textColor: 'text-red-600 dark:text-red-400',
+    iconBgColor: 'bg-red-100 dark:bg-red-900/30',
   },
   heart_rate: {
     icon: <Activity color="#db2777" size={24} />,
-    label: "Heart Rate",
-    borderColor: "border-pink-200",
-    bgColor: "bg-pink-50",
-    textColor: "text-pink-600",
-    iconBgColor: "bg-pink-100",
+    labelKey: 'mobile.heart_rate',
+    fallbackLabel: 'Heart Rate',
+    textColor: 'text-pink-600 dark:text-pink-400',
+    iconBgColor: 'bg-pink-100 dark:bg-pink-900/30',
   },
   bmi: {
     icon: <Weight color="#ea580c" size={24} />,
-    label: "BMI",
-    borderColor: "border-orange-200",
-    bgColor: "bg-orange-50",
-    textColor: "text-orange-600",
-    iconBgColor: "bg-orange-100",
+    labelKey: 'mobile.bmi',
+    fallbackLabel: 'BMI',
+    textColor: 'text-orange-600 dark:text-orange-400',
+    iconBgColor: 'bg-orange-100 dark:bg-orange-900/30',
   },
   weight: {
     icon: <Weight color="#d97706" size={24} />,
-    label: "Weight",
-    borderColor: "border-amber-200",
-    bgColor: "bg-amber-50",
-    textColor: "text-amber-600",
-    iconBgColor: "bg-amber-100",
+    labelKey: 'mobile.weight',
+    fallbackLabel: 'Weight',
+    textColor: 'text-amber-600 dark:text-amber-400',
+    iconBgColor: 'bg-amber-100 dark:bg-amber-900/30',
   },
   height: {
     icon: <Ruler color="#2563eb" size={24} />,
-    label: "Height",
-    borderColor: "border-blue-200",
-    bgColor: "bg-blue-50",
-    textColor: "text-blue-600",
-    iconBgColor: "bg-blue-100",
+    labelKey: 'mobile.height',
+    fallbackLabel: 'Height',
+    textColor: 'text-blue-600 dark:text-blue-400',
+    iconBgColor: 'bg-blue-100 dark:bg-blue-900/30',
   },
   water_intake: {
     icon: <Droplet color="#0891b2" size={24} />,
-    label: "Water Intake",
-    borderColor: "border-cyan-200",
-    bgColor: "bg-cyan-50",
-    textColor: "text-cyan-600",
-    iconBgColor: "bg-cyan-100",
+    labelKey: 'mobile.water_intake',
+    fallbackLabel: 'Water Intake',
+    textColor: 'text-cyan-600 dark:text-cyan-400',
+    iconBgColor: 'bg-cyan-100 dark:bg-cyan-900/30',
   },
   kcal_intake: {
     icon: <Flame color="#ca8a04" size={24} />,
-    label: "Calories",
-    borderColor: "border-yellow-200",
-    bgColor: "bg-yellow-50",
-    textColor: "text-yellow-600",
-    iconBgColor: "bg-yellow-100",
+    labelKey: 'mobile.calories',
+    fallbackLabel: 'Calories',
+    textColor: 'text-yellow-600 dark:text-yellow-400',
+    iconBgColor: 'bg-yellow-100 dark:bg-yellow-900/30',
   },
   blood_glucose: {
     icon: <Droplets color="#9333ea" size={24} />,
-    label: "Blood Glucose",
-    borderColor: "border-purple-200",
-    bgColor: "bg-purple-50",
-    textColor: "text-purple-600",
-    iconBgColor: "bg-purple-100",
+    labelKey: 'mobile.blood_sugar',
+    fallbackLabel: 'Blood Glucose',
+    textColor: 'text-purple-600 dark:text-purple-400',
+    iconBgColor: 'bg-purple-100 dark:bg-purple-900/30',
   },
   oxygen_saturation: {
     icon: <Wind color="#0284c7" size={24} />,
-    label: "O2 Saturation",
-    borderColor: "border-sky-200",
-    bgColor: "bg-sky-50",
-    textColor: "text-sky-600",
-    iconBgColor: "bg-sky-100",
+    labelKey: 'mobile.oxygen_saturation',
+    fallbackLabel: 'SpO2',
+    textColor: 'text-sky-600 dark:text-sky-400',
+    iconBgColor: 'bg-sky-100 dark:bg-sky-900/30',
   },
   body_temperature: {
     icon: <Thermometer color="#dc2626" size={24} />,
-    label: "Temperature",
-    borderColor: "border-red-200",
-    bgColor: "bg-red-50",
-    textColor: "text-red-600",
-    iconBgColor: "bg-red-100",
+    labelKey: 'mobile.body_temperature',
+    fallbackLabel: 'Temperature',
+    textColor: 'text-red-600 dark:text-red-400',
+    iconBgColor: 'bg-red-100 dark:bg-red-900/30',
   },
   respiratory_rate: {
     icon: <Gauge color="#16a34a" size={24} />,
-    label: "Respiratory Rate",
-    borderColor: "border-green-200",
-    bgColor: "bg-green-50",
-    textColor: "text-green-600",
-    iconBgColor: "bg-green-100",
+    labelKey: 'mobile.respiratory_rate',
+    fallbackLabel: 'Respiratory Rate',
+    textColor: 'text-green-600 dark:text-green-400',
+    iconBgColor: 'bg-green-100 dark:bg-green-900/30',
   },
 };
 
 function formatMetricValue(
   metricsType: MetricsTypes,
   values: Record<string, MetricEntry>
-): string {
-  switch (metricsType) {
-    case "blood_pressure": {
-      const systolic = values?.systolic?.value;
-      const diastolic = values?.diastolic?.value;
-      if (systolic !== undefined && diastolic !== undefined) {
-        return `${Math.round(systolic)}/${Math.round(diastolic)}`;
-      }
-      return "N/A";
+): string | null {
+  if (metricsType === 'blood_pressure') {
+    const systolic = values?.systolic?.value;
+    const diastolic = values?.diastolic?.value;
+    if (systolic !== undefined && diastolic !== undefined) {
+      return `${Math.round(systolic)}/${Math.round(diastolic)}`;
     }
-    case "heart_rate":
-    case "bmi":
-    case "weight":
-    case "height":
-    case "water_intake":
-    case "kcal_intake":
-    case "blood_glucose":
-    case "oxygen_saturation":
-    case "body_temperature":
-    case "respiratory_rate": {
-      const primaryKey =
-        metricsType === "water_intake" || metricsType === "kcal_intake"
-          ? "amount"
-          : "value";
-      const val = values?.[primaryKey]?.value;
-      return val !== undefined ? Math.round(val).toString() : "N/A";
-    }
-    default:
-      return "N/A";
+    return null;
   }
-}
-
-function formatTime(recordedAt?: Date | string): string {
-  if (!recordedAt) return "-";
-  const date = new Date(recordedAt);
-  if (Number.isNaN(date.getTime())) return "-";
-
-  const today = new Date();
-  const yesterday = new Date(today);
-  yesterday.setDate(yesterday.getDate() - 1);
-
-  const isToday = date.toDateString() === today.toDateString();
-  const isYesterday = date.toDateString() === yesterday.toDateString();
-
-  let dayStr = "";
-  if (isToday) dayStr = "Today";
-  else if (isYesterday) dayStr = "Yesterday";
-  else
-    dayStr = date.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-    });
-
-  const timeStr = date.toLocaleTimeString("en-US", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-
-  return `${dayStr}, ${timeStr}`;
+  const primaryKey =
+    metricsType === 'water_intake' || metricsType === 'kcal_intake' ? 'amount' : 'value';
+  const val = values?.[primaryKey]?.value;
+  return val !== undefined ? String(Math.round(val * 10) / 10) : null;
 }
 
 export function MetricOverviewCard({
-  patientId,
   metricsType,
   values,
   unit,
   onView,
 }: MetricOverviewCardProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  useThemeContext();
 
   const variant = VARIANT_STYLES[metricsType];
   const displayValue = formatMetricValue(metricsType, values);
@@ -212,57 +155,85 @@ export function MetricOverviewCard({
     return entries[entries.length - 1]?.recordedAt;
   };
 
-  const latestTime = getLatestTimestamp();
-  const formattedTime = formatTime(latestTime);
-  const hasData = displayValue !== "N/A";
+  const formatLocalizedTime = (recordedAt?: Date | string): string => {
+    if (!recordedAt) return '—';
+    const date = new Date(recordedAt);
+    if (Number.isNaN(date.getTime())) return '—';
+
+    const locale = i18n.language.startsWith('vi') ? 'vi-VN' : 'en-US';
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    let dayStr = '';
+    if (date.toDateString() === today.toDateString()) {
+      dayStr = t('mobile.today', 'Today');
+    } else if (date.toDateString() === yesterday.toDateString()) {
+      dayStr = t('mobile.yesterday', 'Yesterday');
+    } else {
+      dayStr = date.toLocaleDateString(locale, { month: 'short', day: 'numeric' });
+    }
+
+    const timeStr = date.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
+    return `${dayStr}, ${timeStr}`;
+  };
+
+  const formattedTime = formatLocalizedTime(getLatestTimestamp());
+  const hasData = displayValue !== null;
 
   return (
     <Pressable
-      style={tw(`flex-col gap-3 rounded-3xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6 mb-4`)}
+      style={tw('flex-col gap-3 rounded-3xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6 mb-4')}
       onPress={onView}
     >
-      <View style={tw("flex-row items-center justify-between")}>
-        <View
-          style={tw(`flex h-12 w-12 items-center justify-center rounded-2xl ${variant.iconBgColor}`)}
-        >
+      <View style={tw('flex-row items-center justify-between')}>
+        <View style={tw(`flex h-12 w-12 items-center justify-center rounded-2xl ${variant.iconBgColor}`)}>
           {variant.icon}
         </View>
         {hasData ? (
-          <View style={tw("rounded-full bg-emerald-50 dark:bg-emerald-900/30 px-2.5 py-0.5")}>
-            <Text style={tw("text-xs font-semibold text-emerald-700 dark:text-emerald-400")}>{t('mobile.active', `Active`)}</Text>
+          <View style={tw('rounded-full bg-emerald-50 dark:bg-emerald-900/30 px-2.5 py-0.5')}>
+            <Text style={tw('text-xs font-semibold text-emerald-700 dark:text-emerald-400')}>
+              {t('mobile.active', 'Active')}
+            </Text>
           </View>
         ) : (
-          <View style={tw("rounded-full bg-zinc-100 dark:bg-zinc-800 px-2.5 py-0.5")}>
-            <Text style={tw("text-xs font-semibold text-zinc-600 dark:text-zinc-400")}>{t('mobile.no_data', `No Data`)}</Text>
+          <View style={tw('rounded-full bg-zinc-100 dark:bg-zinc-800 px-2.5 py-0.5')}>
+            <Text style={tw('text-xs font-semibold text-zinc-600 dark:text-zinc-400')}>
+              {t('mobile.no_data', 'No Data')}
+            </Text>
           </View>
         )}
       </View>
 
-      <View style={tw("mt-2")}>
-        <Text style={tw("text-xl font-semibold text-zinc-900 dark:text-white")}>{variant.label}</Text>
+      <View style={tw('mt-2')}>
+        <Text style={tw('text-xl font-semibold text-zinc-900 dark:text-white')}>
+          {t(variant.labelKey, variant.fallbackLabel)}
+        </Text>
       </View>
 
       {hasData ? (
-        <View style={tw("mt-2")}>
-          <View style={tw("flex-row items-baseline gap-1")}>
-            <Text style={tw(`text-4xl font-bold ${variant.textColor}`)}>
-              {displayValue}
-            </Text>
-            <Text style={tw("text-sm font-normal text-zinc-500")}>
-              {unit}
-            </Text>
+        <View style={tw('mt-2')}>
+          <View style={tw('flex-row items-baseline gap-1')}>
+            <Text style={tw(`text-4xl font-bold ${variant.textColor}`)}>{displayValue}</Text>
+            <Text style={tw('text-sm font-normal text-zinc-500 dark:text-zinc-400')}>{unit}</Text>
           </View>
-          <View style={tw("flex-row items-center justify-between mt-4")}>
-            <Text style={tw("text-xs text-zinc-500")}>
-              Last update: {formattedTime}
+          <View style={tw('flex-row items-center justify-between mt-4')}>
+            <Text style={tw('text-xs text-zinc-500 dark:text-zinc-400')}>
+              {t('mobile.last_update', 'Last update')}: {formattedTime}
             </Text>
-            <Text style={tw(`text-sm font-semibold ${variant.textColor}`)}>{t('mobile.view_', `View ›`)}</Text>
+            <Text style={tw(`text-sm font-semibold ${variant.textColor}`)}>
+              {t('mobile.view_', 'View ›')}
+            </Text>
           </View>
         </View>
       ) : (
-        <View style={tw("mt-2 flex-row items-center justify-between")}>
-          <Text style={tw("text-sm text-zinc-500")}>{t('mobile.no_data_available_yet', `No data available yet`)}</Text>
-          <Text style={tw("text-sm font-semibold text-blue-600")}>{t('mobile.add_data_', `Add Data ›`)}</Text>
+        <View style={tw('mt-2 flex-row items-center justify-between')}>
+          <Text style={tw('text-sm text-zinc-500 dark:text-zinc-400')}>
+            {t('mobile.no_data_available_yet', 'No data available yet')}
+          </Text>
+          <Text style={tw('text-sm font-semibold text-blue-600 dark:text-blue-400')}>
+            {t('mobile.add_data_', 'Add Data ›')}
+          </Text>
         </View>
       )}
     </Pressable>

@@ -1,26 +1,41 @@
 import React, { useState } from 'react';
-import { View, Text, Modal, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
+import {
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { X, Trash2, AlertTriangle, ShieldAlert } from 'lucide-react-native';
+import { ShieldAlert, Trash2 } from 'lucide-react-native';
 import Toast from 'react-native-toast-message';
+import { mobileApi } from '@repo/shared-hooks';
 import { tw, twInstance } from '@/tw';
+import { useThemeContext } from '@/context/ThemeContext';
+import { extractApiErrorMessage } from '@/utils/apiError';
 
 interface VoidDataModalProps {
   visible: boolean;
   onClose: () => void;
+  metricId?: string;
   patientName?: string;
   metricLabel?: string;
-  onVoidConfirm?: (reasonCode: string, note: string) => void;
+  onVoidConfirm?: (reasonCode: string, note: string) => Promise<void> | void;
 }
 
 export const VoidDataModal: React.FC<VoidDataModalProps> = ({
   visible,
   onClose,
-  patientName = 'Alex Johnson',
-  metricLabel = 'Latest Reading: 165/100 mmHg',
+  metricId,
+  patientName,
+  metricLabel,
   onVoidConfirm,
 }) => {
   const { t } = useTranslation();
+  useThemeContext();
 
   const reasonCodes = [
     { key: 'REASON_CALIBRATION_ERROR', label: t('mobile.reason_calibration_error', 'Device calibration / sensor error') },
@@ -33,29 +48,49 @@ export const VoidDataModal: React.FC<VoidDataModalProps> = ({
   const [auditNote, setAuditNote] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
+    if (isSubmitting) return;
     setIsSubmitting(true);
-    setTimeout(() => {
-      setIsSubmitting(false);
+    try {
+      const selectedLabel = reasonCodes.find((r) => r.key === selectedReason)?.label ?? selectedReason;
+      const reasonText = auditNote.trim() ? `${selectedLabel} - ${auditNote.trim()}` : selectedLabel;
+
+      if (onVoidConfirm) {
+        await onVoidConfirm(selectedReason, auditNote);
+      } else if (metricId) {
+        await mobileApi.healthMetricsVoid({
+          params: { id: metricId },
+          body: { reason: reasonText },
+        });
+      }
+
       Toast.show({
         type: 'success',
         text1: t('mobile.success', 'Success'),
         text2: t('mobile.data_voided_success', 'Metric entry voided and audit logged'),
       });
-      if (onVoidConfirm) onVoidConfirm(selectedReason, auditNote);
       setAuditNote('');
       onClose();
-    }, 600);
+    } catch (err) {
+      Toast.show({
+        type: 'error',
+        text1: t('mobile.error', 'Error'),
+        text2: extractApiErrorMessage(err, 'mobile.void_data_failed'),
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
+  const subtitle = [patientName, metricLabel].filter(Boolean).join(' • ');
+
   return (
-    <Modal visible={visible} transparent={true} animationType="fade" onRequestClose={onClose}>
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={tw('flex-1 justify-center items-center bg-black/65 px-4')}
       >
         <View style={tw('bg-white dark:bg-slate-900 rounded-3xl w-full max-w-sm border border-red-200 dark:border-red-900/50 overflow-hidden shadow-2xl')}>
-          {/* Header Banner */}
           <View style={tw('bg-red-50 dark:bg-red-950/40 p-5 items-center border-b border-red-100 dark:border-red-900/30')}>
             <View style={tw('w-14 h-14 bg-red-100 dark:bg-red-900/50 rounded-full items-center justify-center mb-2')}>
               <ShieldAlert color="#ef4444" size={28} />
@@ -63,9 +98,11 @@ export const VoidDataModal: React.FC<VoidDataModalProps> = ({
             <Text style={tw('text-lg font-bold text-slate-900 dark:text-white text-center')}>
               {t('mobile.void_data_title', 'Void Telemetry Data')}
             </Text>
-            <Text style={tw('text-xs text-slate-500 dark:text-slate-400 mt-1 text-center')}>
-              {patientName} • {metricLabel}
-            </Text>
+            {subtitle ? (
+              <Text style={tw('text-xs text-slate-500 dark:text-slate-400 mt-1 text-center')}>
+                {subtitle}
+              </Text>
+            ) : null}
           </View>
 
           <View style={tw('p-5 gap-4')}>
@@ -76,7 +113,6 @@ export const VoidDataModal: React.FC<VoidDataModalProps> = ({
               )}
             </Text>
 
-            {/* Reason code selector */}
             <View>
               <Text style={tw('text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2')}>
                 {t('mobile.select_void_reason', 'Mandatory Reason Code')}
@@ -85,6 +121,7 @@ export const VoidDataModal: React.FC<VoidDataModalProps> = ({
                 {reasonCodes.map((r) => (
                   <TouchableOpacity
                     key={r.key}
+                    disabled={isSubmitting}
                     onPress={() => setSelectedReason(r.key)}
                     style={tw(
                       `p-3 rounded-xl border flex-row items-center ${
@@ -119,7 +156,6 @@ export const VoidDataModal: React.FC<VoidDataModalProps> = ({
               </View>
             </View>
 
-            {/* Audit Note */}
             <View>
               <Text style={tw('text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1')}>
                 {t('mobile.audit_explanation', 'Audit Explanation (Optional)')}
@@ -136,17 +172,26 @@ export const VoidDataModal: React.FC<VoidDataModalProps> = ({
             </View>
           </View>
 
-          {/* Footer Actions */}
           <View style={tw('p-4 border-t border-slate-100 dark:border-slate-800 flex-row gap-3 bg-slate-50 dark:bg-slate-950/60')}>
-            <TouchableOpacity onPress={onClose} style={tw('flex-1 bg-white dark:bg-slate-800 py-3 rounded-xl border border-slate-200 dark:border-slate-700 items-center')}>
-              <Text style={tw('text-slate-700 dark:text-slate-300 font-bold text-xs')}>{t('mobile.cancel', 'Cancel')}</Text>
+            <TouchableOpacity
+              disabled={isSubmitting}
+              onPress={onClose}
+              style={tw('flex-1 bg-white dark:bg-slate-800 py-3 rounded-xl border border-slate-200 dark:border-slate-700 items-center')}
+            >
+              <Text style={tw('text-slate-700 dark:text-slate-300 font-bold text-xs')}>
+                {t('mobile.cancel', 'Cancel')}
+              </Text>
             </TouchableOpacity>
             <TouchableOpacity
-              onPress={handleConfirm}
+              onPress={() => void handleConfirm()}
               disabled={isSubmitting}
-              style={tw('flex-1 bg-red-600 py-3 rounded-xl items-center flex-row justify-center shadow-sm')}
+              style={tw(`flex-1 bg-red-600 py-3 rounded-xl items-center flex-row justify-center shadow-sm ${isSubmitting ? 'opacity-60' : ''}`)}
             >
-              <Trash2 color="#ffffff" size={16} style={tw('mr-1.5')} />
+              {isSubmitting ? (
+                <ActivityIndicator size="small" color="#ffffff" style={tw('mr-1.5')} />
+              ) : (
+                <Trash2 color="#ffffff" size={16} style={tw('mr-1.5')} />
+              )}
               <Text style={tw('text-white font-bold text-xs')}>
                 {isSubmitting ? t('mobile.voiding', 'Voiding...') : t('mobile.confirm_void', 'Confirm Void')}
               </Text>

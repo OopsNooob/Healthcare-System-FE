@@ -14,9 +14,6 @@ export function useSignUpPatient() {
   const [data, setData] = useState<ApiSignUpResponse | null>(null);
 
   const signUpPatient = useCallback(async (payload: SignUpPatient) => {
-    setLoading(true);
-    setError(null);
-
     if (!payload.email || !payload.email.trim()) {
       const errorMsg = "Please enter your email";
       setError(errorMsg);
@@ -34,6 +31,9 @@ export function useSignUpPatient() {
       setError(errorMsg);
       throw new Error(errorMsg);
     }
+
+    setLoading(true);
+    setError(null);
 
     try {
       const res = await submitSignUpPatient(payload);
@@ -80,9 +80,6 @@ export function useSignUpDoctor() {
   const [data, setData] = useState<ApiSignUpResponse | null>(null);
 
   const signUpDoctor = useCallback(async (payload: SignUpDoctor) => {
-    setLoading(true);
-    setError(null);
-
     if (!payload.email || !payload.email.trim()) {
       const errorMsg = "Please enter your email.";
       setError(errorMsg);
@@ -118,6 +115,9 @@ export function useSignUpDoctor() {
       setError(errorMsg);
       throw new Error(errorMsg);
     }
+
+    setLoading(true);
+    setError(null);
 
     try {
       const res = await submitSignUpDoctor(payload);

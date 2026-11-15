@@ -17,7 +17,7 @@ const languageDetector = {
         return;
       }
       callback('vi'); // default language
-    } catch (error) {
+    } catch {
       callback('vi');
     }
   },
@@ -25,7 +25,7 @@ const languageDetector = {
   cacheUserLanguage: async (language: string) => {
     try {
       await AsyncStorage.setItem(LANGUAGE_KEY, language);
-    } catch (error) {
+    } catch {
       // ignore
     }
   }

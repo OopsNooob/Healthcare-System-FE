@@ -1,22 +1,33 @@
 import { useFonts } from 'expo-font';
-import { Stack, ThemeProvider as NavigationThemeProvider, DarkTheme, DefaultTheme } from 'expo-router';
+import { Stack, ThemeProvider as NavigationThemeProvider, DarkTheme, DefaultTheme, useRouter } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import Toast from 'react-native-toast-message';
+import { useTranslation } from 'react-i18next';
 import "../global.css";
 import '../i18n';
 import { useDeviceContext } from 'twrnc';
 import { twInstance } from '@/tw';
 import { ThemeProvider as AppThemeProvider, useThemeContext } from '@/context/ThemeContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { setStorageProvider } from '@repo/shared-hooks';
-import { setTokenGetter } from '@healthcare/api-client';
+import {
+  API_BASE_URL,
+  SOCKET_EVENTS,
+  connectNotificationsSocket,
+  connectPresenceSocket,
+  notificationsSocket,
+  presenceSocket,
+  setStorageProvider,
+  useSharedAuthStore,
+} from '@repo/shared-hooks';
+import { setApiBaseUrl, setTokenGetter } from '@healthcare/api-client';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 setStorageProvider(AsyncStorage);
 setTokenGetter(() => AsyncStorage.getItem('accessToken'));
+setApiBaseUrl(API_BASE_URL);
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -50,6 +61,50 @@ const CustomDefaultTheme = {
 
 function RootNavigator() {
   const { isDark } = useThemeContext();
+  const { t } = useTranslation();
+  const router = useRouter();
+  const token = useSharedAuthStore((s) => s.token);
+  const isAuthenticated = useSharedAuthStore((s) => s.isAuthenticated);
+  const logout = useSharedAuthStore((s) => s.logout);
+
+  useEffect(() => {
+    if (isAuthenticated && token) {
+      void connectNotificationsSocket(token);
+      void connectPresenceSocket(token);
+    } else {
+      if (notificationsSocket.connected) notificationsSocket.disconnect();
+      if (presenceSocket.connected) presenceSocket.disconnect();
+    }
+  }, [isAuthenticated, token]);
+
+  useEffect(() => {
+    const handleAccountBanned = (payload?: { reason?: string }) => {
+      void Promise.all([
+        AsyncStorage.removeItem('accessToken'),
+        AsyncStorage.removeItem('refreshToken'),
+      ]);
+      logout();
+      Toast.show({
+        type: 'error',
+        text1: t('mobile.account_banned', 'Account Suspended'),
+        text2:
+          payload?.reason ||
+          t('mobile.account_banned_desc', 'Your account has been suspended by an administrator.'),
+      });
+      router.replace('/(auth)/login');
+    };
+
+    notificationsSocket.on(
+      SOCKET_EVENTS.notifications.server.accountBanned,
+      handleAccountBanned,
+    );
+    return () => {
+      notificationsSocket.off(
+        SOCKET_EVENTS.notifications.server.accountBanned,
+        handleAccountBanned,
+      );
+    };
+  }, [logout, router, t]);
 
   return (
     <NavigationThemeProvider value={isDark ? CustomDarkTheme : CustomDefaultTheme}>

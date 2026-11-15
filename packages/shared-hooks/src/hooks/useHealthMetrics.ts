@@ -1,8 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  correctHealthMetric,
   createHealthMetric,
   deleteHealthMetric,
   getAllHealthMetrics,
+  getHealthMetricAlerts,
+  markHealthMetricAsReviewed,
+  voidHealthMetric,
   type HealthMetric,
   type HealthMetricsQuery,
   type MetricValueDetail,
@@ -19,17 +23,22 @@ export type CreateEntryInput = {
   recordedAt: string;
   primaryValue: number;
   secondaryValue?: number;
+  recordedTimezone?: string;
 };
 
 export type UpdateEntryInput = CreateEntryInput & {
   id: string;
+  reason?: string;
 };
 
 export function useHealthMetrics(options: UseHealthMetricsOptions = {}) {
   const { enabled = true, ...query } = options;
   const [data, setData] = useState<HealthMetric[]>([]);
+  const [alerts, setAlerts] = useState<HealthMetric[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const metricFilterType = query.metricType ?? query.type;
 
   const fetchMetrics = useCallback(async () => {
     if (!enabled) return;
@@ -53,11 +62,19 @@ export function useHealthMetrics(options: UseHealthMetricsOptions = {}) {
     query.endDate,
     query.limit,
     query.page,
+    query.cursor,
     query.sortBy,
     query.sortOrder,
     query.startDate,
-    query.type,
+    metricFilterType,
   ]);
+
+  const refreshAlerts = useCallback(async () => {
+    if (!enabled) return [];
+    const list = await getHealthMetricAlerts();
+    setAlerts(list);
+    return list;
+  }, [enabled]);
 
   useEffect(() => {
     void fetchMetrics();
@@ -82,7 +99,9 @@ export function useHealthMetrics(options: UseHealthMetricsOptions = {}) {
 
     const created = await createHealthMetric({
       type: input.metricType,
+      metricType: input.metricType,
       values,
+      recordedTimezone: input.recordedTimezone,
       recordedAt: input.recordedAt,
     });
 
@@ -101,14 +120,65 @@ export function useHealthMetrics(options: UseHealthMetricsOptions = {}) {
 
     const updated = await updateHealthMetric(input.id, {
       type: input.metricType,
+      metricType: input.metricType,
       values,
+      recordedTimezone: input.recordedTimezone,
       recordedAt: input.recordedAt,
+      reason: input.reason ?? "User correction",
     });
 
     setData((prev) =>
-      prev.map((item) => (item.id === updated.id ? updated : item)),
+      prev.map((item) => (item.id === input.id ? updated : item)),
     );
     return updated;
+  }, []);
+
+  const correctEntry = useCallback(
+    async (
+      id: string,
+      input: {
+        metricType: MetricsTypes;
+        primaryValue: number;
+        secondaryValue?: number;
+        recordedAt: string;
+        recordedTimezone?: string;
+        reason: string;
+      },
+    ) => {
+      setError(null);
+      const values = buildMetricValues(
+        input.metricType,
+        input.primaryValue,
+        input.secondaryValue,
+        input.recordedAt,
+      );
+      const corrected = await correctHealthMetric(id, {
+        values,
+        recordedAt: input.recordedAt,
+        recordedTimezone: input.recordedTimezone,
+        reason: input.reason,
+      });
+      setData((prev) => [
+        corrected,
+        ...prev.filter((item) => item.id !== id),
+      ]);
+      return corrected;
+    },
+    [],
+  );
+
+  const voidEntry = useCallback(async (id: string, reason = "Voided by user") => {
+    setError(null);
+    const voided = await voidHealthMetric(id, reason);
+    setData((prev) => prev.filter((item) => item.id !== id));
+    return voided;
+  }, []);
+
+  const reviewEntry = useCallback(async (id: string) => {
+    setError(null);
+    const reviewed = await markHealthMetricAsReviewed(id);
+    setAlerts((prev) => prev.filter((item) => item.id !== id));
+    return reviewed;
   }, []);
 
   const removeEntry = useCallback(async (id: string) => {
@@ -119,13 +189,18 @@ export function useHealthMetrics(options: UseHealthMetricsOptions = {}) {
 
   return {
     data,
+    alerts,
     readings,
     isLoading,
     error,
     addEntry,
     updateEntry,
+    correctEntry,
+    voidEntry,
+    reviewEntry,
     removeEntry,
     refresh: fetchMetrics,
+    refreshAlerts,
   };
 }
 

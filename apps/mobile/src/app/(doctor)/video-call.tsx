@@ -1,305 +1,707 @@
-import { useState } from 'react';
-import { useTranslation } from 'react-i18next';
-import { View, Text, TouchableOpacity, Image, StatusBar, Modal, ScrollView, TextInput, KeyboardAvoidingView, Platform, PermissionsAndroid, Alert, Linking } from 'react-native';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  Image,
+  KeyboardAvoidingView,
+  Linking,
+  Modal,
+  PermissionsAndroid,
+  Platform,
+  ScrollView,
+  StatusBar,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useSafeRouter as useRouter } from '@/utils/useSafeRouter';
-import { Mic, MicOff, Video, VideoOff, PhoneOff, MessageCircle, FileText, ChevronDown, BrainCircuit, Activity, Save, LineChart, AlertTriangle } from 'lucide-react-native';
-import { tw, twInstance } from '@/tw';
-import { useThemeContext } from '@/context/ThemeContext';
+import { useLocalSearchParams } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import Toast from 'react-native-toast-message';
-import { AiSummaryModal, HealthChartModal, CareAlertsModal } from '@/components/modals';
+import {
+  Activity,
+  AlertCircle,
+  AlertTriangle,
+  BrainCircuit,
+  ChevronDown,
+  FileText,
+  LineChart,
+  MessageCircle,
+  Mic,
+  MicOff,
+  PhoneOff,
+  Play,
+  RefreshCw,
+  Save,
+  Video,
+  VideoOff,
+} from 'lucide-react-native';
+import {
+  connectConsultationsSocket,
+  consultationsSocket,
+  mobileApi,
+  normalizePaginatedList,
+  SOCKET_EVENTS,
+} from '@repo/shared-hooks';
+import { tw } from '@/tw';
+import { useThemeContext } from '@/context/ThemeContext';
+import { useSafeRouter } from '@/utils/useSafeRouter';
+import { extractApiErrorMessage } from '@/utils/apiError';
+import { Skeleton } from '@/components/ui/Skeleton';
+import {
+  AiSummaryModal,
+  CareAlertsModal,
+  HealthChartModal,
+} from '@/components/modals';
+
+type RawRecord = Record<string, unknown>;
+
+function getInitials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return 'PT';
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return `${parts[0][0] ?? ''}${parts[parts.length - 1][0] ?? ''}`.toUpperCase();
+}
+
+function formatDuration(seconds: number): string {
+  const mins = Math.floor(seconds / 60)
+    .toString()
+    .padStart(2, '0');
+  const secs = (seconds % 60).toString().padStart(2, '0');
+  return `${mins}:${secs}`;
+}
 
 export default function DoctorVideoCallScreen() {
+  const params = useLocalSearchParams<{ consultationId?: string; id?: string }>();
+  const consultationId = String(params.consultationId ?? params.id ?? '');
+
   const { t } = useTranslation();
-  useThemeContext();
-  const router = useRouter();
+  const { isDark } = useThemeContext();
+  const router = useSafeRouter();
 
-  const [notesVisible, setNotesVisible] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  const [patientId, setPatientId] = useState('');
+  const [patientName, setPatientName] = useState(() => t('mobile.patient_fallback', 'Patient'));
+  const [patientAvatar, setPatientAvatar] = useState<string | undefined>(undefined);
+  const [sessionStatus, setSessionStatus] = useState('scheduled');
+  const [requestStatus, setRequestStatus] = useState('pending');
+  const [latestBpLabel, setLatestBpLabel] = useState<string | null>(null);
+  const [latestHrLabel, setLatestHrLabel] = useState<string | null>(null);
+
+  const [enrollmentId, setEnrollmentId] = useState<string | undefined>(undefined);
+  const [programName, setProgramName] = useState<string | undefined>(undefined);
+  const [openAlertsCount, setOpenAlertsCount] = useState(0);
+
+  const [isMicOn, setIsMicOn] = useState(true);
+  const [isCameraOn, setIsCameraOn] = useState(true);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+
   const [clinicalNotes, setClinicalNotes] = useState('');
-  const [aiSummaryModalVisible, setAiSummaryModalVisible] = useState(false);
-  const [healthChartModalVisible, setHealthChartModalVisible] = useState(false);
-  const [careAlertsModalVisible, setCareAlertsModalVisible] = useState(false);
+  const [isNotesModalVisible, setIsNotesModalVisible] = useState(false);
+  const [isAiSummaryVisible, setIsAiSummaryVisible] = useState(false);
+  const [isChartVisible, setIsChartVisible] = useState(false);
+  const [isAlertsVisible, setIsAlertsVisible] = useState(false);
 
-  const [isMuted, setIsMuted] = useState(false);
-  const [isVideoOff, setIsVideoOff] = useState(false);
+  const [isStartingSession, setIsStartingSession] = useState(false);
+  const [isSavingNotes, setIsSavingNotes] = useState(false);
+  const [isEndingCall, setIsEndingCall] = useState(false);
 
-  const checkAndRequestMicPermission = async (): Promise<boolean> => {
-    if (Platform.OS !== 'android') return true;
+  const permissionCheckedRef = useRef(false);
+
+  const ensureMediaPermissions = useCallback(async () => {
+    if (permissionCheckedRef.current) return;
+    permissionCheckedRef.current = true;
+    if (Platform.OS !== 'android') return;
+
     try {
-      const isAlreadyGranted = await PermissionsAndroid.check(PermissionsAndroid.PERMISSIONS.RECORD_AUDIO);
-      if (isAlreadyGranted) return true;
-
-      const granted = await PermissionsAndroid.request(
-        PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
-        {
-          title: t('mobile.mic_perm_title', 'Microphone Permission'),
-          message: t('mobile.mic_perm_desc', 'App needs microphone access for the video call.'),
-          buttonPositive: 'OK',
-        }
-      );
-      return granted === PermissionsAndroid.RESULTS.GRANTED;
-    } catch (e) {
-      console.warn('Mic permission error:', e);
-      return false;
-    }
-  };
-
-  const checkAndRequestCameraPermission = async (): Promise<boolean> => {
-    if (Platform.OS !== 'android') return true;
-    try {
-      const isAlreadyGranted = await PermissionsAndroid.check(PermissionsAndroid.PERMISSIONS.CAMERA);
-      if (isAlreadyGranted) return true;
-
-      const granted = await PermissionsAndroid.request(
+      const results = await PermissionsAndroid.requestMultiple([
         PermissionsAndroid.PERMISSIONS.CAMERA,
-        {
-          title: t('mobile.camera_perm_title', 'Camera Permission'),
-          message: t('mobile.video_camera_perm_desc', 'App needs camera access for video consultation.'),
-          buttonPositive: 'OK',
+        PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
+      ]);
+      const cameraGranted =
+        results[PermissionsAndroid.PERMISSIONS.CAMERA] === PermissionsAndroid.RESULTS.GRANTED;
+      const micGranted =
+        results[PermissionsAndroid.PERMISSIONS.RECORD_AUDIO] === PermissionsAndroid.RESULTS.GRANTED;
+      if (!cameraGranted) setIsCameraOn(false);
+      if (!micGranted) setIsMicOn(false);
+      if (!cameraGranted || !micGranted) {
+        Alert.alert(
+          t('mobile.permissions_needed_title', 'Camera & Microphone Access'),
+          t(
+            'mobile.permissions_needed_body',
+            'Grant camera and microphone permissions in Settings to stream audio and video.',
+          ),
+          [
+            { text: t('mobile.cancel', 'Cancel'), style: 'cancel' },
+            { text: t('mobile.open_settings', 'Open Settings'), onPress: () => Linking.openSettings() },
+          ],
+        );
+      }
+    } catch {
+      // Permission check can safely degrade to muted state
+    }
+  }, [t]);
+
+  const loadCallContext = useCallback(async () => {
+    if (!consultationId) {
+      setLoadError(t('mobile.missing_consultation_id', 'Missing consultation identifier'));
+      return;
+    }
+
+    try {
+      setLoadError(null);
+      const consultRes = await mobileApi.consultationsFindOne({
+        params: { id: consultationId },
+      });
+      const raw = (consultRes?.data ?? consultRes) as RawRecord;
+      if (!raw || typeof raw !== 'object') {
+        setLoadError(t('mobile.consultation_not_found', 'Consultation not found'));
+        return;
+      }
+
+      const rawPatient = raw.patientId;
+      let resolvedPatientId = '';
+      let resolvedName = t('mobile.patient_fallback', 'Patient');
+      let resolvedAvatar: string | undefined;
+
+      if (typeof rawPatient === 'string') {
+        resolvedPatientId = rawPatient;
+        try {
+          const profRes = await mobileApi.usersFindProfile({ params: { id: rawPatient } });
+          const prof = ((profRes as unknown as { data?: RawRecord })?.data ?? profRes) as RawRecord;
+          const full =
+            (typeof prof?.fullName === 'string' && prof.fullName.trim()) ||
+            [prof?.firstName, prof?.lastName]
+              .filter((v): v is string => typeof v === 'string' && v.trim().length > 0)
+              .join(' ')
+              .trim();
+          if (full) resolvedName = full;
+          if (typeof prof?.avatarUrl === 'string' && prof.avatarUrl.startsWith('http')) {
+            resolvedAvatar = prof.avatarUrl;
+          }
+        } catch {
+          // Keep fallback patient label
         }
-      );
-      return granted === PermissionsAndroid.RESULTS.GRANTED;
-    } catch (e) {
-      console.warn('Camera permission error:', e);
-      return false;
-    }
-  };
-
-  const handleToggleMic = async () => {
-    if (isMuted) {
-      const hasPerm = await checkAndRequestMicPermission();
-      if (!hasPerm) {
-        Alert.alert(
-          t('mobile.permission_required', 'Permission Required'),
-          t('mobile.mic_perm_denied_desc', 'Please enable microphone permission in device settings to speak.'),
-          [
-            { text: t('mobile.cancel', 'Cancel'), style: 'cancel' },
-            { text: t('mobile.settings', 'Settings'), onPress: () => Linking.openSettings() },
-          ]
-        );
-        return;
+      } else if (rawPatient && typeof rawPatient === 'object') {
+        const p = rawPatient as RawRecord;
+        resolvedPatientId = String(p._id ?? p.id ?? '');
+        const full =
+          (typeof p.fullName === 'string' && p.fullName.trim()) ||
+          [p.firstName, p.lastName]
+            .filter((v): v is string => typeof v === 'string' && v.trim().length > 0)
+            .join(' ')
+            .trim();
+        if (full) resolvedName = full;
+        if (typeof p.avatarUrl === 'string' && p.avatarUrl.startsWith('http')) {
+          resolvedAvatar = p.avatarUrl;
+        }
       }
-      setIsMuted(false);
-    } else {
-      setIsMuted(true);
-    }
-  };
 
-  const handleToggleVideo = async () => {
-    if (isVideoOff) {
-      const hasPerm = await checkAndRequestCameraPermission();
-      if (!hasPerm) {
-        Alert.alert(
-          t('mobile.permission_required', 'Permission Required'),
-          t('mobile.camera_perm_denied_desc', 'Please enable camera permission in device settings to show video.'),
-          [
-            { text: t('mobile.cancel', 'Cancel'), style: 'cancel' },
-            { text: t('mobile.settings', 'Settings'), onPress: () => Linking.openSettings() },
-          ]
-        );
-        return;
+      setPatientId(resolvedPatientId);
+      setPatientName(resolvedName);
+      setPatientAvatar(resolvedAvatar);
+      setSessionStatus(String(raw.sessionStatus ?? 'scheduled'));
+      setRequestStatus(String(raw.requestStatus ?? 'accepted'));
+      if (typeof raw.doctorNotes === 'string') {
+        setClinicalNotes(raw.doctorNotes);
       }
-      setIsVideoOff(false);
-    } else {
-      setIsVideoOff(true);
+
+      if (resolvedPatientId) {
+        const [metricsRes, enrollRes, alertsRes] = await Promise.all([
+          mobileApi
+            .healthMetricsFindAll({ query: { patientId: resolvedPatientId, limit: 6, sortOrder: -1 } })
+            .catch(() => null),
+          mobileApi
+            .careEnrollmentList({ query: { patientId: resolvedPatientId, status: 'active', limit: 1 } })
+            .catch(() => null),
+          mobileApi
+            .careAlertInbox({ query: { limit: 20, status: 'open' } })
+            .catch(() => null),
+        ]);
+
+        if (metricsRes) {
+          const items = normalizePaginatedList<RawRecord>(metricsRes).items;
+          const bp = items.find((m) => m.type === 'blood_pressure');
+          const hr = items.find((m) => m.type === 'heart_rate');
+          setLatestBpLabel(bp ? `${bp.systolic ?? '—'}/${bp.diastolic ?? '—'} mmHg` : null);
+          setLatestHrLabel(
+            hr && (typeof hr.value === 'number' || typeof hr.value === 'string')
+              ? `${hr.value} bpm`
+              : null,
+          );
+        }
+
+        if (enrollRes) {
+          const eItem = normalizePaginatedList<RawRecord>(enrollRes).items[0];
+          const eid = String(eItem?._id ?? eItem?.id ?? '');
+          setEnrollmentId(eid || undefined);
+          const programObj = eItem?.programId as RawRecord | undefined;
+          const pname =
+            (typeof eItem?.programName === 'string' && eItem.programName) ||
+            (typeof programObj?.name === 'string' && programObj.name) ||
+            undefined;
+          setProgramName(pname);
+        }
+
+        if (alertsRes && Array.isArray((alertsRes as RawRecord).data)) {
+          const allOpen = (alertsRes as { data: RawRecord[] }).data;
+          const mine = allOpen.filter((a) => String(a.patientId ?? '') === resolvedPatientId);
+          setOpenAlertsCount(mine.length);
+        }
+      }
+    } catch (err) {
+      setLoadError(extractApiErrorMessage(err));
     }
-  };
+  }, [consultationId, t]);
+
+  useEffect(() => {
+    let active = true;
+    ensureMediaPermissions();
+    setIsLoading(true);
+    loadCallContext().finally(() => {
+      if (active) setIsLoading(false);
+    });
+    return () => {
+      active = false;
+    };
+  }, [ensureMediaPermissions, loadCallContext]);
+
+  useEffect(() => {
+    if (!consultationId) return;
+    connectConsultationsSocket();
+
+    const heartbeat = setInterval(() => {
+      consultationsSocket.emit(SOCKET_EVENTS.CONSULTATION_HEARTBEAT, { consultationId });
+    }, 15000);
+
+    const onConsultationChanged = (event: unknown) => {
+      if (!event || typeof event !== 'object') return;
+      const e = event as RawRecord;
+      if (String(e.consultationId ?? e._id ?? '') === consultationId) {
+        loadCallContext();
+      }
+    };
+
+    consultationsSocket.on(SOCKET_EVENTS.CONSULTATIONS_CHANGED, onConsultationChanged);
+    return () => {
+      clearInterval(heartbeat);
+      consultationsSocket.off(SOCKET_EVENTS.CONSULTATIONS_CHANGED, onConsultationChanged);
+    };
+  }, [consultationId, loadCallContext]);
+
+  useEffect(() => {
+    if (sessionStatus !== 'in_consultation') return;
+    const timer = setInterval(() => {
+      setElapsedSeconds((prev) => prev + 1);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [sessionStatus]);
+
+  const handleStartSession = useCallback(async () => {
+    if (!consultationId || isStartingSession) return;
+    setIsStartingSession(true);
+    try {
+      await mobileApi.consultationsStart({ params: { id: consultationId } });
+      setSessionStatus('in_consultation');
+      Toast.show({
+        type: 'success',
+        text1: t('mobile.consultation_started', 'Consultation session started'),
+      });
+    } catch (err) {
+      Toast.show({ type: 'error', text1: extractApiErrorMessage(err) });
+    } finally {
+      setIsStartingSession(false);
+    }
+  }, [consultationId, isStartingSession, t]);
+
+  const handleSaveNotes = useCallback(async () => {
+    if (!consultationId || isSavingNotes) return;
+    const isReadonly =
+      sessionStatus === 'completed' ||
+      sessionStatus === 'no_show' ||
+      requestStatus === 'cancelled' ||
+      requestStatus === 'declined';
+    if (isReadonly) {
+      Toast.show({
+        type: 'info',
+        text1: t('mobile.clinical_notes_readonly', 'Notes cannot be edited on closed sessions'),
+      });
+      return;
+    }
+    setIsSavingNotes(true);
+    try {
+      await mobileApi.consultationsUpdate({
+        params: { id: consultationId },
+        body: { doctorNotes: clinicalNotes.trim() },
+      });
+      Toast.show({
+        type: 'success',
+        text1: t('mobile.notes_saved', 'Clinical notes saved'),
+      });
+      setIsNotesModalVisible(false);
+    } catch (err) {
+      Toast.show({ type: 'error', text1: extractApiErrorMessage(err) });
+    } finally {
+      setIsSavingNotes(false);
+    }
+  }, [clinicalNotes, consultationId, isSavingNotes, sessionStatus, t]);
+
+  const handleCompleteAndExit = useCallback(async () => {
+    if (!consultationId || isEndingCall) return;
+    if (sessionStatus === 'in_consultation') {
+      setIsEndingCall(true);
+      try {
+        await mobileApi.consultationsComplete({
+          params: { id: consultationId },
+          body: clinicalNotes.trim() ? { doctorNotes: clinicalNotes.trim() } : {},
+        });
+        Toast.show({
+          type: 'success',
+          text1: t('mobile.consultation_completed', 'Consultation marked as completed'),
+        });
+        router.back();
+      } catch (err) {
+        Toast.show({ type: 'error', text1: extractApiErrorMessage(err) });
+      } finally {
+        setIsEndingCall(false);
+      }
+      return;
+    }
+    router.back();
+  }, [clinicalNotes, consultationId, isEndingCall, router, sessionStatus, t]);
+
+  const canStart =
+    requestStatus === 'accepted' && (sessionStatus === 'scheduled' || sessionStatus === 'waiting');
+  const isClosed =
+    sessionStatus === 'completed' || sessionStatus === 'cancelled' || sessionStatus === 'no_show';
 
   return (
-    <View style={tw('flex-1 bg-slate-900 relative')}>
+    <SafeAreaView style={tw('flex-1 bg-slate-950')} edges={['top', 'bottom']}>
       <StatusBar barStyle="light-content" />
-      
-      {/* Background Video (Patient) */}
-      <Image 
-        source={{ uri: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=1000&auto=format&fit=crop' }} 
-        style={tw(`absolute inset-0 w-full opacity-80 ${notesVisible ? 'h-1/2' : 'h-full'}`)}
-        resizeMode="cover"
-      />
-      
-      <SafeAreaView style={tw('flex-1 justify-between')}>
-        {/* Top Header */}
-        <View style={tw('flex-row justify-between items-start px-6 pt-6')}>
-          <View>
-            <View style={tw('bg-black/40 px-3 py-1.5 rounded-full flex-row items-center gap-2 mb-2 self-start')}>
-              <View style={tw('w-2 h-2 rounded-full bg-red-500')} />
-              <Text style={tw('text-white text-xs font-medium')}>{t('mobile.1024', `10:24`)}</Text>
-            </View>
-            <Text style={tw('text-white text-xl font-bold shadow-sm')}>{t('mobile.alex_johnson', `Alex Johnson`)}</Text>
-            <Text style={tw('text-blue-400 text-sm font-medium')}>{t('mobile.patient_28_yrs', `Patient • 28 yrs`)}</Text>
-          </View>
-          
-          <View style={tw('flex-row gap-2')}>
-            <TouchableOpacity 
-              onPress={() => setNotesVisible(!notesVisible)}
-              style={tw(`w-10 h-10 rounded-full items-center justify-center ${notesVisible ? 'bg-brand' : 'bg-black/40'}`)}
-            >
-              <FileText color={notesVisible ? "#0f172a" : "#ffffff"} size={20} />
-            </TouchableOpacity>
+
+      {/* Top Overlay */}
+      <View style={tw('px-4 pt-2 pb-3 flex-row items-center justify-between')}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={tw('p-2.5 rounded-full bg-slate-800/80 border border-slate-700')}
+        >
+          <ChevronDown size={20} color="#ffffff" />
+        </TouchableOpacity>
+
+        <View style={tw('items-center flex-1 px-3')}>
+          <Text style={tw('text-base font-bold text-white')} numberOfLines={1}>
+            {patientName}
+          </Text>
+          <View style={tw('flex-row items-center gap-1.5 mt-0.5')}>
+            <View
+              style={tw(
+                `w-2 h-2 rounded-full ${
+                  sessionStatus === 'in_consultation'
+                    ? 'bg-emerald-400'
+                    : sessionStatus === 'waiting'
+                      ? 'bg-blue-400'
+                      : 'bg-amber-400'
+                }`,
+              )}
+            />
+            <Text style={tw('text-xs font-semibold text-slate-300')}>
+              {sessionStatus === 'in_consultation'
+                ? `${t('mobile.live', 'Live')} • ${formatDuration(elapsedSeconds)}`
+                : sessionStatus === 'waiting'
+                  ? t('mobile.patient_in_waiting_room', 'Patient Waiting')
+                  : t('mobile.ready_to_connect', 'Consultation Room')}
+            </Text>
           </View>
         </View>
 
-        {/* Bottom Area (when not split) */}
-        {!notesVisible && (
-          <View style={tw('px-6 pb-10')}>
-            {/* Doctor PIP */}
-            <View style={tw('w-28 h-40 bg-gray-800 rounded-2xl overflow-hidden mb-6 self-end border-2 border-white/20 items-center justify-center relative')}>
-              {!isVideoOff ? (
-                <Image 
-                  source={{ uri: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?q=80&w=400&auto=format&fit=crop' }} 
-                  style={tw('w-full h-full')}
-                />
-              ) : (
-                <View style={tw('items-center justify-center p-2')}>
-                  <VideoOff color="#94a3b8" size={26} />
-                  <Text style={tw('text-[11px] text-slate-300 font-medium mt-1.5 text-center')}>
-                    {t('mobile.camera_off', 'Camera off')}
-                  </Text>
-                </View>
-              )}
-              {isMuted && (
-                <View style={tw('absolute top-2 right-2 w-6 h-6 rounded-full bg-red-600 items-center justify-center')}>
-                  <MicOff color="#ffffff" size={12} />
-                </View>
-              )}
-            </View>
+        <TouchableOpacity
+          onPress={() => setIsNotesModalVisible(true)}
+          style={tw('px-3 py-2 rounded-full bg-slate-800/80 border border-slate-700 flex-row items-center gap-1.5')}
+        >
+          <FileText size={15} color="#5eead4" />
+          <Text style={tw('text-xs font-bold text-white')}>
+            {t('mobile.notes', 'Notes')}
+          </Text>
+        </TouchableOpacity>
+      </View>
 
-            {/* Controls */}
-            <View style={tw('flex-row justify-between items-center bg-black/60 p-6 rounded-full')}>
-              {/* Mic Toggle */}
-              <TouchableOpacity 
-                onPress={handleToggleMic}
-                style={tw(`w-12 h-12 rounded-full items-center justify-center ${isMuted ? 'bg-red-500' : 'bg-white/20'}`)}
+      {isLoading ? (
+        <View style={tw('flex-1 px-6 justify-center gap-4')}>
+          <Skeleton className="h-32 w-32 rounded-full self-center" />
+          <Skeleton className="h-8 w-48 rounded-xl self-center" />
+          <Skeleton className="h-20 w-full rounded-2xl" />
+        </View>
+      ) : loadError ? (
+        <View style={tw('flex-1 items-center justify-center px-8')}>
+          <AlertCircle size={40} color="#ef4444" />
+          <Text style={tw('text-base font-bold text-white mt-3 text-center')}>
+            {t('mobile.load_error_title', 'Unable to open video room')}
+          </Text>
+          <Text style={tw('text-xs text-slate-400 mt-1 text-center')}>{loadError}</Text>
+          <TouchableOpacity
+            onPress={() => {
+              setIsLoading(true);
+              loadCallContext().finally(() => setIsLoading(false));
+            }}
+            style={tw('mt-4 px-5 py-2.5 rounded-xl bg-teal-600 flex-row items-center gap-2')}
+          >
+            <RefreshCw size={15} color="#ffffff" />
+            <Text style={tw('text-sm font-bold text-white')}>{t('mobile.retry', 'Retry')}</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <View style={tw('flex-1 justify-between px-4 pb-4')}>
+          {/* Main Video Stage + Vitals Telemetry */}
+          <View style={tw('flex-1 rounded-3xl bg-slate-900 border border-slate-800 items-center justify-center p-5 relative overflow-hidden')}>
+            {patientAvatar ? (
+              <Image
+                source={{ uri: patientAvatar }}
+                style={tw('w-28 h-28 rounded-full border-4 border-teal-500/40 bg-slate-800')}
+              />
+            ) : (
+              <View style={tw('w-28 h-28 rounded-full bg-teal-900/70 border-4 border-teal-500/40 items-center justify-center')}>
+                <Text style={tw('text-3xl font-bold text-teal-200')}>
+                  {getInitials(patientName)}
+                </Text>
+              </View>
+            )}
+
+            <Text style={tw('text-xl font-bold text-white mt-4 text-center')}>{patientName}</Text>
+            <Text style={tw('text-xs text-slate-400 mt-1 text-center')}>
+              {isCameraOn && isMicOn
+                ? t('mobile.consultation_active_audio_video', 'Camera and microphone active')
+                : t('mobile.audio_or_video_muted', 'Camera or microphone muted')}
+            </Text>
+
+            {/* Real Telemetry Strip */}
+            {(latestBpLabel || latestHrLabel) && (
+              <View style={tw('flex-row items-center gap-2 mt-4 flex-wrap justify-center')}>
+                {latestBpLabel && (
+                  <View style={tw('flex-row items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-800 border border-slate-700')}>
+                    <Activity size={13} color="#34d399" />
+                    <Text style={tw('text-xs font-bold text-white')}>{latestBpLabel}</Text>
+                  </View>
+                )}
+                {latestHrLabel && (
+                  <View style={tw('flex-row items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-800 border border-slate-700')}>
+                    <Activity size={13} color="#38bdf8" />
+                    <Text style={tw('text-xs font-bold text-white')}>{latestHrLabel}</Text>
+                  </View>
+                )}
+              </View>
+            )}
+
+            {canStart && (
+              <TouchableOpacity
+                disabled={isStartingSession}
+                onPress={handleStartSession}
+                style={tw('mt-5 px-5 py-3 rounded-2xl bg-emerald-600 flex-row items-center gap-2')}
               >
-                {isMuted ? <MicOff color="#ffffff" size={24} /> : <Mic color="#ffffff" size={24} />}
+                {isStartingSession ? (
+                  <ActivityIndicator size="small" color="#ffffff" />
+                ) : (
+                  <Play size={16} color="#ffffff" />
+                )}
+                <Text style={tw('text-sm font-bold text-white')}>
+                  {t('mobile.start_consultation_now', 'Start Consultation Session')}
+                </Text>
+              </TouchableOpacity>
+            )}
+
+            {/* Quick Clinical Tools Row */}
+            <View style={tw('flex-row flex-wrap justify-center gap-2 mt-6')}>
+              <TouchableOpacity
+                onPress={() => {
+                  if (!enrollmentId) {
+                    Toast.show({
+                      type: 'info',
+                      text1: t('mobile.no_active_program_for_ai', 'No active care program for pre-visit summary'),
+                    });
+                    return;
+                  }
+                  setIsAiSummaryVisible(true);
+                }}
+                style={tw('flex-row items-center gap-1.5 px-3 py-2 rounded-xl bg-violet-950/70 border border-violet-800')}
+              >
+                <BrainCircuit size={15} color="#c4b5fd" />
+                <Text style={tw('text-xs font-semibold text-violet-200')}>
+                  {t('mobile.ai_summary', 'AI Summary')}
+                </Text>
               </TouchableOpacity>
 
-              {/* Video Toggle */}
-              <TouchableOpacity 
-                onPress={handleToggleVideo}
-                style={tw(`w-12 h-12 rounded-full items-center justify-center ${isVideoOff ? 'bg-red-500' : 'bg-white/20'}`)}
+              <TouchableOpacity
+                onPress={() => setIsChartVisible(true)}
+                style={tw('flex-row items-center gap-1.5 px-3 py-2 rounded-xl bg-sky-950/70 border border-sky-800')}
               >
-                {isVideoOff ? <VideoOff color="#ffffff" size={24} /> : <Video color="#ffffff" size={24} />}
+                <LineChart size={15} color="#7dd3fc" />
+                <Text style={tw('text-xs font-semibold text-sky-200')}>
+                  {t('mobile.health_chart', 'Health Chart')}
+                </Text>
               </TouchableOpacity>
 
-              {/* Chat with Patient */}
-              <TouchableOpacity 
-                onPress={() => router.push('/(doctor)/chat/1')}
-                style={tw('w-12 h-12 rounded-full bg-white/20 items-center justify-center')}
+              <TouchableOpacity
+                onPress={() => setIsAlertsVisible(true)}
+                style={tw('flex-row items-center gap-1.5 px-3 py-2 rounded-xl bg-amber-950/70 border border-amber-800')}
               >
-                <MessageCircle color="#ffffff" size={24} />
-              </TouchableOpacity>
-
-              {/* End Call */}
-              <TouchableOpacity 
-                style={tw('w-16 h-16 rounded-full bg-red-500 items-center justify-center shadow-lg')}
-                onPress={() => router.back('/(doctor)/consultations')}
-              >
-                <PhoneOff color="#ffffff" size={28} />
+                <AlertTriangle size={15} color="#fcd34d" />
+                <Text style={tw('text-xs font-semibold text-amber-200')}>
+                  {t('mobile.care_alerts', 'Alerts')}
+                  {openAlertsCount > 0 ? ` (${openAlertsCount})` : ''}
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
-        )}
-      </SafeAreaView>
 
-      {/* Clinical Notes Drawer (Split Screen Effect) */}
-      <Modal visible={notesVisible} transparent={true} animationType="slide">
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={tw('flex-1 justify-end')}>
-          <View style={tw('h-1/2 bg-white dark:bg-slate-900 rounded-t-3xl border-t border-slate-200 dark:border-slate-800')}>
-            {/* Drawer Handle & Header */}
-            <View style={tw('px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex-row justify-between items-center')}>
-              <Text style={tw('font-bold text-lg text-slate-900 dark:text-white')}>{t('mobile.clinical_notes', 'Clinical Notes')}</Text>
-              <TouchableOpacity onPress={() => setNotesVisible(false)} style={tw('p-2')}>
-                <ChevronDown color={twInstance.color('text-slate-500')} size={24} />
+          {/* Bottom Controls */}
+          <View style={tw('mt-4 px-4 py-3.5 rounded-3xl bg-slate-900 border border-slate-800 flex-row items-center justify-around')}>
+            <TouchableOpacity
+              onPress={() => setIsMicOn((prev) => !prev)}
+              style={tw(
+                `w-12 h-12 rounded-full items-center justify-center ${
+                  isMicOn ? 'bg-slate-800' : 'bg-red-600'
+                }`,
+              )}
+            >
+              {isMicOn ? <Mic size={20} color="#ffffff" /> : <MicOff size={20} color="#ffffff" />}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => setIsCameraOn((prev) => !prev)}
+              style={tw(
+                `w-12 h-12 rounded-full items-center justify-center ${
+                  isCameraOn ? 'bg-slate-800' : 'bg-red-600'
+                }`,
+              )}
+            >
+              {isCameraOn ? <Video size={20} color="#ffffff" /> : <VideoOff size={20} color="#ffffff" />}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => router.push(`/(doctor)/chat/${consultationId}`)}
+              style={tw('w-12 h-12 rounded-full bg-slate-800 items-center justify-center')}
+            >
+              <MessageCircle size={20} color="#5eead4" />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              disabled={isEndingCall}
+              onPress={handleCompleteAndExit}
+              style={tw('px-5 h-12 rounded-full bg-red-600 flex-row items-center justify-center gap-2')}
+            >
+              {isEndingCall ? (
+                <ActivityIndicator size="small" color="#ffffff" />
+              ) : (
+                <PhoneOff size={18} color="#ffffff" />
+              )}
+              <Text style={tw('text-xs font-bold text-white')}>
+                {sessionStatus === 'in_consultation'
+                  ? t('mobile.complete_and_end', 'End Session')
+                  : t('mobile.leave_room', 'Leave')}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+
+      {/* Clinical Notes Modal */}
+      <Modal
+        visible={isNotesModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setIsNotesModalVisible(false)}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={tw('flex-1 bg-black/60 justify-end')}
+        >
+          <View
+            style={[
+              tw('bg-white dark:bg-slate-900 rounded-t-3xl p-5 border-t border-slate-100 dark:border-slate-800'),
+              {
+                shadowColor: '#0f172a',
+                shadowOffset: { width: 0, height: -2 },
+                shadowOpacity: 0.12,
+                shadowRadius: 12,
+                elevation: 6,
+              },
+            ]}
+          >
+            <View style={tw('flex-row items-center justify-between mb-3')}>
+              <Text style={tw('text-base font-bold text-slate-900 dark:text-white')}>
+                {t('mobile.clinical_notes', 'Clinical Notes')}
+              </Text>
+              <TouchableOpacity onPress={() => setIsNotesModalVisible(false)}>
+                <ChevronDown size={22} color="#94a3b8" />
               </TouchableOpacity>
             </View>
-
-            <ScrollView contentContainerStyle={tw('p-6')} showsVerticalScrollIndicator={false}>
-              {/* Quick Health Snapshot */}
-              <View style={tw('bg-slate-50 dark:bg-slate-950 p-4 rounded-2xl mb-4 border border-slate-100 dark:border-slate-800')}>
-                <View style={tw('flex-row items-center mb-4')}>
-                  <View style={tw('w-10 h-10 bg-red-100 dark:bg-red-900/30 rounded-full items-center justify-center mr-3')}>
-                    <Activity color={twInstance.color('text-red-500')} size={20} />
-                  </View>
-                  <View>
-                    <Text style={tw('text-slate-500 text-xs font-bold uppercase tracking-wider')}>{t('mobile.latest_bp', 'Latest BP')}</Text>
-                    <Text style={tw('text-slate-900 dark:text-white font-bold text-base')}>165/100 <Text style={tw('text-sm text-red-500')}>({t('mobile.high', 'High')})</Text></Text>
-                  </View>
-                </View>
-                
-                {/* Quick Actions Row */}
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={tw('-mx-4')} contentContainerStyle={tw('px-4 gap-3')}>
-                  <TouchableOpacity 
-                    onPress={() => setAiSummaryModalVisible(true)} 
-                    style={tw('bg-purple-100 dark:bg-purple-900/30 px-4 py-2.5 rounded-xl flex-row items-center border border-purple-200 dark:border-purple-800/50')}
-                  >
-                    <BrainCircuit color={twInstance.color('text-purple-600 dark:text-purple-400')} size={16} />
-                    <Text style={tw('text-purple-700 dark:text-purple-300 font-bold ml-1.5 text-xs')}>{t('mobile.ai_summary', 'AI Summary')}</Text>
-                  </TouchableOpacity>
-                  
-                  <TouchableOpacity 
-                    onPress={() => setHealthChartModalVisible(true)} 
-                    style={tw('bg-blue-100 dark:bg-blue-900/30 px-4 py-2.5 rounded-xl flex-row items-center border border-blue-200 dark:border-blue-800/50')}
-                  >
-                    <LineChart color={twInstance.color('text-blue-600 dark:text-blue-400')} size={16} />
-                    <Text style={tw('text-blue-700 dark:text-blue-300 font-bold ml-1.5 text-xs')}>{t('mobile.health_chart', 'Health Chart')}</Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity 
-                    onPress={() => setCareAlertsModalVisible(true)} 
-                    style={tw('bg-amber-100 dark:bg-amber-900/30 px-4 py-2.5 rounded-xl flex-row items-center border border-amber-200 dark:border-amber-800/50')}
-                  >
-                    <AlertTriangle color={twInstance.color('text-amber-600 dark:text-amber-400')} size={16} />
-                    <Text style={tw('text-amber-700 dark:text-amber-300 font-bold ml-1.5 text-xs')}>{t('mobile.care_alerts', 'Care Alerts')}</Text>
-                  </TouchableOpacity>
-                </ScrollView>
-              </View>
-
-              {/* Note Input */}
-              <Text style={tw('font-bold text-slate-700 dark:text-slate-300 mb-2')}>{t('mobile.consultation_notes', 'Consultation Notes')}</Text>
+            <ScrollView style={tw('max-h-72')}>
               <TextInput
-                style={tw('bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 text-slate-900 dark:text-white h-32')}
-                placeholder={t('mobile.write_clinical_notes', 'Write clinical observations here...')}
-                placeholderTextColor={twInstance.color('text-slate-400')}
-                multiline
-                textAlignVertical="top"
                 value={clinicalNotes}
                 onChangeText={setClinicalNotes}
+                editable={!isClosed}
+                multiline
+                placeholder={t('mobile.clinical_notes_placeholder', 'Record symptoms, observations, and plan...')}
+                placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
+                style={tw(
+                  'p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm text-slate-900 dark:text-white min-h-[140px]',
+                )}
+                textAlignVertical="top"
               />
-              
-              <TouchableOpacity onPress={() => {
-                Toast.show({ type: 'success', text1: t('mobile.success', 'Success'), text2: t('mobile.clinical_notes_saved', 'Clinical notes saved') });
-                setClinicalNotes('');
-              }} style={tw('bg-brand flex-row items-center justify-center p-4 rounded-xl mt-4')}>
-                <Save color="#0f172a" size={20} />
-                <Text style={tw('text-slate-900 font-bold ml-2')}>{t('mobile.save_notes', 'Save Notes')}</Text>
-              </TouchableOpacity>
             </ScrollView>
+            <View style={tw('flex-row justify-end gap-2 mt-4')}>
+              <TouchableOpacity
+                onPress={() => setIsNotesModalVisible(false)}
+                style={tw('px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800')}
+              >
+                <Text style={tw('text-xs font-bold text-slate-600 dark:text-slate-300')}>
+                  {t('mobile.close', 'Close')}
+                </Text>
+              </TouchableOpacity>
+              {!isClosed && (
+                <TouchableOpacity
+                  disabled={isSavingNotes}
+                  onPress={handleSaveNotes}
+                  style={tw('px-4 py-2.5 rounded-xl bg-teal-600 flex-row items-center gap-1.5')}
+                >
+                  {isSavingNotes ? (
+                    <ActivityIndicator size="small" color="#ffffff" />
+                  ) : (
+                    <Save size={14} color="#ffffff" />
+                  )}
+                  <Text style={tw('text-xs font-bold text-white')}>{t('mobile.save', 'Save')}</Text>
+                </TouchableOpacity>
+              )}
+            </View>
           </View>
         </KeyboardAvoidingView>
       </Modal>
 
-      {/* In-Call Modals */}
       <AiSummaryModal
-        visible={aiSummaryModalVisible}
-        onClose={() => setAiSummaryModalVisible(false)}
-        patientName="Alex Johnson"
-        programName={t('mobile.hypertension_program', 'Hypertension Management')}
-        baseline="145/95 mmHg"
-        current="165/100 mmHg"
-        adherence={75}
+        visible={isAiSummaryVisible}
+        onClose={() => setIsAiSummaryVisible(false)}
+        enrollmentId={enrollmentId}
+        patientName={patientName}
+        programName={programName}
+        audience="doctor"
       />
 
       <HealthChartModal
-        visible={healthChartModalVisible}
-        onClose={() => setHealthChartModalVisible(false)}
-        patientName="Alex Johnson"
+        visible={isChartVisible}
+        onClose={() => setIsChartVisible(false)}
+        patientId={patientId}
+        patientName={patientName}
       />
 
       <CareAlertsModal
-        visible={careAlertsModalVisible}
-        onClose={() => setCareAlertsModalVisible(false)}
-        patientName="Alex Johnson"
+        visible={isAlertsVisible}
+        onClose={() => setIsAlertsVisible(false)}
+        patientId={patientId}
+        patientName={patientName}
+        onChanged={loadCallContext}
       />
-    </View>
+    </SafeAreaView>
   );
 }

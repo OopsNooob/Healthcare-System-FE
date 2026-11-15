@@ -2761,9 +2761,10 @@ export interface PaymentsListResponse {
 
 /** POST /api/v1/billing/payments/orders — input (Params/Query/Headers/Body theo tên field). */
 export interface PaymentsCreateRequest {
-  headers: { "idempotency-key": string;
+  headers?: { "idempotency-key"?: string;
   };
-  body: {  };
+  body: { planId: string;
+  };
 }
 
 /** POST /api/v1/billing/payments/orders — response thành công theo return type thực tế. */
