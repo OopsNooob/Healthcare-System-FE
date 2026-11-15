@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import { create } from 'twrnc';
 
 export const twInstance = create({
@@ -14,5 +15,26 @@ export const twInstance = create({
   },
 });
 
-export const tw = (classNames: string) => twInstance.style(classNames);
+type TwStyle = ReturnType<typeof twInstance.style>;
+
+export const tw = (classNames: string): TwStyle => {
+  const style = twInstance.style(classNames);
+  if (Platform.OS === 'android' && style && typeof style === 'object') {
+    const textMetrics = style as { fontSize?: unknown; fontWeight?: unknown };
+    if (
+      typeof textMetrics.fontSize === 'number' &&
+      textMetrics.fontSize <= 13 &&
+      (textMetrics.fontWeight === '700' ||
+        textMetrics.fontWeight === '800' ||
+        textMetrics.fontWeight === 'bold')
+    ) {
+      return {
+        ...style,
+        fontWeight: '600',
+        fontFamily: 'sans-serif-medium',
+      } as TwStyle;
+    }
+  }
+  return style;
+};
 

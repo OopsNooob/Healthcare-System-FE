@@ -1,86 +1,55 @@
-import { api } from "@/lib/api";
+import {
+  normalizeCursorList,
+  normalizePaginatedList,
+  webAdminApi,
+} from "@/lib/api";
 import { format, startOfDay, startOfMonth, subDays, subMonths } from "date-fns";
+
+export interface SystemHealthStatus {
+  live: "ok" | "degraded" | "down";
+  ready: "ok" | "degraded" | "down";
+}
 
 export interface OverviewSummary {
   totalUsers: number;
   activeDoctors: number;
-  aiChatSessions: number;
+  aiKnowledgeDocuments: number;
   pendingVerifications: number;
   doctorSessions: number;
   violationReports: number;
+  bannedAccounts: number;
+  activeEnrollments: number;
+  openAlerts: number;
+  acknowledgedAlerts: number;
+  resolvedAlerts: number;
+  systemHealth: SystemHealthStatus;
   monthly: {
     labels: string[];
     totalUsers: number[];
     activeDoctors: number[];
-    aiChatSessions: number[];
+    aiDocuments: number[];
   };
   weekly: {
     labels: string[];
     doctorSessions: number[];
     violationReports: number[];
   };
+  tierDistribution: {
+    labels: string[];
+    planPrices: number[];
+    orderCounts: number[];
+  };
 }
-export type VerificationStatus = "pending" | "approved" | "rejected";
-type User = {
-  _id: string;
-  email: string;
-  fullName: string;
-  phoneNumber?: string;
-};
-
-type ApiDoctor = {
-  _id: string;
-  userId: User;
-  specialty?: string;
-  workplace?: string;
-  verificationDocuments?: string[];
-  experienceYears?: number;
-  verificationStatus: VerificationStatus;
-  rejectReason?: string;
-  createdAt: string;
-};
-
-type ApiDoctorApplicationsResponse = {
-  data: ApiDoctor[];
-  pagination: {
-    total: number;
-    page: number;
-    limit: number;
-    pages: number;
-  };
-  summary: {
-    total: number;
-    pending: number;
-    approved: number;
-    rejected: number;
-  };
-};
 
 type CreatedAtRecord = {
   createdAt?: string;
-};
-
-type UserListResponse = CreatedAtRecord[];
-type PaginatedAiSessionsResponse = {
-  data: CreatedAtRecord[];
-  total: number;
-};
-
-type AdminSessionsResponse = {
-  data: CreatedAtRecord[];
-  pagination: {
-    total: number;
-    page: number;
-    limit: number;
-    pages: number;
-  };
-};
-
-type ViolationsResponse = {
-  data: CreatedAtRecord[];
-  total: number;
-  page: number;
-  limit: number;
+  detectedAt?: string;
+  status?: string;
+  severity?: string;
+  acknowledgedAt?: string;
+  planId?: string;
+  orderSnapshot?: { code?: string; name?: string };
+  doctorProfile?: { verificationStatus?: string };
 };
 
 function getMonthKeysLast8Months() {
@@ -105,15 +74,13 @@ function buildMonthlyCounts(items: CreatedAtRecord[], monthKeys: string[]) {
   );
 
   for (const item of items) {
-    if (!item.createdAt) {
-      continue;
-    }
+    const rawDate = item.createdAt ?? item.detectedAt;
+    if (!rawDate) continue;
+    const parsed = new Date(rawDate);
+    if (Number.isNaN(parsed.getTime())) continue;
 
-    const monthKey = format(new Date(item.createdAt), "yyyy-MM");
-    if (!monthlyCounter.has(monthKey)) {
-      continue;
-    }
-
+    const monthKey = format(parsed, "yyyy-MM");
+    if (!monthlyCounter.has(monthKey)) continue;
     monthlyCounter.set(monthKey, (monthlyCounter.get(monthKey) ?? 0) + 1);
   }
 
@@ -126,132 +93,195 @@ function buildDailyCounts(items: CreatedAtRecord[], dayKeys: string[]) {
   );
 
   for (const item of items) {
-    if (!item.createdAt) {
-      continue;
-    }
+    const rawDate = item.createdAt ?? item.detectedAt;
+    if (!rawDate) continue;
+    const parsed = new Date(rawDate);
+    if (Number.isNaN(parsed.getTime())) continue;
 
-    const dayKey = format(new Date(item.createdAt), "yyyy-MM-dd");
-    if (!dailyCounter.has(dayKey)) {
-      continue;
-    }
-
+    const dayKey = format(parsed, "yyyy-MM-dd");
+    if (!dailyCounter.has(dayKey)) continue;
     dailyCounter.set(dayKey, (dailyCounter.get(dayKey) ?? 0) + 1);
   }
 
   return dayKeys.map((dayKey) => dailyCounter.get(dayKey) ?? 0);
 }
 
-async function fetchAllPendingDoctorApplications(): Promise<ApiDoctor[]> {
-  const limit = 100;
-  let page = 1;
-  let pages = 1;
-  const allDoctors: ApiDoctor[] = [];
-
-  while (page <= pages) {
-    const response = await api.get<ApiDoctorApplicationsResponse>(
-      "/admin/doctors/applications",
-      {
-        params: {
-          status: "pending",
-          page,
-          limit,
-        },
-      },
-    );
-
-    allDoctors.push(...response.data.data);
-    pages = Math.max(1, response.data.pagination.pages || 1);
-    page += 1;
-  }
-
-  return allDoctors;
+function toHealthState(
+  settled: PromiseSettledResult<{ status?: string }>,
+): "ok" | "degraded" | "down" {
+  if (settled.status !== "fulfilled") return "down";
+  const status = settled.value?.status?.toLowerCase();
+  if (status === "ok") return "ok";
+  return status ? "degraded" : "ok";
 }
 
 export async function getOverviewSummary(): Promise<OverviewSummary> {
   const monthKeys = getMonthKeysLast8Months();
   const dayKeys = getDayKeysLast7Days();
-  const rangeStart = startOfMonth(subMonths(new Date(), 7)).toISOString();
-  const rangeEnd = startOfMonth(subMonths(new Date(), -1)).toISOString();
-  const dailyRangeStart = startOfDay(subDays(new Date(), 6)).toISOString();
+  const rangeStart = startOfMonth(subMonths(new Date(), 7)).getTime();
+  const dailyRangeStart = startOfDay(subDays(new Date(), 6)).getTime();
 
   const [
-    usersResponse,
-    doctorsResponse,
-    aiChatSessionsResponse,
-    pendingDoctors,
-    doctorSessionResponse,
-    violationReportResponse,
-  ] = await Promise.all([
-    api.get<UserListResponse>("/users"),
-    api.get<UserListResponse>("/users/doctors"),
-    api.get<PaginatedAiSessionsResponse>("/ai-sessions", {
-      params: {
-        page: 1,
-        limit: 1000,
-        fromDate: rangeStart,
-        toDate: rangeEnd,
-      },
+    liveRes,
+    readyRes,
+    dashboardStatsRes,
+    usersPagedRes,
+    doctorsPagedRes,
+    pendingAppsRes,
+    consultationsRes,
+    violationsStatsRes,
+    violationsListRes,
+    aiDocsRes,
+    enrollmentsRes,
+    alertsRes,
+    plansRes,
+    ordersRes,
+  ] = await Promise.allSettled([
+    webAdminApi.healthLive(),
+    webAdminApi.healthReady(),
+    webAdminApi.adminGetDashboardStats(),
+    webAdminApi.usersFindAllPaged({ query: { page: 1, limit: 100 } }),
+    webAdminApi.usersSearchDoctors({ query: { page: 1, limit: 100 } }),
+    webAdminApi.adminGetDoctorApplication({
+      query: { page: 1, limit: 100 },
     }),
-    fetchAllPendingDoctorApplications(),
-    api.get<AdminSessionsResponse>("/admin/sessions", {
-      params: {
-        page: 1,
-        limit: 1000,
-        sortBy: "createdAt",
-        sortOrder: "desc",
-      },
-    }),
-    api.get<ViolationsResponse>("/violations", {
-      params: {
-        page: 1,
-        limit: 1000,
-      },
-    }),
+    webAdminApi.adminGetAllConsultations({ query: { page: 1, limit: 100 } }),
+    webAdminApi.violationsGetStats(),
+    webAdminApi.violationsFindAll({ query: { page: 1, limit: 100 } }),
+    webAdminApi.aiDocumentsGetAllDocuments({ query: { page: 1, limit: 100 } }),
+    webAdminApi.careEnrollmentList({ query: { page: 1, limit: 100 } }),
+    webAdminApi.careAlertInbox({ query: { limit: 100 } }),
+    webAdminApi.plansList(),
+    webAdminApi.paymentsList({ query: { page: 1, limit: 100 } }),
   ]);
 
-  const doctorSessionsLast7Days = doctorSessionResponse.data.data.filter(
-    (session) =>
-      Boolean(session.createdAt) &&
-      new Date(session.createdAt as string) >= new Date(dailyRangeStart),
+  const usersPaged =
+    usersPagedRes.status === "fulfilled"
+      ? normalizePaginatedList<CreatedAtRecord>(usersPagedRes.value, 1, 100)
+      : normalizePaginatedList<CreatedAtRecord>([]);
+
+  const doctorsPaged =
+    doctorsPagedRes.status === "fulfilled"
+      ? normalizePaginatedList<CreatedAtRecord>(doctorsPagedRes.value, 1, 100)
+      : normalizePaginatedList<CreatedAtRecord>([]);
+
+  const pendingApps =
+    pendingAppsRes.status === "fulfilled"
+      ? normalizePaginatedList<CreatedAtRecord>(pendingAppsRes.value, 1, 100)
+      : normalizePaginatedList<CreatedAtRecord>([]);
+
+  const consultationsPaged =
+    consultationsRes.status === "fulfilled"
+      ? normalizePaginatedList<CreatedAtRecord>(consultationsRes.value, 1, 100)
+      : normalizePaginatedList<CreatedAtRecord>([]);
+
+  const violationsPaged =
+    violationsListRes.status === "fulfilled"
+      ? normalizePaginatedList<CreatedAtRecord>(violationsListRes.value, 1, 100)
+      : normalizePaginatedList<CreatedAtRecord>([]);
+
+  const aiDocsPaged =
+    aiDocsRes.status === "fulfilled"
+      ? normalizePaginatedList<CreatedAtRecord>(aiDocsRes.value, 1, 100)
+      : normalizePaginatedList<CreatedAtRecord>([]);
+
+  const enrollmentsPaged =
+    enrollmentsRes.status === "fulfilled"
+      ? normalizePaginatedList<CreatedAtRecord>(enrollmentsRes.value, 1, 100)
+      : normalizePaginatedList<CreatedAtRecord>([]);
+
+  const alertsCursor =
+    alertsRes.status === "fulfilled"
+      ? normalizeCursorList<CreatedAtRecord>(alertsRes.value)
+      : normalizeCursorList<CreatedAtRecord>([]);
+
+  const plans =
+    plansRes.status === "fulfilled"
+      ? normalizePaginatedList<{ _id?: string; id?: string; code?: string; name?: string; price?: number }>(plansRes.value).items
+      : [];
+
+  const ordersPaged =
+    ordersRes.status === "fulfilled"
+      ? normalizePaginatedList<CreatedAtRecord>(ordersRes.value, 1, 100)
+      : normalizePaginatedList<CreatedAtRecord>([]);
+
+  const dashStats =
+    dashboardStatsRes.status === "fulfilled" ? dashboardStatsRes.value : null;
+  const vStats =
+    violationsStatsRes.status === "fulfilled" ? violationsStatsRes.value : null;
+
+  const recentConsultations = consultationsPaged.items.filter(
+    (item) =>
+      Boolean(item.createdAt) &&
+      new Date(item.createdAt as string).getTime() >= dailyRangeStart,
+  );
+  const recentViolations = violationsPaged.items.filter(
+    (item) =>
+      Boolean(item.createdAt) &&
+      new Date(item.createdAt as string).getTime() >= dailyRangeStart,
   );
 
-  const violationsLast7Days = violationReportResponse.data.data.filter(
-    (violation) =>
-      Boolean(violation.createdAt) &&
-      new Date(violation.createdAt as string) >= new Date(dailyRangeStart),
+  const monthUsers = usersPaged.items.filter(
+    (u) => !u.createdAt || new Date(u.createdAt).getTime() >= rangeStart,
+  );
+  const monthDoctors = doctorsPaged.items.filter(
+    (d) => !d.createdAt || new Date(d.createdAt).getTime() >= rangeStart,
+  );
+  const monthAiDocs = aiDocsPaged.items.filter(
+    (doc) => !doc.createdAt || new Date(doc.createdAt).getTime() >= rangeStart,
   );
 
-  const monthlyTotalUsers = buildMonthlyCounts(usersResponse.data, monthKeys);
-  const monthlyActiveDoctors = buildMonthlyCounts(
-    doctorsResponse.data,
-    monthKeys,
-  );
-  const monthlyAiSessions = buildMonthlyCounts(
-    aiChatSessionsResponse.data.data,
-    monthKeys,
-  );
+  const activeEnrollments = enrollmentsPaged.items.filter(
+    (e) => e.status === "active" || !e.status,
+  ).length;
+  const openAlerts = alertsCursor.items.filter((a) => a.status === "open").length;
+  const acknowledgedAlerts = alertsCursor.items.filter(
+    (a) => a.status === "acknowledged",
+  ).length;
+  const resolvedAlerts = alertsCursor.items.filter(
+    (a) => a.status === "resolved",
+  ).length;
 
-  const weeklyDoctorSessions = buildDailyCounts(
-    doctorSessionsLast7Days,
-    dayKeys,
-  );
-  const weeklyViolationReports = buildDailyCounts(violationsLast7Days, dayKeys);
+  const orderCountByCode = new Map<string, number>();
+  for (const ord of ordersPaged.items) {
+    const label = ord.orderSnapshot?.name ?? ord.orderSnapshot?.code ?? "Plan";
+    orderCountByCode.set(label, (orderCountByCode.get(label) ?? 0) + 1);
+  }
+
+  const tierLabels =
+    plans.length > 0
+      ? plans.map((p) => p.name ?? p.code ?? "Plan")
+      : Array.from(orderCountByCode.keys());
+  const planPrices =
+    plans.length > 0
+      ? plans.map((p) => Number(p.price ?? 0))
+      : tierLabels.map(() => 0);
+  const orderCounts = tierLabels.map((lbl) => orderCountByCode.get(lbl) ?? 0);
 
   return {
-    totalUsers: usersResponse.data.length,
-    activeDoctors: doctorsResponse.data.length,
-    aiChatSessions: aiChatSessionsResponse.data.total,
-    pendingVerifications: pendingDoctors.length,
-    doctorSessions: doctorSessionResponse.data.pagination.total,
-    violationReports: violationReportResponse.data.total,
+    totalUsers: dashStats?.users.total ?? usersPaged.total,
+    activeDoctors: dashStats?.users.doctors ?? doctorsPaged.total,
+    aiKnowledgeDocuments: aiDocsPaged.total,
+    pendingVerifications: dashStats?.users.pendingDoctors ?? pendingApps.total,
+    doctorSessions: dashStats?.consultations.total ?? consultationsPaged.total,
+    violationReports: vStats?.total ?? violationsPaged.total,
+    bannedAccounts: dashStats?.security.bannedAccounts ?? 0,
+    activeEnrollments: activeEnrollments || enrollmentsPaged.total,
+    openAlerts,
+    acknowledgedAlerts,
+    resolvedAlerts,
+    systemHealth: {
+      live: toHealthState(liveRes),
+      ready: toHealthState(readyRes),
+    },
     monthly: {
       labels: monthKeys.map((monthKey) => {
         const [year, month] = monthKey.split("-");
         return format(new Date(Number(year), Number(month) - 1, 1), "MMM");
       }),
-      totalUsers: monthlyTotalUsers,
-      activeDoctors: monthlyActiveDoctors,
-      aiChatSessions: monthlyAiSessions,
+      totalUsers: buildMonthlyCounts(monthUsers, monthKeys),
+      activeDoctors: buildMonthlyCounts(monthDoctors, monthKeys),
+      aiDocuments: buildMonthlyCounts(monthAiDocs, monthKeys),
     },
     weekly: {
       labels: dayKeys.map((dayKey) => {
@@ -261,8 +291,13 @@ export async function getOverviewSummary(): Promise<OverviewSummary> {
           "EEE",
         );
       }),
-      doctorSessions: weeklyDoctorSessions,
-      violationReports: weeklyViolationReports,
+      doctorSessions: buildDailyCounts(recentConsultations, dayKeys),
+      violationReports: buildDailyCounts(recentViolations, dayKeys),
+    },
+    tierDistribution: {
+      labels: tierLabels,
+      planPrices,
+      orderCounts,
     },
   };
 }

@@ -1,175 +1,311 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  Switch,
-  RefreshControl,
-  Modal,
-  KeyboardAvoidingView,
-  Platform,
-  TextInput,
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  RefreshControl,
+  ScrollView,
+  Switch,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useSafeRouter as useRouter } from '@/utils/useSafeRouter';
 import {
-  Users,
-  Calendar as CalendarIcon,
-  Clock,
-  TrendingUp,
+  AlertCircle,
   Bell,
-  Power,
+  Calendar as CalendarIcon,
   CheckCircle,
-  XCircle,
-  X,
+  Clock,
   Eye,
+  PhoneCall,
+  Power,
+  Star,
   Stethoscope,
+  Users,
+  X,
+  XCircle,
 } from 'lucide-react-native';
+import Toast from 'react-native-toast-message';
+import {
+  generateIdempotencyKey,
+  mobileApi,
+  normalizePaginatedList,
+} from '@repo/shared-hooks';
 import { tw, twInstance } from '@/tw';
 import { useThemeContext } from '@/context/ThemeContext';
-import Toast from 'react-native-toast-message';
+import { useSafeRouter as useRouter } from '@/utils/useSafeRouter';
+import { Skeleton } from '@/components/ui/Skeleton';
+import { extractApiErrorMessage } from '@/utils/apiError';
+import { extractUserProfileData } from '@/utils/userProfile';
+import { CareAlertsModal } from '@/components/modals/CareAlertsModal';
 
 interface PriorityAlertItem {
-  id: number;
+  id: string;
+  patientId: string;
   name: string;
-  time: string;
-  statusKey: 'waiting' | 'upcoming';
-  alertLifecycleStatus: 'open' | 'acknowledged' | 'resolved' | 'dismissed';
-  sourceType: 'vital_reading' | 'symptom_checkin';
-  typeKey: 'mobile.video_call' | 'mobile.chat';
-  priority: 'Urgent' | 'Attention' | 'Normal';
-  alertTextKey: string;
-  value: string;
-  metric: string;
+  detectedAt: string;
+  status: 'open' | 'acknowledged';
+  severity: 'urgent' | 'attention';
+  reasonCodes: string[];
+  revision: number;
   linkedConsultationId?: string | null;
 }
 
+interface DoctorQueueEntry {
+  consultationId: string;
+  patientId: string;
+  patientName: string;
+  mode: string;
+  scheduledStartAt: string;
+  queuePosition: number;
+  isCurrent: boolean;
+  isLate: boolean;
+}
+
+function formatCodeLabel(code: string): string {
+  return code
+    .replace(/[_-]+/g, ' ')
+    .trim()
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 export default function DoctorHomeScreen() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   useThemeContext();
-
   const router = useRouter();
-  const [isOnline, setIsOnline] = useState(true);
-  const [busyActionId, setBusyActionId] = useState<string | null>(null);
+  const dateLocale = i18n.language?.startsWith('vi') ? 'vi-VN' : 'en-US';
 
-  const [severityFilter, setSeverityFilter] = useState<'All' | 'Urgent' | 'Attention'>('All');
+  const [doctorName, setDoctorName] = useState('');
+  const [isOnline, setIsOnline] = useState(false);
+  const [togglingOnline, setTogglingOnline] = useState(false);
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
+
+  const [totalEnrolledCount, setTotalEnrolledCount] = useState(0);
+  const [upcomingConsultCount, setUpcomingConsultCount] = useState(0);
+  const [ratingSummary, setRatingSummary] = useState<string>('—');
+
+  const [queueEntries, setQueueEntries] = useState<DoctorQueueEntry[]>([]);
+  const [callingNext, setCallingNext] = useState(false);
+
+  const [alerts, setAlerts] = useState<PriorityAlertItem[]>([]);
+  const [severityFilter, setSeverityFilter] = useState<'all' | 'urgent' | 'attention'>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'open' | 'acknowledged'>('all');
-
-  const stats = [
-    {
-      title: t('mobile.total_patients'),
-      value: '1,248',
-      icon: <Users color="#3b82f6" size={24} />,
-      bg: 'bg-blue-50 dark:bg-blue-900/30',
-      trend: '+12%',
-    },
-    {
-      title: t('mobile.consultations'),
-      value: '142',
-      icon: <CalendarIcon color="#10b981" size={24} />,
-      bg: 'bg-emerald-50 dark:bg-emerald-900/30',
-      trend: '+5%',
-    },
-    {
-      title: t('mobile.hours_online'),
-      value: '64h',
-      icon: <Clock color="#f59e0b" size={24} />,
-      bg: 'bg-yellow-50 dark:bg-yellow-900/30',
-      trend: '+2%',
-    },
-  ];
-
-  const initialPriorityInbox: PriorityAlertItem[] = [
-    {
-      id: 1,
-      name: 'Alex Johnson',
-      time: '10:30 AM',
-      statusKey: 'waiting',
-      alertLifecycleStatus: 'open',
-      sourceType: 'vital_reading',
-      typeKey: 'mobile.video_call',
-      priority: 'Urgent',
-      alertTextKey: 'mobile.alert_title_high_bp',
-      value: '165/100',
-      metric: 'mmHg',
-      linkedConsultationId: null,
-    },
-    {
-      id: 2,
-      name: 'Maria Garcia',
-      time: '11:00 AM',
-      statusKey: 'upcoming',
-      alertLifecycleStatus: 'acknowledged',
-      sourceType: 'symptom_checkin',
-      typeKey: 'mobile.chat',
-      priority: 'Attention',
-      alertTextKey: 'mobile.alert_title_symptom_dizziness',
-      value: 'Moderate',
-      metric: 'Dizziness',
-      linkedConsultationId: null,
-    },
-    {
-      id: 3,
-      name: 'James Smith',
-      time: '02:15 PM',
-      statusKey: 'upcoming',
-      alertLifecycleStatus: 'open',
-      sourceType: 'vital_reading',
-      typeKey: 'mobile.video_call',
-      priority: 'Attention',
-      alertTextKey: 'mobile.alert_title_elevated_glucose',
-      value: '145',
-      metric: 'mg/dL',
-      linkedConsultationId: null,
-    },
-  ];
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [queue, setQueue] = useState<PriorityAlertItem[]>([]);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [busyActionId, setBusyActionId] = useState<string | null>(null);
 
   const [resolveModalVisible, setResolveModalVisible] = useState(false);
   const [dismissModalVisible, setDismissModalVisible] = useState(false);
+  const [allAlertsModalVisible, setAllAlertsModalVisible] = useState(false);
   const [selectedAlert, setSelectedAlert] = useState<PriorityAlertItem | null>(null);
   const [resolutionNote, setResolutionNote] = useState('');
-  const [reasonCode, setReasonCode] = useState('');
+  const [dismissReason, setDismissReason] = useState('');
 
-  const reasonCodes = [
+  const dismissPresets = [
     { id: 'duplicate', label: t('mobile.duplicate') },
     { id: 'invalid_metric', label: t('mobile.invalid_metric') },
     { id: 'rule_false_positive', label: t('mobile.rule_false_positive') },
   ];
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setQueue(initialPriorityInbox);
+  const loadDashboard = useCallback(async () => {
+    setErrorMsg(null);
+    try {
+      const [meRes, unreadRes, enrollRes, upcomingRes, queueRes, alertsRes] =
+        await Promise.all([
+          mobileApi.usersGetMe(),
+          mobileApi.notificationsCountUnread(),
+          mobileApi.careEnrollmentList({ query: { page: 1, limit: 1 } }),
+          mobileApi.consultationsUpcoming({ query: { days: 7 } }),
+          mobileApi.doctorQueueList({ query: { page: 1, limit: 10 } }),
+          mobileApi.careAlertInbox({ query: { limit: 25 } }),
+        ]);
+
+      const profile = extractUserProfileData(meRes);
+      setDoctorName(profile.fullName);
+      setIsOnline(profile.isOnline);
+
+      const rawUnread = unreadRes as unknown as { data?: { count?: number }; count?: number };
+      setUnreadNotifications(Number(rawUnread?.data?.count ?? rawUnread?.count ?? 0));
+
+      const enrollPage = normalizePaginatedList<Record<string, unknown>>(enrollRes);
+      setTotalEnrolledCount(Number(enrollPage.total ?? enrollPage.items.length));
+
+      const upcomingList = normalizePaginatedList<Record<string, unknown>>(upcomingRes).items;
+      setUpcomingConsultCount(upcomingList.length);
+
+      if (profile.id) {
+        try {
+          const ratingRes = await mobileApi.reviewsGetDoctorRating({
+            params: { doctorId: profile.id },
+          });
+          const rawRating = ratingRes as unknown as Record<string, unknown>;
+          const avg = Number(rawRating.averageRating ?? rawRating.average ?? 0);
+          const count = Number(rawRating.totalReviews ?? rawRating.count ?? 0);
+          setRatingSummary(count > 0 ? `${avg.toFixed(1)} (${count})` : '—');
+        } catch {
+          setRatingSummary('—');
+        }
+      }
+
+      const rawQueue = queueRes as unknown as Record<string, unknown>;
+      const qRows = Array.isArray(rawQueue?.data) ? (rawQueue.data as Array<Record<string, unknown>>) : [];
+      setQueueEntries(
+        qRows.map((entry) => {
+          const p = (entry.patient ?? {}) as Record<string, unknown>;
+          return {
+            consultationId: String(entry.consultationId ?? ''),
+            patientId: String(p.id ?? ''),
+            patientName: String(p.fullName ?? t('mobile.patient')),
+            mode: String(entry.mode ?? 'scheduled'),
+            scheduledStartAt: String(entry.scheduledStartAt ?? ''),
+            queuePosition: Number(entry.queuePosition ?? 1),
+            isCurrent: Boolean(entry.isCurrent),
+            isLate: Boolean(entry.isLate),
+          };
+        })
+      );
+
+      const rawAlerts = normalizePaginatedList<Record<string, unknown>>(alertsRes).items;
+      const patientIds = Array.from(
+        new Set(rawAlerts.map((a) => String(a.patientId ?? '')).filter(Boolean))
+      ).slice(0, 15);
+      const nameMap: Record<string, string> = {};
+      await Promise.allSettled(
+        patientIds.map(async (id) => {
+          const prof = await mobileApi.usersFindProfile({ params: { id } });
+          const raw = prof as unknown as { data?: { fullName?: string }; fullName?: string };
+          const fullName = raw?.data?.fullName ?? raw?.fullName;
+          if (fullName) nameMap[id] = String(fullName);
+        })
+      );
+
+      setAlerts(
+        rawAlerts
+          .map((item) => {
+            const pId = String(item.patientId ?? '');
+            return {
+              id: String(item.id ?? item._id ?? ''),
+              patientId: pId,
+              name: nameMap[pId] || t('mobile.patient'),
+              detectedAt: String(item.detectedAt ?? item.createdAt ?? ''),
+              status:
+                String(item.status ?? 'open') === 'acknowledged'
+                  ? ('acknowledged' as const)
+                  : ('open' as const),
+              severity:
+                String(item.severity ?? 'attention') === 'urgent'
+                  ? ('urgent' as const)
+                  : ('attention' as const),
+              reasonCodes: Array.isArray(item.reasonCodes) ? item.reasonCodes.map(String) : [],
+              revision: Number(item.revision ?? 1),
+              linkedConsultationId: null,
+            };
+          })
+          .filter((a) => Boolean(a.id))
+      );
+    } catch (err) {
+      setErrorMsg(extractApiErrorMessage(err, 'mobile.load_dashboard_failed'));
+    } finally {
       setLoading(false);
-    }, 600);
-    return () => clearTimeout(timer);
-  }, []);
+      setRefreshing(false);
+    }
+  }, [t]);
+
+  useEffect(() => {
+    void loadDashboard();
+  }, [loadDashboard]);
 
   const onRefresh = () => {
     setRefreshing(true);
-    setTimeout(() => setRefreshing(false), 600);
+    void loadDashboard();
+  };
+
+  const handleToggleOnline = async (nextValue: boolean) => {
+    if (togglingOnline) return;
+    const prev = isOnline;
+    setIsOnline(nextValue);
+    setTogglingOnline(true);
+    try {
+      await mobileApi.usersUpdateMe({ isOnline: nextValue });
+    } catch (err) {
+      setIsOnline(prev);
+      Toast.show({
+        type: 'error',
+        text1: t('mobile.error'),
+        text2: extractApiErrorMessage(err, 'mobile.update_status_failed'),
+      });
+    } finally {
+      setTogglingOnline(false);
+    }
+  };
+
+  const handleCallNext = async () => {
+    if (callingNext) return;
+    setCallingNext(true);
+    try {
+      const res = await mobileApi.doctorQueueCallNext({
+        headers: { 'Idempotency-Key': generateIdempotencyKey() },
+      });
+      const raw = res as unknown as { data?: { id?: string; _id?: string } };
+      const consultationId = String(raw?.data?.id ?? raw?.data?._id ?? '');
+      Toast.show({
+        type: 'success',
+        text1: t('mobile.next_patient_called'),
+      });
+      await loadDashboard();
+      if (consultationId) {
+        router.push(`/(doctor)/video-call?consultationId=${consultationId}` as never);
+      }
+    } catch (err) {
+      Toast.show({
+        type: 'error',
+        text1: t('mobile.error'),
+        text2: extractApiErrorMessage(err, 'mobile.call_next_failed'),
+      });
+    } finally {
+      setCallingNext(false);
+    }
   };
 
   const handleAcknowledge = async (alertItem: PriorityAlertItem) => {
     if (busyActionId) return;
     setBusyActionId(`ack-${alertItem.id}`);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 220));
-      setQueue((prev) =>
+      const updated = await mobileApi.careAlertAcknowledge({
+        params: { id: alertItem.id },
+        body: {
+          expectedRevision: alertItem.revision,
+          reason: t('mobile.alert_acknowledged_by_doctor'),
+        },
+      });
+      const raw = updated as unknown as { revision?: number };
+      setAlerts((prev) =>
         prev.map((item) =>
-          item.id === alertItem.id ? { ...item, alertLifecycleStatus: 'acknowledged' } : item
+          item.id === alertItem.id
+            ? {
+                ...item,
+                status: 'acknowledged',
+                revision: Number(raw?.revision ?? item.revision + 1),
+              }
+            : item
         )
       );
       Toast.show({
         type: 'success',
         text1: t('mobile.alert_acknowledged'),
-        text2: `${alertItem.name} • ${t('mobile.status_acknowledged')}`,
+        text2: alertItem.name,
+      });
+    } catch (err) {
+      Toast.show({
+        type: 'error',
+        text1: t('mobile.error'),
+        text2: extractApiErrorMessage(err, 'mobile.alert_action_failed'),
       });
     } finally {
       setBusyActionId(null);
@@ -180,47 +316,58 @@ export default function DoctorHomeScreen() {
     if (busyActionId) return;
     setBusyActionId(`consult-${alertItem.id}`);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 240));
-      const consultId = `con_alert_${alertItem.id}`;
-      setQueue((prev) =>
+      const res = await mobileApi.careAlertCreateConsultation({
+        params: { id: alertItem.id },
+        body: {
+          followUpNote: t('mobile.alert_followup_consultation_note'),
+          nextAction: 'follow_up_consultation',
+        },
+      });
+      const raw = res as unknown as { id?: string; _id?: string; data?: { id?: string } };
+      const consultId = String(raw?.data?.id ?? raw?.id ?? raw?._id ?? 'linked');
+      setAlerts((prev) =>
         prev.map((item) =>
           item.id === alertItem.id
-            ? {
-                ...item,
-                alertLifecycleStatus: 'acknowledged',
-                linkedConsultationId: consultId,
-              }
+            ? { ...item, linkedConsultationId: consultId }
             : item
         )
       );
       Toast.show({
         type: 'success',
         text1: t('mobile.consultation_created_from_alert'),
-        text2: `${alertItem.name} • ${t('mobile.consultation_created')}`,
+        text2: alertItem.name,
+      });
+    } catch (err) {
+      Toast.show({
+        type: 'error',
+        text1: t('mobile.error'),
+        text2: extractApiErrorMessage(err, 'mobile.alert_action_failed'),
       });
     } finally {
       setBusyActionId(null);
     }
   };
 
-  const handleResolve = (alert: PriorityAlertItem) => {
-    setSelectedAlert(alert);
-    setResolveModalVisible(true);
-  };
-
-  const handleDismiss = (alert: PriorityAlertItem) => {
-    setSelectedAlert(alert);
-    setDismissModalVisible(true);
-  };
-
   const confirmResolve = async () => {
-    if (busyActionId) return;
-    setBusyActionId('confirm-resolve');
+    if (!selectedAlert || busyActionId) return;
+    if (!resolutionNote.trim()) {
+      Toast.show({
+        type: 'error',
+        text1: t('mobile.error'),
+        text2: t('mobile.reason_required'),
+      });
+      return;
+    }
+    setBusyActionId(`resolve-${selectedAlert.id}`);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 240));
-      if (selectedAlert) {
-        setQueue((prev) => prev.filter((item) => item.id !== selectedAlert.id));
-      }
+      await mobileApi.careAlertResolve({
+        params: { id: selectedAlert.id },
+        body: {
+          expectedRevision: selectedAlert.revision,
+          reason: resolutionNote.trim(),
+        },
+      });
+      setAlerts((prev) => prev.filter((item) => item.id !== selectedAlert.id));
       setResolveModalVisible(false);
       setResolutionNote('');
       Toast.show({
@@ -228,57 +375,84 @@ export default function DoctorHomeScreen() {
         text1: t('mobile.success'),
         text2: t('mobile.alert_resolved'),
       });
+    } catch (err) {
+      Toast.show({
+        type: 'error',
+        text1: t('mobile.error'),
+        text2: extractApiErrorMessage(err, 'mobile.alert_action_failed'),
+      });
     } finally {
       setBusyActionId(null);
     }
   };
 
   const confirmDismiss = async () => {
-    if (!reasonCode) {
+    if (!selectedAlert || busyActionId) return;
+    if (!dismissReason.trim()) {
       Toast.show({
         type: 'error',
         text1: t('mobile.error'),
-        text2: t('mobile.reason_code_required'),
+        text2: t('mobile.reason_required'),
       });
       return;
     }
-    if (busyActionId) return;
-    setBusyActionId('confirm-dismiss');
+    setBusyActionId(`dismiss-${selectedAlert.id}`);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 240));
-      if (selectedAlert) {
-        setQueue((prev) => prev.filter((item) => item.id !== selectedAlert.id));
-      }
+      await mobileApi.careAlertDismiss({
+        params: { id: selectedAlert.id },
+        body: {
+          expectedRevision: selectedAlert.revision,
+          reason: dismissReason.trim(),
+        },
+      });
+      setAlerts((prev) => prev.filter((item) => item.id !== selectedAlert.id));
       setDismissModalVisible(false);
-      setReasonCode('');
+      setDismissReason('');
       Toast.show({
         type: 'success',
         text1: t('mobile.success'),
         text2: t('mobile.alert_dismissed'),
+      });
+    } catch (err) {
+      Toast.show({
+        type: 'error',
+        text1: t('mobile.error'),
+        text2: extractApiErrorMessage(err, 'mobile.alert_action_failed'),
       });
     } finally {
       setBusyActionId(null);
     }
   };
 
-  const filteredQueue = queue.filter((item) => {
-    const matchSeverity = severityFilter === 'All' || item.priority === severityFilter;
-    const matchStatus = statusFilter === 'all' || item.alertLifecycleStatus === statusFilter;
+  const filteredAlerts = alerts.filter((item) => {
+    const matchSeverity = severityFilter === 'all' || item.severity === severityFilter;
+    const matchStatus = statusFilter === 'all' || item.status === statusFilter;
     return matchSeverity && matchStatus;
   });
 
-  const renderQueueSkeleton = () => (
-    <View
-      style={tw(
-        'flex-row items-center justify-between bg-white dark:bg-slate-900 p-4 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800 mb-4'
-      )}
-    >
-      <View style={tw('flex-1')}>
-        <View style={tw('w-32 h-5 bg-slate-200 dark:bg-slate-700 rounded mb-2')} />
-        <View style={tw('w-24 h-4 bg-slate-200 dark:bg-slate-700 rounded')} />
-      </View>
-    </View>
-  );
+  const stats = [
+    {
+      title: t('mobile.total_patients'),
+      value: String(totalEnrolledCount),
+      icon: <Users color="#3b82f6" size={22} />,
+      bg: 'bg-blue-50 dark:bg-blue-900/30',
+      onPress: () => router.push('/(doctor)/patients'),
+    },
+    {
+      title: t('mobile.upcoming'),
+      value: String(upcomingConsultCount),
+      icon: <CalendarIcon color="#10b981" size={22} />,
+      bg: 'bg-emerald-50 dark:bg-emerald-900/30',
+      onPress: () => router.push('/(doctor)/consultations'),
+    },
+    {
+      title: t('mobile.doctor_rating_label'),
+      value: ratingSummary,
+      icon: <Star color="#f59e0b" size={22} />,
+      bg: 'bg-yellow-50 dark:bg-yellow-900/30',
+      onPress: () => router.push('/(doctor)/profile'),
+    },
+  ];
 
   return (
     <SafeAreaView style={tw('flex-1 bg-slate-50 dark:bg-slate-950')}>
@@ -294,68 +468,97 @@ export default function DoctorHomeScreen() {
         }
       >
         {/* Header */}
-        <View style={tw('flex-row justify-between items-center px-6 pt-6 pb-4')}>
-          <View style={tw('flex-1')}>
-            <Text style={tw('text-gray-500 text-sm')}>
+        <View style={tw('flex-row justify-between items-center px-6 pt-5 pb-4')}>
+          <View style={tw('flex-1 mr-3')}>
+            <Text style={tw('text-slate-500 dark:text-slate-400 text-xs')}>
               {t('mobile.good_morning')}
             </Text>
-            <Text style={tw('text-2xl font-bold text-slate-900 dark:text-white')}>
-              {t('mobile.dr_sarah_connor')}
+            <Text numberOfLines={1} style={tw('text-2xl font-bold text-slate-900 dark:text-white')}>
+              {doctorName || t('mobile.doctor_role_label')}
             </Text>
           </View>
-          <View style={tw('flex-row items-center')}>
+          <View style={tw('flex-row items-center gap-2')}>
             <View
               style={tw(
-                'flex-row items-center mr-4 bg-white dark:bg-slate-900 px-3 py-1.5 rounded-full border border-gray-100 dark:border-gray-800 shadow-sm'
+                'flex-row items-center bg-white dark:bg-slate-900 px-3 py-1 rounded-full border border-slate-200 dark:border-slate-800 shadow-sm'
               )}
             >
-              <Power color={isOnline ? '#10b981' : '#94a3b8'} size={16} style={tw('mr-2')} />
+              <Power color={isOnline ? '#10b981' : '#94a3b8'} size={15} style={tw('mr-1.5')} />
               <Switch
                 value={isOnline}
-                onValueChange={setIsOnline}
+                disabled={togglingOnline}
+                onValueChange={(v) => void handleToggleOnline(v)}
                 trackColor={{ false: '#cbd5e1', true: '#34d399' }}
-                thumbColor={'#ffffff'}
+                thumbColor="#ffffff"
                 style={{ transform: [{ scaleX: 0.8 }, { scaleY: 0.8 }] }}
               />
             </View>
             <TouchableOpacity
               style={tw(
-                'p-2 bg-white dark:bg-slate-900 rounded-full shadow-sm border border-gray-100 dark:border-gray-800 relative'
+                'p-2.5 bg-white dark:bg-slate-900 rounded-full shadow-sm border border-slate-200 dark:border-slate-800 relative'
               )}
               onPress={() => router.push('/(doctor)/notifications')}
             >
-              <Bell color={twInstance.color('text-slate-900 dark:text-white')} size={24} />
-              <View
-                style={tw(
-                  'absolute top-2 right-2 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white dark:border-slate-900'
-                )}
-              />
+              <Bell color={twInstance.color('text-slate-900 dark:text-white')} size={20} />
+              {unreadNotifications > 0 && (
+                <View
+                  style={tw(
+                    'absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 bg-red-500 rounded-full items-center justify-center border-2 border-white dark:border-slate-900'
+                  )}
+                >
+                  <Text style={tw('text-white text-[10px] font-bold')}>
+                    {unreadNotifications > 99 ? '99+' : unreadNotifications}
+                  </Text>
+                </View>
+              )}
             </TouchableOpacity>
           </View>
         </View>
 
-        {/* Stats Grid */}
-        <View style={tw('px-6 mb-8')}>
-          <Text style={tw('text-lg font-bold text-slate-900 dark:text-white mb-4')}>
-            {t('mobile.overview')}
-          </Text>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={tw('-mx-6 px-6')}
-            contentContainerStyle={tw('pr-6')}
-          >
-            <View style={tw('flex-row gap-4')}>
-              {stats.map((stat, idx) => (
-                <View
-                  key={idx}
+        {loading ? (
+          <View style={tw('px-6 gap-4 mt-2')}>
+            <Skeleton className="h-28 w-full rounded-3xl" />
+            <Skeleton className="h-32 w-full rounded-3xl" />
+            <Skeleton className="h-44 w-full rounded-3xl" />
+          </View>
+        ) : errorMsg ? (
+          <View style={tw('px-6 mt-4')}>
+            <View
+              style={tw(
+                'bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/50 rounded-3xl p-6 items-center'
+              )}
+            >
+              <AlertCircle color="#e11d48" size={30} style={tw('mb-2')} />
+              <Text style={tw('text-sm font-semibold text-rose-700 dark:text-rose-300 text-center mb-4')}>
+                {errorMsg}
+              </Text>
+              <TouchableOpacity
+                onPress={() => void loadDashboard()}
+                style={tw('bg-rose-600 px-5 py-2.5 rounded-xl')}
+              >
+                <Text style={tw('text-white font-bold text-xs')}>{t('mobile.retry')}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        ) : (
+          <>
+            {/* KPI Stats */}
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={tw('px-6 py-2 gap-3')}
+            >
+              {stats.map((stat) => (
+                <TouchableOpacity
+                  key={stat.title}
+                  onPress={stat.onPress}
                   style={tw(
-                    'bg-white dark:bg-slate-900 p-5 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800 w-40'
+                    'w-40 bg-white dark:bg-slate-900 p-4 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm'
                   )}
                 >
                   <View
                     style={tw(
-                      `w-12 h-12 rounded-2xl ${stat.bg} items-center justify-center mb-4`
+                      `w-10 h-10 rounded-2xl ${stat.bg} items-center justify-center mb-3`
                     )}
                   >
                     {stat.icon}
@@ -363,201 +566,155 @@ export default function DoctorHomeScreen() {
                   <Text style={tw('text-2xl font-bold text-slate-900 dark:text-white')}>
                     {stat.value}
                   </Text>
-                  <Text style={tw('text-sm text-gray-500 dark:text-gray-400 mb-2')}>
+                  <Text numberOfLines={1} style={tw('text-xs text-slate-500 dark:text-slate-400 mt-1')}>
                     {stat.title}
                   </Text>
-                  <View style={tw('flex-row items-center gap-1')}>
-                    <TrendingUp color="#10b981" size={14} />
-                    <Text style={tw('text-xs font-bold text-emerald-500')}>{stat.trend}</Text>
-                    <Text style={tw('text-xs text-gray-400')}>
-                      {t('mobile.this_month')}
-                    </Text>
-                  </View>
-                </View>
+                </TouchableOpacity>
               ))}
-            </View>
-          </ScrollView>
-        </View>
+            </ScrollView>
 
-        {/* Priority Inbox Header */}
-        <View style={tw('px-6 mb-3 flex-row items-center justify-between')}>
-          <View>
-            <Text style={tw('text-lg font-bold text-slate-900 dark:text-white')}>
-              {t('mobile.priority_inbox')}
-            </Text>
-            <Text style={tw('text-sm text-gray-500 dark:text-gray-400')}>
-              {t('mobile.needs_attention')}
-            </Text>
-          </View>
-          <TouchableOpacity
-            onPress={() => router.push('/(doctor)/consultations')}
-            style={tw('bg-brand/10 dark:bg-brand/20 px-3 py-1.5 rounded-full')}
-          >
-            <Text style={tw('text-xs font-bold text-brand-dark dark:text-brand-light')}>
-              {t('mobile.view_all')}
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Priority Inbox Filter Pills */}
-        <View style={tw('px-6 mb-4 gap-2')}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            <View style={tw('flex-row gap-2')}>
-              {(['All', 'Urgent', 'Attention'] as const).map((sev) => (
+            {/* Consultation Check-In Queue */}
+            <View style={tw('px-6 mt-5')}>
+              <View style={tw('flex-row items-center justify-between mb-3')}>
+                <Text style={tw('text-lg font-bold text-slate-900 dark:text-white')}>
+                  {t('mobile.consultation_queue_title')}
+                </Text>
                 <TouchableOpacity
-                  key={sev}
-                  onPress={() => setSeverityFilter(sev)}
+                  disabled={callingNext || queueEntries.length === 0}
+                  onPress={() => void handleCallNext()}
                   style={tw(
-                    `px-3.5 py-1.5 rounded-full border ${
-                      severityFilter === sev
-                        ? 'bg-slate-900 dark:bg-white border-slate-900 dark:border-white'
-                        : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800'
+                    `bg-brand px-3.5 py-2 rounded-xl flex-row items-center ${
+                      callingNext || queueEntries.length === 0 ? 'opacity-50' : ''
                     }`
                   )}
                 >
-                  <Text
-                    style={tw(
-                      `text-xs font-bold ${
-                        severityFilter === sev
-                          ? 'text-white dark:text-slate-900'
-                          : 'text-slate-600 dark:text-slate-400'
-                      }`
-                    )}
-                  >
-                    {sev === 'All'
-                      ? t('mobile.all_severities')
-                      : sev === 'Urgent'
-                        ? t('mobile.urgent')
-                        : t('mobile.attention')}
+                  {callingNext ? (
+                    <ActivityIndicator size="small" color="#0f172a" style={tw('mr-1.5')} />
+                  ) : (
+                    <PhoneCall color="#0f172a" size={14} style={tw('mr-1.5')} />
+                  )}
+                  <Text style={tw('text-xs font-bold text-slate-900')}>
+                    {t('mobile.call_next_patient')}
                   </Text>
                 </TouchableOpacity>
-              ))}
-              {(['all', 'open', 'acknowledged'] as const).map((st) => (
-                <TouchableOpacity
-                  key={st}
-                  onPress={() => setStatusFilter(st)}
+              </View>
+
+              {queueEntries.length === 0 ? (
+                <View
                   style={tw(
-                    `px-3.5 py-1.5 rounded-full border ${
-                      statusFilter === st
-                        ? 'bg-indigo-600 border-indigo-600'
-                        : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800'
-                    }`
+                    'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 flex-row items-center justify-between gap-3'
                   )}
                 >
-                  <Text
-                    style={tw(
-                      `text-xs font-bold uppercase ${
-                        statusFilter === st ? 'text-white' : 'text-slate-600 dark:text-slate-400'
-                      }`
-                    )}
-                  >
-                    {st === 'all'
-                      ? t('mobile.all_statuses')
-                      : st === 'open'
-                        ? t('mobile.status_open')
-                        : t('mobile.status_acknowledged')}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </ScrollView>
-        </View>
-
-        <View style={tw('px-6 gap-4')}>
-          {loading ? (
-            <>
-              {renderQueueSkeleton()}
-              {renderQueueSkeleton()}
-              {renderQueueSkeleton()}
-            </>
-          ) : filteredQueue.length > 0 ? (
-            filteredQueue.map((item) => (
-              <View
-                key={item.id}
-                style={tw(
-                  `bg-white dark:bg-slate-900 p-5 rounded-3xl shadow-sm border ${
-                    item.priority === 'Urgent'
-                      ? 'border-red-200 dark:border-red-900/50'
-                      : item.priority === 'Attention'
-                        ? 'border-amber-200 dark:border-amber-900/50'
-                        : 'border-gray-100 dark:border-gray-800'
-                  }`
-                )}
-              >
-                <View style={tw('flex-row justify-between items-start mb-3')}>
-                  <View style={tw('flex-1 mr-2')}>
-                    <View style={tw('flex-row items-center flex-wrap gap-1.5 mb-1')}>
-                      <Text style={tw('text-lg font-bold text-slate-900 dark:text-white mr-1')}>
-                        {item.name}
-                      </Text>
-                      <View
-                        style={tw(
-                          `px-2 py-0.5 rounded ${
-                            item.priority === 'Urgent'
-                              ? 'bg-red-100 dark:bg-red-900/50'
-                              : item.priority === 'Attention'
-                                ? 'bg-amber-100 dark:bg-amber-900/50'
-                                : 'bg-emerald-100 dark:bg-emerald-900/50'
-                          }`
-                        )}
-                      >
-                        <Text
-                          style={tw(
-                            `text-[10px] font-bold uppercase tracking-wider ${
-                              item.priority === 'Urgent'
-                                ? 'text-red-600 dark:text-red-400'
-                                : item.priority === 'Attention'
-                                  ? 'text-amber-600 dark:text-amber-400'
-                                  : 'text-emerald-600 dark:text-emerald-400'
-                            }`
-                          )}
-                        >
-                          {item.priority === 'Urgent'
-                            ? t('mobile.urgent')
-                            : item.priority === 'Attention'
-                              ? t('mobile.attention')
-                              : t('mobile.normal')}
-                        </Text>
-                      </View>
-                      <View
-                        style={tw(
-                          `px-2 py-0.5 rounded ${
-                            item.alertLifecycleStatus === 'acknowledged'
-                              ? 'bg-indigo-100 dark:bg-indigo-900/40'
-                              : 'bg-slate-100 dark:bg-slate-800'
-                          }`
-                        )}
-                      >
-                        <Text
-                          style={tw(
-                            `text-[10px] font-bold uppercase ${
-                              item.alertLifecycleStatus === 'acknowledged'
-                                ? 'text-indigo-700 dark:text-indigo-300'
-                                : 'text-slate-600 dark:text-slate-400'
-                            }`
-                          )}
-                        >
-                          {item.alertLifecycleStatus === 'acknowledged'
-                            ? t('mobile.status_acknowledged')
-                            : t('mobile.status_open')}
-                        </Text>
-                      </View>
-                    </View>
-                    <Text style={tw('text-sm text-gray-500 dark:text-gray-400')}>
-                      {t(item.typeKey)} • {item.time}
+                  <View style={tw('flex-row items-center flex-1')}>
+                    <Clock color={twInstance.color('text-slate-400')} size={18} style={tw('mr-2.5 shrink-0')} />
+                    <Text
+                      numberOfLines={1}
+                      style={tw('flex-1 text-xs text-slate-500 dark:text-slate-400 leading-4')}
+                    >
+                      {t('mobile.queue_empty_msg')}
                     </Text>
                   </View>
                   <TouchableOpacity
-                    onPress={() =>
-                      item.typeKey === 'mobile.video_call'
-                        ? router.push('/(doctor)/video-call')
-                        : router.push('/(doctor)/chat/1')
-                    }
+                    onPress={() => router.push('/(doctor)/consultations')}
+                    style={tw('bg-slate-100 dark:bg-slate-800 px-3.5 py-2 rounded-xl shrink-0')}
+                  >
+                    <Text style={tw('text-xs font-bold text-slate-700 dark:text-slate-200')}>
+                      {t('mobile.view_all')}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <View style={tw('gap-2.5')}>
+                  {queueEntries.slice(0, 3).map((entry) => (
+                    <TouchableOpacity
+                      key={entry.consultationId}
+                      onPress={() =>
+                        router.push(
+                          `/(doctor)/video-call?consultationId=${entry.consultationId}` as never
+                        )
+                      }
+                      style={tw(
+                        'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 flex-row items-center justify-between'
+                      )}
+                    >
+                      <View style={tw('flex-row items-center flex-1 mr-2')}>
+                        <View
+                          style={tw(
+                            `w-9 h-9 rounded-full items-center justify-center mr-3 ${
+                              entry.isCurrent ? 'bg-emerald-500' : 'bg-blue-100 dark:bg-blue-900/40'
+                            }`
+                          )}
+                        >
+                          <Text
+                            style={tw(
+                              `text-xs font-bold ${
+                                entry.isCurrent ? 'text-white' : 'text-blue-700 dark:text-blue-300'
+                              }`
+                            )}
+                          >
+                            #{entry.queuePosition}
+                          </Text>
+                        </View>
+                        <View style={tw('flex-1')}>
+                          <Text style={tw('text-sm font-bold text-slate-900 dark:text-white')}>
+                            {entry.patientName}
+                          </Text>
+                          <Text style={tw('text-xs text-slate-500 dark:text-slate-400')}>
+                            {entry.scheduledStartAt
+                              ? new Date(entry.scheduledStartAt).toLocaleTimeString(dateLocale, {
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                })
+                              : '—'}{' '}
+                            {entry.isLate ? `• ${t('mobile.late_checkin')}` : ''}
+                          </Text>
+                        </View>
+                      </View>
+                      <View style={tw('bg-emerald-50 dark:bg-emerald-900/30 px-3 py-1.5 rounded-lg')}>
+                        <Text style={tw('text-xs font-bold text-emerald-700 dark:text-emerald-300')}>
+                          {entry.isCurrent ? t('mobile.active_session') : t('mobile.waiting')}
+                        </Text>
+                      </View>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+            </View>
+
+            {/* Priority Care Alerts Inbox */}
+            <View style={tw('px-6 mt-6')}>
+              <View style={tw('flex-row items-center justify-between mb-3')}>
+                <Text style={tw('text-lg font-bold text-slate-900 dark:text-white')}>
+                  {t('mobile.priority_care_alerts')}
+                </Text>
+                <TouchableOpacity onPress={() => setAllAlertsModalVisible(true)}>
+                  <Text style={tw('text-xs font-bold text-brand-dark dark:text-brand-light')}>
+                    {t('mobile.view_all')} ({alerts.length})
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Filters */}
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={tw('gap-2 mb-3')}
+              >
+                {(
+                  [
+                    { id: 'all', label: t('mobile.all') },
+                    { id: 'urgent', label: t('mobile.urgent') },
+                    { id: 'attention', label: t('mobile.attention') },
+                  ] as const
+                ).map((tab) => (
+                  <TouchableOpacity
+                    key={tab.id}
+                    onPress={() => setSeverityFilter(tab.id)}
                     style={tw(
-                      `px-3 py-1.5 rounded-full shrink-0 self-start justify-center items-center ${
-                        item.statusKey === 'waiting'
-                          ? 'bg-blue-50 dark:bg-blue-900/30'
-                          : 'bg-slate-100 dark:bg-slate-800'
+                      `px-3.5 py-1.5 rounded-full border items-center justify-center ${
+                        severityFilter === tab.id
+                          ? 'bg-slate-900 dark:bg-brand border-slate-900 dark:border-brand'
+                          : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800'
                       }`
                     )}
                   >
@@ -565,150 +722,240 @@ export default function DoctorHomeScreen() {
                       numberOfLines={1}
                       style={tw(
                         `text-xs font-bold ${
-                          item.statusKey === 'waiting'
-                            ? 'text-blue-600 dark:text-blue-400'
-                            : 'text-slate-500 dark:text-slate-400'
+                          severityFilter === tab.id
+                            ? 'text-white dark:text-slate-900'
+                            : 'text-slate-600 dark:text-slate-300'
                         }`
                       )}
                     >
-                      {item.statusKey === 'waiting'
-                        ? t('mobile.waiting')
-                        : t('mobile.upcoming')}
+                      {tab.label}
                     </Text>
                   </TouchableOpacity>
-                </View>
-
-                {/* Alert Details */}
-                <View
-                  style={tw(
-                    `p-3 rounded-2xl border mb-3 ${
-                      item.priority === 'Urgent'
-                        ? 'bg-red-50/50 border-red-100 dark:bg-red-900/10 dark:border-red-900/30'
-                        : item.priority === 'Attention'
-                          ? 'bg-amber-50/50 border-amber-100 dark:bg-amber-900/10 dark:border-amber-900/30'
-                          : 'bg-gray-50 border-gray-100 dark:bg-gray-800 dark:border-gray-700'
-                    }`
-                  )}
-                >
-                  <Text style={tw('text-[11px] font-bold text-indigo-600 dark:text-indigo-400 mb-0.5')}>
-                    {item.sourceType === 'symptom_checkin'
-                      ? t('mobile.rule_source_symptom_checkin')
-                      : t('mobile.rule_source_vital_readings')}
-                  </Text>
-                  <Text style={tw('text-sm font-bold text-slate-700 dark:text-slate-300 mb-1')}>
-                    {t(item.alertTextKey)}
-                  </Text>
-                  <View style={tw('flex-row items-end justify-between')}>
-                    <View style={tw('flex-row items-end')}>
-                      <Text
-                        style={tw(
-                          `text-xl font-bold leading-none mr-1 ${
-                            item.priority === 'Urgent'
-                              ? 'text-red-600 dark:text-red-400'
-                              : item.priority === 'Attention'
-                                ? 'text-amber-600 dark:text-amber-400'
-                                : 'text-slate-700 dark:text-slate-300'
-                          }`
-                        )}
-                      >
-                        {item.value}
-                      </Text>
-                      <Text style={tw('text-sm font-medium text-slate-500 mb-0.5')}>
-                        {item.metric}
-                      </Text>
-                    </View>
-                    {item.linkedConsultationId && (
-                      <View style={tw('flex-row items-center bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-md')}>
-                        <CheckCircle size={12} color="#10b981" style={tw('mr-1')} />
-                        <Text style={tw('text-xs font-bold text-emerald-600 dark:text-emerald-400')}>
-                          {t('mobile.consultation_created')}
-                        </Text>
-                      </View>
-                    )}
-                  </View>
-                </View>
-
-                {/* Row 1 Actions: Acknowledge + Create Consultation from Alert */}
-                <View style={tw('flex-row gap-2.5 mb-2.5')}>
-                  {item.alertLifecycleStatus === 'open' && (
-                    <TouchableOpacity
-                      disabled={busyActionId !== null}
-                      onPress={() => handleAcknowledge(item)}
-                      style={tw(
-                        `flex-1 bg-indigo-50 dark:bg-indigo-900/30 py-2.5 rounded-xl flex-row justify-center items-center border border-indigo-200 dark:border-indigo-800 ${
-                          busyActionId === `ack-${item.id}` ? 'opacity-60' : ''
-                        }`
-                      )}
-                    >
-                      <Eye color="#6366f1" size={16} style={tw('mr-1.5')} />
-                      <Text style={tw('text-indigo-700 dark:text-indigo-300 font-bold text-xs')}>
-                        {t('mobile.acknowledge_alert')}
-                      </Text>
-                    </TouchableOpacity>
-                  )}
+                ))}
+                {(
+                  [
+                    { id: 'open', label: t('mobile.open_alerts') },
+                    { id: 'acknowledged', label: t('mobile.acknowledged_alerts') },
+                  ] as const
+                ).map((tab) => (
                   <TouchableOpacity
-                    disabled={busyActionId !== null}
-                    onPress={() => handleCreateConsultationFromAlert(item)}
+                    key={tab.id}
+                    onPress={() =>
+                      setStatusFilter((prev) => (prev === tab.id ? 'all' : tab.id))
+                    }
                     style={tw(
-                      `flex-1 bg-emerald-50 dark:bg-emerald-900/30 py-2.5 rounded-xl flex-row justify-center items-center border border-emerald-200 dark:border-emerald-800 ${
-                        busyActionId === `consult-${item.id}` ? 'opacity-60' : ''
+                      `px-3.5 py-1.5 rounded-full border items-center justify-center ${
+                        statusFilter === tab.id
+                          ? 'bg-indigo-600 border-indigo-600'
+                          : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800'
                       }`
                     )}
                   >
-                    <Stethoscope color="#10b981" size={16} style={tw('mr-1.5')} />
-                    <Text style={tw('text-emerald-700 dark:text-emerald-300 font-bold text-xs')}>
-                      {t('mobile.create_consult_from_alert')}
+                    <Text
+                      numberOfLines={1}
+                      style={tw(
+                        `text-xs font-bold ${
+                          statusFilter === tab.id ? 'text-white' : 'text-slate-600 dark:text-slate-300'
+                        }`
+                      )}
+                    >
+                      {tab.label}
                     </Text>
                   </TouchableOpacity>
-                </View>
+                ))}
+              </ScrollView>
 
-                {/* Row 2 Actions: Resolve + Dismiss */}
-                <View style={tw('flex-row gap-3')}>
-                  <TouchableOpacity
-                    disabled={busyActionId !== null}
-                    onPress={() => handleResolve(item)}
-                    style={tw('flex-1 bg-brand py-3 rounded-xl flex-row justify-center items-center')}
-                  >
-                    <CheckCircle color="#0f172a" size={18} style={tw('mr-2')} />
-                    <Text style={tw('text-slate-900 font-bold text-sm')}>
-                      {t('mobile.resolve')}
-                    </Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    disabled={busyActionId !== null}
-                    onPress={() => handleDismiss(item)}
-                    style={tw(
-                      'flex-1 bg-slate-100 dark:bg-slate-800 py-3 rounded-xl flex-row justify-center items-center border border-slate-200 dark:border-slate-700'
-                    )}
-                  >
-                    <XCircle
-                      color={twInstance.color('text-slate-500 dark:text-slate-400')}
-                      size={18}
-                      style={tw('mr-2')}
-                    />
-                    <Text style={tw('text-slate-700 dark:text-slate-300 font-bold text-sm')}>
-                      {t('mobile.dismiss')}
-                    </Text>
-                  </TouchableOpacity>
+              {filteredAlerts.length > 0 ? (
+                filteredAlerts.map((item) => {
+                  const isUrgent = item.severity === 'urgent';
+                  return (
+                    <View
+                      key={item.id}
+                      style={tw(
+                        `bg-white dark:bg-slate-900 p-4 rounded-3xl shadow-sm mb-3 border ${
+                          isUrgent
+                            ? 'border-red-200 dark:border-red-900/50'
+                            : 'border-amber-200 dark:border-amber-900/50'
+                        }`
+                      )}
+                    >
+                      <View style={tw('flex-row justify-between items-start gap-2 mb-2')}>
+                        <View style={tw('flex-row items-center flex-wrap gap-1.5')}>
+                          <View
+                            style={tw(
+                              `px-2.5 py-0.5 rounded-md ${
+                                isUrgent ? 'bg-red-500' : 'bg-amber-500'
+                              }`
+                            )}
+                          >
+                            <Text style={tw('text-white text-[10px] font-bold uppercase')}>
+                              {isUrgent ? t('mobile.urgent') : t('mobile.attention')}
+                            </Text>
+                          </View>
+                          <View
+                            style={tw(
+                              `px-2.5 py-0.5 rounded-md ${
+                                item.status === 'acknowledged'
+                                  ? 'bg-emerald-100 dark:bg-emerald-900/40'
+                                  : 'bg-slate-100 dark:bg-slate-800'
+                              }`
+                            )}
+                          >
+                            <Text
+                              style={tw(
+                                `text-[10px] font-bold uppercase ${
+                                  item.status === 'acknowledged'
+                                    ? 'text-emerald-700 dark:text-emerald-300'
+                                    : 'text-slate-600 dark:text-slate-300'
+                                }`
+                              )}
+                            >
+                              {item.status === 'acknowledged'
+                                ? t('mobile.status_acknowledged')
+                                : t('mobile.status_open')}
+                            </Text>
+                          </View>
+                        </View>
+                        <Text style={tw('text-xs text-slate-400')}>
+                          {item.detectedAt
+                            ? new Date(item.detectedAt).toLocaleTimeString(dateLocale, {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })
+                            : '—'}
+                        </Text>
+                      </View>
+
+                      <Text style={tw('text-base font-bold text-slate-900 dark:text-white mb-1')}>
+                        {item.name}
+                      </Text>
+
+                      <View style={tw('flex-row flex-wrap gap-1.5 mb-3')}>
+                        {item.reasonCodes.length > 0 ? (
+                          item.reasonCodes.map((code) => (
+                            <View
+                              key={code}
+                              style={tw(
+                                'bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-2.5 py-1 rounded-lg'
+                              )}
+                            >
+                              <Text style={tw('text-xs font-medium text-slate-700 dark:text-slate-200')}>
+                                {formatCodeLabel(code)}
+                              </Text>
+                            </View>
+                          ))
+                        ) : (
+                          <Text style={tw('text-xs text-slate-500 dark:text-slate-400')}>
+                            {t('mobile.clinical_threshold_alert')}
+                          </Text>
+                        )}
+                      </View>
+
+                      {item.linkedConsultationId && (
+                        <View
+                          style={tw(
+                            'flex-row items-center bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-1 rounded-lg self-start mb-3'
+                          )}
+                        >
+                          <CheckCircle size={12} color="#10b981" style={tw('mr-1')} />
+                          <Text style={tw('text-xs font-bold text-emerald-600 dark:text-emerald-400')}>
+                            {t('mobile.consultation_created')}
+                          </Text>
+                        </View>
+                      )}
+
+                      <View style={tw('flex-row gap-2 mb-2')}>
+                        {item.status === 'open' && (
+                          <TouchableOpacity
+                            disabled={busyActionId !== null}
+                            onPress={() => void handleAcknowledge(item)}
+                            style={tw(
+                              `flex-1 bg-indigo-50 dark:bg-indigo-900/30 py-2.5 rounded-xl flex-row justify-center items-center border border-indigo-200 dark:border-indigo-800 ${
+                                busyActionId === `ack-${item.id}` ? 'opacity-60' : ''
+                              }`
+                            )}
+                          >
+                            <Eye color="#6366f1" size={15} style={tw('mr-1.5')} />
+                            <Text style={tw('text-indigo-700 dark:text-indigo-300 font-bold text-xs')}>
+                              {t('mobile.acknowledge_alert')}
+                            </Text>
+                          </TouchableOpacity>
+                        )}
+                        <TouchableOpacity
+                          disabled={busyActionId !== null}
+                          onPress={() => void handleCreateConsultationFromAlert(item)}
+                          style={tw(
+                            `flex-1 bg-emerald-50 dark:bg-emerald-900/30 py-2.5 rounded-xl flex-row justify-center items-center border border-emerald-200 dark:border-emerald-800 ${
+                              busyActionId === `consult-${item.id}` ? 'opacity-60' : ''
+                            }`
+                          )}
+                        >
+                          <Stethoscope color="#10b981" size={15} style={tw('mr-1.5')} />
+                          <Text style={tw('text-emerald-700 dark:text-emerald-300 font-bold text-xs')}>
+                            {t('mobile.create_consult_from_alert')}
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+
+                      <View style={tw('flex-row gap-2.5')}>
+                        <TouchableOpacity
+                          disabled={busyActionId !== null}
+                          onPress={() => {
+                            setSelectedAlert(item);
+                            setResolutionNote('');
+                            setResolveModalVisible(true);
+                          }}
+                          style={tw(
+                            'flex-1 bg-brand py-2.5 rounded-xl flex-row justify-center items-center'
+                          )}
+                        >
+                          <CheckCircle color="#0f172a" size={16} style={tw('mr-1.5')} />
+                          <Text style={tw('text-slate-900 font-bold text-xs')}>
+                            {t('mobile.resolve')}
+                          </Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          disabled={busyActionId !== null}
+                          onPress={() => {
+                            setSelectedAlert(item);
+                            setDismissReason('');
+                            setDismissModalVisible(true);
+                          }}
+                          style={tw(
+                            'flex-1 bg-slate-100 dark:bg-slate-800 py-2.5 rounded-xl flex-row justify-center items-center border border-slate-200 dark:border-slate-700'
+                          )}
+                        >
+                          <XCircle
+                            color={twInstance.color('text-slate-500 dark:text-slate-400')}
+                            size={16}
+                            style={tw('mr-1.5')}
+                          />
+                          <Text style={tw('text-slate-700 dark:text-slate-300 font-bold text-xs')}>
+                            {t('mobile.dismiss')}
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  );
+                })
+              ) : (
+                <View
+                  style={tw(
+                    'items-center justify-center py-8 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 border-dashed'
+                  )}
+                >
+                  <CheckCircle color="#10b981" size={28} style={tw('mb-2')} />
+                  <Text style={tw('text-slate-600 dark:text-slate-300 font-medium text-sm')}>
+                    {t('mobile.no_care_alerts')}
+                  </Text>
                 </View>
-              </View>
-            ))
-          ) : (
-            <View
-              style={tw(
-                'items-center justify-center py-8 bg-white dark:bg-slate-900 rounded-3xl border border-gray-100 dark:border-gray-800 border-dashed'
               )}
-            >
-              <Users color="#94a3b8" size={32} style={tw('mb-2')} />
-              <Text style={tw('text-gray-500 font-medium')}>
-                {t('mobile.no_patients_in_queue')}
-              </Text>
             </View>
-          )}
-        </View>
+          </>
+        )}
       </ScrollView>
 
-      {/* Resolve Modal */}
+      {/* Resolve Alert Modal */}
       <Modal
         visible={resolveModalVisible}
         transparent
@@ -717,50 +964,41 @@ export default function DoctorHomeScreen() {
       >
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={tw('flex-1 justify-end bg-black/40')}
+          style={tw('flex-1 justify-end bg-black/60')}
         >
           <View style={tw('bg-white dark:bg-slate-900 rounded-t-3xl p-6')}>
-            <View style={tw('flex-row justify-between items-center mb-6')}>
-              <Text style={tw('text-xl font-bold text-slate-900 dark:text-white')}>
-                {t('mobile.resolve_alert')}
+            <View style={tw('flex-row justify-between items-center mb-3')}>
+              <Text style={tw('text-lg font-bold text-slate-900 dark:text-white')}>
+                {t('mobile.resolve_care_alert')}
               </Text>
               <TouchableOpacity onPress={() => setResolveModalVisible(false)}>
-                <X color={twInstance.color('text-slate-400')} size={24} />
+                <X color={twInstance.color('text-slate-400')} size={20} />
               </TouchableOpacity>
             </View>
-            <View style={tw('mb-4')}>
-              <Text style={tw('text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2')}>
-                {t('mobile.resolution_note')}
-              </Text>
-              <TextInput
-                value={resolutionNote}
-                onChangeText={setResolutionNote}
-                placeholder={t('mobile.write_diagnostic_notes')}
-                placeholderTextColor={twInstance.color('text-slate-400')}
-                style={tw(
-                  'bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-4 text-slate-900 dark:text-white h-32'
-                )}
-                multiline
-                textAlignVertical="top"
-              />
-            </View>
+            <Text style={tw('text-xs text-slate-500 mb-3')}>{selectedAlert?.name}</Text>
+            <TextInput
+              value={resolutionNote}
+              onChangeText={setResolutionNote}
+              placeholder={t('mobile.enter_clinical_note_placeholder')}
+              placeholderTextColor="#94a3b8"
+              multiline
+              style={tw(
+                'bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl p-3.5 text-slate-900 dark:text-white h-24 mb-4'
+              )}
+              textAlignVertical="top"
+            />
             <TouchableOpacity
               disabled={busyActionId !== null}
-              onPress={confirmResolve}
-              style={tw(`bg-brand py-4 rounded-xl items-center flex-row justify-center ${busyActionId === 'confirm-resolve' ? 'opacity-60' : ''}`)}
+              onPress={() => void confirmResolve()}
+              style={tw('bg-brand py-3.5 rounded-xl items-center')}
             >
-              {busyActionId === 'confirm-resolve' && (
-                <ActivityIndicator size="small" color="#0f172a" style={tw('mr-2')} />
-              )}
-              <Text style={tw('text-slate-900 font-bold text-base')}>
-                {t('mobile.confirm_resolve')}
-              </Text>
+              <Text style={tw('font-bold text-slate-900')}>{t('mobile.resolve')}</Text>
             </TouchableOpacity>
           </View>
         </KeyboardAvoidingView>
       </Modal>
 
-      {/* Dismiss Modal */}
+      {/* Dismiss Alert Modal */}
       <Modal
         visible={dismissModalVisible}
         transparent
@@ -769,79 +1007,73 @@ export default function DoctorHomeScreen() {
       >
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={tw('flex-1 justify-end bg-black/40')}
+          style={tw('flex-1 justify-end bg-black/60')}
         >
           <View style={tw('bg-white dark:bg-slate-900 rounded-t-3xl p-6')}>
-            <View style={tw('flex-row justify-between items-center mb-6')}>
-              <Text style={tw('text-xl font-bold text-slate-900 dark:text-white')}>
-                {t('mobile.dismiss_alert')}
+            <View style={tw('flex-row justify-between items-center mb-3')}>
+              <Text style={tw('text-lg font-bold text-slate-900 dark:text-white')}>
+                {t('mobile.dismiss_care_alert')}
               </Text>
               <TouchableOpacity onPress={() => setDismissModalVisible(false)}>
-                <X color={twInstance.color('text-slate-400')} size={24} />
+                <X color={twInstance.color('text-slate-400')} size={20} />
               </TouchableOpacity>
             </View>
-            <View style={tw('mb-6')}>
-              <Text style={tw('text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2')}>
-                {t('mobile.reason_code')}
-              </Text>
-              <View
-                style={tw(
-                  'bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden'
-                )}
-              >
-                {reasonCodes.map((code, index) => (
-                  <TouchableOpacity
-                    key={code.id}
-                    onPress={() => setReasonCode(code.id)}
+            <View style={tw('flex-row flex-wrap gap-2 mb-3')}>
+              {dismissPresets.map((p) => (
+                <TouchableOpacity
+                  key={p.id}
+                  onPress={() => setDismissReason(p.label)}
+                  style={tw(
+                    `px-3 py-1.5 rounded-full border ${
+                      dismissReason === p.label
+                        ? 'bg-slate-900 dark:bg-brand border-slate-900 dark:border-brand'
+                        : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700'
+                    }`
+                  )}
+                >
+                  <Text
                     style={tw(
-                      `flex-row items-center p-4 ${
-                        index !== reasonCodes.length - 1
-                          ? 'border-b border-slate-200 dark:border-slate-800'
-                          : ''
+                      `text-xs font-bold ${
+                        dismissReason === p.label
+                          ? 'text-white dark:text-slate-900'
+                          : 'text-slate-700 dark:text-slate-200'
                       }`
                     )}
                   >
-                    <View
-                      style={tw(
-                        `w-5 h-5 rounded-full border items-center justify-center mr-3 ${
-                          reasonCode === code.id
-                            ? 'border-brand'
-                            : 'border-slate-300 dark:border-slate-600'
-                        }`
-                      )}
-                    >
-                      {reasonCode === code.id && <View style={tw('w-3 h-3 rounded-full bg-brand')} />}
-                    </View>
-                    <Text
-                      style={tw(
-                        `text-base ${
-                          reasonCode === code.id
-                            ? 'text-slate-900 dark:text-white font-medium'
-                            : 'text-slate-600 dark:text-slate-400'
-                        }`
-                      )}
-                    >
-                      {code.label}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
+                    {p.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
             </View>
+            <TextInput
+              value={dismissReason}
+              onChangeText={setDismissReason}
+              placeholder={t('mobile.dismissal_reason_label')}
+              placeholderTextColor="#94a3b8"
+              multiline
+              style={tw(
+                'bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl p-3.5 text-slate-900 dark:text-white h-24 mb-4'
+              )}
+              textAlignVertical="top"
+            />
             <TouchableOpacity
               disabled={busyActionId !== null}
-              onPress={confirmDismiss}
-              style={tw(`bg-slate-900 dark:bg-white py-4 rounded-xl items-center flex-row justify-center ${busyActionId === 'confirm-dismiss' ? 'opacity-60' : ''}`)}
+              onPress={() => void confirmDismiss()}
+              style={tw('bg-slate-900 dark:bg-brand py-3.5 rounded-xl items-center')}
             >
-              {busyActionId === 'confirm-dismiss' && (
-                <ActivityIndicator size="small" color="#64748b" style={tw('mr-2')} />
-              )}
-              <Text style={tw('text-white dark:text-slate-900 font-bold text-base')}>
-                {t('mobile.confirm_dismiss')}
+              <Text style={tw('font-bold text-white dark:text-slate-900')}>
+                {t('mobile.dismiss')}
               </Text>
             </TouchableOpacity>
           </View>
         </KeyboardAvoidingView>
       </Modal>
+
+      <CareAlertsModal
+        visible={allAlertsModalVisible}
+        onClose={() => setAllAlertsModalVisible(false)}
+        onChanged={() => void loadDashboard()}
+      />
     </SafeAreaView>
   );
 }

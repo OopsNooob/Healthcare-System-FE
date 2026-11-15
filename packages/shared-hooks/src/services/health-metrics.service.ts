@@ -1,4 +1,5 @@
-import { api } from "../api";
+import type { FeTypes } from "@healthcare/api-client";
+import { mobileApi } from "../api";
 
 export type MetricType =
   | "blood_pressure"
@@ -22,22 +23,40 @@ export type HealthMetric = {
   id: string;
   patientId: string;
   type: MetricType;
+  metricType: MetricType;
   values: Record<string, MetricValueDetail>;
   unit: string;
   recordedAt: string;
   createdAt?: string;
   updatedAt?: string;
+  validationStatus?: "valid" | "rejected" | "superseded" | "voided";
+  validationReasonCodes?: string[];
+  replacesMetricId?: string;
+  voidedAt?: string;
+  voidReason?: string;
 };
 
 type ApiHealthMetric = {
-  _id: string;
-  patientId: string;
-  type: MetricType;
-  values: Record<string, MetricValueDetail>;
-  unit: string;
+  id?: string;
+  _id?: string;
+  patientId?: string;
+  type?: MetricType;
+  metricType?: MetricType;
+  meta?: {
+    patientId?: string;
+    metricType?: MetricType;
+    unit?: string;
+  };
+  values: Record<string, unknown>;
+  unit?: string;
   recordedAt: string;
   createdAt?: string;
   updatedAt?: string;
+  validationStatus?: "valid" | "rejected" | "superseded" | "voided";
+  validationReasonCodes?: string[];
+  replacesMetricId?: string;
+  voidedAt?: string;
+  voidReason?: string;
 };
 
 export type HealthMetricsResponse = {
@@ -52,12 +71,6 @@ export type HealthMetricsResponse = {
   };
 };
 
-type HealthMetricSingleResponse = {
-  statusCode: number;
-  message: string;
-  data: ApiHealthMetric;
-};
-
 export type HealthMetricMutationResponse = {
   statusCode: number;
   message: string;
@@ -66,60 +79,110 @@ export type HealthMetricMutationResponse = {
 
 export type HealthMetricsQuery = {
   type?: MetricType;
+  metricType?: MetricType;
   patientId?: string;
   startDate?: string;
   endDate?: string;
   page?: number;
   limit?: number;
-  sortBy?: string;
+  cursor?: string;
+  sortBy?: "recordedAt" | "createdAt";
   sortOrder?: 1 | -1;
 };
 
 export type CreateHealthMetricPayload = {
-  type: MetricType;
-  values: Record<string, MetricValueDetail>;
+  type?: MetricType;
+  metricType?: MetricType;
+  values: Record<string, MetricValueDetail | number>;
+  source?: "manual" | "device" | "clinician" | "import";
+  recordedTimezone?: string;
   recordedAt?: string;
 };
 
 export type UpdateHealthMetricPayload = {
   type?: MetricType;
-  values?: Record<string, MetricValueDetail>;
+  metricType?: MetricType;
+  values?: Record<string, MetricValueDetail | number>;
   recordedAt?: string;
+  recordedTimezone?: string;
+  reason?: string;
 };
 
+function normalizeValues(
+  rawValues: Record<string, unknown> | undefined,
+  recordedAt: string,
+): Record<string, MetricValueDetail> {
+  const result: Record<string, MetricValueDetail> = {};
+  if (!rawValues) return result;
+  for (const [key, entry] of Object.entries(rawValues)) {
+    if (typeof entry === "number" && Number.isFinite(entry)) {
+      result[key] = { value: entry, recordedAt };
+    } else if (
+      typeof entry === "object" &&
+      entry !== null &&
+      typeof (entry as { value?: unknown }).value === "number"
+    ) {
+      const detail = entry as { value: number; recordedAt?: string };
+      result[key] = {
+        value: detail.value,
+        recordedAt: detail.recordedAt ?? recordedAt,
+      };
+    }
+  }
+  return result;
+}
+
 function mapApiMetric(item: ApiHealthMetric): HealthMetric {
+  const resolvedType = (item.metricType ??
+    item.type ??
+    item.meta?.metricType ??
+    "blood_pressure") as MetricType;
   return {
-    id: item._id,
-    patientId: String(item.patientId),
-    type: item.type,
-    values: item.values,
-    unit: item.unit,
+    id: String(item.id ?? item._id ?? ""),
+    patientId: String(item.patientId ?? item.meta?.patientId ?? ""),
+    type: resolvedType,
+    metricType: resolvedType,
+    values: normalizeValues(item.values, item.recordedAt),
+    unit: item.unit ?? item.meta?.unit ?? "",
     recordedAt: item.recordedAt,
     createdAt: item.createdAt,
     updatedAt: item.updatedAt,
+    validationStatus: item.validationStatus,
+    validationReasonCodes: item.validationReasonCodes,
+    replacesMetricId: item.replacesMetricId,
+    voidedAt: item.voidedAt,
+    voidReason: item.voidReason,
   };
 }
 
-function normalizeQuery(query: HealthMetricsQuery): HealthMetricsQuery {
+function normalizeQuery(
+  query: HealthMetricsQuery,
+): FeTypes.HealthMetricsFindAllRequest["query"] {
   const limit = query.limit ?? undefined;
   const normalizedLimit =
     typeof limit === "number" ? Math.min(limit, 100) : undefined;
 
   return {
-    ...query,
+    page: query.page,
     limit: normalizedLimit,
+    cursor: query.cursor,
+    metricType: query.metricType ?? query.type,
+    startDate: query.startDate,
+    endDate: query.endDate,
+    patientId: query.patientId,
+    sortBy: query.sortBy,
+    sortOrder: query.sortOrder,
   };
 }
 
 export async function getHealthMetrics(
   query: HealthMetricsQuery = {},
 ): Promise<HealthMetric[]> {
-  const normalizedQuery = normalizeQuery(query);
-  const response = await api.get<HealthMetricsResponse>("/health-metrics", {
-    params: normalizedQuery,
+  const response = await mobileApi.healthMetricsFindAll({
+    query: normalizeQuery(query),
   });
-
-  const items = response.data.data || [];
+  const items = ((response as unknown as HealthMetricsResponse)?.data ??
+    []) as ApiHealthMetric[];
   return items.map(mapApiMetric);
 }
 
@@ -129,15 +192,14 @@ export async function getHealthMetricsPage(
   data: HealthMetric[];
   pagination?: HealthMetricsResponse["pagination"];
 }> {
-  const normalizedQuery = normalizeQuery(query);
-  const response = await api.get<HealthMetricsResponse>("/health-metrics", {
-    params: normalizedQuery,
+  const response = await mobileApi.healthMetricsFindAll({
+    query: normalizeQuery(query),
   });
-
-  const items = response.data.data || [];
+  const typed = response as unknown as HealthMetricsResponse;
+  const items = typed?.data ?? [];
   return {
     data: items.map(mapApiMetric),
-    pagination: response.data.pagination,
+    pagination: typed?.pagination,
   };
 }
 
@@ -164,35 +226,118 @@ export async function getAllHealthMetrics(
   return all;
 }
 
+export async function getHealthMetricById(id: string): Promise<HealthMetric> {
+  const response = await mobileApi.healthMetricsFindOne({ params: { id } });
+  return mapApiMetric(response.data as unknown as ApiHealthMetric);
+}
+
+export async function getHealthMetricStatistics(
+  type: MetricType,
+  query: HealthMetricsQuery = {},
+): Promise<FeTypes.HealthMetricsGetStatisticsResponse["data"]> {
+  const response = await mobileApi.healthMetricsGetStatistics({
+    params: { type },
+    query: normalizeQuery(query),
+  });
+  return response.data;
+}
+
+export async function getHealthMetricAlerts(): Promise<HealthMetric[]> {
+  const response = await mobileApi.healthMetricsGetAlerts();
+  const items = ((response as { data?: ApiHealthMetric[] })?.data ??
+    []) as ApiHealthMetric[];
+  return items.map(mapApiMetric);
+}
+
 export async function createHealthMetric(
   payload: CreateHealthMetricPayload,
 ): Promise<HealthMetric> {
-  const response = await api.post<HealthMetricSingleResponse>(
-    "/health-metrics",
-    payload,
-  );
+  const metricType = payload.metricType ?? payload.type ?? "blood_pressure";
+  const response = await mobileApi.healthMetricsCreate({
+    metricType,
+    values: payload.values as Record<string, unknown>,
+    source: payload.source ?? "manual",
+    recordedTimezone: payload.recordedTimezone,
+    recordedAt: payload.recordedAt,
+  });
 
-  return mapApiMetric(response.data.data);
+  return mapApiMetric(response.data as unknown as ApiHealthMetric);
+}
+
+export async function correctHealthMetric(
+  id: string,
+  payload: {
+    values: Record<string, unknown>;
+    recordedAt: string;
+    recordedTimezone?: string;
+    reason: string;
+  },
+): Promise<HealthMetric> {
+  const response = await mobileApi.healthMetricsCorrect({
+    params: { id },
+    body: {
+      values: payload.values,
+      recordedAt: payload.recordedAt,
+      recordedTimezone: payload.recordedTimezone,
+      reason: payload.reason,
+    },
+  });
+
+  return mapApiMetric(response.data as unknown as ApiHealthMetric);
+}
+
+export async function markHealthMetricAsReviewed(
+  id: string,
+): Promise<HealthMetric> {
+  const response = await mobileApi.healthMetricsMarkAsReviewed({
+    params: { id },
+  });
+  return mapApiMetric(response.data as unknown as ApiHealthMetric);
+}
+
+export async function voidHealthMetric(
+  id: string,
+  reason = "Voided by user",
+): Promise<HealthMetric> {
+  const response = await mobileApi.healthMetricsVoid({
+    params: { id },
+    body: { reason },
+  });
+  return mapApiMetric(response.data as unknown as ApiHealthMetric);
 }
 
 export async function updateHealthMetric(
   id: string,
   payload: UpdateHealthMetricPayload,
 ): Promise<HealthMetric> {
-  const response = await api.patch<HealthMetricSingleResponse>(
-    `/health-metrics/${id}`,
-    payload,
-  );
-
-  return mapApiMetric(response.data.data);
+  return correctHealthMetric(id, {
+    values: (payload.values ?? {}) as Record<string, unknown>,
+    recordedAt: payload.recordedAt ?? new Date().toISOString(),
+    recordedTimezone: payload.recordedTimezone,
+    reason: payload.reason ?? "User correction",
+  });
 }
 
 export async function deleteHealthMetric(
   id: string,
+  reason = "Voided by user",
 ): Promise<HealthMetricMutationResponse> {
-  const response = await api.delete<HealthMetricMutationResponse>(
-    `/health-metrics/${id}`,
-  );
-
-  return response.data;
+  const voided = await voidHealthMetric(id, reason);
+  return {
+    statusCode: 200,
+    message: "Voided",
+    data: {
+      id: voided.id,
+      _id: voided.id,
+      patientId: voided.patientId,
+      type: voided.type,
+      metricType: voided.metricType,
+      values: voided.values,
+      unit: voided.unit,
+      recordedAt: voided.recordedAt,
+      voidedAt: voided.voidedAt,
+      voidReason: voided.voidReason,
+      validationStatus: voided.validationStatus,
+    },
+  };
 }

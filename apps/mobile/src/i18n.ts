@@ -1,5 +1,6 @@
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
+import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import en from './locales/en.json';
 import vi from './locales/vi.json';
@@ -17,7 +18,7 @@ const languageDetector = {
         return;
       }
       callback('vi'); // default language
-    } catch (error) {
+    } catch {
       callback('vi');
     }
   },
@@ -25,13 +26,33 @@ const languageDetector = {
   cacheUserLanguage: async (language: string) => {
     try {
       await AsyncStorage.setItem(LANGUAGE_KEY, language);
-    } catch (error) {
+    } catch {
       // ignore
     }
   }
 };
 
+const androidTextWidthFix = {
+  type: 'postProcessor' as const,
+  name: 'androidTextWidthFix',
+  process(value: string): string {
+    if (
+      Platform.OS === 'android' &&
+      typeof value === 'string' &&
+      value.length >= 4 &&
+      value.length <= 32 &&
+      value.includes(' ') &&
+      !value.includes('\n') &&
+      !value.endsWith(' ')
+    ) {
+      return `${value} `;
+    }
+    return value;
+  },
+};
+
 i18n
+  .use(androidTextWidthFix)
   .use(languageDetector)
   .use(initReactI18next)
   .init({
@@ -40,6 +61,7 @@ i18n
       vi: { translation: vi }
     },
     fallbackLng: 'vi',
+    postProcess: ['androidTextWidthFix'],
     interpolation: {
       escapeValue: false
     }

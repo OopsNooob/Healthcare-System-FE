@@ -4,20 +4,20 @@ import {
   addKeyword,
   updateKeyword,
   deleteKeyword,
+  checkBlacklistContent,
   type ApiKeywordList,
 } from "../services/blacklist-keywords.service";
 
 export function useGetKeywords() {
-  const [isLoading, setLoading] = useState(false);
+  const [isLoading, setLoading] = useState(true);
   const [data, setData] = useState<ApiKeywordList | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const loadList = useCallback(async () => {
     setLoading(true);
     setError(null);
-
     try {
-      const res = await getKeywordList();
+      const res = await getKeywordList({ page: 1, limit: 200 });
       setData(res);
     } catch (loadError) {
       setError(
@@ -31,8 +31,10 @@ export function useGetKeywords() {
   }, []);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    void loadList();
+    const timer = window.setTimeout(() => {
+      void loadList();
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [loadList]);
 
   return {
@@ -48,17 +50,15 @@ export function useAddKeyword() {
   const [error, setError] = useState<string | null>(null);
 
   const submitAddKeyword = useCallback(async (newKeyword: string) => {
-    setLoading(true);
-    setError(null);
-
-    if (!newKeyword) {
+    if (!newKeyword.trim()) {
       const message = "New keyword is empty!";
       setError(message);
       throw new Error(message);
     }
-
+    setLoading(true);
+    setError(null);
     try {
-      return await addKeyword(newKeyword);
+      return await addKeyword(newKeyword.trim());
     } catch (loadError) {
       const message =
         loadError instanceof Error
@@ -84,23 +84,15 @@ export function useUpdateKeyword() {
 
   const submitUpdateKeyword = useCallback(
     async (id: string, newKeyword: string) => {
+      if (!id || !newKeyword.trim()) {
+        const message = "Invalid keyword update payload";
+        setError(message);
+        throw new Error(message);
+      }
       setLoading(true);
       setError(null);
-
-      if (!id) {
-        const message = "Invalid keyword ID";
-        setError(message);
-        throw new Error(message);
-      }
-
-      if (!newKeyword) {
-        const message = "New keyword is empty!";
-        setError(message);
-        throw new Error(message);
-      }
-
       try {
-        return await updateKeyword(id, newKeyword);
+        return await updateKeyword(id, newKeyword.trim());
       } catch (loadError) {
         const message =
           loadError instanceof Error
@@ -127,15 +119,13 @@ export function useDeleteKeyword() {
   const [error, setError] = useState<string | null>(null);
 
   const submitDeleteKeyword = useCallback(async (id: string) => {
-    setLoading(true);
-    setError(null);
-
     if (!id) {
       const message = "Invalid keyword ID";
       setError(message);
       throw new Error(message);
     }
-
+    setLoading(true);
+    setError(null);
     try {
       return await deleteKeyword(id);
     } catch (loadError) {
@@ -154,5 +144,31 @@ export function useDeleteKeyword() {
     submitDeleteKeyword,
     isLoading,
     error,
+  };
+}
+
+export function useCheckBlacklistContent() {
+  const [isLoading, setLoading] = useState(false);
+  const [result, setResult] = useState<{
+    flagged: boolean;
+    flaggedWords: string[];
+  } | null>(null);
+
+  const checkContent = useCallback(async (content: string) => {
+    if (!content.trim()) return null;
+    setLoading(true);
+    try {
+      const res = await checkBlacklistContent(content.trim());
+      setResult(res);
+      return res;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  return {
+    checkContent,
+    result,
+    isLoading,
   };
 }

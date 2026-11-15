@@ -1,5 +1,6 @@
 {
   "$schema": "https://turbo.build/schema.json",
+  "globalEnv": ["EXPO_PUBLIC_API_URL", "VITE_API_BASE_URL", "VITE_MOCK_AUTH"],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],

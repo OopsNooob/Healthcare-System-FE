@@ -1,12 +1,16 @@
 import {
+  User,
+  Zap,
+  AlertTriangle,
+  EyeOff,
+  UserCheck,
+  ShieldAlert,
   Bot,
   CircleAlert,
-  Flag,
-  MessageSquareX,
-  ShieldAlert,
-  TriangleAlert,
-  User,
+  type LucideIcon,
 } from "lucide-react";
+
+export type ReportStatus = "pending" | "processing" | "resolved" | "dismissed";
 
 export type ReportType =
   | "harassment"
@@ -18,87 +22,145 @@ export type ReportType =
   | "ai_hallucination"
   | "other";
 
-export type ReportStatus = "pending" | "processing" | "resolved" | "dismissed";
-export type AccountStatus = "active" | "banned";
-export type ResolutionAction =
-  | "none"
-  | "warning_sent"
-  | "user_locked"
-  | "content_hidden"
-  | "warning"
-  | "suspend"
-  | "ban";
+export type ResolutionAction = "warning" | "suspend" | "ban" | "none";
 
-export type ViolationReportItem = {
+export interface ViolationReport {
   id: string;
-  reportedUserId: string;
+  reporterId: string;
   reporterName: string;
-  reportedAccount: string;
+  reporterEmail: string;
+  reportedUserId: string;
+  reportedUserName: string;
+  reportedUserEmail: string;
+  reportedUserRole?: "patient" | "doctor" | "admin";
+  reportedUserStatus?: "active" | "banned";
   reportType: ReportType;
   reason: string;
   status: ReportStatus;
-  accountStatus: AccountStatus;
-  createdAt: string;
-  severity?: "low" | "medium" | "high" | "critical";
-  assignee?: string;
+  resolutionNote?: string;
   actionTaken?: ResolutionAction;
-};
+  resolvedBy?: string;
+  resolvedByName?: string;
+  resolvedAt?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
 
-export const REPORT_TYPE_META: Record<
-  ReportType,
-  {
-    label: string;
-    icon: typeof MessageSquareX;
-    iconClassName: string;
-    badgeClassName: string;
-  }
-> = {
+export interface ViolationStatsOverview {
+  total: number;
+  pending: number;
+  resolved: number;
+  by_type: Record<string, number>;
+}
+
+export interface ReviewModerationItem {
+  id: string;
+  patientId: string;
+  patientName: string;
+  doctorId: string;
+  doctorName: string;
+  consultationId: string;
+  rating: number;
+  comment: string;
+  helpfulCount: number;
+  flagged: boolean;
+  adminNotes?: string;
+  createdAt?: string;
+}
+
+export interface DoctorRatingSummary {
+  doctorId: string;
+  averageRating: number;
+  totalReviews: number;
+  starDistribution: {
+    fiveStar: number;
+    fourStar: number;
+    threeStar: number;
+    twoStar: number;
+    oneStar: number;
+  };
+}
+
+export interface TopRatedDoctorItem {
+  doctorId: string;
+  doctorName: string;
+  specialty?: string;
+  avatarUrl: string;
+  averageRating: number;
+  totalReviews: number;
+}
+
+export interface ReportTypeMeta {
+  label: string;
+  labelKey: string;
+  icon: LucideIcon;
+  iconClassName: string;
+  badgeClassName: string;
+}
+
+export const REPORT_TYPE_META: Record<ReportType, ReportTypeMeta> = {
   harassment: {
     label: "Harassment",
-    icon: MessageSquareX,
-    iconClassName: "text-red-600",
-    badgeClassName: "bg-red-50 text-red-600 border-red-200",
+    labelKey: "harassment",
+    icon: User,
+    iconClassName: "text-red-600 dark:text-red-400",
+    badgeClassName:
+      "bg-red-50 text-red-600 border-red-200 dark:bg-red-950/40 dark:text-red-400 dark:border-red-900/50",
   },
   spam: {
     label: "Spam",
-    icon: ShieldAlert,
-    iconClassName: "text-amber-600",
-    badgeClassName: "bg-amber-50 text-amber-700 border-amber-200",
+    labelKey: "spam",
+    icon: Zap,
+    iconClassName: "text-amber-600 dark:text-amber-400",
+    badgeClassName:
+      "bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-900/50",
   },
   misinformation: {
     label: "Misinformation",
-    icon: TriangleAlert,
-    iconClassName: "text-violet-600",
-    badgeClassName: "bg-violet-50 text-violet-600 border-violet-200",
+    labelKey: "misinformation",
+    icon: AlertTriangle,
+    iconClassName: "text-rose-600 dark:text-rose-400",
+    badgeClassName:
+      "bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-900/50",
   },
   inappropriate_content: {
-    label: "Inappropriate",
-    icon: Flag,
-    iconClassName: "text-pink-600",
-    badgeClassName: "bg-pink-50 text-pink-600 border-pink-200",
+    label: "Inappropriate Content",
+    labelKey: "inappropriate_content",
+    icon: EyeOff,
+    iconClassName: "text-amber-600 dark:text-amber-400",
+    badgeClassName:
+      "bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-900/50",
   },
   impersonation: {
     label: "Impersonation",
-    icon: User,
-    iconClassName: "text-blue-600",
-    badgeClassName: "bg-blue-50 text-blue-600 border-blue-200",
+    labelKey: "impersonation",
+    icon: UserCheck,
+    iconClassName: "text-indigo-600 dark:text-indigo-400",
+    badgeClassName:
+      "bg-indigo-50 text-indigo-600 border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-400 dark:border-indigo-900/50",
   },
   fraud: {
     label: "Fraud",
-    icon: TriangleAlert,
-    iconClassName: "text-rose-600",
-    badgeClassName: "bg-rose-50 text-rose-600 border-rose-200",
+    labelKey: "fraud",
+    icon: ShieldAlert,
+    iconClassName: "text-rose-600 dark:text-rose-400",
+    badgeClassName:
+      "bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-900/50",
   },
   ai_hallucination: {
     label: "AI Hallucination",
+    labelKey: "ai_hallucination",
     icon: Bot,
-    iconClassName: "text-orange-600",
-    badgeClassName: "bg-orange-50 text-orange-600 border-orange-200",
+    iconClassName: "text-orange-600 dark:text-orange-400",
+    badgeClassName:
+      "bg-orange-50 text-orange-600 border-orange-200 dark:bg-orange-950/40 dark:text-orange-400 dark:border-orange-900/50",
   },
   other: {
     label: "Other",
+    labelKey: "other",
     icon: CircleAlert,
-    iconClassName: "text-rose-600",
-    badgeClassName: "bg-rose-50 text-rose-600 border-rose-200",
+    iconClassName: "text-slate-600 dark:text-slate-400",
+    badgeClassName:
+      "bg-slate-50 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700",
   },
 };

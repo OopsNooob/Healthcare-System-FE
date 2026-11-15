@@ -12,14 +12,14 @@ export function useForgotPassword() {
   const [data, setData] = useState<ForgotPasswordResponse | null>(null);
 
   const sendOtp = useCallback(async (payload: ForgotPasswordPayload) => {
-    setLoading(true);
-    setError(null);
-
     if (!payload.email.trim()) {
       const errorMsg = "Please enter your email";
       setError(errorMsg);
       throw new Error(errorMsg);
     }
+
+    setLoading(true);
+    setError(null);
 
     try {
       const res = await submitForgotPassword(payload);

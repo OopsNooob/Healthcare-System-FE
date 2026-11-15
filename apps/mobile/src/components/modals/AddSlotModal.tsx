@@ -1,148 +1,236 @@
-import React, { useState } from 'react';
-import { View, Text, Modal, TouchableOpacity, ScrollView, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
+import React, { useEffect, useMemo, useState } from 'react';
+import {
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  ScrollView,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { X, Clock, Plus, Video, MessageCircle, Building2, Check } from 'lucide-react-native';
+import { Check, Clock, Plus, Save, X } from 'lucide-react-native';
 import Toast from 'react-native-toast-message';
+import { generateIdempotencyKey, mobileApi } from '@repo/shared-hooks';
 import { tw, twInstance } from '@/tw';
+import { extractApiErrorMessage } from '@/utils/apiError';
+
+export interface EditableSlotTarget {
+  id: string;
+  startAt: string;
+  endAt: string;
+  timezone: string;
+}
 
 interface AddSlotModalProps {
   visible: boolean;
   onClose: () => void;
-  selectedDate?: string;
-  onAddSlot: (newSlot: { time: string; type: string }) => void;
+  selectedDate: string;
+  timezone?: string;
+  defaultDurationMinutes?: number;
+  editingSlot?: EditableSlotTarget | null;
+  onSaved: () => void;
+}
+
+const TIMEZONE_OFFSETS: Record<string, string> = {
+  'Asia/Ho_Chi_Minh': '+07:00',
+  'Asia/Bangkok': '+07:00',
+  'Asia/Singapore': '+08:00',
+  UTC: 'Z',
+};
+
+function addMinutesToHHMM(hhmm: string, deltaMinutes: number): string {
+  const [hStr, mStr] = hhmm.split(':');
+  const total = Number(hStr) * 60 + Number(mStr) + deltaMinutes;
+  const h = Math.floor(total / 60) % 24;
+  const m = total % 60;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+}
+
+function formatIsoTimeInZone(iso: string, timezone: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '09:00';
+  try {
+    return d.toLocaleTimeString('en-GB', {
+      timeZone: timezone || 'Asia/Ho_Chi_Minh',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    });
+  } catch {
+    return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  }
+}
+
+function buildIsoFromDateAndHHMM(dateStr: string, hhmm: string, timezone: string): string | null {
+  const trimmed = hhmm.trim();
+  if (!/^\d{2}:\d{2}$/.test(trimmed)) return null;
+  const [hh, mm] = trimmed.split(':').map(Number);
+  if (hh < 0 || hh > 23 || mm < 0 || mm > 59) return null;
+  const offset = TIMEZONE_OFFSETS[timezone] ?? '+07:00';
+  const d = new Date(`${dateStr}T${trimmed}:00${offset}`);
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toISOString();
 }
 
 export const AddSlotModal: React.FC<AddSlotModalProps> = ({
   visible,
   onClose,
-  selectedDate = 'Today',
-  onAddSlot,
+  selectedDate,
+  timezone = 'Asia/Ho_Chi_Minh',
+  defaultDurationMinutes = 30,
+  editingSlot = null,
+  onSaved,
 }) => {
   const { t } = useTranslation();
 
-  const standardTimes = [
-    '08:00 - 08:30',
-    '09:00 - 09:30',
-    '10:00 - 10:30',
-    '11:00 - 11:30',
-    '14:00 - 14:30',
-    '15:00 - 15:30',
-    '16:00 - 16:30',
-    '17:00 - 17:30',
-  ];
+  const standardTimes = useMemo(() => {
+    const starts = ['08:00', '09:00', '10:00', '11:00', '14:00', '15:00', '16:00', '17:00'];
+    return starts.map((s) => `${s} - ${addMinutesToHHMM(s, defaultDurationMinutes)}`);
+  }, [defaultDurationMinutes]);
 
-  const [selectedTime, setSelectedTime] = useState('09:00 - 09:30');
+  const [selectedTime, setSelectedTime] = useState(standardTimes[1] || '09:00 - 09:30');
   const [customTime, setCustomTime] = useState('');
-  const [sessionType, setSessionType] = useState<'video' | 'chat' | 'clinic'>('video');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleCreate = () => {
-    const finalTime = customTime.trim() ? customTime.trim() : selectedTime;
-    setIsSubmitting(true);
-    setTimeout(() => {
-      setIsSubmitting(false);
-      onAddSlot({
-        time: finalTime,
-        type: sessionType === 'video' ? 'Video Call' : sessionType === 'chat' ? 'Chat Consultation' : 'Clinic Visit',
-      });
-      Toast.show({
-        type: 'success',
-        text1: t('mobile.success', 'Success'),
-        text2: t('mobile.slot_added_success', 'New appointment slot added to schedule'),
-      });
+  useEffect(() => {
+    if (!visible) return;
+    setIsSubmitting(false);
+    if (editingSlot) {
+      const tz = editingSlot.timezone || timezone;
+      const startStr = formatIsoTimeInZone(editingSlot.startAt, tz);
+      const endStr = formatIsoTimeInZone(editingSlot.endAt, tz);
+      const range = `${startStr} - ${endStr}`;
+      if (standardTimes.includes(range)) {
+        setSelectedTime(range);
+        setCustomTime('');
+      } else {
+        setCustomTime(range);
+      }
+    } else {
+      setSelectedTime(standardTimes[1] || '09:00 - 09:30');
       setCustomTime('');
+    }
+  }, [visible, editingSlot, standardTimes, timezone]);
+
+  const handleSave = async () => {
+    if (isSubmitting) return;
+    const rawRange = (customTime.trim() || selectedTime).trim();
+    const parts = rawRange.split('-').map((p) => p.trim());
+    if (parts.length !== 2) {
+      Toast.show({
+        type: 'error',
+        text1: t('mobile.error', 'Error'),
+        text2: t('mobile.invalid_time_range_format'),
+      });
+      return;
+    }
+
+    const activeTz = editingSlot?.timezone || timezone || 'Asia/Ho_Chi_Minh';
+    const baseDate = editingSlot
+      ? new Date(editingSlot.startAt).toLocaleDateString('en-CA', { timeZone: activeTz })
+      : selectedDate;
+
+    const startAt = buildIsoFromDateAndHHMM(baseDate, parts[0], activeTz);
+    const endAt = buildIsoFromDateAndHHMM(baseDate, parts[1], activeTz);
+
+    if (!startAt || !endAt || new Date(endAt).getTime() <= new Date(startAt).getTime()) {
+      Toast.show({
+        type: 'error',
+        text1: t('mobile.error', 'Error'),
+        text2: t('mobile.invalid_time_range_format'),
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      if (editingSlot) {
+        await mobileApi.availabilitySlotsUpdate({
+          params: { id: editingSlot.id },
+          body: { startAt, endAt, timezone: activeTz },
+        });
+        Toast.show({
+          type: 'success',
+          text1: t('mobile.success', 'Success'),
+          text2: t('mobile.slot_updated_success'),
+        });
+      } else {
+        await mobileApi.availabilitySlotsCreate({
+          body: { startAt, endAt, timezone: activeTz },
+          headers: { 'Idempotency-Key': generateIdempotencyKey() },
+        });
+        Toast.show({
+          type: 'success',
+          text1: t('mobile.success', 'Success'),
+          text2: t('mobile.slot_added_success'),
+        });
+      }
+      onSaved();
       onClose();
-    }, 500);
+    } catch (err) {
+      Toast.show({
+        type: 'error',
+        text1: t('mobile.error', 'Error'),
+        text2: extractApiErrorMessage(err, 'mobile.slot_save_failed'),
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
-    <Modal visible={visible} transparent={true} animationType="slide" onRequestClose={onClose}>
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={tw('flex-1 justify-end bg-black/60')}
       >
-        <View style={tw('bg-white dark:bg-slate-900 rounded-t-3xl max-h-[85%] border-t border-slate-200 dark:border-slate-800')}>
+        <View
+          style={tw(
+            'bg-white dark:bg-slate-900 rounded-t-3xl max-h-[85%] border-t border-slate-200 dark:border-slate-800'
+          )}
+        >
           {/* Header */}
-          <View style={tw('p-5 border-b border-slate-100 dark:border-slate-800 flex-row items-center justify-between')}>
-            <View style={tw('flex-row items-center')}>
-              <View style={tw('w-10 h-10 rounded-2xl bg-slate-900 dark:bg-slate-800 items-center justify-center mr-3')}>
+          <View
+            style={tw(
+              'p-5 border-b border-slate-100 dark:border-slate-800 flex-row items-center justify-between'
+            )}
+          >
+            <View style={tw('flex-row items-center flex-1 mr-2')}>
+              <View
+                style={tw(
+                  'w-10 h-10 rounded-2xl bg-slate-900 dark:bg-slate-800 items-center justify-center mr-3'
+                )}
+              >
                 <Clock color="#ffffff" size={20} />
               </View>
-              <View>
+              <View style={tw('flex-1')}>
                 <Text style={tw('text-lg font-bold text-slate-900 dark:text-white')}>
-                  {t('mobile.add_time_slot', 'Add Time Slot')}
+                  {editingSlot ? t('mobile.edit_time_slot') : t('mobile.add_time_slot')}
                 </Text>
                 <Text style={tw('text-xs text-slate-500 dark:text-slate-400')}>
-                  {t('mobile.date', 'Date')}: {selectedDate}
+                  {t('mobile.date')}: {selectedDate} ({editingSlot?.timezone || timezone})
                 </Text>
               </View>
             </View>
-            <TouchableOpacity onPress={onClose} style={tw('p-2 rounded-full bg-slate-100 dark:bg-slate-800')}>
+            <TouchableOpacity
+              onPress={onClose}
+              disabled={isSubmitting}
+              style={tw('p-2 rounded-full bg-slate-100 dark:bg-slate-800')}
+            >
               <X color={twInstance.color('text-slate-600 dark:text-slate-300')} size={20} />
             </TouchableOpacity>
           </View>
 
           <ScrollView contentContainerStyle={tw('p-5 gap-5')} showsVerticalScrollIndicator={false}>
-            {/* Consultation Type */}
-            <View>
-              <Text style={tw('text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2')}>
-                {t('mobile.consultation_type', 'Consultation Type')}
-              </Text>
-              <View style={tw('flex-row gap-2')}>
-                <TouchableOpacity
-                  onPress={() => setSessionType('video')}
-                  style={tw(
-                    `flex-1 p-2.5 min-h-[82px] justify-center rounded-2xl border items-center ${
-                      sessionType === 'video'
-                        ? 'border-brand bg-brand/10 dark:bg-brand/20'
-                        : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950'
-                    }`
-                  )}
-                >
-                  <Video color={sessionType === 'video' ? '#0f172a' : '#64748b'} size={20} style={tw('mb-1.5')} />
-                  <Text style={tw(`text-xs font-bold text-center ${sessionType === 'video' ? 'text-slate-900 dark:text-white' : 'text-slate-600 dark:text-slate-400'}`)}>
-                    {t('mobile.video_call', 'Video Call')}
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  onPress={() => setSessionType('chat')}
-                  style={tw(
-                    `flex-1 p-2.5 min-h-[82px] justify-center rounded-2xl border items-center ${
-                      sessionType === 'chat'
-                        ? 'border-brand bg-brand/10 dark:bg-brand/20'
-                        : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950'
-                    }`
-                  )}
-                >
-                  <MessageCircle color={sessionType === 'chat' ? '#0f172a' : '#64748b'} size={20} style={tw('mb-1.5')} />
-                  <Text style={tw(`text-xs font-bold text-center ${sessionType === 'chat' ? 'text-slate-900 dark:text-white' : 'text-slate-600 dark:text-slate-400'}`)}>
-                    {t('mobile.chat', 'Chat')}
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  onPress={() => setSessionType('clinic')}
-                  style={tw(
-                    `flex-1 p-2.5 min-h-[82px] justify-center rounded-2xl border items-center ${
-                      sessionType === 'clinic'
-                        ? 'border-brand bg-brand/10 dark:bg-brand/20'
-                        : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950'
-                    }`
-                  )}
-                >
-                  <Building2 color={sessionType === 'clinic' ? '#0f172a' : '#64748b'} size={20} style={tw('mb-1.5')} />
-                  <Text style={tw(`text-xs font-bold text-center ${sessionType === 'clinic' ? 'text-slate-900 dark:text-white' : 'text-slate-600 dark:text-slate-400'}`)}>
-                    {t('mobile.clinic_visit', 'In-Person')}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-
             {/* Predefined Time Slots */}
             <View>
-              <Text style={tw('text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2')}>
-                {t('mobile.select_slot_time', 'Select Available Window (30 min)')}
+              <Text
+                style={tw('text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2')}
+              >
+                {t('mobile.select_slot_time')}
               </Text>
               <View style={tw('flex-row flex-wrap gap-2')}>
                 {standardTimes.map((st) => (
@@ -160,9 +248,9 @@ export const AddSlotModal: React.FC<AddSlotModalProps> = ({
                       }`
                     )}
                   >
-                    {selectedTime === st && !customTime && (
+                    {selectedTime === st && !customTime ? (
                       <Check color="#10b981" size={14} style={tw('mr-1')} />
-                    )}
+                    ) : null}
                     <Text
                       style={tw(
                         `text-xs font-bold ${
@@ -181,11 +269,15 @@ export const AddSlotModal: React.FC<AddSlotModalProps> = ({
 
             {/* Custom Time */}
             <View>
-              <Text style={tw('text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1')}>
-                {t('mobile.or_custom_time', 'Or Custom Time (e.g. 18:00 - 18:45)')}
+              <Text
+                style={tw('text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1')}
+              >
+                {t('mobile.or_custom_time')}
               </Text>
               <TextInput
-                style={tw('bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 text-xs text-slate-900 dark:text-white')}
+                style={tw(
+                  'bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 text-xs text-slate-900 dark:text-white'
+                )}
                 value={customTime}
                 onChangeText={setCustomTime}
                 placeholder="HH:MM - HH:MM"
@@ -196,18 +288,41 @@ export const AddSlotModal: React.FC<AddSlotModalProps> = ({
 
           {/* Footer Actions */}
           <View style={tw('p-4 border-t border-slate-100 dark:border-slate-800 flex-row gap-3')}>
-            <TouchableOpacity onPress={onClose} style={tw('flex-1 bg-slate-100 dark:bg-slate-800 py-3.5 rounded-xl items-center')}>
-              <Text style={tw('text-slate-700 dark:text-slate-300 font-bold text-sm')}>{t('mobile.cancel', 'Cancel')}</Text>
+            <TouchableOpacity
+              onPress={onClose}
+              disabled={isSubmitting}
+              style={tw('flex-1 bg-slate-100 dark:bg-slate-800 py-3.5 rounded-xl items-center')}
+            >
+              <Text style={tw('text-slate-700 dark:text-slate-300 font-bold text-sm')}>
+                {t('mobile.cancel')}
+              </Text>
             </TouchableOpacity>
             <TouchableOpacity
-              onPress={handleCreate}
+              onPress={() => void handleSave()}
               disabled={isSubmitting}
-              style={tw('flex-1 bg-slate-900 dark:bg-white py-3.5 rounded-xl items-center flex-row justify-center')}
+              style={tw(
+                `flex-1 bg-slate-900 dark:bg-brand py-3.5 rounded-xl items-center flex-row justify-center ${
+                  isSubmitting ? 'opacity-60' : ''
+                }`
+              )}
             >
-              <Plus color={twInstance.color('text-white dark:text-slate-900')} size={18} style={tw('mr-1')} />
-              <Text style={tw('text-white dark:text-slate-900 font-bold text-sm')}>
-                {isSubmitting ? t('mobile.saving', 'Saving...') : t('mobile.create_slot', 'Create Slot')}
-              </Text>
+              {isSubmitting ? (
+                <ActivityIndicator
+                  size="small"
+                  color={twInstance.color('text-white dark:text-slate-900')}
+                />
+              ) : (
+                <>
+                  {editingSlot ? (
+                    <Save color={twInstance.color('text-white dark:text-slate-900')} size={17} style={tw('mr-1.5')} />
+                  ) : (
+                    <Plus color={twInstance.color('text-white dark:text-slate-900')} size={18} style={tw('mr-1')} />
+                  )}
+                  <Text style={tw('text-white dark:text-slate-900 font-bold text-sm')}>
+                    {editingSlot ? t('mobile.save_changes') : t('mobile.create_slot')}
+                  </Text>
+                </>
+              )}
             </TouchableOpacity>
           </View>
         </View>

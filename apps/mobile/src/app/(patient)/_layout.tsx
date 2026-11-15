@@ -1,8 +1,7 @@
 import { Tabs } from "expo-router";
-import { Home, Activity, MessageCircle, User, Users, Calendar, Building2, HeartPulse } from "lucide-react-native";
+import { Home, Activity, MessageCircle, User, Users, Calendar } from "lucide-react-native";
 import { useTranslation } from 'react-i18next';
 import { useThemeContext } from '@/context/ThemeContext';
-import { tw } from '@/tw';
 
 export default function PatientLayout() {
   const { t } = useTranslation();

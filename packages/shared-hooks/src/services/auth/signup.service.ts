@@ -21,6 +21,14 @@ export type UploadableFile = {
   fileType: string;
 };
 
+export type NativeUploadableFile = {
+  uri: string;
+  name?: string;
+  type?: string;
+};
+
+export type VerificationUploadInput = File | NativeUploadableFile;
+
 export interface SignUpPatient {
   email: string;
   password: string;
@@ -36,7 +44,7 @@ export interface SignUpDoctor {
   specialty: string;
   workplace: string;
   experienceYears: number;
-  newVerificationDocuments: File[]; // Files to upload
+  newVerificationDocuments: VerificationUploadInput[]; // Files to upload
   existingVerificationDocuments: string[]; // Secure URLs of files to keep
 }
 
@@ -82,6 +90,7 @@ export async function submitSignUpPatient(
     email: payload.email,
     password: payload.password,
     fullName: payload.fullName,
+    phoneNumber: payload.phoneNumber,
     role: "patient",
   });
 
@@ -111,9 +120,25 @@ export async function submitSignUpDoctor(
   formData.append("workplace", payload.workplace);
   formData.append("experienceYears", payload.experienceYears.toString());
 
-  // Append files
+  // Append files (supports Web File/Blob and React Native { uri, name, type })
   for (const file of payload.newVerificationDocuments) {
-    formData.append("newFilesToUpload", file); // Changed key to avoid conflict with DTO
+    if (
+      typeof file === "object" &&
+      file !== null &&
+      "uri" in file &&
+      typeof file.uri === "string"
+    ) {
+      formData.append(
+        "newFilesToUpload",
+        {
+          uri: file.uri,
+          name: file.name ?? "verification-document.pdf",
+          type: file.type ?? "application/pdf",
+        } as unknown as Blob,
+      );
+    } else {
+      formData.append("newFilesToUpload", file as Blob);
+    }
   }
 
   // Append existing file URLs to keep

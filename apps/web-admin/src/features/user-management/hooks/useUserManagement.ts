@@ -1,22 +1,34 @@
 import { useCallback, useEffect, useState } from "react";
+import { useAuthStore } from "@repo/ui/store/useAuthStore";
+import {
+  presenceSocket,
+  SOCKET_EVENTS,
+  updateSocketAuth,
+} from "@/lib/api";
 import {
   getUserManagement,
+  getUserOperationalDetails,
+  deactivateUser,
   type UserManagement,
+  type UserOperationalDetails,
   banUser,
   type ApiBanUser,
   unbanUser,
   type ApiUnbanUser,
 } from "../services/user-management.service";
+import { deleteAdmin } from "../services/admin-management.service";
 
 const initialUsers: UserManagement = {
   totalUser: 0,
   activeDoctors: 0,
   pendingVerifications: 0,
   bannedUsers: 0,
+  totalPatients: 0,
   userList: [],
 };
 
 export function useUsers() {
+  const accessToken = useAuthStore((state) => state.token);
   const [users, setUsers] = useState<UserManagement>(initialUsers);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -40,9 +52,51 @@ export function useUsers() {
   }, []);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    void loadUsers();
+    const timer = window.setTimeout(() => {
+      void loadUsers();
+    }, 0);
+    return () => {
+      window.clearTimeout(timer);
+    };
   }, [loadUsers]);
+
+  useEffect(() => {
+    const token = accessToken || localStorage.getItem("accessToken") || "";
+    if (!token) {
+      return;
+    }
+
+    updateSocketAuth(token);
+    if (!presenceSocket.connected) {
+      presenceSocket.connect();
+    }
+
+    const handlePresenceChanged = (payload: {
+      userId?: string;
+      status?: "online" | "offline";
+    }) => {
+      if (!payload?.userId) return;
+      const isOnline = payload.status === "online";
+      setUsers((prev) => ({
+        ...prev,
+        userList: prev.userList.map((item) =>
+          item.id === payload.userId ? { ...item, isOnline } : item,
+        ),
+      }));
+    };
+
+    presenceSocket.on(
+      SOCKET_EVENTS.presence.server.userStatusChanged,
+      handlePresenceChanged,
+    );
+
+    return () => {
+      presenceSocket.off(
+        SOCKET_EVENTS.presence.server.userStatusChanged,
+        handlePresenceChanged,
+      );
+    };
+  }, [accessToken]);
 
   return {
     users,
@@ -50,6 +104,101 @@ export function useUsers() {
     error,
     refresh: loadUsers,
   };
+}
+
+export function useOperationalSummary(
+  userId: string | null,
+  role: "patient" | "doctor" | "admin" | null,
+) {
+  const [data, setData] = useState<UserOperationalDetails | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!userId || !role) {
+      return;
+    }
+
+    let active = true;
+    const timer = window.setTimeout(() => {
+      setIsLoading(true);
+      setError(null);
+
+      void getUserOperationalDetails(userId, role)
+        .then((res) => {
+          if (active) setData(res);
+        })
+        .catch((err) => {
+          if (active) {
+            setError(err instanceof Error ? err.message : "Failed to load details");
+          }
+        })
+        .finally(() => {
+          if (active) setIsLoading(false);
+        });
+    }, 0);
+
+    return () => {
+      active = false;
+      window.clearTimeout(timer);
+    };
+  }, [userId, role]);
+
+  if (!userId || !role) {
+    return { data: null, isLoading: false, error: null };
+  }
+
+  return { data, isLoading, error };
+}
+
+export function useDeactivateUser() {
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const submitDeactivateUser = useCallback(async (userId: string) => {
+    if (!userId) {
+      return null;
+    }
+
+    setIsLoading(true);
+    setError(null);
+    try {
+      return await deactivateUser(userId);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to deactivate user",
+      );
+      return null;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  return { submitDeactivateUser, isLoading, error };
+}
+
+export function useDeleteAdmin() {
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const submitDeleteAdmin = useCallback(async (adminUserId: string) => {
+    if (!adminUserId) {
+      return null;
+    }
+
+    setIsLoading(true);
+    setError(null);
+    try {
+      return await deleteAdmin(adminUserId);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to delete admin");
+      return null;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  return { submitDeleteAdmin, isLoading, error };
 }
 
 export function useBanUser() {

@@ -1,41 +1,79 @@
-import { useState, useCallback } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
-  changeReportStatus as changeReportStatusApi,
-  type ApiChangeReportStatus,
+  deleteViolationReport,
+  flagReviewById,
+  resolveViolationReport,
+  updateViolationStatus,
+  type UpdateViolationPayload,
 } from "../services/report-management-service";
+import { VIOLATIONS_QUERY_KEYS } from "./useReportManagement";
 
 export function useChangeReportStatus() {
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [response, setResponse] = useState<unknown | null>(null);
+  const queryClient = useQueryClient();
 
-  const submitChangeReportStatus = useCallback(
-    async (payload: ApiChangeReportStatus) => {
-      setIsLoading(true);
-      setError(null);
+  const invalidateViolations = async () => {
+    await queryClient.invalidateQueries({
+      queryKey: VIOLATIONS_QUERY_KEYS.all,
+    });
+  };
 
-      try {
-        const res = await changeReportStatusApi(payload);
-        setResponse(res);
-        return res;
-      } catch (reportError) {
-        setError(
-          reportError instanceof Error
-            ? reportError.message
-            : "Failed to change status of report",
-        );
-        return null;
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    [],
-  );
+  const updateMutation = useMutation({
+    mutationFn: ({
+      id,
+      payload,
+    }: {
+      id: string;
+      payload: UpdateViolationPayload;
+    }) => updateViolationStatus(id, payload),
+    onSuccess: invalidateViolations,
+  });
+
+  const resolveMutation = useMutation({
+    mutationFn: ({
+      id,
+      payload,
+    }: {
+      id: string;
+      payload: UpdateViolationPayload;
+    }) => resolveViolationReport(id, payload),
+    onSuccess: invalidateViolations,
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => deleteViolationReport(id),
+    onSuccess: invalidateViolations,
+  });
 
   return {
-    response,
-    isLoading,
-    error,
-    changeReportStatus: submitChangeReportStatus,
+    changeStatus: updateMutation.mutate,
+    changeStatusAsync: updateMutation.mutateAsync,
+    isChangingStatus: updateMutation.isPending,
+
+    resolveReport: resolveMutation.mutate,
+    resolveReportAsync: resolveMutation.mutateAsync,
+    isResolving: resolveMutation.isPending,
+
+    deleteReport: deleteMutation.mutate,
+    deleteReportAsync: deleteMutation.mutateAsync,
+    isDeleting: deleteMutation.isPending,
+
+    isSubmitting:
+      updateMutation.isPending ||
+      resolveMutation.isPending ||
+      deleteMutation.isPending,
   };
+}
+
+export function useFlagReview() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, adminNotes }: { id: string; adminNotes: string }) =>
+      flagReviewById(id, adminNotes),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: VIOLATIONS_QUERY_KEYS.reviewsAll,
+      });
+    },
+  });
 }

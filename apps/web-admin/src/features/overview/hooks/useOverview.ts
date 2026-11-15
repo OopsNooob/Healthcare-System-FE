@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
   getOverviewSummary,
   type OverviewSummary,
@@ -7,55 +7,56 @@ import {
 const initialSummary: OverviewSummary = {
   totalUsers: 0,
   activeDoctors: 0,
-  aiChatSessions: 0,
+  aiKnowledgeDocuments: 0,
   pendingVerifications: 0,
   doctorSessions: 0,
   violationReports: 0,
+  bannedAccounts: 0,
+  activeEnrollments: 0,
+  openAlerts: 0,
+  acknowledgedAlerts: 0,
+  resolvedAlerts: 0,
+  systemHealth: {
+    live: "down",
+    ready: "down",
+  },
   monthly: {
     labels: Array.from({ length: 8 }, () => ""),
     totalUsers: Array.from({ length: 8 }, () => 0),
     activeDoctors: Array.from({ length: 8 }, () => 0),
-    aiChatSessions: Array.from({ length: 8 }, () => 0),
+    aiDocuments: Array.from({ length: 8 }, () => 0),
   },
   weekly: {
     labels: Array.from({ length: 7 }, () => ""),
     doctorSessions: Array.from({ length: 7 }, () => 0),
     violationReports: Array.from({ length: 7 }, () => 0),
   },
+  tierDistribution: {
+    labels: [],
+    planPrices: [],
+    orderCounts: [],
+  },
 };
 
 export function useOverview() {
-  const [summary, setSummary] = useState<OverviewSummary>(initialSummary);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const query = useQuery({
+    queryKey: ["overview", "summary"],
+    queryFn: () => getOverviewSummary(),
+  });
 
-  const loadOverview = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const data = await getOverviewSummary();
-      setSummary(data);
-    } catch (loadError) {
-      setError(
-        loadError instanceof Error
-          ? loadError.message
-          : "Failed to load overview data",
-      );
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    void loadOverview();
-  }, [loadOverview]);
+  const error =
+    query.error instanceof Error
+      ? query.error.message
+      : query.isError
+        ? "Failed to load overview data"
+        : null;
 
   return {
-    summary,
-    isLoading,
+    summary: query.data ?? initialSummary,
+    isLoading: query.isLoading,
     error,
-    refresh: loadOverview,
+    refresh: async () => {
+      await query.refetch();
+    },
   };
 }

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, Modal, TouchableOpacity, Image } from 'react-native';
+import { View, Text, Modal, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { X, Camera, Image as ImageIcon, CheckCircle2 } from 'lucide-react-native';
+import { X, Camera, Image as ImageIcon, CheckCircle2, User } from 'lucide-react-native';
 import Toast from 'react-native-toast-message';
 import { tw, twInstance } from '@/tw';
 import { pickNativeImage } from '@/services/nativeMedia';
@@ -10,13 +10,13 @@ interface AvatarPickerModalProps {
   visible: boolean;
   onClose: () => void;
   currentAvatarUri?: string;
-  onSelectAvatar: (newUri: string) => void;
+  onSelectAvatar: (newUri: string) => void | Promise<void>;
 }
 
 export const AvatarPickerModal: React.FC<AvatarPickerModalProps> = ({
   visible,
   onClose,
-  currentAvatarUri = 'https://i.pravatar.cc/150?img=1',
+  currentAvatarUri = '',
   onSelectAvatar,
 }) => {
   const { t } = useTranslation();
@@ -33,17 +33,14 @@ export const AvatarPickerModal: React.FC<AvatarPickerModalProps> = ({
     }
   }, [visible, currentAvatarUri]);
 
-  const handleApply = () => {
-    if (isApplying || isPicking) return;
+  const handleApply = async () => {
+    if (isApplying || isPicking || !selectedUri) return;
     setIsApplying(true);
     try {
-      onSelectAvatar(selectedUri);
-      Toast.show({
-        type: 'success',
-        text1: t('mobile.success', 'Success'),
-        text2: t('mobile.avatar_updated', 'Profile photo updated successfully'),
-      });
+      await onSelectAvatar(selectedUri);
       onClose();
+    } catch {
+      // Caller handles error toast/alert
     } finally {
       setIsApplying(false);
     }
@@ -116,10 +113,16 @@ export const AvatarPickerModal: React.FC<AvatarPickerModalProps> = ({
           <View style={tw('p-5 gap-5')}>
             {/* Active Preview */}
             <View style={tw('items-center my-2')}>
-              <Image
-                source={{ uri: selectedUri }}
-                style={tw('w-28 h-28 rounded-full border-4 border-brand bg-slate-200 dark:bg-slate-800 shadow-md')}
-              />
+              {selectedUri ? (
+                <Image
+                  source={{ uri: selectedUri }}
+                  style={tw('w-28 h-28 rounded-full border-4 border-brand bg-slate-200 dark:bg-slate-800 shadow-md')}
+                />
+              ) : (
+                <View style={tw('w-28 h-28 rounded-full border-4 border-brand bg-slate-100 dark:bg-slate-800 items-center justify-center shadow-md')}>
+                  <User color={twInstance.color('text-slate-400 dark:text-slate-500')} size={44} />
+                </View>
+              )}
             </View>
 
             {/* Quick Actions */}
@@ -167,14 +170,18 @@ export const AvatarPickerModal: React.FC<AvatarPickerModalProps> = ({
             </TouchableOpacity>
             <TouchableOpacity
               onPress={handleApply}
-              disabled={isApplying || isPicking}
+              disabled={isApplying || isPicking || !selectedUri || selectedUri === currentAvatarUri}
               style={tw(
                 `flex-1 bg-brand py-3.5 rounded-xl items-center flex-row justify-center ${
-                  isApplying || isPicking ? 'opacity-60' : ''
+                  isApplying || isPicking || !selectedUri || selectedUri === currentAvatarUri ? 'opacity-60' : ''
                 }`
               )}
             >
-              <CheckCircle2 color="#0f172a" size={18} style={tw('mr-1.5')} />
+              {isApplying ? (
+                <ActivityIndicator size="small" color="#0f172a" style={tw('mr-1.5')} />
+              ) : (
+                <CheckCircle2 color="#0f172a" size={18} style={tw('mr-1.5')} />
+              )}
               <Text style={tw('text-slate-900 font-bold text-sm')}>{t('mobile.apply_photo', 'Apply Photo')}</Text>
             </TouchableOpacity>
           </View>

@@ -1,16 +1,37 @@
 import axios, { type AxiosError, type InternalAxiosRequestConfig } from "axios";
 import { io, type Socket } from "socket.io-client";
+import {
+  createFeApiSdk,
+  type ApiExecutor,
+  SOCKET_NAMESPACES,
+} from "@healthcare/api-client";
 import { getStorage } from "./storage";
+
+export type AuthCallbackUser = {
+  id: string;
+  email: string;
+  name: string;
+  role: string;
+  avatar?: string | null;
+};
 
 // NOTE: We'll inject useAuthStore later to avoid circular dependencies
 let logoutCallback: () => void = () => {};
-let setUserCallback: (user: any, token: string, refreshToken: string) => void = () => {};
-let getCurrentUser: () => any = () => null;
+let setUserCallback: (
+  user: AuthCallbackUser,
+  token: string,
+  refreshToken: string,
+) => void = () => {};
+let getCurrentUser: () => AuthCallbackUser | null = () => null;
 
 export function setAuthCallbacks(
   logout: () => void,
-  setUser: (user: any, token: string, refreshToken: string) => void,
-  getUser: () => any
+  setUser: (
+    user: AuthCallbackUser,
+    token: string,
+    refreshToken: string,
+  ) => void,
+  getUser: () => AuthCallbackUser | null,
 ) {
   logoutCallback = logout;
   setUserCallback = setUser;
@@ -23,33 +44,46 @@ let API_BASE_URL = typeof process !== 'undefined' && process.env.EXPO_PUBLIC_API
   ? process.env.EXPO_PUBLIC_API_URL
   : "http://localhost:3000/api/v1";
 
+let SOCKET_BASE_URL = API_BASE_URL.replace(/\/api(\/.*)?$/, "");
+
 export function setApiBaseUrl(url: string) {
   API_BASE_URL = url;
   api.defaults.baseURL = url;
   refreshApi.defaults.baseURL = url;
+  SOCKET_BASE_URL = url.replace(/\/api(\/.*)?$/, "");
+  (socket.io as unknown as { uri?: string }).uri = `${SOCKET_BASE_URL}${SOCKET_NAMESPACES.chat}`;
+  (consultationsSocket.io as unknown as { uri?: string }).uri = `${SOCKET_BASE_URL}${SOCKET_NAMESPACES.consultations}`;
+  (notificationsSocket.io as unknown as { uri?: string }).uri = `${SOCKET_BASE_URL}${SOCKET_NAMESPACES.notifications}`;
+  (presenceSocket.io as unknown as { uri?: string }).uri = `${SOCKET_BASE_URL}`;
 }
-
-let SOCKET_BASE_URL = API_BASE_URL.replace(/\/api(\/.*)?$/, "");
 
 async function getAccessToken(): Promise<string> {
   const storeToken = await getStorage().getItem("accessToken");
   return storeToken || "";
 }
 
-const socket: Socket = io(`${SOCKET_BASE_URL}/chat`, {
+const socket: Socket = io(`${SOCKET_BASE_URL}${SOCKET_NAMESPACES.chat}`, {
   autoConnect: false,
   reconnectionAttempts: 3,
 });
 
-const sessionSocket: Socket = io(`${SOCKET_BASE_URL}/session`, {
-  autoConnect: false,
-  reconnectionAttempts: 3,
-});
+const consultationsSocket: Socket = io(
+  `${SOCKET_BASE_URL}${SOCKET_NAMESPACES.consultations}`,
+  {
+    autoConnect: false,
+    reconnectionAttempts: 3,
+  },
+);
 
-const notificationsSocket: Socket = io(`${SOCKET_BASE_URL}/notifications`, {
-  autoConnect: false,
-  reconnectionAttempts: 3,
-});
+const sessionSocket: Socket = consultationsSocket;
+
+const notificationsSocket: Socket = io(
+  `${SOCKET_BASE_URL}${SOCKET_NAMESPACES.notifications}`,
+  {
+    autoConnect: false,
+    reconnectionAttempts: 3,
+  },
+);
 
 const presenceSocket: Socket = io(`${SOCKET_BASE_URL}`, {
   autoConnect: false,
@@ -58,7 +92,7 @@ const presenceSocket: Socket = io(`${SOCKET_BASE_URL}`, {
 
 function updateSocketAuth(token: string) {
   socket.auth = { token };
-  sessionSocket.auth = { token };
+  consultationsSocket.auth = { token };
   notificationsSocket.auth = { token };
   presenceSocket.auth = { token };
 }
@@ -73,15 +107,19 @@ export async function connectSocket(token?: string): Promise<boolean> {
   return true;
 }
 
-export async function connectSessionSocket(token?: string): Promise<boolean> {
+export async function connectConsultationsSocket(
+  token?: string,
+): Promise<boolean> {
   if (!token) {
-    if (sessionSocket.connected) sessionSocket.disconnect();
+    if (consultationsSocket.connected) consultationsSocket.disconnect();
     return false;
   }
   updateSocketAuth(token);
-  if (!sessionSocket.connected) sessionSocket.connect();
+  if (!consultationsSocket.connected) consultationsSocket.connect();
   return true;
 }
+
+export const connectSessionSocket = connectConsultationsSocket;
 
 export async function connectNotificationsSocket(token?: string): Promise<boolean> {
   if (!token) {
@@ -305,11 +343,16 @@ api.interceptors.response.use(
   },
 );
 
+const mobileApi = createFeApiSdk(api as unknown as ApiExecutor);
+
 export {
   API_BASE_URL,
   api,
+  mobileApi,
   socket,
+  consultationsSocket,
   sessionSocket,
   notificationsSocket,
   presenceSocket,
+  updateSocketAuth,
 };

@@ -1,644 +1,706 @@
-import { useState, useEffect } from "react";
-import { useTranslation } from "react-i18next";
+import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { normalizePaginatedList } from "@healthcare/api-client";
+import { Badge } from "@repo/ui/components/ui/badge";
+import { Button } from "@repo/ui/components/ui/button";
+import { Skeleton } from "@repo/ui/components/ui/skeleton";
 import {
-  ShieldCheck,
-  Search,
-  RefreshCw,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@repo/ui/components/ui/table";
+import { showToast } from "@repo/ui/components/ui/toasts";
+import {
+  Activity,
+  AlertCircle,
+  BellRing,
+  ClipboardList,
   Eye,
-  Users,
-  FileCode2,
-  ArrowRight,
-  Lock,
+  RefreshCw,
+  Search,
+  ShieldAlert,
+  Star,
+  Stethoscope,
   X,
-  AlertTriangle,
 } from "lucide-react";
-import { toast } from "react-toastify";
+import { useTranslation } from "react-i18next";
+import { webAdminApi } from "@/lib/api";
 
-interface AuditLogRecord {
+type AuditTab = "careAlert" | "operations";
+type OperationsSourceFilter = "all" | "violation" | "consultation" | "review";
+
+interface CareAlertAuditEvent {
   id: string;
-  timestamp: string;
-  domain: "auth" | "user" | "consultation" | "care" | "billing" | "ai_kb" | "family" | "moderation";
+  domain: string;
+  entityType: string;
+  entityId?: string;
   action: string;
-  actorId: string;
-  actorRole: "patient" | "doctor" | "super_admin" | "user_admin" | "ai_admin" | "system";
-  resourceType: string;
-  resourceId: string;
-  beforeStatus: string | null;
-  afterStatus: string | null;
-  reasonCode?: string;
-  safeMetadata: Record<string, string | number | boolean>;
+  userId?: string;
+  actorId?: string;
+  fromStatus?: string;
+  toStatus?: string;
+  reason?: string;
+  metadata?: Record<string, unknown>;
+  ipAddress?: string;
+  userAgent?: string;
+  expiresAt?: string;
+  raw: Record<string, unknown>;
 }
 
-interface FamilyLinkAuditRecord {
+interface OperationalFeedEntry {
   id: string;
-  patientMasked: string;
-  companionMasked: string;
-  relationship: "parent" | "child" | "spouse" | "sibling" | "caregiver";
-  consentVersion: string;
-  status: "active" | "paused" | "pending" | "revoked";
-  permissions: {
-    receiveReminders: boolean;
-    viewCareProgress: boolean;
-    viewAlertSummary: boolean;
-  };
-  updatedAt: string;
+  source: Exclude<OperationsSourceFilter, "all">;
+  action: string;
+  status: string;
+  summary: string;
+  actorOrSubject: string;
+  timestamp: string;
+  raw: Record<string, unknown>;
 }
 
-const INITIAL_AUDIT_LOGS: AuditLogRecord[] = [
-  {
-    id: "aud_9001",
-    timestamp: "2026-11-06 10:42:15",
-    domain: "billing",
-    action: "ORDER_IPN_VERIFIED",
-    actorId: "vnpay_ipn_gateway",
-    actorRole: "system",
-    resourceType: "PaymentOrder",
-    resourceId: "ORD-20261106-8821",
-    beforeStatus: "pending",
-    afterStatus: "paid",
-    safeMetadata: {
-      planCode: "CARE",
-      amountVnd: 299000,
-      ipnSignatureValid: true,
-      entitlementGranted: true,
-    },
-  },
-  {
-    id: "aud_9002",
-    timestamp: "2026-11-06 10:15:03",
-    domain: "care",
-    action: "CARE_RULE_ACTIVATED",
-    actorId: "usr_doc_sarah_01",
-    actorRole: "doctor",
-    resourceType: "CareRule",
-    resourceId: "rule-htn-bp-v2.2",
-    beforeStatus: "validated_candidate",
-    afterStatus: "active",
-    safeMetadata: {
-      programCode: "HYPERTENSION_V1",
-      boundaryTestsPassed: "12/12",
-      previousRuleArchived: "rule-htn-bp-v2.1",
-    },
-  },
-  {
-    id: "aud_9003",
-    timestamp: "2026-11-06 09:50:40",
-    domain: "ai_kb",
-    action: "KB_DOCUMENT_APPROVED",
-    actorId: "usr_ai_admin_02",
-    actorRole: "ai_admin",
-    resourceType: "KnowledgeDocument",
-    resourceId: "doc_moh_htn_2026",
-    beforeStatus: "pending_review",
-    afterStatus: "approved",
-    safeMetadata: {
-      processingStatus: "indexed",
-      activeChunkCount: 42,
-      excludedChunkCount: 2,
-    },
-  },
-  {
-    id: "aud_9004",
-    timestamp: "2026-11-05 18:22:10",
-    domain: "consultation",
-    action: "CONSULTATION_NO_SHOW_MARKED",
-    actorId: "usr_doc_sarah_01",
-    actorRole: "doctor",
-    resourceType: "Consultation",
-    resourceId: "con_7741",
-    beforeStatus: "waiting",
-    afterStatus: "no_show",
-    reasonCode: "patient_absent",
-    safeMetadata: {
-      mode: "scheduled",
-      queuePositionAtCall: 1,
-      clinicalPayloadRedacted: true,
-    },
-  },
-  {
-    id: "aud_9005",
-    timestamp: "2026-11-05 15:10:00",
-    domain: "user",
-    action: "USER_ACCOUNT_LOCKED",
-    actorId: "usr_admin_01",
-    actorRole: "user_admin",
-    resourceType: "User",
-    resourceId: "usr_pat_8812",
-    beforeStatus: "active",
-    afterStatus: "locked",
-    reasonCode: "repeated_abuse_violation",
-    safeMetadata: {
-      revokedActiveSessions: 3,
-      violationReportId: "rep_402",
-    },
-  },
-];
+function formatDateTime(value?: string): string {
+  if (!value) return "--";
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return value;
+  return parsed.toLocaleString();
+}
 
-const INITIAL_FAMILY_LINKS: FamilyLinkAuditRecord[] = [
-  {
-    id: "fam_301",
-    patientMasked: "Alex J. (usr_pat_101)",
-    companionMasked: "Emily W. (usr_pat_204)",
-    relationship: "child",
-    consentVersion: "family-consent.v1",
-    status: "active",
-    permissions: {
-      receiveReminders: true,
-      viewCareProgress: true,
-      viewAlertSummary: true,
-    },
-    updatedAt: "2026-11-05 14:30",
-  },
-  {
-    id: "fam_302",
-    patientMasked: "Maria G. (usr_pat_108)",
-    companionMasked: "Carlos G. (usr_pat_309)",
-    relationship: "spouse",
-    consentVersion: "family-consent.v1",
-    status: "paused",
-    permissions: {
-      receiveReminders: true,
-      viewCareProgress: false,
-      viewAlertSummary: true,
-    },
-    updatedAt: "2026-11-04 09:12",
-  },
-  {
-    id: "fam_303",
-    patientMasked: "Robert J. (usr_pat_115)",
-    companionMasked: "Alex J. (usr_pat_101)",
-    relationship: "parent",
-    consentVersion: "family-consent.v1",
-    status: "pending",
-    permissions: {
-      receiveReminders: true,
-      viewCareProgress: true,
-      viewAlertSummary: true,
-    },
-    updatedAt: "2026-11-06 08:00",
-  },
-];
+function extractRefLabel(ref: unknown): string {
+  if (!ref) return "--";
+  if (typeof ref === "string") return ref;
+  if (typeof ref === "object") {
+    const obj = ref as { fullName?: string; name?: string; _id?: string; id?: string };
+    return obj.fullName ?? obj.name ?? obj._id ?? obj.id ?? "--";
+  }
+  return "--";
+}
 
 export function AuditLogs() {
   const { t } = useTranslation();
-  const [activeTab, setActiveTab] = useState<"audit_logs" | "family_audit">("audit_logs");
-  const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [domainFilter, setDomainFilter] = useState<string>("all");
-  const [roleFilter, setRoleFilter] = useState<string>("all");
+  const [activeTab, setActiveTab] = useState<AuditTab>("careAlert");
 
-  const [logs, setLogs] = useState<AuditLogRecord[]>(INITIAL_AUDIT_LOGS);
-  const [familyLinks, setFamilyLinks] = useState<FamilyLinkAuditRecord[]>(INITIAL_FAMILY_LINKS);
+  // Tab 1: Care Alert Audit lookup (GET /api/v1/care-alerts/:id/audit)
+  const [alertIdInput, setAlertIdInput] = useState("");
+  const [queriedAlertId, setQueriedAlertId] = useState<string | null>(null);
+  const [alertEvents, setAlertEvents] = useState<CareAlertAuditEvent[]>([]);
+  const [isAlertLoading, setIsAlertLoading] = useState(false);
+  const [alertError, setAlertError] = useState<string | null>(null);
 
-  const [selectedLog, setSelectedLog] = useState<AuditLogRecord | null>(null);
-  const [revokeTargetLink, setRevokeTargetLink] = useState<FamilyLinkAuditRecord | null>(null);
-  const [revokeReason, setRevokeReason] = useState("");
+  // Tab 2: Live Operational & Moderation Audit Feed
+  const [sourceFilter, setSourceFilter] =
+    useState<OperationsSourceFilter>("all");
+  const [feedSearch, setFeedSearch] = useState("");
 
-  useEffect(() => {
-    const timer = setTimeout(() => setLoading(false), 500);
-    return () => clearTimeout(timer);
-  }, []);
+  // Inspect payload modal
+  const [inspectPayload, setInspectPayload] = useState<{
+    title: string;
+    data: Record<string, unknown>;
+  } | null>(null);
 
-  const handleRefresh = () => {
-    setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
-      toast.info(t("auditLogs.toasts.refreshed", "Đã làm mới dữ liệu nhật ký kiểm toán"));
-    }, 500);
-  };
-
-  const handleAdminRevokeFamilyLink = () => {
-    if (!revokeTargetLink) return;
-    if (!revokeReason.trim()) {
-      toast.error(t("auditLogs.toasts.reasonRequired", "Vui lòng nhập lý do thu hồi liên kết"));
+  const handleQueryCareAlertAudit = async () => {
+    const trimmed = alertIdInput.trim();
+    if (!trimmed) {
+      showToast.error(
+        t(
+          "auditLogs.careAlert.idRequired",
+          "Vui lòng nhập mã cảnh báo chăm sóc để tra cứu.",
+        ),
+      );
       return;
     }
 
-    setFamilyLinks((prev) =>
-      prev.map((item) =>
-        item.id === revokeTargetLink.id ? { ...item, status: "revoked" } : item
-      )
-    );
+    setIsAlertLoading(true);
+    setAlertError(null);
+    setQueriedAlertId(trimmed);
 
-    const newLog: AuditLogRecord = {
-      id: `aud_${9001 + logs.length}`,
-      timestamp: new Date().toISOString().slice(0, 19).replace("T", " "),
-      domain: "family",
-      action: "ADMIN_FAMILY_LINK_REVOKED",
-      actorId: "usr_super_admin",
-      actorRole: "super_admin",
-      resourceType: "FamilyLink",
-      resourceId: revokeTargetLink.id,
-      beforeStatus: revokeTargetLink.status,
-      afterStatus: "revoked",
-      reasonCode: "safety_abuse_intervention",
-      safeMetadata: {
-        consentVersion: revokeTargetLink.consentVersion,
-        adminReason: revokeReason.trim(),
-      },
-    };
-    setLogs((prev) => [newLog, ...prev]);
-    setRevokeTargetLink(null);
-    setRevokeReason("");
-    toast.success(t("auditLogs.toasts.revokeSuccess", "Đã thu hồi liên kết gia đình và lưu nhật ký kiểm toán"));
+    try {
+      const response = await webAdminApi.careAlertAudit({
+        params: { id: trimmed },
+      });
+      const list = Array.isArray(response)
+        ? response
+        : normalizePaginatedList<Record<string, unknown>>(response).items;
+
+      const mapped: CareAlertAuditEvent[] = (
+        list as Array<Record<string, unknown>>
+      ).map((item, idx) => ({
+        id: String(item._id ?? item.id ?? `${trimmed}-${idx}`),
+        domain: String(item.domain ?? "chronic-care"),
+        entityType: String(item.entityType ?? "CareAlert"),
+        entityId:
+          typeof item.entityId === "string" ? item.entityId : undefined,
+        action: String(item.action ?? "event"),
+        userId: typeof item.userId === "string" ? item.userId : undefined,
+        actorId: typeof item.actorId === "string" ? item.actorId : undefined,
+        fromStatus:
+          typeof item.fromStatus === "string" ? item.fromStatus : undefined,
+        toStatus: typeof item.toStatus === "string" ? item.toStatus : undefined,
+        reason: typeof item.reason === "string" ? item.reason : undefined,
+        metadata:
+          item.metadata && typeof item.metadata === "object"
+            ? (item.metadata as Record<string, unknown>)
+            : undefined,
+        ipAddress:
+          typeof item.ipAddress === "string" ? item.ipAddress : undefined,
+        userAgent:
+          typeof item.userAgent === "string" ? item.userAgent : undefined,
+        expiresAt:
+          typeof item.expiresAt === "string" ? item.expiresAt : undefined,
+        raw: item,
+      }));
+
+      setAlertEvents(mapped);
+    } catch (err) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : t(
+              "auditLogs.careAlert.loadError",
+              "Không thể tải lịch sử kiểm toán cho cảnh báo này.",
+            );
+      setAlertError(message);
+      setAlertEvents([]);
+    } finally {
+      setIsAlertLoading(false);
+    }
   };
 
-  const filteredLogs = logs.filter((log) => {
-    const matchDomain = domainFilter === "all" || log.domain === domainFilter;
-    const matchRole = roleFilter === "all" || log.actorRole === roleFilter;
-    const q = searchQuery.toLowerCase();
-    const matchSearch =
-      !q ||
-      log.id.toLowerCase().includes(q) ||
-      log.action.toLowerCase().includes(q) ||
-      log.actorId.toLowerCase().includes(q) ||
-      log.resourceId.toLowerCase().includes(q);
-    return matchDomain && matchRole && matchSearch;
+  const fetchOperationalFeed = async (): Promise<OperationalFeedEntry[]> => {
+    const [violationsRes, consultationsRes, reviewsRes] =
+      await Promise.allSettled([
+        webAdminApi.violationsFindAll({ query: { page: 1, limit: 15 } }),
+        webAdminApi.adminGetAllConsultations({
+          query: { page: 1, limit: 15, sortBy: "updatedAt", sortOrder: -1 },
+        }),
+        webAdminApi.reviewsFindAll({
+          query: { page: 1, limit: 15, sortBy: "createdAt", sortOrder: -1 },
+        }),
+      ]);
+
+    const entries: OperationalFeedEntry[] = [];
+
+    if (violationsRes.status === "fulfilled") {
+      const list = normalizePaginatedList<Record<string, unknown>>(
+        violationsRes.value,
+      ).items;
+      for (const item of list) {
+        entries.push({
+          id: `violation-${String(item._id ?? item.id ?? Math.random())}`,
+          source: "violation",
+          action: String(item.reportType ?? item.report_type ?? "violation"),
+          status: String(item.status ?? "pending"),
+          summary: String(item.reason ?? "--"),
+          actorOrSubject: `${extractRefLabel(item.reporterId)} -> ${extractRefLabel(item.reportedUserId)}`,
+          timestamp: String(item.updatedAt ?? item.createdAt ?? ""),
+          raw: item,
+        });
+      }
+    }
+
+    if (consultationsRes.status === "fulfilled") {
+      const list = normalizePaginatedList<Record<string, unknown>>(
+        consultationsRes.value,
+      ).items;
+      for (const item of list) {
+        entries.push({
+          id: `consultation-${String(item._id ?? item.id ?? Math.random())}`,
+          source: "consultation",
+          action: String(item.consultationType ?? "consultation"),
+          status: String(item.status ?? "pending"),
+          summary: `${extractRefLabel(item.patientId)} / ${extractRefLabel(item.doctorId)}`,
+          actorOrSubject: String(item.consultationNumber ?? item._id ?? "--"),
+          timestamp: String(item.updatedAt ?? item.createdAt ?? ""),
+          raw: item,
+        });
+      }
+    }
+
+    if (reviewsRes.status === "fulfilled") {
+      const list = normalizePaginatedList<Record<string, unknown>>(
+        reviewsRes.value,
+      ).items;
+      for (const item of list) {
+        entries.push({
+          id: `review-${String(item._id ?? item.id ?? Math.random())}`,
+          source: "review",
+          action: item.flagged ? "review_flagged" : "review_posted",
+          status: item.flagged ? "flagged" : `${item.rating ?? 0}★`,
+          summary: String(item.comment ?? "--"),
+          actorOrSubject: `${extractRefLabel(item.patientId)} -> ${extractRefLabel(item.doctorId)}`,
+          timestamp: String(item.createdAt ?? item.updatedAt ?? ""),
+          raw: item,
+        });
+      }
+    }
+
+    if (
+      violationsRes.status === "rejected" &&
+      consultationsRes.status === "rejected" &&
+      reviewsRes.status === "rejected"
+    ) {
+      throw new Error(
+        t(
+          "auditLogs.operations.loadError",
+          "Không thể kết nối dữ liệu nhật ký hoạt động.",
+        ),
+      );
+    }
+
+    entries.sort((a, b) => {
+      const timeA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
+      const timeB = b.timestamp ? new Date(b.timestamp).getTime() : 0;
+      return timeB - timeA;
+    });
+
+    return entries;
+  };
+
+  const feedQuery = useQuery({
+    queryKey: ["audit-logs", "operations-feed"],
+    queryFn: fetchOperationalFeed,
+    enabled: activeTab === "operations",
   });
 
+  const isFeedLoading = feedQuery.isLoading || feedQuery.isFetching;
+  const feedError =
+    feedQuery.error instanceof Error
+      ? feedQuery.error.message
+      : feedQuery.isError
+        ? t(
+            "auditLogs.operations.loadError",
+            "Không thể kết nối dữ liệu nhật ký hoạt động.",
+          )
+        : null;
+
+  const filteredFeed = useMemo(() => {
+    const query = feedSearch.trim().toLowerCase();
+    return (feedQuery.data ?? []).filter((item) => {
+      if (sourceFilter !== "all" && item.source !== sourceFilter) return false;
+      if (!query) return true;
+      return (
+        item.action.toLowerCase().includes(query) ||
+        item.status.toLowerCase().includes(query) ||
+        item.summary.toLowerCase().includes(query) ||
+        item.actorOrSubject.toLowerCase().includes(query)
+      );
+    });
+  }, [feedQuery.data, feedSearch, sourceFilter]);
+
   return (
-    <div className="p-6 space-y-6 bg-gray-50 dark:bg-slate-950 min-h-screen text-gray-900 dark:text-slate-100">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-white dark:bg-slate-900 p-6 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm">
+    <div className="space-y-6">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <div className="flex items-center gap-2.5">
-            <ShieldCheck className="w-7 h-7 text-emerald-600 dark:text-emerald-400" />
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-              {t("auditLogs.title", "Nhật ký Kiểm toán & Liên kết Gia đình")}
-            </h1>
-          </div>
-          <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">
-            {t("auditLogs.subtitle", "Tra cứu lịch sử thao tác quản trị và trạng thái vận hành hệ thống")}
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+            {t("auditLogs.title", "Nhật ký kiểm toán & vận hành")}
+          </h1>
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+            {t(
+              "auditLogs.subtitle",
+              "Tra cứu dấu vết xử lý cảnh báo chăm sóc và theo dõi hoạt động hệ thống theo thời gian thực.",
+            )}
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
-          <button
-            onClick={handleRefresh}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm font-semibold text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+        {activeTab === "operations" ? (
+          <Button
+            type="button"
+            variant="outline"
+            disabled={isFeedLoading}
+            onClick={() => void feedQuery.refetch()}
+            className="gap-2 self-start sm:self-auto"
           >
-            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
+            <RefreshCw
+              className={`h-4 w-4 ${isFeedLoading ? "animate-spin" : ""}`}
+            />
             {t("common.refresh", "Làm mới")}
-          </button>
-        </div>
+          </Button>
+        ) : null}
       </div>
 
-      {/* Privacy Notice Banner */}
-      <div className="bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-900/60 rounded-2xl p-4 flex items-start gap-3">
-        <Lock className="w-5 h-5 text-indigo-600 dark:text-indigo-400 shrink-0 mt-0.5" />
-        <div className="text-xs text-indigo-900 dark:text-indigo-200 leading-relaxed">
-          <span className="font-bold">
-            {t("auditLogs.privacyTitle", "Bảo mật dữ liệu y tế:")}
-          </span>{" "}
-          {t(
-            "auditLogs.privacyDesc",
-            "Nhật ký hệ thống chỉ lưu trữ lịch sử chuyển đổi trạng thái, lý do thao tác và thông tin vận hành. Nội dung tin nhắn khám, triệu chứng chi tiết và ghi chú lâm sàng của Bác sĩ được bảo mật tuyệt đối."
-          )}
-        </div>
-      </div>
-
-      {/* Tabs */}
-      <div className="flex gap-2 border-b border-gray-200 dark:border-slate-800">
+      <div className="flex flex-wrap gap-2 border-b border-slate-200 pb-3 dark:border-slate-800">
         <button
-          onClick={() => setActiveTab("audit_logs")}
-          className={`px-5 py-3 text-sm font-bold border-b-2 transition-colors cursor-pointer flex items-center gap-2 ${
-            activeTab === "audit_logs"
-              ? "border-emerald-600 text-emerald-600 dark:text-emerald-400"
-              : "border-transparent text-gray-500 dark:text-slate-400 hover:text-gray-800 dark:hover:text-slate-200"
+          type="button"
+          onClick={() => setActiveTab("careAlert")}
+          className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition-colors ${
+            activeTab === "careAlert"
+              ? "bg-blue-600 text-white shadow-xs"
+              : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
           }`}
         >
-          <FileCode2 className="w-4 h-4" />
-          {t("auditLogs.tabSystemLogs", "Nhật ký Hệ thống")}
+          <BellRing className="h-4 w-4" />
+          {t("auditLogs.tabs.careAlertAudit", "Dấu vết cảnh báo chăm sóc")}
         </button>
+
         <button
-          onClick={() => setActiveTab("family_audit")}
-          className={`px-5 py-3 text-sm font-bold border-b-2 transition-colors cursor-pointer flex items-center gap-2 ${
-            activeTab === "family_audit"
-              ? "border-emerald-600 text-emerald-600 dark:text-emerald-400"
-              : "border-transparent text-gray-500 dark:text-slate-400 hover:text-gray-800 dark:hover:text-slate-200"
+          type="button"
+          onClick={() => setActiveTab("operations")}
+          className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition-colors ${
+            activeTab === "operations"
+              ? "bg-blue-600 text-white shadow-xs"
+              : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
           }`}
         >
-          <Users className="w-4 h-4" />
-          {t("auditLogs.tabFamilyLinks", "Liên kết Gia đình")}
+          <ClipboardList className="h-4 w-4" />
+          {t("auditLogs.tabs.operationsFeed", "Hoạt động vận hành gần đây")}
         </button>
       </div>
 
-      {activeTab === "audit_logs" ? (
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm p-6 space-y-4">
-          {/* Filters */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="relative">
-              <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={t(
-                  "auditLogs.searchPlaceholder",
-                  "Tìm theo mã nhật ký, hành động, người thực hiện..."
-                )}
-                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-              />
+      {activeTab === "careAlert" ? (
+        <div className="space-y-5">
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900">
+            <p className="mb-3 text-sm font-medium text-slate-700 dark:text-slate-200">
+              {t(
+                "auditLogs.careAlert.promptTitle",
+                "Nhập mã cảnh báo để xem toàn bộ lịch sử chuyển trạng thái và người thực hiện",
+              )}
+            </p>
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <div className="relative flex-1">
+                <Search className="pointer-events-none absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="text"
+                  value={alertIdInput}
+                  disabled={isAlertLoading}
+                  onChange={(e) => setAlertIdInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      void handleQueryCareAlertAudit();
+                    }
+                  }}
+                  placeholder={t(
+                    "auditLogs.careAlert.inputPlaceholder",
+                    "Ví dụ: 6791b4c2d1e8f9a012345678",
+                  )}
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pr-4 pl-10 font-mono text-sm text-slate-900 outline-none focus:border-blue-500 focus:bg-white dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
+                />
+              </div>
+
+              <Button
+                type="button"
+                disabled={isAlertLoading}
+                onClick={() => void handleQueryCareAlertAudit()}
+                className="gap-2 bg-blue-600 text-white hover:bg-blue-700"
+              >
+                <Activity className="h-4 w-4" />
+                {isAlertLoading
+                  ? t("auditLogs.careAlert.searching", "Đang tra cứu...")
+                  : t("auditLogs.careAlert.searchBtn", "Tra cứu dấu vết")}
+              </Button>
             </div>
-
-            <select
-              value={domainFilter}
-              onChange={(e) => setDomainFilter(e.target.value)}
-              className="px-4 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-sm text-gray-900 dark:text-white"
-            >
-              <option value="all">{t("auditLogs.allDomains", "Tất cả phân hệ")}</option>
-              <option value="billing">{t("auditLogs.domains.billing", "Thanh toán & Gói dịch vụ")}</option>
-              <option value="care">{t("auditLogs.domains.chronicCare", "Chăm sóc bệnh mạn tính")}</option>
-              <option value="consultation">{t("auditLogs.domains.consultation", "Tư vấn & Phòng chờ")}</option>
-              <option value="ai_kb">{t("auditLogs.domains.ai", "Kho tri thức AI")}</option>
-              <option value="user">{t("auditLogs.domains.user", "Người dùng & Xác minh")}</option>
-              <option value="family">{t("auditLogs.domains.family", "Liên kết gia đình")}</option>
-            </select>
-
-            <select
-              value={roleFilter}
-              onChange={(e) => setRoleFilter(e.target.value)}
-              className="px-4 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-sm text-gray-900 dark:text-white"
-            >
-              <option value="all">{t("auditLogs.allRoles", "Tất cả vai trò")}</option>
-              <option value="super_admin">Super Admin</option>
-              <option value="user_admin">User Admin</option>
-              <option value="ai_admin">AI Admin</option>
-              <option value="doctor">{t("auditLogs.roles.doctor", "Bác sĩ")}</option>
-              <option value="patient">{t("auditLogs.roles.patient", "Bệnh nhân")}</option>
-              <option value="system">{t("auditLogs.roles.system", "Hệ thống")}</option>
-            </select>
           </div>
 
-          {/* Table */}
-          {loading ? (
-            <div className="space-y-3 py-6">
-              {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="h-14 bg-gray-100 dark:bg-slate-800 animate-pulse rounded-xl" />
-              ))}
+          {alertError ? (
+            <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-red-200 bg-red-50/70 p-8 text-center dark:border-red-900/50 dark:bg-red-950/20">
+              <AlertCircle className="h-8 w-8 text-red-600 dark:text-red-400" />
+              <p className="text-sm font-medium text-red-700 dark:text-red-300">
+                {alertError}
+              </p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="border-b border-gray-100 dark:border-slate-800 text-xs font-bold uppercase text-gray-400 dark:text-slate-500">
-                    <th className="py-3.5 px-4">{t("auditLogs.table.timestamp", "Thời gian")}</th>
-                    <th className="py-3.5 px-4">{t("auditLogs.table.domain", "Phân hệ")}</th>
-                    <th className="py-3.5 px-4">{t("auditLogs.table.action", "Hành động")}</th>
-                    <th className="py-3.5 px-4">{t("auditLogs.table.actor", "Người thực hiện")}</th>
-                    <th className="py-3.5 px-4">{t("auditLogs.table.resource", "Đối tượng")}</th>
-                    <th className="py-3.5 px-4">{t("auditLogs.table.statusChange", "Chuyển trạng thái")}</th>
-                    <th className="py-3.5 px-4 text-right">{t("auditLogs.table.details", "Chi tiết")}</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100 dark:divide-slate-800 text-sm">
-                  {filteredLogs.map((log) => (
-                    <tr
-                      key={log.id}
-                      className="hover:bg-gray-50/80 dark:hover:bg-slate-800/50 transition-colors"
-                    >
-                      <td className="py-3.5 px-4 font-mono text-xs text-gray-500 dark:text-slate-400">
-                        {log.timestamp}
-                      </td>
-                      <td className="py-3.5 px-4">
-                        <span className="px-2.5 py-1 rounded-full text-xs font-bold uppercase bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
-                          {log.domain}
-                        </span>
-                      </td>
-                      <td className="py-3.5 px-4 font-bold text-gray-900 dark:text-white">
-                        {log.action}
-                      </td>
-                      <td className="py-3.5 px-4">
-                        <div className="font-medium text-gray-800 dark:text-slate-200">{log.actorId}</div>
-                        <div className="text-xs text-gray-400">{log.actorRole}</div>
-                      </td>
-                      <td className="py-3.5 px-4 font-mono text-xs text-indigo-600 dark:text-indigo-400">
-                        {log.resourceType}:{log.resourceId}
-                      </td>
-                      <td className="py-3.5 px-4">
-                        <div className="inline-flex items-center gap-1.5 text-xs font-semibold">
-                          <span className="px-2 py-0.5 rounded bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-slate-400">
-                            {log.beforeStatus || "none"}
-                          </span>
-                          <ArrowRight className="w-3.5 h-3.5 text-gray-400" />
-                          <span className="px-2 py-0.5 rounded bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300">
-                            {log.afterStatus || "none"}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="py-3.5 px-4 text-right">
-                        <button
-                          onClick={() => setSelectedLog(log)}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-slate-800 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 text-xs font-bold text-gray-700 dark:text-slate-200 cursor-pointer"
-                        >
-                          <Eye className="w-3.5 h-3.5" />
-                          {t("auditLogs.table.inspect", "Xem")}
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xs dark:border-slate-800 dark:bg-slate-900">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-slate-50/80 dark:bg-slate-800/60">
+                    <TableHead>{t("auditLogs.table.action", "Hành động")}</TableHead>
+                    <TableHead>
+                      {t("auditLogs.table.transition", "Chuyển trạng thái")}
+                    </TableHead>
+                    <TableHead>{t("auditLogs.table.actor", "Người thực hiện")}</TableHead>
+                    <TableHead>{t("auditLogs.table.reason", "Lý do")}</TableHead>
+                    <TableHead>{t("auditLogs.table.ip", "Địa chỉ IP")}</TableHead>
+                    <TableHead className="text-right">
+                      {t("auditLogs.table.details", "Dữ liệu")}
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {isAlertLoading ? (
+                    Array.from({ length: 4 }).map((_, i) => (
+                      <TableRow key={i}>
+                        <TableCell colSpan={6}>
+                          <Skeleton className="h-10 w-full rounded-lg" />
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : alertEvents.length === 0 ? (
+                    <TableRow>
+                      <TableCell
+                        colSpan={6}
+                        className="py-14 text-center text-sm text-slate-500 dark:text-slate-400"
+                      >
+                        {queriedAlertId
+                          ? t(
+                              "auditLogs.careAlert.noEventsFound",
+                              "Không tìm thấy sự kiện kiểm toán nào cho mã cảnh báo này.",
+                            )
+                          : t(
+                              "auditLogs.careAlert.idlePrompt",
+                              "Hãy nhập mã cảnh báo để xem chi tiết lịch sử kiểm toán.",
+                            )}
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    alertEvents.map((ev) => (
+                      <TableRow key={ev.id}>
+                        <TableCell>
+                          <div className="font-semibold text-slate-900 dark:text-slate-100">
+                            {ev.action}
+                          </div>
+                          <div className="text-xs text-slate-500 dark:text-slate-400">
+                            {ev.domain} · {ev.entityType}
+                          </div>
+                        </TableCell>
+
+                        <TableCell>
+                          {ev.fromStatus || ev.toStatus ? (
+                            <div className="flex items-center gap-1.5 text-xs">
+                              <Badge variant="outline">
+                                {ev.fromStatus ?? "--"}
+                              </Badge>
+                              <span>→</span>
+                              <Badge
+                                variant="outline"
+                                className="border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-900/50 dark:bg-blue-950/40 dark:text-blue-300"
+                              >
+                                {ev.toStatus ?? "--"}
+                              </Badge>
+                            </div>
+                          ) : (
+                            <span className="text-xs text-slate-400">--</span>
+                          )}
+                        </TableCell>
+
+                        <TableCell className="font-mono text-xs text-slate-600 dark:text-slate-300">
+                          {ev.actorId ?? ev.userId ?? "--"}
+                        </TableCell>
+
+                        <TableCell className="max-w-xs text-sm text-slate-700 dark:text-slate-300">
+                          {ev.reason ?? "--"}
+                        </TableCell>
+
+                        <TableCell className="font-mono text-xs text-slate-500 dark:text-slate-400">
+                          {ev.ipAddress ?? "--"}
+                        </TableCell>
+
+                        <TableCell className="text-right">
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            onClick={() =>
+                              setInspectPayload({
+                                title: `${ev.entityType} — ${ev.action}`,
+                                data: ev.metadata ?? ev.raw,
+                              })
+                            }
+                            className="gap-1.5"
+                          >
+                            <Eye className="h-3.5 w-3.5" />
+                            {t("auditLogs.inspect", "Xem")}
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
             </div>
           )}
         </div>
       ) : (
-        /* TAB 2: Family Links Audit */
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm p-6 space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-lg font-bold text-gray-900 dark:text-white">
-                {t("auditLogs.familyLinksList")}
-              </h2>
-              <p className="text-xs text-gray-500 dark:text-slate-400">
-                {t("auditLogs.familyNotice")}
-              </p>
-            </div>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[850px] text-left border-collapse">
-              <thead>
-                <tr className="border-b border-gray-100 dark:border-slate-800 text-xs font-bold uppercase text-gray-400 dark:text-slate-500">
-                  <th className="py-3.5 px-4 whitespace-nowrap">{t("auditLogs.table.resource", "Mã liên kết")}</th>
-                  <th className="py-3.5 px-4 whitespace-nowrap">{t("auditLogs.roles.patient", "Bệnh nhân")}</th>
-                  <th className="py-3.5 px-4 whitespace-nowrap">{t("auditLogs.domains.family", "Người đồng hành")}</th>
-                  <th className="py-3.5 px-4 whitespace-nowrap">{t("auditLogs.table.relationship", "Mối quan hệ")}</th>
-                  <th className="py-3.5 px-4 whitespace-nowrap">{t("auditLogs.table.permissions", "Quyền chia sẻ")}</th>
-                  <th className="py-3.5 px-4 whitespace-nowrap">{t("auditLogs.table.status", "Trạng thái")}</th>
-                  <th className="py-3.5 px-4 text-right whitespace-nowrap">{t("auditLogs.table.action", "Thao tác")}</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-slate-800 text-sm">
-                {familyLinks.map((fl) => (
-                  <tr key={fl.id} className="hover:bg-gray-50/80 dark:hover:bg-slate-800/50">
-                    <td className="py-3.5 px-4 font-mono text-xs font-bold whitespace-nowrap">{fl.id}</td>
-                    <td className="py-3.5 px-4 font-medium whitespace-nowrap">{fl.patientMasked}</td>
-                    <td className="py-3.5 px-4 font-medium whitespace-nowrap">{fl.companionMasked}</td>
-                    <td className="py-3.5 px-4 whitespace-nowrap">
-                      <span className="uppercase text-xs font-bold px-2 py-0.5 rounded bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 whitespace-nowrap inline-flex items-center">
-                        {fl.relationship}
-                      </span>
-                    </td>
-                    <td className="py-3.5 px-4 text-xs text-gray-600 dark:text-slate-300 whitespace-nowrap">
-                      {t("auditLogs.permissions.reminders")}:{" "}
-                      <b>{fl.permissions.receiveReminders ? t("auditLogs.permissions.on") : t("auditLogs.permissions.off")}</b> •{" "}
-                      {t("auditLogs.permissions.progress")}:{" "}
-                      <b>{fl.permissions.viewCareProgress ? t("auditLogs.permissions.on") : t("auditLogs.permissions.off")}</b> •{" "}
-                      {t("auditLogs.permissions.alerts")}:{" "}
-                      <b>{fl.permissions.viewAlertSummary ? t("auditLogs.permissions.on") : t("auditLogs.permissions.off")}</b>
-                    </td>
-                    <td className="py-3.5 px-4 whitespace-nowrap">
-                      <span
-                        className={`px-2.5 py-1 rounded-full text-xs font-bold uppercase whitespace-nowrap inline-flex items-center ${
-                          fl.status === "active"
-                            ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300"
-                            : fl.status === "revoked"
-                              ? "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300"
-                              : "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300"
-                        }`}
-                      >
-                        {fl.status === "active"
-                          ? t("auditLogs.status.active", "Đang hoạt động")
-                          : fl.status === "revoked"
-                            ? t("auditLogs.status.revoked", "Đã thu hồi")
-                            : fl.status === "paused"
-                              ? t("auditLogs.status.paused", "Tạm dừng")
-                              : t("auditLogs.status.pending", "Chờ xác nhận")}
-                      </span>
-                    </td>
-                    <td className="py-3.5 px-4 text-right whitespace-nowrap">
-                      {fl.status !== "revoked" && (
-                        <button
-                          onClick={() => setRevokeTargetLink(fl)}
-                          className="px-3 py-1.5 rounded-lg bg-red-50 dark:bg-red-900/20 hover:bg-red-100 text-red-600 dark:text-red-400 text-xs font-bold cursor-pointer whitespace-nowrap inline-flex items-center"
-                        >
-                          {t("auditLogs.table.revoke", "Thu hồi")}
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {/* Audit Detail Modal */}
-      {selectedLog && (
-        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-lg w-full p-6 border border-gray-200 dark:border-slate-800 shadow-xl space-y-4">
-            <div className="flex items-center justify-between border-b border-gray-100 dark:border-slate-800 pb-3">
-              <div>
-                <h3 className="text-lg font-bold text-gray-900 dark:text-white">
-                  {t("auditLogs.modal.eventDetails", "Chi tiết Sự kiện Kiểm toán")} ({selectedLog.id})
-                </h3>
-                <p className="text-xs text-gray-500 dark:text-slate-400">{selectedLog.timestamp}</p>
-              </div>
-              <button
-                onClick={() => setSelectedLog(null)}
-                className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-800 cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="bg-gray-50 dark:bg-slate-800/70 p-4 rounded-xl border border-gray-200 dark:border-slate-700">
-              <p className="text-xs font-bold uppercase text-gray-400 mb-2">
-                {t("auditLogs.table.statusChange", "Chuyển đổi trạng thái")}
-              </p>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-gray-500">{t("auditLogs.table.resource", "Đối tượng")}</p>
-                  <p className="font-mono text-sm font-bold text-indigo-600 dark:text-indigo-400">
-                    {selectedLog.resourceType} / {selectedLog.resourceId}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="px-2.5 py-1 rounded bg-gray-200 dark:bg-slate-700 text-xs font-bold">
-                    {selectedLog.beforeStatus || "N/A"}
-                  </span>
-                  <ArrowRight className="w-4 h-4 text-gray-400" />
-                  <span className="px-2.5 py-1 rounded bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 text-xs font-bold">
-                    {selectedLog.afterStatus || "N/A"}
-                  </span>
-                </div>
-              </div>
-              {selectedLog.reasonCode && (
-                <p className="text-xs text-amber-600 dark:text-amber-400 font-semibold mt-2">
-                  {t("auditLogs.modal.revokeReasonLabel", "Lý do:")} {selectedLog.reasonCode}
-                </p>
-              )}
-            </div>
-
-            <div>
-              <p className="text-xs font-bold uppercase text-gray-400 mb-2">
-                {t("auditLogs.operationalDetailsRedacted")}
-              </p>
-              <pre className="bg-slate-950 text-emerald-400 p-4 rounded-xl text-xs font-mono overflow-x-auto">
-                {JSON.stringify(selectedLog.safeMetadata, null, 2)}
-              </pre>
-            </div>
-
-            <div className="flex justify-end pt-2">
-              <button
-                onClick={() => setSelectedLog(null)}
-                className="px-5 py-2.5 rounded-xl bg-gray-900 dark:bg-white text-white dark:text-slate-900 text-sm font-bold cursor-pointer"
-              >
-                {t("common.close", "Đóng")}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Admin Family Link Revoke Modal */}
-      {revokeTargetLink && (
-        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-md w-full p-6 border border-gray-200 dark:border-slate-800 shadow-xl space-y-4">
-            <div className="flex items-center gap-2 text-red-600 dark:text-red-400">
-              <AlertTriangle className="w-6 h-6" />
-              <h3 className="text-lg font-bold">
-                {t("auditLogs.modal.revokeTitle", "Thu hồi Liên kết Gia đình")}
-              </h3>
-            </div>
-            <p className="text-xs text-gray-600 dark:text-slate-300">
-              {t("auditLogs.modal.revokeDesc", "Hành động này sẽ hủy bỏ ngay lập tức quyền truy cập của người thân và ghi nhận vào nhật ký kiểm toán.")}
-            </p>
-            <div>
-              <label className="block text-xs font-bold uppercase text-gray-500 mb-1.5">
-                {t("auditLogs.modal.revokeReasonLabel", "Lý do thu hồi bắt buộc *")}
-              </label>
-              <textarea
-                value={revokeReason}
-                onChange={(e) => setRevokeReason(e.target.value)}
-                rows={3}
-                placeholder={t("auditLogs.modal.revokeReasonPlaceholder")}
-                className="w-full p-3 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-sm text-gray-900 dark:text-white"
+        <div className="space-y-5">
+          <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-xs dark:border-slate-800 dark:bg-slate-900 sm:flex-row sm:items-center sm:justify-between">
+            <div className="relative flex-1">
+              <Search className="pointer-events-none absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                value={feedSearch}
+                onChange={(e) => setFeedSearch(e.target.value)}
+                placeholder={t(
+                  "auditLogs.operations.searchPlaceholder",
+                  "Lọc theo hành động, chủ thể hoặc nội dung...",
+                )}
+                className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2 pr-4 pl-10 text-sm text-slate-900 outline-none focus:border-blue-500 focus:bg-white dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
               />
             </div>
-            <div className="flex justify-end gap-2">
-              <button
-                onClick={() => {
-                  setRevokeTargetLink(null);
-                  setRevokeReason("");
-                }}
-                className="px-4 py-2 rounded-xl bg-gray-100 dark:bg-slate-800 text-sm font-semibold cursor-pointer"
+
+            <select
+              value={sourceFilter}
+              onChange={(e) =>
+                setSourceFilter(e.target.value as OperationsSourceFilter)
+              }
+              className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200"
+            >
+              <option value="all">
+                {t("auditLogs.operations.allSources", "Tất cả nguồn sự kiện")}
+              </option>
+              <option value="violation">
+                {t("auditLogs.operations.sources.violation", "Vi phạm")}
+              </option>
+              <option value="consultation">
+                {t("auditLogs.operations.sources.consultation", "Ca tư vấn")}
+              </option>
+              <option value="review">
+                {t("auditLogs.operations.sources.review", "Đánh giá")}
+              </option>
+            </select>
+          </div>
+
+          {feedError ? (
+            <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-red-200 bg-red-50/70 p-8 text-center dark:border-red-900/50 dark:bg-red-950/20">
+              <AlertCircle className="h-8 w-8 text-red-600 dark:text-red-400" />
+              <p className="text-sm font-medium text-red-700 dark:text-red-300">
+                {feedError}
+              </p>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => void feedQuery.refetch()}
               >
-                {t("common.cancel", "Hủy")}
-              </button>
+                {t("common.retry", "Thử lại")}
+              </Button>
+            </div>
+          ) : (
+            <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xs dark:border-slate-800 dark:bg-slate-900">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-slate-50/80 dark:bg-slate-800/60">
+                    <TableHead>{t("auditLogs.operations.source", "Phân hệ")}</TableHead>
+                    <TableHead>{t("auditLogs.table.action", "Sự kiện")}</TableHead>
+                    <TableHead>{t("auditLogs.operations.subject", "Đối tượng")}</TableHead>
+                    <TableHead>{t("auditLogs.table.reason", "Tóm tắt")}</TableHead>
+                    <TableHead>{t("auditLogs.operations.time", "Thời gian")}</TableHead>
+                    <TableHead className="text-right">
+                      {t("auditLogs.table.details", "Chi tiết")}
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {isFeedLoading ? (
+                    Array.from({ length: 6 }).map((_, idx) => (
+                      <TableRow key={idx}>
+                        <TableCell colSpan={6}>
+                          <Skeleton className="h-10 w-full rounded-lg" />
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : filteredFeed.length === 0 ? (
+                    <TableRow>
+                      <TableCell
+                        colSpan={6}
+                        className="py-12 text-center text-sm text-slate-500 dark:text-slate-400"
+                      >
+                        {t(
+                          "auditLogs.operations.empty",
+                          "Không có bản ghi hoạt động nào phù hợp.",
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    filteredFeed.map((entry) => {
+                      const SourceIcon =
+                        entry.source === "violation"
+                          ? ShieldAlert
+                          : entry.source === "consultation"
+                            ? Stethoscope
+                            : Star;
+                      return (
+                        <TableRow key={entry.id}>
+                          <TableCell>
+                            <Badge variant="outline" className="gap-1.5">
+                              <SourceIcon className="h-3.5 w-3.5" />
+                              {t(
+                                `auditLogs.operations.sources.${entry.source}`,
+                                entry.source,
+                              )}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="font-medium text-slate-900 dark:text-slate-100">
+                              {entry.action}
+                            </div>
+                            <div className="text-xs text-slate-500 dark:text-slate-400">
+                              {entry.status}
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-sm text-slate-700 dark:text-slate-200">
+                            {entry.actorOrSubject}
+                          </TableCell>
+                          <TableCell className="max-w-xs">
+                            <p className="line-clamp-2 text-sm text-slate-600 dark:text-slate-300">
+                              {entry.summary}
+                            </p>
+                          </TableCell>
+                          <TableCell className="text-xs text-slate-500 dark:text-slate-400">
+                            {formatDateTime(entry.timestamp)}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              onClick={() =>
+                                setInspectPayload({
+                                  title: `${entry.source.toUpperCase()} — ${entry.action}`,
+                                  data: entry.raw,
+                                })
+                              }
+                              className="gap-1.5"
+                            >
+                              <Eye className="h-3.5 w-3.5" />
+                              {t("auditLogs.inspect", "Xem")}
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {inspectPayload ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-xs">
+          <div className="flex max-h-[85vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl dark:border-slate-800 dark:bg-slate-900">
+            <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4 dark:border-slate-800">
+              <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">
+                {inspectPayload.title}
+              </h3>
               <button
-                onClick={handleAdminRevokeFamilyLink}
-                className="px-4 py-2 rounded-xl bg-red-600 text-white text-sm font-bold cursor-pointer"
+                type="button"
+                onClick={() => setInspectPayload(null)}
+                className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
               >
-                {t("auditLogs.modal.confirmRevoke", "Xác nhận thu hồi")}
+                <X className="h-5 w-5" />
               </button>
+            </div>
+            <div className="flex-1 overflow-auto p-6">
+              <pre className="overflow-x-auto rounded-xl bg-slate-950 p-4 text-xs text-slate-100">
+                {JSON.stringify(inspectPayload.data, null, 2)}
+              </pre>
+            </div>
+            <div className="flex justify-end border-t border-slate-200 px-6 py-3 dark:border-slate-800">
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => setInspectPayload(null)}
+              >
+                {t("common.close", "Đóng")}
+              </Button>
             </div>
           </div>
         </div>
-      )}
+      ) : null}
     </div>
   );
 }
 
+export default AuditLogs;

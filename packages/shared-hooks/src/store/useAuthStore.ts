@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { getStorage } from "../storage";
+import { setAuthCallbacks } from "../api";
 
 // Define locally if not yet in shared-types to avoid breaking
 export type LocalUser = {
@@ -79,4 +80,11 @@ export const useSharedAuthStore = create<LocalAuthState>()(
       }),
     },
   ),
+);
+
+setAuthCallbacks(
+  () => useSharedAuthStore.getState().logout(),
+  (user, token, refreshToken) =>
+    useSharedAuthStore.getState().setUser(user, token, refreshToken),
+  () => useSharedAuthStore.getState().user,
 );

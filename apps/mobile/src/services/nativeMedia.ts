@@ -327,28 +327,40 @@ export const generateHealthReport = async (
         </style>
       </head>
       <body>
-        <table class="header-table">
-          <tr>
-            <td>
-              <h1 class="title">HỆ THỐNG Y TẾ THÔNG MINH - HEALTHCARE AI</h1>
-              <div class="subtitle">${docSubtitle}</div>
-            </td>
-          </tr>
-        </table>
+        ${(() => {
+          const rich = options as HealthReportExportOptions & {
+            patientCode?: string;
+            periodText?: string;
+            aiSummaryText?: string;
+            readings?: Array<{
+              time: string;
+              systolic?: number | null;
+              diastolic?: number | null;
+              glucose?: number | null;
+              heartRate?: number | null;
+              assessment: string;
+              isWarning?: boolean;
+            }>;
+            alerts?: Array<{
+              time: string;
+              severity: string;
+              description: string;
+              action: string;
+            }>;
+          };
+          const displayPatient = escapeHtmlText(
+            rich.patientName || i18n.t('mobile.patient_label', 'Bệnh nhân')
+          );
+          const displayPeriod = escapeHtmlText(rich.periodText || rich.timeRange.toUpperCase());
+          const displayCode = escapeHtmlText(rich.patientCode || '—');
+          const readingRows = rich.readings ?? [];
+          const alertRows = rich.alerts ?? [];
+          const aiText = escapeHtmlText(
+            rich.aiSummaryText?.trim() ||
+              i18n.t('mobile.excel_no_ai_summary', 'Chưa có tóm tắt AI cho khoảng thời gian này.')
+          );
 
-        <table class="meta-table">
-          <tr>
-            <td style="width: 50%;"><strong>${patientLabel}:</strong> ${options.patientName || 'Alex Johnson'}</td>
-            <td style="width: 50%; text-align: right;"><strong>${periodLabel}:</strong> ${options.timeRange.toUpperCase()}</td>
-          </tr>
-          <tr>
-            <td style="width: 50%;"><strong>${exportDateLabel}:</strong> ${currentDate}</td>
-            <td style="width: 50%; text-align: right;"><strong>${dossierLabel}:</strong> HC-${Math.floor(100000 + Math.random() * 900000)}</td>
-          </tr>
-        </table>
-
-        ${
-          options.includeCharts
+          const vitalsSection = rich.includeCharts
             ? `
           <div class="section-title">${i18n.t('mobile.pdf_section_1_vitals', '1. Tổng hợp Chỉ số Sinh hiệu Lâm sàng')}</div>
           <table class="data-table">
@@ -356,67 +368,56 @@ export const generateHealthReport = async (
               <tr>
                 <th>${i18n.t('mobile.pdf_col_date_time', 'Ngày đo')}</th>
                 <th>${i18n.t('mobile.pdf_col_bp', 'Huyết áp (mmHg)')}</th>
-                <th>${i18n.t('mobile.excel_col_glucose', 'Đường huyết đói (mg/dL)')}</th>
+                <th>${i18n.t('mobile.excel_col_glucose', 'Đường huyết (mg/dL)')}</th>
                 <th>${i18n.t('mobile.excel_col_hr', 'Nhịp tim (BPM)')}</th>
                 <th>${i18n.t('mobile.pdf_col_assessment', 'Đánh giá')}</th>
               </tr>
             </thead>
             <tbody>
-              <tr>
-                <td>17/10/2026 08:00</td>
-                <td>120 / 80</td>
-                <td>102</td>
-                <td>74</td>
-                <td><span class="status-normal">${i18n.t('mobile.eval_normal', 'Bình thường')}</span></td>
-              </tr>
-              <tr>
-                <td>16/10/2026 08:15</td>
-                <td>124 / 82</td>
-                <td>108</td>
-                <td>78</td>
-                <td><span class="status-normal">${i18n.t('mobile.eval_normal', 'Bình thường')}</span></td>
-              </tr>
-              <tr>
-                <td>15/10/2026 08:00</td>
-                <td>138 / 88</td>
-                <td>125</td>
-                <td>82</td>
-                <td><span class="status-elevated">${i18n.t('mobile.eval_elevated', 'Hơi cao, cần chú ý')}</span></td>
-              </tr>
-              <tr>
-                <td>14/10/2026 08:30</td>
-                <td>122 / 80</td>
-                <td>98</td>
-                <td>72</td>
-                <td><span class="status-normal">${i18n.t('mobile.eval_target_achieved', 'Đạt mục tiêu')}</span></td>
-              </tr>
+              ${
+                readingRows.length === 0
+                  ? `<tr><td colspan="5" style="text-align:center;color:#64748b;">${escapeHtmlText(
+                      i18n.t('mobile.excel_no_readings', 'Chưa có dữ liệu chỉ số sinh hiệu.')
+                    )}</td></tr>`
+                  : readingRows
+                      .map((row) => {
+                        const bp =
+                          row.systolic != null && row.diastolic != null
+                            ? `${row.systolic} / ${row.diastolic}`
+                            : '—';
+                        const glucose = row.glucose != null ? String(row.glucose) : '—';
+                        const hr = row.heartRate != null ? String(row.heartRate) : '—';
+                        const cls = row.isWarning ? 'status-elevated' : 'status-normal';
+                        return `<tr>
+                          <td>${escapeHtmlText(row.time)}</td>
+                          <td>${escapeHtmlText(bp)}</td>
+                          <td>${escapeHtmlText(glucose)}</td>
+                          <td>${escapeHtmlText(hr)}</td>
+                          <td><span class="${cls}">${escapeHtmlText(row.assessment)}</span></td>
+                        </tr>`;
+                      })
+                      .join('')
+              }
             </tbody>
           </table>
         `
-            : ''
-        }
+            : '';
 
-        ${
-          options.includeAiSummary
+          const aiSection = rich.includeAiSummary
             ? `
           <div class="section-title">${i18n.t('mobile.pdf_section_2_ai', '2. Phân Tích & Khuyến Nghị Từ Trí Tuệ Nhân Tạo')}</div>
           <div class="ai-box">
-            <div class="ai-title">✨ ${i18n.t('mobile.pdf_ai_7d_title', 'Tóm tắt theo dõi 7 ngày:')}</div>
+            <div class="ai-title">✨ ${escapeHtmlText(displayPeriod)}</div>
             <p style="margin: 0; line-height: 1.5; font-size: 13px; color: #312e81;">
-              ${i18n.t(
-                'mobile.pdf_ai_7d_body',
-                'Chỉ số huyết áp đạt ngưỡng mục tiêu trong 85% thời gian theo dõi. Có 1 lần ghi nhận dao động nhẹ vào buổi sáng ngày 15/10 sau bữa tối nhiều natri. Bệnh nhân duy trì tuân thủ dùng thuốc tốt. Khuyến nghị duy trì chế độ giảm muối và lịch tái khám định kỳ.'
-              )}
+              ${aiText}
             </p>
           </div>
         `
-            : ''
-        }
+            : '';
 
-        ${
-          options.includeAlerts
+          const alertSection = rich.includeAlerts
             ? `
-          <div class="section-title">${i18n.t('mobile.pdf_section_3_alerts', '3. Nhật Ký Cảnh Báo Lâm Sàng & Ghi Chú Y Lệnh')}</div>
+          <div class="section-title">${i18n.t('mobile.pdf_section_3_alerts', '3. Nhật Ký Cảnh Báo Lâm Sàng')}</div>
           <table class="data-table">
             <thead>
               <tr>
@@ -427,17 +428,53 @@ export const generateHealthReport = async (
               </tr>
             </thead>
             <tbody>
-              <tr>
-                <td>15/10/2026 08:05</td>
-                <td><span class="status-elevated">${i18n.t('mobile.severity_attention', 'Cần chú ý')}</span></td>
-                <td>${i18n.t('mobile.excel_alert_desc_2', 'Đường huyết sáng 125 mg/dL cao hơn mức chuẩn')}</td>
-                <td>${i18n.t('mobile.pdf_alert_resolution_1', 'Bác sĩ đã ghi nhận & điều chỉnh')}</td>
-              </tr>
+              ${
+                alertRows.length === 0
+                  ? `<tr><td colspan="4" style="text-align:center;color:#64748b;">${escapeHtmlText(
+                      i18n.t('mobile.excel_no_alerts', 'Không ghi nhận cảnh báo sức khỏe.')
+                    )}</td></tr>`
+                  : alertRows
+                      .map(
+                        (alt) => `<tr>
+                          <td>${escapeHtmlText(alt.time)}</td>
+                          <td><span class="status-elevated">${escapeHtmlText(alt.severity)}</span></td>
+                          <td>${escapeHtmlText(alt.description)}</td>
+                          <td>${escapeHtmlText(alt.action)}</td>
+                        </tr>`
+                      )
+                      .join('')
+              }
             </tbody>
           </table>
         `
-            : ''
-        }
+            : '';
+
+          return `
+        <table class="header-table">
+          <tr>
+            <td>
+              <h1 class="title">HEALTHCARE TELECARE</h1>
+              <div class="subtitle">${escapeHtmlText(docSubtitle)}</div>
+            </td>
+          </tr>
+        </table>
+
+        <table class="meta-table">
+          <tr>
+            <td style="width: 50%;"><strong>${escapeHtmlText(patientLabel)}:</strong> ${displayPatient}</td>
+            <td style="width: 50%; text-align: right;"><strong>${escapeHtmlText(periodLabel)}:</strong> ${displayPeriod}</td>
+          </tr>
+          <tr>
+            <td style="width: 50%;"><strong>${escapeHtmlText(exportDateLabel)}:</strong> ${escapeHtmlText(currentDate)}</td>
+            <td style="width: 50%; text-align: right;"><strong>${escapeHtmlText(dossierLabel)}:</strong> ${displayCode}</td>
+          </tr>
+        </table>
+
+        ${vitalsSection}
+        ${aiSection}
+        ${alertSection}
+          `;
+        })()}
 
         <div class="footer">
           ${i18n.t(

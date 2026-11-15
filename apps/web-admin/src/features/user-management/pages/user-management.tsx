@@ -10,9 +10,12 @@ import {
   MoreHorizontal,
   Search,
   ShieldCheck,
+  Star,
   Stethoscope,
+  Trash2,
+  UserX,
   Users,
-  Database
+  Database,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@repo/ui/components/ui/button";
@@ -43,7 +46,14 @@ import {
 } from "@/features/ai_management/components/add-admin-modal";
 import { ProfileModal } from "@repo/ui/components/complex-modal/ProfileModal";
 import { UserAvatar } from "@repo/ui/components/ui/user-avatar";
-import { useUsers, useBanUser, useUnbanUser } from "../hooks/useUserManagement";
+import {
+  useUsers,
+  useBanUser,
+  useUnbanUser,
+  useDeactivateUser,
+  useDeleteAdmin,
+  useOperationalSummary,
+} from "../hooks/useUserManagement";
 import type { UserManagementUser } from "../services/user-management.service";
 import {
   createAdmin,
@@ -70,6 +80,7 @@ type UserRecord = {
   joined: string;
   role: UserRole;
   status: UserStatus;
+  isOnline?: boolean;
   specialty?: string;
   assigned_role?: AdminAssignedRole;
 };
@@ -79,6 +90,21 @@ const ADMIN_ROLE_ORDER: AdminAssignedRole[] = [
   "user_admin",
   "ai_admin",
 ];
+
+function formatJoinedDate(value: string, locale: string) {
+  if (!value || value === "-") {
+    return "-";
+  }
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+  return date.toLocaleDateString(locale, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
 
 function getAdminRoleLabel(role?: AdminAssignedRole) {
   if (role === "super_admin") {
@@ -102,6 +128,7 @@ function mapUserToRecord(user: UserManagementUser): UserRecord {
     joined: user.joined,
     role: user.role,
     status: user.status,
+    isOnline: user.isOnline,
     specialty: user.specialty,
     assigned_role: user.assigned_role,
   };
@@ -127,7 +154,8 @@ function mergeUsers(baseUsers: UserRecord[], localUsers: UserRecord[]) {
 }
 
 export function UserManagement() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const dateLocale = i18n.language?.startsWith("vi") ? "vi-VN" : "en-US";
   const { users: usersData, isLoading, error, refresh } = useUsers();
   const { submitBanUser, isLoading: isBanning, error: banError } = useBanUser();
   const {
@@ -135,6 +163,16 @@ export function UserManagement() {
     isLoading: isUnbanning,
     error: unbanError,
   } = useUnbanUser();
+  const {
+    submitDeactivateUser,
+    isLoading: isDeactivating,
+    error: deactivateError,
+  } = useDeactivateUser();
+  const {
+    submitDeleteAdmin,
+    isLoading: isDeletingAdmin,
+    error: deleteAdminError,
+  } = useDeleteAdmin();
   const { submitReport, error: submitReportError } = useReport();
   const [localUsers, setLocalUsers] = useState<UserRecord[]>([]);
   const [selectedRole, setSelectedRole] = useState<UserRole | "all">("patient");
@@ -158,10 +196,21 @@ export function UserManagement() {
     isProfileModalOpen,
   );
 
-  // Lock Reason Modal (ADM-03) & Operational Summary Modal (ADM-21)
   const [lockModalUser, setLockModalUser] = useState<UserRecord | null>(null);
   const [lockReason, setLockReason] = useState("");
   const [operationalSummaryUser, setOperationalSummaryUser] = useState<UserRecord | null>(null);
+  const {
+    data: operationalDetails,
+    isLoading: isOperationalLoading,
+    error: operationalError,
+  } = useOperationalSummary(
+    operationalSummaryUser?.id ?? null,
+    operationalSummaryUser?.role ?? null,
+  );
+  const [confirmTarget, setConfirmTarget] = useState<{
+    user: UserRecord;
+    mode: "deactivate" | "delete_admin";
+  } | null>(null);
 
   const baseUsers = useMemo(
     () => usersData.userList.map(mapUserToRecord),
@@ -172,8 +221,6 @@ export function UserManagement() {
     () => mergeUsers(baseUsers, localUsers),
     [baseUsers, localUsers],
   );
-
-  console.log(users);
 
   const selectedUser = users.find((user) => user.id === selectedUserId);
 
@@ -219,6 +266,18 @@ export function UserManagement() {
       showToast.error(unbanError);
     }
   }, [unbanError]);
+
+  useEffect(() => {
+    if (deactivateError) {
+      showToast.error(deactivateError);
+    }
+  }, [deactivateError]);
+
+  useEffect(() => {
+    if (deleteAdminError) {
+      showToast.error(deleteAdminError);
+    }
+  }, [deleteAdminError]);
 
   const handleSubmitProfileReport = async (payload: {
     target: ReportActor;
@@ -305,21 +364,40 @@ export function UserManagement() {
   };
 
   const handleCreateAdmin = async () => {
+    if (isCreatingAdmin) {
+      return;
+    }
+
     const fullName = newAdminFullName.trim();
     const email = newAdminEmail.trim().toLowerCase();
 
     if (!fullName || !email || !newAdminPassword) {
-      setAddAdminError("Please fill in all required fields.");
+      setAddAdminError(
+        t(
+          "userManagement.addAdminModal.errors.required",
+          "Please fill in all required fields.",
+        ),
+      );
       return;
     }
 
     if (!/^\S+@\S+\.\S+$/.test(email)) {
-      setAddAdminError("Please enter a valid email address.");
+      setAddAdminError(
+        t(
+          "userManagement.addAdminModal.errors.invalidEmail",
+          "Please enter a valid email address.",
+        ),
+      );
       return;
     }
 
     if (newAdminPassword.length < 8) {
-      setAddAdminError("Temporary password must be at least 8 characters.");
+      setAddAdminError(
+        t(
+          "userManagement.addAdminModal.errors.passwordLength",
+          "Temporary password must be at least 8 characters.",
+        ),
+      );
       return;
     }
 
@@ -327,7 +405,12 @@ export function UserManagement() {
       (item) => item.email.toLowerCase() === email,
     );
     if (hasDuplicatedEmail) {
-      setAddAdminError("This email is already in use.");
+      setAddAdminError(
+        t(
+          "userManagement.addAdminModal.errors.duplicateEmail",
+          "This email is already in use.",
+        ),
+      );
       return;
     }
 
@@ -347,11 +430,17 @@ export function UserManagement() {
       setOpenActionUserId(null);
       setIsAddAdminModalOpen(false);
       resetAddAdminForm();
+      showToast.success(
+        t("userManagement.toasts.adminCreated", "Admin account created."),
+      );
     } catch (createError) {
       setAddAdminError(
         createError instanceof Error
           ? createError.message
-          : "Failed to create admin account.",
+          : t(
+              "userManagement.addAdminModal.errors.createFailed",
+              "Failed to create admin account.",
+            ),
       );
     } finally {
       setIsCreatingAdmin(false);
@@ -364,7 +453,6 @@ export function UserManagement() {
       icon: <Users size={18} />,
       stats: usersData.totalUser,
       subText: t("userManagement.stats.allUsers"),
-      comparedStats: 6.4,
       iconClassName: "bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400",
     },
     {
@@ -372,7 +460,6 @@ export function UserManagement() {
       icon: <Stethoscope size={18} />,
       stats: usersData.activeDoctors,
       subText: t("userManagement.stats.activeDoctorsSub"),
-      comparedStats: 4.2,
       iconClassName: "bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400",
     },
     {
@@ -380,7 +467,6 @@ export function UserManagement() {
       icon: <Clock size={18} />,
       stats: usersData.pendingVerifications,
       subText: t("userManagement.stats.needAttention"),
-      comparedStats: -1.2,
       iconClassName: "bg-amber-50 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400",
     },
     {
@@ -388,7 +474,6 @@ export function UserManagement() {
       icon: <Ban size={18} />,
       stats: usersData.bannedUsers,
       subText: t("userManagement.stats.acrossPlatform"),
-      comparedStats: -5,
       iconClassName: "bg-red-50 text-red-500 dark:bg-red-900/30 dark:text-red-400",
     },
   ];
@@ -445,7 +530,7 @@ export function UserManagement() {
   };
 
   const handleConfirmLockUser = async () => {
-    if (!lockModalUser) return;
+    if (!lockModalUser || isBanning) return;
     if (!lockReason.trim()) {
       showToast.error(t("userManagement.toasts.reasonRequired"));
       return;
@@ -457,15 +542,30 @@ export function UserManagement() {
     if (result) {
       await refresh();
       showToast.success(t("userManagement.toasts.lockedSuccess"));
-    } else {
-      setLocalUsers((prev) => [
-        ...prev.filter((u) => u.id !== lockModalUser.id),
-        { ...lockModalUser, status: "banned" },
-      ]);
-      showToast.success(t("userManagement.toasts.lockedSuccess"));
+      setLockModalUser(null);
+      setLockReason("");
     }
-    setLockModalUser(null);
-    setLockReason("");
+  };
+
+  const handleConfirmDestructiveAction = async () => {
+    if (!confirmTarget || isDeactivating || isDeletingAdmin) {
+      return;
+    }
+
+    const res =
+      confirmTarget.mode === "delete_admin"
+        ? await submitDeleteAdmin(confirmTarget.user.id)
+        : await submitDeactivateUser(confirmTarget.user.id);
+
+    if (res) {
+      await refresh();
+      showToast.success(
+        confirmTarget.mode === "delete_admin"
+          ? t("userManagement.toasts.adminDeleted", "Admin profile removed.")
+          : t("userManagement.toasts.userDeactivated", "Account deactivated."),
+      );
+      setConfirmTarget(null);
+    }
   };
 
   const handleAssignAdminRole = async (
@@ -546,6 +646,19 @@ export function UserManagement() {
         onHandle: () => void handleToggleStatus(user.id),
         disabled: isTogglingStatus,
       });
+
+      actions.push({
+        id: `${user.id}-deactivate-user`,
+        title: t("userManagement.actions.deactivateUser", "Deactivate account"),
+        icon: <UserX className="h-4 w-4" />,
+        iconColor: "text-red-600",
+        onHandle: () => {
+          setConfirmTarget({ user, mode: "deactivate" });
+          setOpenActionUserId(null);
+          setOpenActionRect(null);
+        },
+        disabled: isDeactivating || isDeletingAdmin,
+      });
     }
 
     if (!isSelf && user.role === "admin") {
@@ -559,6 +672,19 @@ export function UserManagement() {
         iconColor: "text-indigo-700",
         onHandle: () => handleAssignAdminRole(user.id, role),
       }));
+
+      roleActions.push({
+        id: `${user.id}-delete-admin`,
+        title: t("userManagement.actions.deleteAdmin", "Remove admin"),
+        icon: <Trash2 className="h-4 w-4" />,
+        iconColor: "text-red-600",
+        onHandle: () => {
+          setConfirmTarget({ user, mode: "delete_admin" });
+          setOpenActionUserId(null);
+          setOpenActionRect(null);
+        },
+        disabled: isDeactivating || isDeletingAdmin,
+      });
 
       actions.splice(1, 0, ...roleActions);
     }
@@ -760,29 +886,41 @@ export function UserManagement() {
                   <TableRow key={user.id}>
                     <TableCell className="px-3 py-3">
                       <div className="flex items-center gap-3">
-                        <UserAvatar name={user.name} url={user.avatarUrl} />
+                        <div className="relative inline-flex">
+                          <UserAvatar name={user.name} url={user.avatarUrl} />
+                          <span
+                            title={
+                              user.isOnline
+                                ? t("userManagement.presence.online", "Online")
+                                : t("userManagement.presence.offline", "Offline")
+                            }
+                            className={`absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-white dark:border-slate-900 ${
+                              user.isOnline ? "bg-emerald-500" : "bg-slate-300 dark:bg-slate-600"
+                            }`}
+                          />
+                        </div>
                       </div>
                     </TableCell>
-                    <TableCell className="px-3 text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500">
+                    <TableCell className="px-3 text-sm text-slate-500 dark:text-slate-400">
                       {user.email}
                     </TableCell>
                     {selectedRole === "doctor" ? (
-                      <TableCell className="px-3 text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500">
+                      <TableCell className="px-3 text-sm text-slate-500 dark:text-slate-400">
                         <span className="bg-[#DBEAFE] dark:bg-blue-900/30 p-1 rounded-xl text-[#3B7BF8] dark:text-blue-400">
-                          {user.specialty}
+                          {user.specialty || "-"}
                         </span>
                       </TableCell>
                     ) : null}
                     {selectedRole === "admin" ? (
-                      <TableCell className="px-3 text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500">
+                      <TableCell className="px-3 text-sm text-slate-500 dark:text-slate-400">
                         {getAssignedRoleBadge(user.assigned_role)}
                       </TableCell>
                     ) : null}
-                    <TableCell className="px-3 text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500">
+                    <TableCell className="px-3 text-sm text-slate-500 dark:text-slate-400">
                       {user.location}
                     </TableCell>
-                    <TableCell className="px-3 text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500">
-                      {user.joined}
+                    <TableCell className="px-3 text-sm text-slate-500 dark:text-slate-400">
+                      {formatJoinedDate(user.joined, dateLocale)}
                     </TableCell>
                     <TableCell className="px-3">
                       <Badge
@@ -845,7 +983,11 @@ export function UserManagement() {
 
           <div className="flex flex-col gap-3 border-t border-slate-200 dark:border-slate-700 px-3 py-2 text-xs text-slate-400 dark:text-slate-500 sm:flex-row sm:items-center sm:justify-between">
             <p>
-              Showing {paginatedUsers.length} of {filteredUsers.length} results
+              {t("userManagement.pagination.showing", {
+                shown: paginatedUsers.length,
+                total: filteredUsers.length,
+                defaultValue: `Showing ${paginatedUsers.length} of ${filteredUsers.length} results`,
+              })}
             </p>
 
             <Pagination className="mx-0 w-auto justify-end">
@@ -910,6 +1052,7 @@ export function UserManagement() {
           password={newAdminPassword}
           role={newAdminRole}
           errorMessage={addAdminError}
+          isSubmitting={isCreatingAdmin}
           onChangeFullName={setNewAdminFullName}
           onChangeEmail={setNewAdminEmail}
           onChangePassword={setNewAdminPassword}
@@ -925,7 +1068,26 @@ export function UserManagement() {
           onClose={handleCloseProfileModal}
           profileSeed={
             profileData
-              ? profileData
+              ? {
+                  ...profileData,
+                  doctor_review_metrics: profileData.doctor_review_metrics
+                    ? {
+                        average_rating:
+                          profileData.doctor_review_metrics.average_rating,
+                        total_reviews:
+                          profileData.doctor_review_metrics.total_reviews,
+                        rating_distribution: Object.fromEntries(
+                          Object.entries(
+                            profileData.doctor_review_metrics
+                              .rating_distribution ?? {},
+                          ).map(([star, count]) => [
+                            Number(star),
+                            Number(count ?? 0),
+                          ]),
+                        ) as Record<number, number>,
+                      }
+                    : undefined,
+                }
               : selectedUser
                 ? {
                     id: selectedUser.id,
@@ -1023,48 +1185,93 @@ export function UserManagement() {
               </div>
 
               <div className="space-y-3 py-4 text-xs">
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
-                    <div className="text-slate-400 uppercase text-[10px] font-bold">
-                      {t("userManagement.accountStatus")}
+                {isOperationalLoading ? (
+                  <div className="grid grid-cols-2 gap-3">
+                    {Array.from({ length: 4 }).map((_, idx) => (
+                      <div
+                        key={idx}
+                        className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800"
+                      >
+                        <Skeleton className="h-3 w-20 mb-2" />
+                        <Skeleton className="h-5 w-28" />
+                      </div>
+                    ))}
+                  </div>
+                ) : operationalError ? (
+                  <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-red-700 dark:border-red-900/40 dark:bg-red-950/30 dark:text-red-300">
+                    {operationalError}
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
+                      <div className="text-slate-400 uppercase text-[10px] font-bold">
+                        {t("userManagement.accountStatus")}
+                      </div>
+                      <div className="text-sm font-bold text-slate-900 dark:text-slate-100 mt-1 capitalize">
+                        {(operationalDetails?.profile?.accountStatus ?? operationalSummaryUser.status) === "active"
+                          ? t("userManagement.statusActive")
+                          : t("userManagement.statusLocked")}
+                      </div>
                     </div>
-                    <div className="text-sm font-bold text-slate-900 dark:text-slate-100 mt-1 capitalize">
-                      {operationalSummaryUser.status === "active"
-                        ? t("userManagement.statusActive")
-                        : t("userManagement.statusLocked")}
+                    <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
+                      <div className="text-slate-400 uppercase text-[10px] font-bold">
+                        {t("userManagement.roleVerification")}
+                      </div>
+                      <div className="text-sm font-bold text-slate-900 dark:text-slate-100 mt-1">
+                        {operationalSummaryUser.role === "doctor"
+                          ? operationalDetails?.profile?.doctorProfile?.verificationStatus === "pending"
+                            ? t("docVerification.table.pending", "Pending")
+                            : operationalDetails?.profile?.doctorProfile?.verificationStatus === "rejected"
+                              ? t("docVerification.table.rejected", "Rejected")
+                              : t("userManagement.doctorApproved")
+                          : operationalSummaryUser.role === "admin"
+                            ? getAdminRoleLabel(operationalSummaryUser.assigned_role)
+                            : t("userManagement.patient")}
+                      </div>
+                    </div>
+                    <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
+                      <div className="text-slate-400 uppercase text-[10px] font-bold">
+                        {t("userManagement.presence.label", "Presence")}
+                      </div>
+                      <div className="text-sm font-bold text-slate-900 dark:text-slate-100 mt-1 flex items-center gap-1.5">
+                        <span
+                          className={`inline-block h-2 w-2 rounded-full ${
+                            operationalSummaryUser.isOnline || operationalDetails?.profile?.isOnline
+                              ? "bg-emerald-500"
+                              : "bg-slate-400"
+                          }`}
+                        />
+                        {operationalSummaryUser.isOnline || operationalDetails?.profile?.isOnline
+                          ? t("userManagement.presence.online", "Online")
+                          : t("userManagement.presence.offline", "Offline")}
+                      </div>
+                    </div>
+                    <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
+                      <div className="text-slate-400 uppercase text-[10px] font-bold">
+                        {operationalSummaryUser.role === "doctor"
+                          ? t("userManagement.doctorRating", "Doctor rating")
+                          : t("userManagement.contactPhone", "Phone")}
+                      </div>
+                      <div className="text-sm font-bold text-slate-900 dark:text-slate-100 mt-1 flex items-center gap-1">
+                        {operationalSummaryUser.role === "doctor" ? (
+                          operationalDetails?.doctorRating ? (
+                            <>
+                              <Star className="h-3.5 w-3.5 text-amber-500 fill-amber-500" />
+                              <span>
+                                {operationalDetails.doctorRating.averageRating.toFixed(1)} (
+                                {String(operationalDetails.doctorRating.totalReviews ?? 0)})
+                              </span>
+                            </>
+                          ) : (
+                            "—"
+                          )
+                        ) : (
+                          operationalDetails?.profile?.phoneNumber || "—"
+                        )}
+                      </div>
                     </div>
                   </div>
-                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
-                    <div className="text-slate-400 uppercase text-[10px] font-bold">
-                      {t("userManagement.roleVerification")}
-                    </div>
-                    <div className="text-sm font-bold text-slate-900 dark:text-slate-100 mt-1">
-                      {operationalSummaryUser.role === "doctor"
-                        ? t("userManagement.doctorApproved")
-                        : operationalSummaryUser.role === "admin"
-                        ? `${getAdminRoleLabel(operationalSummaryUser.assigned_role)}`
-                        : t("userManagement.patient")}
-                    </div>
-                  </div>
-                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
-                    <div className="text-slate-400 uppercase text-[10px] font-bold">
-                      {t("userManagement.activeTier")}
-                    </div>
-                    <div className="text-sm font-bold text-indigo-600 dark:text-indigo-400 mt-1">
-                      {operationalSummaryUser.role === "patient" ? "CARE (v1.0)" : "—"}
-                    </div>
-                  </div>
-                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
-                    <div className="text-slate-400 uppercase text-[10px] font-bold">
-                      {t("userManagement.deviceSessions")}
-                    </div>
-                    <div className="text-sm font-bold text-slate-900 dark:text-slate-100 mt-1">
-                      {operationalSummaryUser.status === "active"
-                        ? t("userManagement.sessionsCount", { count: 2 })
-                        : t("userManagement.sessionsRevoked")}
-                    </div>
-                  </div>
-                </div>
+                )}
 
                 <div className="p-3 rounded-xl border border-amber-200/70 dark:border-amber-900/40 bg-amber-50/50 dark:bg-amber-950/20 text-amber-800 dark:text-amber-300">
                   <strong>
@@ -1082,6 +1289,61 @@ export function UserManagement() {
                   onClick={() => setOperationalSummaryUser(null)}
                 >
                   {t("common.close")}
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Destructive Action Confirmation Modal */}
+        {confirmTarget && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm animate-fade-in">
+            <div className="w-full max-w-md rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-2xl">
+              <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                <Trash2 className="h-5 w-5 text-red-600" />
+                {confirmTarget.mode === "delete_admin"
+                  ? t("userManagement.confirmDeleteAdmin.title", "Remove admin account")
+                  : t("userManagement.confirmDeactivate.title", "Deactivate user account")}
+              </h3>
+              <p className="mt-2 text-xs text-slate-600 dark:text-slate-300">
+                {confirmTarget.mode === "delete_admin"
+                  ? t(
+                      "userManagement.confirmDeleteAdmin.desc",
+                      "This will permanently remove admin privileges for this account.",
+                    )
+                  : t(
+                      "userManagement.confirmDeactivate.desc",
+                      "This will deactivate the selected user account.",
+                    )}
+              </p>
+              <div className="my-4 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 text-xs">
+                <div className="font-semibold text-slate-900 dark:text-slate-100">
+                  {confirmTarget.user.name}
+                </div>
+                <div className="text-slate-500 dark:text-slate-400">
+                  {confirmTarget.user.email}
+                </div>
+              </div>
+              <div className="flex justify-end gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={isDeactivating || isDeletingAdmin}
+                  onClick={() => setConfirmTarget(null)}
+                >
+                  {t("common.cancel")}
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  className="bg-red-600 hover:bg-red-700 text-white"
+                  disabled={isDeactivating || isDeletingAdmin}
+                  onClick={() => void handleConfirmDestructiveAction()}
+                >
+                  {isDeactivating || isDeletingAdmin
+                    ? t("common.processing", "Processing...")
+                    : t("common.confirm", "Confirm")}
                 </Button>
               </div>
             </div>

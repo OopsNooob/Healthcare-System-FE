@@ -1,5 +1,18 @@
 import axios, { type AxiosError, type InternalAxiosRequestConfig } from "axios";
 import { useAuthStore } from "@repo/ui/store/useAuthStore";
+import {
+  createFeApiSdk,
+  normalizePaginatedList,
+  normalizeCursorList,
+  buildPaginationParams,
+  generateIdempotencyKey,
+  SOCKET_NAMESPACES,
+  SOCKET_EVENTS,
+  type ApiExecutor,
+  type CursorPaginatedResult,
+  type PaginatedResult,
+  type NotificationsCreateRequest,
+} from "@healthcare/api-client";
 
 import { io } from "socket.io-client";
 
@@ -17,7 +30,7 @@ function getAccessToken(): string {
   );
 }
 
-const socket = io(`${SOCKET_BASE_URL}/chat`, {
+const socket = io(`${SOCKET_BASE_URL}${SOCKET_NAMESPACES.chat}`, {
   autoConnect: false,
   auth: {
     token: getAccessToken(),
@@ -25,21 +38,29 @@ const socket = io(`${SOCKET_BASE_URL}/chat`, {
   reconnectionAttempts: 3,
 });
 
-const sessionSocket = io(`${SOCKET_BASE_URL}/session`, {
-  autoConnect: false,
-  auth: {
-    token: getAccessToken(),
+const consultationsSocket = io(
+  `${SOCKET_BASE_URL}${SOCKET_NAMESPACES.consultations}`,
+  {
+    autoConnect: false,
+    auth: {
+      token: getAccessToken(),
+    },
+    reconnectionAttempts: 3,
   },
-  reconnectionAttempts: 3,
-});
+);
 
-const notificationsSocket = io(`${SOCKET_BASE_URL}/notifications`, {
-  autoConnect: false,
-  auth: {
-    token: getAccessToken(),
+const sessionSocket = consultationsSocket;
+
+const notificationsSocket = io(
+  `${SOCKET_BASE_URL}${SOCKET_NAMESPACES.notifications}`,
+  {
+    autoConnect: false,
+    auth: {
+      token: getAccessToken(),
+    },
+    reconnectionAttempts: 3,
   },
-  reconnectionAttempts: 3,
-});
+);
 
 const presenceSocket = io(`${SOCKET_BASE_URL}`, {
   autoConnect: false,
@@ -51,7 +72,7 @@ const presenceSocket = io(`${SOCKET_BASE_URL}`, {
 
 function updateSocketAuth(token: string) {
   socket.auth = { token };
-  sessionSocket.auth = { token };
+  consultationsSocket.auth = { token };
   notificationsSocket.auth = { token };
   presenceSocket.auth = { token };
 }
@@ -297,6 +318,7 @@ api.interceptors.response.use(
       useAuthStore
         .getState()
         .setUser(currentUser, nextAccessToken, nextRefreshToken);
+      updateSocketAuth(nextAccessToken);
 
       resolveRefreshQueue(nextAccessToken);
       originalRequest.headers.Authorization = `Bearer ${nextAccessToken}`;
@@ -316,12 +338,38 @@ api.interceptors.response.use(
   },
 );
 
+const webAdminApi = createFeApiSdk(api as unknown as ApiExecutor);
+
+function connectConsultationsSocket(token?: string): boolean {
+  if (!token) {
+    if (consultationsSocket.connected) consultationsSocket.disconnect();
+    return false;
+  }
+  updateSocketAuth(token);
+  if (!consultationsSocket.connected) consultationsSocket.connect();
+  return true;
+}
+
+export type * from "@healthcare/api-client";
 export {
   API_BASE_URL,
   api,
+  webAdminApi,
   socket,
+  consultationsSocket,
   sessionSocket,
   notificationsSocket,
   presenceSocket,
   connectNotificationsSocket,
+  connectConsultationsSocket,
+  updateSocketAuth,
+  normalizePaginatedList,
+  normalizeCursorList,
+  buildPaginationParams,
+  generateIdempotencyKey,
+  SOCKET_NAMESPACES,
+  SOCKET_EVENTS,
+  type CursorPaginatedResult,
+  type PaginatedResult,
+  type NotificationsCreateRequest,
 };

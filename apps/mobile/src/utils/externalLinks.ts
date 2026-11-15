@@ -44,7 +44,7 @@ export const openMapsDirections = async (facilityName: string, address: string):
     console.warn('Failed to launch navigation map:', error);
     try {
       await Linking.openURL(webMapsUrl);
-    } catch (fallbackError) {
+    } catch {
       Toast.show({
         type: 'error',
         text1: i18n.t('mobile.directions', 'Directions'),
