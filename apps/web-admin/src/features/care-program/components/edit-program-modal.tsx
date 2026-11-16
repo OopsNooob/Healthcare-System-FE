@@ -11,7 +11,7 @@ import {
   BookOpen,
   ClipboardCheck,
 } from "lucide-react";
-import { toast } from "react-toastify";
+import { showToast } from "@repo/ui/components/ui/toasts";
 import type { TFunction } from "i18next";
 import {
   BASELINE_OPTIONS,
@@ -133,7 +133,7 @@ function EditProgramForm({
 
   const handleRemoveTaskTemplate = (index: number) => {
     if (taskTemplates.length <= 1) {
-      toast.warning(
+      showToast.warning(
         t("careProgram.toasts.minOneTask", "At least one monitoring task is required")
       );
       return;
@@ -213,7 +213,7 @@ function EditProgramForm({
   const handleSubmit = async (publishNow = false, asNewVersion = false) => {
     if (isSubmitting) return;
     if (!name.trim()) {
-      toast.warning(t("careProgram.toasts.nameRequired", "Please enter a program name"));
+      showToast.warning(t("careProgram.toasts.nameRequired", "Please enter a program name"));
       return;
     }
 

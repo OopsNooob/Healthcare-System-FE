@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { X, Sparkles } from "lucide-react";
-import { toast } from "react-toastify";
+import { showToast } from "@repo/ui/components/ui/toasts";
 import type {
   CreatePlanDraftInput,
   PlanVersionRecord,
@@ -56,7 +56,7 @@ export function EditPlanModal({
     if (isSubmitting) return;
     const normalizedCode = code.trim().toUpperCase();
     if (!/^[A-Z][A-Z0-9_]{1,31}$/.test(normalizedCode)) {
-      toast.warning(
+      showToast.warning(
         t(
           "premiumManagement.toasts.invalidCode",
           "Plan code must start with an uppercase letter (2-32 chars, A-Z, 0-9, _)."
@@ -65,7 +65,7 @@ export function EditPlanModal({
       return;
     }
     if (!name.trim()) {
-      toast.warning(
+      showToast.warning(
         t("premiumManagement.toasts.planNameRequired", "Please enter a valid plan name.")
       );
       return;
@@ -74,7 +74,7 @@ export function EditPlanModal({
     const parsedPrice = Number(price);
     const parsedDays = Number(durationDays);
     if (!Number.isFinite(parsedPrice) || parsedPrice < 0 || !Number.isFinite(parsedDays) || parsedDays < 1) {
-      toast.warning(
+      showToast.warning(
         t("premiumManagement.toasts.invalidNumbers", "Please enter valid numeric price and duration.")
       );
       return;

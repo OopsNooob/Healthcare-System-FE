@@ -16,7 +16,7 @@ import {
 
 import { io } from "socket.io-client";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api/v1";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3001/api/v1";
 
 if (!import.meta.env.VITE_API_BASE_URL) {
   console.warn("VITE_API_BASE_URL is missing in environment variables. Falling back to:", API_BASE_URL);

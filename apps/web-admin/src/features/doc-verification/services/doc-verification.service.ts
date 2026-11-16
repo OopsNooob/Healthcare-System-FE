@@ -51,18 +51,19 @@ type User = {
   email: string;
   fullName: string;
   phoneNumber?: string;
+  createdAt?: string;
 };
 
 type ApiDoctor = {
-  _id: string;
-  userId: User;
+  _id?: string;
+  userId?: User;
   specialty?: string;
   workplace?: string;
   verificationDocuments?: string[];
   experienceYears?: number;
   verificationStatus: VerificationStatus;
   rejectReason?: string;
-  createdAt: string;
+  createdAt?: string;
 };
 
 type ApiDoctorApplicationsResponse = {
@@ -109,25 +110,38 @@ function resolveJoinedDate(value?: string) {
   });
 }
 
+function decodeFileName(rawUrl: string): string {
+  const rawName = rawUrl.split("/").pop() ?? "document";
+  const withoutQuery = rawName.split("?")[0] ?? rawName;
+  try {
+    return decodeURIComponent(withoutQuery);
+  } catch {
+    return withoutQuery;
+  }
+}
+
 function mapApitoUi(item: ApiDoctor): DocumentItemReceiver | null {
-  if (!item._id || !item.userId?._id) return null;
+  const userId = item.userId?._id || item._id;
+  if (!userId) return null;
+
+  const createdAt = item.createdAt ?? item.userId?.createdAt;
 
   return {
-    id: item.userId._id,
-    name: item.userId.fullName,
-    email: item.userId.email,
-    phone: item.userId.phoneNumber ?? "",
+    id: userId,
+    name: item.userId?.fullName ?? item.userId?.email ?? "-",
+    email: item.userId?.email ?? "",
+    phone: item.userId?.phoneNumber ?? "",
     specialty: item.specialty ?? "",
     experienceYears: item.experienceYears,
     experience:
       item.experienceYears != null ? String(item.experienceYears) : "",
     workplace: item.workplace ?? "",
-    sent_at: resolveJoinedDate(item.createdAt),
-    sentAtRaw: item.createdAt,
+    sent_at: resolveJoinedDate(createdAt),
+    sentAtRaw: createdAt,
     status: item.verificationStatus,
     verificationFiles: (item.verificationDocuments ?? []).map((url) => {
       const normalizedUrl = String(url);
-      const fileName = normalizedUrl.split("/").pop() ?? "document";
+      const fileName = decodeFileName(normalizedUrl);
       const extension = fileName.split(".").pop()?.toLowerCase();
       const type: VerificationFile["type"] =
         extension === "jpg" || extension === "jpeg" || extension === "png"

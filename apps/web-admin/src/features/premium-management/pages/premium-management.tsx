@@ -9,15 +9,17 @@ import {
   CheckCircle2,
   Archive,
   Copy,
+  Eye,
   ShieldCheck,
   AlertTriangle,
   Plus,
   Receipt,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { toast } from "react-toastify";
+import { showToast } from "@repo/ui/components/ui/toasts";
 import type { PaymentsGetEvidenceResponse } from "@/lib/api";
 import { EditPlanModal } from "../components/edit-plan-modal";
+import { PlanDetailModal } from "../components/plan-detail-modal";
 import {
   premiumManagementService,
   type CreatePlanDraftInput,
@@ -42,6 +44,7 @@ export function PremiumManagement() {
 
   const [isEditPlanOpen, setIsEditPlanOpen] = useState(false);
   const [cloneSourcePlan, setCloneSourcePlan] = useState<PlanVersionRecord | null>(null);
+  const [selectedDetailPlan, setSelectedDetailPlan] = useState<PlanVersionRecord | null>(null);
 
   const [orderIdInput, setOrderIdInput] = useState("");
   const [isSearchingEvidence, setIsSearchingEvidence] = useState(false);
@@ -61,7 +64,7 @@ export function PremiumManagement() {
           ? err.message
           : t("premiumManagement.errors.loadPlansFailed", "Failed to load subscription plans.");
       setLoadError(message);
-      toast.error(message);
+      showToast.error(message);
     } finally {
       setLoading(false);
     }
@@ -79,12 +82,12 @@ export function PremiumManagement() {
     setBusyId("deploy-defaults");
     try {
       await premiumManagementService.deployDefaults();
-      toast.success(
+      showToast.success(
         t("premiumManagement.toasts.deployedSuccess", "Default plans deployed successfully!")
       );
       await loadPlans();
     } catch (err) {
-      toast.error(
+      showToast.error(
         err instanceof Error
           ? err.message
           : t("premiumManagement.errors.deployFailed", "Failed to deploy default plans.")
@@ -99,7 +102,7 @@ export function PremiumManagement() {
     setBusyId(`pub-${plan.id}`);
     try {
       await premiumManagementService.publishPlan(plan.id);
-      toast.success(
+      showToast.success(
         t("premiumManagement.toasts.versionPublished", "Published {{code}} v{{version}}", {
           code: plan.code,
           version: plan.version,
@@ -107,7 +110,7 @@ export function PremiumManagement() {
       );
       await loadPlans();
     } catch (err) {
-      toast.error(
+      showToast.error(
         err instanceof Error
           ? err.message
           : t("premiumManagement.errors.publishFailed", "Failed to publish plan version.")
@@ -122,7 +125,7 @@ export function PremiumManagement() {
     setBusyId(`retire-${plan.id}`);
     try {
       await premiumManagementService.retirePlan(plan.id);
-      toast.info(
+      showToast.info(
         t("premiumManagement.toasts.versionRetired", "Retired {{code}} v{{version}}", {
           code: plan.code,
           version: plan.version,
@@ -130,7 +133,7 @@ export function PremiumManagement() {
       );
       await loadPlans();
     } catch (err) {
-      toast.error(
+      showToast.error(
         err instanceof Error
           ? err.message
           : t("premiumManagement.errors.retireFailed", "Failed to retire plan version.")
@@ -143,7 +146,7 @@ export function PremiumManagement() {
   const handleCreateDraft = async (input: CreatePlanDraftInput) => {
     try {
       await premiumManagementService.createDraft(input);
-      toast.success(
+      showToast.success(
         t("premiumManagement.toasts.draftCreated", "Created draft plan {{code}}", {
           code: input.code,
         })
@@ -152,7 +155,7 @@ export function PremiumManagement() {
       setCloneSourcePlan(null);
       await loadPlans();
     } catch (err) {
-      toast.error(
+      showToast.error(
         err instanceof Error
           ? err.message
           : t("premiumManagement.errors.createDraftFailed", "Failed to create plan draft.")
@@ -183,7 +186,7 @@ export function PremiumManagement() {
           ? err.message
           : t("premiumManagement.errors.evidenceNotFound", "Payment order evidence not found.");
       setEvidenceError(msg);
-      toast.error(msg);
+      showToast.error(msg);
     } finally {
       setIsSearchingEvidence(false);
     }
@@ -191,11 +194,6 @@ export function PremiumManagement() {
 
   const publishedPlans = planVersions.filter((p) => p.status === "published");
   const draftPlans = planVersions.filter((p) => p.status === "draft");
-  const highlightedPlan =
-    publishedPlans.find((p) => p.code === "CARE") ||
-    publishedPlans.find((p) => p.price > 0) ||
-    publishedPlans[0] ||
-    null;
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6 animate-fade-in">
@@ -444,6 +442,14 @@ export function PremiumManagement() {
                                 <div className="flex items-center justify-end gap-1.5 whitespace-nowrap">
                                   <button
                                     type="button"
+                                    onClick={() => setSelectedDetailPlan(pv)}
+                                    className="px-2.5 py-1 rounded border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium inline-flex items-center gap-1"
+                                  >
+                                    <Eye size={11} />
+                                    {t("premiumManagement.actions.viewDetails", "View Details")}
+                                  </button>
+                                  <button
+                                    type="button"
                                     onClick={() => {
                                       setCloneSourcePlan(pv);
                                       setIsEditPlanOpen(true);
@@ -484,52 +490,6 @@ export function PremiumManagement() {
                     </table>
                   </div>
                 </div>
-
-                {highlightedPlan && (
-                  <div className="max-w-2xl border border-gray-200 dark:border-slate-800 rounded-xl overflow-hidden bg-white dark:bg-slate-900 shadow-sm">
-                    <div className="bg-amber-50 dark:bg-amber-900/20 p-6 border-b border-gray-200 dark:border-slate-800 flex justify-between items-center">
-                      <div>
-                        <h3 className="text-xl font-bold text-amber-900 dark:text-amber-400 flex items-center gap-2">
-                          <CreditCard className="w-5 h-5" />
-                          {highlightedPlan.name} ({highlightedPlan.code} v{highlightedPlan.version})
-                        </h3>
-                        <p className="text-amber-700 dark:text-amber-500 mt-1 text-sm">
-                          {highlightedPlan.description ||
-                            t("premiumManagement.config.subtitle", "Currently published primary tier")}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="p-6 space-y-3 text-sm">
-                      <div className="flex justify-between border-b border-gray-100 dark:border-slate-800 pb-2">
-                        <span className="text-gray-500 dark:text-gray-400">
-                          {t("premiumManagement.config.price", "Price")}
-                        </span>
-                        <span className="font-semibold text-gray-900 dark:text-gray-100">
-                          {highlightedPlan.price.toLocaleString(locale)} {highlightedPlan.currency} /{" "}
-                          {highlightedPlan.durationDays} {t("common.days", "days")}
-                        </span>
-                      </div>
-                      <div className="flex justify-between border-b border-gray-100 dark:border-slate-800 pb-2">
-                        <span className="text-gray-500 dark:text-gray-400">
-                          {t("premiumManagement.limits.aiTurns", "AI Quotas")}
-                        </span>
-                        <span className="font-semibold text-gray-900 dark:text-gray-100">
-                          {highlightedPlan.aiRequestLimit.toLocaleString(locale)} req /{" "}
-                          {highlightedPlan.aiTokenLimit.toLocaleString(locale)} tokens
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-500 dark:text-gray-400">
-                          {t("premiumManagement.limits.consultations", "Consultations & Care Programs")}
-                        </span>
-                        <span className="font-semibold text-gray-900 dark:text-gray-100">
-                          {highlightedPlan.consultationLimitPerCycle} consults /{" "}
-                          {highlightedPlan.activeCareProgramLimit} programs
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                )}
               </>
             )}
           </div>
@@ -697,6 +657,15 @@ export function PremiumManagement() {
         }}
         initialPlan={cloneSourcePlan}
         onSave={handleCreateDraft}
+      />
+
+      <PlanDetailModal
+        plan={selectedDetailPlan}
+        onClose={() => setSelectedDetailPlan(null)}
+        onClone={(plan) => {
+          setCloneSourcePlan(plan);
+          setIsEditPlanOpen(true);
+        }}
       />
     </div>
   );

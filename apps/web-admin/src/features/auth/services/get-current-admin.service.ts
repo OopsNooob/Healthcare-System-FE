@@ -1,5 +1,5 @@
 import { api } from "@/lib/api";
-import type { AdminRole } from "@repo/ui/types/auth";
+import { normalizeAdminRole, type AdminRole } from "@repo/ui/types/auth";
 
 type ApiCurrentAdminProfile = {
   _id?: string;
@@ -9,7 +9,7 @@ type ApiCurrentAdminProfile = {
   role: "admin";
   avatarUrl?: string;
   adminProfile?: {
-    adminRole?: AdminRole;
+    adminRole?: string;
   } | null;
 };
 
@@ -32,6 +32,6 @@ export async function getCurrentAdmin(): Promise<CurrentAdmin> {
     fullName: currentAdmin.fullName,
     role: currentAdmin.role,
     avatarUrl: currentAdmin.avatarUrl,
-    adminRole: currentAdmin.adminProfile?.adminRole,
+    adminRole: normalizeAdminRole(currentAdmin.adminProfile?.adminRole),
   };
 }

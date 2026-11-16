@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { X, CheckCircle2, XCircle, AlertTriangle } from "lucide-react";
-import { toast } from "react-toastify";
+import { showToast } from "@repo/ui/components/ui/toasts";
 import type { MedicalFacilityItem } from "./facility-form-modal";
 
 interface FacilityDecisionModalProps {
@@ -30,7 +30,7 @@ export function FacilityDecisionModal({
 
   const handleConfirm = () => {
     if (isReject && !rejectionReason.trim()) {
-      toast.warning(
+      showToast.warning(
         t(
           "medicalFacilities.toasts.reasonRequired",
           "Please provide a rejection reason"

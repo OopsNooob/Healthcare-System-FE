@@ -21,8 +21,12 @@ export function Overview() {
 
   const isDark = (resolvedTheme ?? theme) === "dark";
 
-  const lineChartLabels = summary.monthly.labels;
-  const barChartLabels = summary.weekly.labels;
+  const lineChartLabels = summary.monthly.labels.map((label) =>
+    label ? t(`overview.months.${label}`, label) : "",
+  );
+  const barChartLabels = summary.weekly.labels.map((label) =>
+    label ? t(`overview.weekdays.${label}`, label) : "",
+  );
 
   const lineChartDatasets = [
     {

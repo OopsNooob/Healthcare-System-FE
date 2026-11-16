@@ -64,7 +64,7 @@ export function useApproveDoctor() {
           ? loadError.message
           : "Failed to approve doctor",
       );
-      return null;
+      throw loadError;
     } finally {
       setLoading(false);
     }
@@ -98,7 +98,7 @@ export function useRejectDoctor() {
           ? loadError.message
           : "Failed to reject doctor",
       );
-      return null;
+      throw loadError;
     } finally {
       setLoading(false);
     }

@@ -42,7 +42,7 @@ export function setAuthCallbacks(
 // We fallback to a hardcoded URL or require the consumer to inject it.
 let API_BASE_URL = typeof process !== 'undefined' && process.env.EXPO_PUBLIC_API_URL
   ? process.env.EXPO_PUBLIC_API_URL
-  : "http://localhost:3000/api/v1";
+  : "http://localhost:3001/api/v1";
 
 let SOCKET_BASE_URL = API_BASE_URL.replace(/\/api(\/.*)?$/, "");
 

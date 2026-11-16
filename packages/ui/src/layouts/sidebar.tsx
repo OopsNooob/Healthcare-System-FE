@@ -24,7 +24,7 @@ import { cn } from "../lib/utils";
 import { UserAvatar } from "../components/ui/user-avatar";
 import { useState } from "react";
 import { useAuthStore } from "../store/useAuthStore";
-import { type AdminRole, type AppRole } from "../types/auth";
+import { normalizeAdminRole, type AdminRole, type AppRole } from "../types/auth";
 import { useTranslation } from "react-i18next";
 
 const clientMenuItems = {
@@ -208,9 +208,11 @@ export function Sidebar({
   const [shrunk, setShrunk] = useState(false);
   const { t } = useTranslation();
 
+  const effectiveAdminRole = normalizeAdminRole(adminRole ?? user?.adminRole);
+
   const roleItems =
     userRole === "admin"
-      ? (adminMenuItems[adminRole ?? "user_admin"] ?? [])
+      ? (adminMenuItems[effectiveAdminRole] ?? [])
       : clientMenuItems[userRole];
 
   const onLogOut = async () => {
@@ -244,9 +246,9 @@ export function Sidebar({
               </p>
               <p className="text-sm text-center text-[#6B7280] dark:text-slate-400 font-semibold">
                 {userRole === "admin"
-                  ? adminRole === "super_admin"
+                  ? effectiveAdminRole === "super_admin"
                     ? "Super Admin"
-                    : adminRole === "ai_admin"
+                    : effectiveAdminRole === "ai_admin"
                       ? "AI Admin"
                       : "User Admin"
                   : userRole === "doctor"

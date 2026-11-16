@@ -14,7 +14,7 @@ import {
   X,
 } from "lucide-react";
 import { Badge } from "@repo/ui/components/ui/badge";
-import { toast } from "react-toastify";
+import { showToast } from "@repo/ui/components/ui/toasts";
 import { FacilityFormModal } from "../components/facility-form-modal";
 import type { MedicalFacilityItem } from "../components/facility-form-modal";
 import { FacilityDecisionModal } from "../components/facility-decision-modal";
@@ -162,7 +162,7 @@ export function MedicalFacilities() {
     setFacilities((prev) =>
       prev.map((f) => (f.id === fac.id ? { ...f, status: "retired" } : f))
     );
-    toast.info(t("medicalFacilities.diseaseSpecialty.retiredSuccess"));
+    showToast.info(t("medicalFacilities.diseaseSpecialty.retiredSuccess"));
   };
 
   const handleSaveFacility = (
@@ -175,7 +175,7 @@ export function MedicalFacilities() {
           f.id === editingFacility.id ? { ...f, ...data, lastCheckedAt: today } : f
         )
       );
-      toast.success(
+      showToast.success(
         t("medicalFacilities.toasts.updated", "Facility updated successfully")
       );
     } else {
@@ -188,7 +188,7 @@ export function MedicalFacilities() {
         lastCheckedAt: today,
       };
       setFacilities((prev) => [newFacility, ...prev]);
-      toast.success(
+      showToast.success(
         t("medicalFacilities.toasts.added", "Facility added successfully")
       );
     }
@@ -214,14 +214,14 @@ export function MedicalFacilities() {
     );
 
     if (decisionMode === "verify") {
-      toast.success(
+      showToast.success(
         t(
           "medicalFacilities.toasts.verified",
           "Facility verified and published to map"
         )
       );
     } else {
-      toast.info(
+      showToast.info(
         t(
           "medicalFacilities.toasts.rejected",
           "Facility submission rejected"
@@ -257,7 +257,7 @@ export function MedicalFacilities() {
 
   const handleSaveMapping = () => {
     if (!mapCode.trim() || !mapNameVi.trim()) {
-      toast.warning(t("medicalFacilities.diseaseSpecialty.codeAndNameRequired"));
+      showToast.warning(t("medicalFacilities.diseaseSpecialty.codeAndNameRequired"));
       return;
     }
     const today = new Date().toISOString().split("T")[0] || "2026-11-06";
@@ -283,7 +283,7 @@ export function MedicalFacilities() {
             : m
         )
       );
-      toast.success(t("medicalFacilities.diseaseSpecialty.updatedSuccess"));
+      showToast.success(t("medicalFacilities.diseaseSpecialty.updatedSuccess"));
     } else {
       const created: DiseaseSpecialtyMappingItem = {
         id: `MAP-00${mappings.length + 1}`,
@@ -297,7 +297,7 @@ export function MedicalFacilities() {
         updatedAt: today,
       };
       setMappings((prev) => [created, ...prev]);
-      toast.success(t("medicalFacilities.diseaseSpecialty.createdSuccess"));
+      showToast.success(t("medicalFacilities.diseaseSpecialty.createdSuccess"));
     }
     setIsMappingModalOpen(false);
   };
@@ -306,7 +306,7 @@ export function MedicalFacilities() {
     setMappings((prev) =>
       prev.map((m) => (m.id === id ? { ...m, isActive: !m.isActive } : m))
     );
-    toast.info(t("medicalFacilities.diseaseSpecialty.statusUpdatedSuccess"));
+    showToast.info(t("medicalFacilities.diseaseSpecialty.statusUpdatedSuccess"));
   };
 
   return (

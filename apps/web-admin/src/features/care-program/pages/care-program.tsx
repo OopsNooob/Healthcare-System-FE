@@ -15,7 +15,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { Badge } from "@repo/ui/components/ui/badge";
-import { toast } from "react-toastify";
+import { showToast } from "@repo/ui/components/ui/toasts";
 import { CreateProgramModal, type CreateProgramData } from "../components/create-program-modal";
 import { EditProgramModal, type EditProgramSavePayload } from "../components/edit-program-modal";
 import { AddRuleModal } from "../components/add-rule-modal";
@@ -79,7 +79,7 @@ export function CareProgram() {
             ? err.message
             : t("careProgram.errors.loadFailed", "Unable to load care programs from server.");
         setLoadError(message);
-        toast.error(message);
+        showToast.error(message);
       } finally {
         setIsLoading(false);
       }
@@ -109,7 +109,7 @@ export function CareProgram() {
         : await careProgramService.getProgramDetail(prog.id, prog);
       setEditingProgram(detailed);
     } catch (err) {
-      toast.error(
+      showToast.error(
         err instanceof Error
           ? err.message
           : t("careProgram.errors.loadDetailFailed", "Failed to load program details")
@@ -138,14 +138,14 @@ export function CareProgram() {
         educationCatalog
       );
       setIsCreateOpen(false);
-      toast.success(
+      showToast.success(
         status === "published"
           ? t("careProgram.toasts.createdPublished", "Created & published care program!")
           : t("careProgram.toasts.savedDraft", "Saved program template as Draft.")
       );
       await loadData(ruleView);
     } catch (err) {
-      toast.error(
+      showToast.error(
         err instanceof Error
           ? err.message
           : t("careProgram.errors.createFailed", "Failed to create care program")
@@ -175,7 +175,7 @@ export function CareProgram() {
           },
           educationCatalog
         );
-        toast.success(
+        showToast.success(
           t("careProgram.toasts.newVersionCreated", "Created new draft version for {{name}}", {
             name: updated.name,
           })
@@ -184,13 +184,13 @@ export function CareProgram() {
         const saved = await careProgramService.updateProgram(existing, updated, educationCatalog);
         if (options.publishNow) {
           await careProgramService.publishProgram(saved, "Published via web admin");
-          toast.success(
+          showToast.success(
             t("careProgram.toasts.publishedProgram", "Published program {{name}}", {
               name: updated.name,
             })
           );
         } else {
-          toast.success(
+          showToast.success(
             t("careProgram.toasts.updatedProgram", "Updated template {{name}}", {
               name: updated.name,
             })
@@ -200,7 +200,7 @@ export function CareProgram() {
       setEditingProgram(null);
       await loadData(ruleView);
     } catch (err) {
-      toast.error(
+      showToast.error(
         err instanceof Error
           ? err.message
           : t("careProgram.errors.updateFailed", "Failed to save program changes")
@@ -216,14 +216,14 @@ export function CareProgram() {
         ? prog
         : await careProgramService.getProgramDetail(prog.id, prog);
       await careProgramService.publishProgram(detailed, "Published from care program dashboard");
-      toast.success(
+      showToast.success(
         t("careProgram.toasts.publishedProgram", "Published program {{name}}", {
           name: prog.name,
         })
       );
       await loadData(ruleView);
     } catch (err) {
-      toast.error(
+      showToast.error(
         err instanceof Error
           ? err.message
           : t("careProgram.errors.publishFailed", "Failed to publish care program")
@@ -241,14 +241,14 @@ export function CareProgram() {
         ? prog
         : await careProgramService.getProgramDetail(prog.id, prog);
       await careProgramService.retireProgram(detailed, "Retired from care program dashboard");
-      toast.info(
+      showToast.info(
         t("careProgram.toasts.retiredProgram", "Retired program {{name}}", {
           name: prog.name,
         })
       );
       await loadData(ruleView);
     } catch (err) {
-      toast.error(
+      showToast.error(
         err instanceof Error
           ? err.message
           : t("careProgram.errors.retireFailed", "Failed to retire care program")
@@ -263,14 +263,14 @@ export function CareProgram() {
       await careProgramService.createRuleDraft(data);
       setIsAddRuleOpen(false);
       setRuleView("draft");
-      toast.success(
+      showToast.success(
         t("careProgram.toasts.addedRule", "Added new rule draft for {{metric}}", {
           metric: data.metric,
         })
       );
       await loadData("draft");
     } catch (err) {
-      toast.error(
+      showToast.error(
         err instanceof Error
           ? err.message
           : t("careProgram.errors.createRuleFailed", "Failed to create rule draft")
@@ -288,14 +288,14 @@ export function CareProgram() {
         rule.revision,
         "Activated via clinical rule console"
       );
-      toast.success(
+      showToast.success(
         t("careProgram.toasts.activatedRule", "Activated alert rule for {{program}}", {
           program: rule.programName,
         })
       );
       await loadData(ruleView);
     } catch (err) {
-      toast.error(
+      showToast.error(
         err instanceof Error
           ? err.message
           : t("careProgram.errors.activateRuleFailed", "Failed to activate rule")
@@ -315,14 +315,14 @@ export function CareProgram() {
         rule.revision,
         "Retired via clinical rule console"
       );
-      toast.info(
+      showToast.info(
         t("careProgram.toasts.retiredRule", "Retired alert rule for {{program}}", {
           program: rule.programName,
         })
       );
       await loadData(ruleView);
     } catch (err) {
-      toast.error(
+      showToast.error(
         err instanceof Error
           ? err.message
           : t("careProgram.errors.retireRuleFailed", "Failed to retire rule")
@@ -342,12 +342,12 @@ export function CareProgram() {
       await careProgramService.updateRuleDraft(rule.careProgramId, rule.id, rule.revision, {
         testResults: { summary, scenarios },
       });
-      toast.success(
+      showToast.success(
         t("careProgram.toasts.savedTestEvidence", "Saved dry-run verification evidence to draft rule")
       );
       await loadData(ruleView);
     } catch (err) {
-      toast.error(
+      showToast.error(
         err instanceof Error
           ? err.message
           : t("careProgram.errors.saveTestEvidenceFailed", "Failed to save verification evidence")
@@ -360,13 +360,13 @@ export function CareProgram() {
     setBusyId("schedule-tasks");
     try {
       const result = await careProgramService.scheduleTasks();
-      toast.success(
+      showToast.success(
         t("careProgram.toasts.tasksScheduled", "Scheduled daily tasks ({{count}} created)", {
           count: result.created ?? 0,
         })
       );
     } catch (err) {
-      toast.error(
+      showToast.error(
         err instanceof Error
           ? err.message
           : t("careProgram.errors.scheduleFailed", "Failed to run daily task scheduler")

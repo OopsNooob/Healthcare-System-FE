@@ -121,7 +121,35 @@
       "ordersCount": "Orders Count",
       "refresh": "Refresh",
       "resolvedCareAlerts": "Resolved Care Alerts",
-      "violationTotalCount": "{{count}} violation reports"
+      "violationTotalCount": "{{count}} violation reports",
+      "healthState": {
+        "ok": "Healthy",
+        "degraded": "Degraded",
+        "down": "Down"
+      },
+      "months": {
+        "Jan": "Jan",
+        "Feb": "Feb",
+        "Mar": "Mar",
+        "Apr": "Apr",
+        "May": "May",
+        "Jun": "Jun",
+        "Jul": "Jul",
+        "Aug": "Aug",
+        "Sep": "Sep",
+        "Oct": "Oct",
+        "Nov": "Nov",
+        "Dec": "Dec"
+      },
+      "weekdays": {
+        "Mon": "Mon",
+        "Tue": "Tue",
+        "Wed": "Wed",
+        "Thu": "Thu",
+        "Fri": "Fri",
+        "Sat": "Sat",
+        "Sun": "Sun"
+      }
     },
     "userManagement": {
       "title": "User & Doctor Management",
@@ -166,12 +194,16 @@
         "unlockUser": "Unlock user",
         "operationalSummary": "Operational Summary",
         "deactivateUser": "Deactivate account",
-        "deleteAdmin": "Remove admin"
+        "deleteAdmin": "Remove admin",
+        "assignRoleTo": "Set as {{role}}"
       },
       "roles": {
         "superAdmin": "Super admin",
         "userAdmin": "User admin",
-        "aiAdmin": "AI admin"
+        "aiAdmin": "AI admin",
+        "super_admin": "Super admin",
+        "user_admin": "User admin",
+        "ai_admin": "AI admin"
       },
       "addAdminModal": {
         "title": "Create admin account",
@@ -206,7 +238,9 @@
         "lockedSuccess": "User locked & all active sessions revoked",
         "adminCreated": "Admin account created.",
         "adminDeleted": "Admin profile removed.",
-        "userDeactivated": "Account deactivated."
+        "userDeactivated": "Account deactivated.",
+        "roleUpdated": "Role updated to {{role}}",
+        "roleUpdateFailed": "Failed to update admin role."
       },
       "lockModal": {
         "title": "Lock User Account",
@@ -524,6 +558,41 @@
         "retirePlan": "Retire Plan",
         "publishPlan": "Publish Plan",
         "newDraft": "New Plan Draft"
+      },
+      "detailModal": {
+        "title": "Premium Plan Details",
+        "subtitle": "Configuration, resource quotas, and refund policy for this plan version",
+        "description": "Description",
+        "noDescription": "No description provided for this plan.",
+        "pricingSection": "Pricing & Billing Cycle",
+        "price": "Price",
+        "durationDays": "Cycle Duration",
+        "daysValue": "{{count}} days",
+        "quotasSection": "AI & Clinical Quotas",
+        "aiRequests": "AI Requests",
+        "aiTokens": "AI Token Quota",
+        "quotaPeriod": "AI Quota Period",
+        "consultations": "Doctor Consultations / Cycle",
+        "carePrograms": "Active Care Programs",
+        "benefitsSection": "Included Benefits",
+        "weeklyAiSummary": "Weekly AI Health Summary",
+        "summaryTokenBudget": "Summary Token Budget",
+        "doctorReview": "Doctor Review",
+        "highlights": "Feature Highlights",
+        "enabled": "Included",
+        "disabled": "Not included",
+        "noHighlights": "No additional highlight items.",
+        "refundSection": "Refund Policy",
+        "refundType": "Refund Type",
+        "refundWindow": "Refund Window",
+        "policyVersion": "Policy Version",
+        "refundNone": "No Refund",
+        "refundFullOnly": "Full Refund Only",
+        "lifecycleSection": "Version Lifecycle",
+        "publishedAt": "Published At",
+        "retiredAt": "Retired At",
+        "close": "Close",
+        "cloneNewDraft": "Clone as New Draft"
       },
       "refundModal": {
         "title": "Review Refund Request",
@@ -1236,6 +1305,13 @@
       }
     },
     "careProgram": {
+      "diseases": {
+        "hypertension": "Hypertension",
+        "diabetes": "Diabetes",
+        "cardiovascular": "Cardiovascular",
+        "respiratory": "Respiratory",
+        "general": "General Chronic Care"
+      },
       "title": "Care Program & Rules",
       "subtitle": "Manage health tracking programs, educational materials, and alert rules.",
       "tabs": {
@@ -1286,6 +1362,10 @@
         "viewDraft": "Draft Projection"
       },
       "baseline": {
+        "systolic": "Baseline Systolic BP",
+        "diastolic": "Baseline Diastolic BP",
+        "glucose": "Fasting Glucose",
+        "symptoms": "Baseline Symptoms",
         "bloodPressure": "Blood Pressure",
         "heartRate": "Heart Rate",
         "fastingGlucose": "Fasting Glucose",
@@ -1705,7 +1785,51 @@
       "records": "records",
       "retry": "Retry",
       "saving": "Saving...",
-      "searching": "Searching..."
+      "searching": "Searching...",
+      "toast": {
+        "success": "Success",
+        "error": "Error",
+        "info": "Info",
+        "warning": "Warning"
+      },
+      "apiErrors": {
+        "limitMax100": "Query limit must not be greater than 100.",
+        "adminProfileNotFound": "Admin profile not found.",
+        "superAdminViewAdmins": "Only super admins can view all admin accounts.",
+        "superAdminCreateAdmins": "Only super admins can create new admin accounts.",
+        "cannotUpdateAdminAccount": "Only super admins or user managers can update admin accounts.",
+        "cannotModifyOwnAccount": "Cannot modify your own account.",
+        "emailAlreadyInUse": "Email is already in use.",
+        "emailNotFound": "Email does not exist.",
+        "incorrectPassword": "Incorrect password.",
+        "accountBanned": "Account is banned.",
+        "accountNotApproved": "Account is not approved.",
+        "userNotFound": "User not found.",
+        "invalidUserId": "Invalid user ID.",
+        "loadUsersFailed": "Failed to load user data.",
+        "loadDocumentsFailed": "Failed to load documents.",
+        "loadKeywordsFailed": "Failed to load keyword list.",
+        "loadDetailsFailed": "Failed to load details.",
+        "lockUserFailed": "Failed to lock user account.",
+        "unlockUserFailed": "Failed to unlock user account.",
+        "updateAdminRoleFailed": "Failed to update admin role.",
+        "addKeywordFailed": "Failed to add keyword.",
+        "updateKeywordFailed": "Failed to update keyword.",
+        "deleteKeywordFailed": "Failed to delete keyword.",
+        "keywordEmpty": "New keyword cannot be empty.",
+        "keywordInvalid": "Invalid keyword update payload.",
+        "changeDocStatusFailed": "Failed to change document status.",
+        "archiveDocFailed": "Failed to archive document.",
+        "indexDocFailed": "Failed to index document.",
+        "ingestDocFailed": "Failed to trigger AI ingestion.",
+        "updateDocFailed": "Failed to update document.",
+        "invalidDocId": "Invalid document ID.",
+        "networkError": "Unable to connect to the server.",
+        "forbidden": "You do not have permission to perform this action.",
+        "notFound": "Requested resource was not found.",
+        "unauthorized": "Session is invalid or expired.",
+        "serverError": "Internal server error. Please try again later."
+      }
     },
     "auditLogs": {
       "tabSystemLogs": "System Audit Logs",

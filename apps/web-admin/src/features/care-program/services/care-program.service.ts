@@ -613,10 +613,10 @@ export const careProgramService = {
       dataSources: [] as Array<Record<string, unknown>>,
     };
 
+    const idempotencyKey = generateIdempotencyKey();
     const created = await webAdminApi.careProgramRuleCreateProgram({
       headers: {
-        "Idempotency-Key": generateIdempotencyKey(),
-        "idempotency-key": generateIdempotencyKey(),
+        "Idempotency-Key": idempotencyKey,
       },
       body,
     });
