@@ -32,7 +32,7 @@ function resolveMobileApiBaseUrl(): string {
   const rawUrl =
     (typeof process !== 'undefined' && process.env?.EXPO_PUBLIC_API_URL) ||
     API_BASE_URL ||
-    'http://10.0.2.2:3000/api/v1';
+    'http://10.0.2.2:3001/api/v1';
 
   if (Platform.OS === 'android' && /\/\/(localhost|127\.0\.0\.1)(:|\/|$)/.test(rawUrl)) {
     const host = Constants.expoConfig?.hostUri?.split(':')[0];

@@ -1362,6 +1362,10 @@
         "viewDraft": "Draft Projection"
       },
       "baseline": {
+        "systolic": "Baseline Systolic BP",
+        "diastolic": "Baseline Diastolic BP",
+        "glucose": "Fasting Glucose",
+        "symptoms": "Baseline Symptoms",
         "bloodPressure": "Blood Pressure",
         "heartRate": "Heart Rate",
         "fastingGlucose": "Fasting Glucose",

@@ -1362,6 +1362,10 @@
         "viewDraft": "Bản nháp quy tắc"
       },
       "baseline": {
+        "systolic": "Huyết áp tâm thu nền",
+        "diastolic": "Huyết áp tâm trương nền",
+        "glucose": "Đường huyết lúc đói",
+        "symptoms": "Triệu chứng ban đầu",
         "bloodPressure": "Huyết áp",
         "heartRate": "Nhịp tim",
         "fastingGlucose": "Đường huyết lúc đói",
