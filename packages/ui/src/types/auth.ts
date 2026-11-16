@@ -10,6 +10,13 @@ export interface User {
 export type AppRole = "admin" | "doctor" | "patient";
 export type AdminRole = "ai_admin" | "user_admin" | "super_admin";
 
+export function normalizeAdminRole(role?: string | null): AdminRole {
+  if (role === "super_admin") return "super_admin";
+  if (role === "ai_admin" || role === "ai_manager") return "ai_admin";
+  if (role === "user_admin" || role === "user_manager") return "user_admin";
+  return "user_admin";
+}
+
 export interface AuthState {
   user: User | null;
   token: string | null;

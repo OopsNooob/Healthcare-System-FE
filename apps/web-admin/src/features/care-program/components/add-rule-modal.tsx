@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { X, Sliders, Activity, ClipboardCheck } from "lucide-react";
-import { toast } from "react-toastify";
+import { showToast } from "@repo/ui/components/ui/toasts";
 import {
   careProgramService,
   type CareProgramRecord,
@@ -91,20 +91,20 @@ export function AddRuleModal({
   const handleSubmit = async () => {
     if (isSubmitting) return;
     if (!selectedProgramId) {
-      toast.warning(
+      showToast.warning(
         t("careProgram.toasts.selectProgramFirst", "Please select a care program first")
       );
       return;
     }
     const val = parseFloat(ruleThreshold);
     if (Number.isNaN(val)) {
-      toast.warning(
+      showToast.warning(
         t("careProgram.toasts.thresholdInvalid", "Please enter a valid numeric threshold")
       );
       return;
     }
     if (sourceType === "care_task_check_in" && checkInTemplates.length === 0) {
-      toast.warning(
+      showToast.warning(
         t(
           "careProgram.toasts.noCheckInTemplate",
           "The selected program has no symptom check-in task template configured."

@@ -121,7 +121,35 @@
       "ordersCount": "Số lượt đăng ký",
       "refresh": "Làm mới",
       "resolvedCareAlerts": "Cảnh báo đã xử lý",
-      "violationTotalCount": "{{count}} báo cáo vi phạm"
+      "violationTotalCount": "{{count}} báo cáo vi phạm",
+      "healthState": {
+        "ok": "Hoạt động tốt",
+        "degraded": "Suy giảm",
+        "down": "Gián đoạn"
+      },
+      "months": {
+        "Jan": "Thg 1",
+        "Feb": "Thg 2",
+        "Mar": "Thg 3",
+        "Apr": "Thg 4",
+        "May": "Thg 5",
+        "Jun": "Thg 6",
+        "Jul": "Thg 7",
+        "Aug": "Thg 8",
+        "Sep": "Thg 9",
+        "Oct": "Thg 10",
+        "Nov": "Thg 11",
+        "Dec": "Thg 12"
+      },
+      "weekdays": {
+        "Mon": "T2",
+        "Tue": "T3",
+        "Wed": "T4",
+        "Thu": "T5",
+        "Fri": "T6",
+        "Sat": "T7",
+        "Sun": "CN"
+      }
     },
     "userManagement": {
       "title": "Quản lý Người dùng & Bác sĩ",
@@ -166,12 +194,16 @@
         "unlockUser": "Mở khoá tài khoản",
         "operationalSummary": "Tóm tắt vận hành",
         "deactivateUser": "Ngưng kích hoạt tài khoản",
-        "deleteAdmin": "Xóa quyền quản trị"
+        "deleteAdmin": "Xóa quyền quản trị",
+        "assignRoleTo": "Chuyển thành {{role}}"
       },
       "roles": {
         "superAdmin": "Quản trị cấp cao",
         "userAdmin": "Quản trị người dùng",
-        "aiAdmin": "Quản trị AI"
+        "aiAdmin": "Quản trị AI",
+        "super_admin": "Quản trị cấp cao",
+        "user_admin": "Quản trị người dùng",
+        "ai_admin": "Quản trị AI"
       },
       "addAdminModal": {
         "title": "Tạo tài khoản Quản trị viên",
@@ -206,7 +238,9 @@
         "lockedSuccess": "Đã khóa tài khoản và thu hồi toàn bộ phiên đăng nhập",
         "adminCreated": "Đã tạo tài khoản quản trị viên.",
         "adminDeleted": "Đã xóa hồ sơ quản trị viên.",
-        "userDeactivated": "Đã ngưng kích hoạt tài khoản."
+        "userDeactivated": "Đã ngưng kích hoạt tài khoản.",
+        "roleUpdated": "Đã cập nhật vai trò thành {{role}}",
+        "roleUpdateFailed": "Không thể cập nhật vai trò quản trị viên."
       },
       "lockModal": {
         "title": "Khóa tài khoản người dùng",
@@ -524,6 +558,41 @@
         "retirePlan": "Ngừng lưu hành",
         "publishPlan": "Phát hành gói",
         "newDraft": "Bản nháp gói mới"
+      },
+      "detailModal": {
+        "title": "Chi tiết Gói Premium",
+        "subtitle": "Thông tin cấu hình, hạn mức tài nguyên và chính sách hoàn tiền của phiên bản gói",
+        "description": "Mô tả gói",
+        "noDescription": "Chưa có mô tả cho gói này.",
+        "pricingSection": "Giá & Chu kỳ",
+        "price": "Giá gói",
+        "durationDays": "Thời hạn sử dụng",
+        "daysValue": "{{count}} ngày",
+        "quotasSection": "Hạn mức AI & Dịch vụ Y tế",
+        "aiRequests": "Lượt hỏi Trợ lý AI",
+        "aiTokens": "Hạn mức AI Tokens",
+        "quotaPeriod": "Chu kỳ cấp hạn mức AI",
+        "consultations": "Số buổi tư vấn bác sĩ",
+        "carePrograms": "Số chương trình chăm sóc",
+        "benefitsSection": "Quyền lợi đi kèm",
+        "weeklyAiSummary": "Tóm tắt sức khỏe AI hàng tuần",
+        "summaryTokenBudget": "Ngân sách token tóm tắt",
+        "doctorReview": "Đánh giá của bác sĩ",
+        "highlights": "Tính năng nổi bật",
+        "enabled": "Có",
+        "disabled": "Không",
+        "noHighlights": "Không có tính năng nổi bật bổ sung.",
+        "refundSection": "Chính sách Hoàn tiền",
+        "refundType": "Hình thức hoàn tiền",
+        "refundWindow": "Số ngày cho phép hoàn tiền",
+        "policyVersion": "Phiên bản chính sách",
+        "refundNone": "Không hỗ trợ hoàn tiền",
+        "refundFullOnly": "Hoàn tiền toàn phần",
+        "lifecycleSection": "Mốc thời gian phiên bản",
+        "publishedAt": "Phát hành lúc",
+        "retiredAt": "Ngừng lưu hành lúc",
+        "close": "Đóng",
+        "cloneNewDraft": "Nhân bản thành bản nháp mới"
       },
       "refundModal": {
         "title": "Xem xét Phê duyệt Hoàn tiền",
@@ -1236,6 +1305,13 @@
       }
     },
     "careProgram": {
+      "diseases": {
+        "hypertension": "Tăng huyết áp",
+        "diabetes": "Đái tháo đường",
+        "cardiovascular": "Tim mạch",
+        "respiratory": "Hô hấp",
+        "general": "Bệnh mạn tính tổng quát"
+      },
       "title": "Chương trình Chăm sóc & Quy tắc",
       "subtitle": "Quản lý chương trình theo dõi sức khoẻ, tài liệu giáo dục và hệ thống quy tắc cảnh báo.",
       "tabs": {
@@ -1705,7 +1781,51 @@
       "records": "bản ghi",
       "retry": "Thử lại",
       "saving": "Đang lưu...",
-      "searching": "Đang tìm kiếm..."
+      "searching": "Đang tìm kiếm...",
+      "toast": {
+        "success": "Thành công",
+        "error": "Lỗi",
+        "info": "Thông tin",
+        "warning": "Cảnh báo"
+      },
+      "apiErrors": {
+        "limitMax100": "Số lượng truy vấn mỗi trang tối đa là 100.",
+        "adminProfileNotFound": "Không tìm thấy hồ sơ quản trị viên.",
+        "superAdminViewAdmins": "Chỉ Quản trị cấp cao mới có quyền xem tất cả tài khoản quản trị.",
+        "superAdminCreateAdmins": "Chỉ Quản trị cấp cao mới có quyền tạo tài khoản quản trị mới.",
+        "cannotUpdateAdminAccount": "Bạn không có quyền cập nhật tài khoản quản trị viên.",
+        "cannotModifyOwnAccount": "Không thể tự chỉnh sửa tài khoản của chính bạn.",
+        "emailAlreadyInUse": "Email này đã được sử dụng.",
+        "emailNotFound": "Email không tồn tại.",
+        "incorrectPassword": "Mật khẩu không chính xác.",
+        "accountBanned": "Tài khoản đã bị khoá.",
+        "accountNotApproved": "Tài khoản chưa được phê duyệt.",
+        "userNotFound": "Không tìm thấy người dùng.",
+        "invalidUserId": "Mã người dùng không hợp lệ.",
+        "loadUsersFailed": "Không thể tải danh sách người dùng.",
+        "loadDocumentsFailed": "Không thể tải danh sách tài liệu.",
+        "loadKeywordsFailed": "Không thể tải danh sách từ khoá cấm.",
+        "loadDetailsFailed": "Không thể tải thông tin chi tiết.",
+        "lockUserFailed": "Không thể khoá tài khoản người dùng.",
+        "unlockUserFailed": "Không thể mở khoá tài khoản người dùng.",
+        "updateAdminRoleFailed": "Không thể cập nhật vai trò quản trị viên.",
+        "addKeywordFailed": "Không thể thêm từ khoá.",
+        "updateKeywordFailed": "Không thể cập nhật từ khoá.",
+        "deleteKeywordFailed": "Không thể xoá từ khoá.",
+        "keywordEmpty": "Từ khoá mới không được để trống.",
+        "keywordInvalid": "Dữ liệu cập nhật từ khoá không hợp lệ.",
+        "changeDocStatusFailed": "Không thể thay đổi trạng thái tài liệu.",
+        "archiveDocFailed": "Không thể lưu trữ tài liệu.",
+        "indexDocFailed": "Không thể lập chỉ mục tài liệu.",
+        "ingestDocFailed": "Không thể kích hoạt nạp dữ liệu AI.",
+        "updateDocFailed": "Không thể cập nhật tài liệu.",
+        "invalidDocId": "Mã tài liệu không hợp lệ.",
+        "networkError": "Không thể kết nối đến máy chủ.",
+        "forbidden": "Bạn không có quyền thực hiện thao tác này.",
+        "notFound": "Không tìm thấy dữ liệu yêu cầu.",
+        "unauthorized": "Phiên đăng nhập không hợp lệ hoặc đã hết hạn.",
+        "serverError": "Lỗi máy chủ nội bộ. Vui lòng thử lại sau."
+      }
     },
     "auditLogs": {
       "tabSystemLogs": "Nhật ký Hệ thống",

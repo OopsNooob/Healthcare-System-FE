@@ -1,4 +1,5 @@
 import { useAuthStore } from "../store/useAuthStore";
+import { normalizeAdminRole } from "../types/auth";
 import { Sidebar, type SidebarRole } from "./sidebar";
 import { TopHeader } from "./top-header";
 import { useEffect, useRef } from "react";
@@ -34,7 +35,7 @@ export function Layout({
 
   const user = useAuthStore((state) => state.user);
   const userRole = (user?.role as SidebarRole) || "admin";
-  const adminRole = user?.adminRole;
+  const adminRole = user?.adminRole ? normalizeAdminRole(user.adminRole) : undefined;
 
   useEffect(() => {
     mainRef.current?.scrollTo({ top: 0, behavior: "auto" });

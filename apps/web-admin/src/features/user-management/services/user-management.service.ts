@@ -280,7 +280,7 @@ export async function getUserManagement(): Promise<UserManagement> {
     fetchAllPagedUsers(),
     fetchDoctorsDirectory(),
     fetchAllPendingDoctorApplicationsCount(),
-    webAdminApi.adminsFindAll({ query: { page: 1, limit: 100 } }),
+    webAdminApi.adminsFindAll({ query: { page: 1, limit: 100 } }).catch(() => null),
     webAdminApi.patientProfileFindAll({ query: { page: 1, limit: 1 } }).catch(() => null),
   ]);
 
@@ -311,7 +311,7 @@ export async function getUserManagement(): Promise<UserManagement> {
     });
   }
 
-  const adminProfiles = (adminProfilesResponse.data?.admins ?? []) as unknown as ApiAdminRecord[];
+  const adminProfiles = (adminProfilesResponse?.data?.admins ?? []) as unknown as ApiAdminRecord[];
 
   for (const adminProfile of adminProfiles) {
     const adminUser =

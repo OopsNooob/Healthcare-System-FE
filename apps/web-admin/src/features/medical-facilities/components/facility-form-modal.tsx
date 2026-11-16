@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { X, Building2 } from "lucide-react";
-import { toast } from "react-toastify";
+import { showToast } from "@repo/ui/components/ui/toasts";
 
 export interface MedicalFacilityItem {
   id: number;
@@ -43,13 +43,13 @@ export function FacilityFormModal({
 
   const handleSubmit = () => {
     if (!name.trim()) {
-      toast.warning(
+      showToast.warning(
         t("medicalFacilities.toasts.nameRequired", "Please enter facility name")
       );
       return;
     }
     if (!address.trim()) {
-      toast.warning(
+      showToast.warning(
         t("medicalFacilities.toasts.addressRequired", "Please enter facility address")
       );
       return;

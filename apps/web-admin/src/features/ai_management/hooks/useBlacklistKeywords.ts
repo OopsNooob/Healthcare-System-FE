@@ -17,7 +17,7 @@ export function useGetKeywords() {
     setLoading(true);
     setError(null);
     try {
-      const res = await getKeywordList({ page: 1, limit: 200 });
+      const res = await getKeywordList({ page: 1, limit: 100 });
       setData(res);
     } catch (loadError) {
       setError(

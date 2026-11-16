@@ -4,7 +4,7 @@ export type UserRole = "admin" | "patient" | "doctor";
 
 type GenderValue = "male" | "female" | "other" | string;
 
-type AdminRole = "super_admin" | "user_admin" | "ai_admin";
+type AdminRole = "super_admin" | "user_admin" | "ai_admin" | "user_manager" | "ai_manager";
 
 type DoctorVerificationStatus = "approved" | "pending" | "rejected";
 
@@ -102,9 +102,18 @@ type UpdateMyProfilePayload = {
   };
 };
 
-function normalizeAdminRole(value?: AdminRole) {
+function normalizeAdminRole(value?: AdminRole | string) {
   if (!value) {
     return "";
+  }
+  if (value === "super_admin") {
+    return "Super Admin";
+  }
+  if (value === "ai_admin" || value === "ai_manager") {
+    return "AI Admin";
+  }
+  if (value === "user_admin" || value === "user_manager") {
+    return "User Admin";
   }
 
   return value

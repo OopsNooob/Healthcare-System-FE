@@ -1,5 +1,5 @@
 import { Layout } from "@repo/ui/layouts/layout";
-import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { LogIn } from "./features/auth/pages/login";
 import { ForgetPassword } from "./features/auth/pages/forget-password";
 import { ConfirmOTP } from "./features/auth/pages/confirm-otp";
@@ -18,16 +18,44 @@ import { MedicalFacilities } from "./features/medical-facilities/pages/medical-f
 import { CareProgram } from "./features/care-program/pages/care-program";
 import { AuditLogs } from "./features/audit-logs/pages/audit-logs";
 import { useAuthStore } from "@repo/ui/store/useAuthStore";
+import { normalizeAdminRole, type AdminRole } from "@repo/ui/types/auth";
 import { useEffect, useState } from "react";
 import { useLogout } from "./features/auth/hooks/useLogout";
+import { getCurrentAdmin } from "./features/auth/services/get-current-admin.service";
 import { ConfirmationModal } from "@repo/ui/components/complex-modal/ConfirmationModal";
-import { useNavigate } from "react-router-dom";
 import { AboutUs } from "./features/shared/pages/about-us";
 import { Services } from "./features/shared/pages/services";
 import { Contact } from "./features/shared/pages/contact";
 import { AccountBannedModal } from "./components/AccountBannedModal";
 import { useNotificationSync } from "./hooks/useNotificationSync";
 import { useTranslation } from "react-i18next";
+
+const ADMIN_ALLOWED_PATHS: Record<AdminRole, string[]> = {
+  super_admin: [
+    "/",
+    "/user-management",
+    "/doc-verification",
+    "/care-program",
+    "/medical-facilities",
+    "/ai-knowledge-base",
+    "/premium-management",
+    "/appointments",
+    "/violation-reports",
+    "/audit-logs",
+    "/profile",
+  ],
+  ai_admin: ["/", "/ai-knowledge-base", "/audit-logs", "/profile"],
+  user_admin: [
+    "/",
+    "/user-management",
+    "/doc-verification",
+    "/care-program",
+    "/medical-facilities",
+    "/violation-reports",
+    "/audit-logs",
+    "/profile",
+  ],
+};
 
 function SessionExpiredModal() {
   const { t } = useTranslation();
@@ -76,11 +104,44 @@ function SessionExpiredModal() {
 
 function ProtectedRoutes() {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const user = useAuthStore((state) => state.user);
+  const updateCurrentUser = useAuthStore((state) => state.updateCurrentUser);
+  const location = useLocation();
+  const [roleSynced, setRoleSynced] = useState(Boolean(user?.adminRole));
 
   const { logout } = useLogout();
 
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    let cancelled = false;
+    void getCurrentAdmin()
+      .then((currentAdmin) => {
+        if (cancelled) return;
+        updateCurrentUser({
+          adminRole: currentAdmin.adminRole,
+          name: currentAdmin.fullName,
+          avatar: currentAdmin.avatarUrl,
+        });
+        setRoleSynced(true);
+      })
+      .catch(() => {
+        if (!cancelled) setRoleSynced(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated, updateCurrentUser]);
+
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
+  }
+
+  if (roleSynced && user?.role === "admin") {
+    const effectiveRole = normalizeAdminRole(user.adminRole);
+    const allowedPaths = ADMIN_ALLOWED_PATHS[effectiveRole];
+    if (allowedPaths && !allowedPaths.includes(location.pathname)) {
+      return <Navigate to="/" replace />;
+    }
   }
 
   return <Layout onLogout={logout} />;
@@ -118,7 +179,15 @@ function App() {
 
   return (
     <>
-      <ToastContainer position="top-right" toastStyle={{ zIndex: 9999 }} />
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar
+        closeOnClick
+        pauseOnHover
+        draggable={false}
+        toastStyle={{ zIndex: 9999 }}
+      />
       <BrowserRouter>
         <AccountBannedModal />
         <SessionExpiredModal />

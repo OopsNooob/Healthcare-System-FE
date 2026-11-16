@@ -1,4 +1,3 @@
-import { Clock3 } from "lucide-react";
 import { useState } from "react";
 
 interface UserAvatarProps {
@@ -30,21 +29,6 @@ function getInitials(name: string) {
     .join("");
 }
 
-function getStatusStyles(isOnline: boolean) {
-  switch (isOnline) {
-    case true:
-      return {
-        wrapper: "bg-emerald-500",
-      };
-    case false:
-    default:
-      return {
-        wrapper: "bg-amber-500",
-        icon: <Clock3 className="h-3 w-3 text-white" />,
-      };
-  }
-}
-
 export function UserAvatar({
   name,
   url,
@@ -53,7 +37,6 @@ export function UserAvatar({
 }: UserAvatarProps) {
   const [imageError, setImageError] = useState(false);
 
-  const statusStyles = getStatusStyles(isOnline);
   const showImage = Boolean(url) && !imageError;
   const safeName = name?.trim() || "Unknown user";
 
@@ -76,13 +59,12 @@ export function UserAvatar({
         )}
 
         <span
-          className={`absolute -bottom-0.5 -right-0.5 inline-flex h-5 w-5 items-center justify-center rounded-full border border-white ${statusStyles.wrapper}`}
-          aria-label={isOnline ? "online status" : "away status"}
-        >
-          {statusStyles.icon}
-        </span>
+          className={`absolute -bottom-0.5 -right-0.5 inline-block h-3.5 w-3.5 rounded-full border-2 border-white dark:border-slate-900 ${
+            isOnline ? "bg-emerald-500" : "bg-slate-300 dark:bg-slate-600"
+          }`}
+          aria-label={isOnline ? "online status" : "offline status"}
+        />
       </div>
     </div>
   );
 }
-// @ts-nocheck

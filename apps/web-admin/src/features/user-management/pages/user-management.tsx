@@ -12,8 +12,6 @@ import {
   ShieldCheck,
   Star,
   Stethoscope,
-  Trash2,
-  UserX,
   Users,
   Database,
 } from "lucide-react";
@@ -50,8 +48,6 @@ import {
   useUsers,
   useBanUser,
   useUnbanUser,
-  useDeactivateUser,
-  useDeleteAdmin,
   useOperationalSummary,
 } from "../hooks/useUserManagement";
 import type { UserManagementUser } from "../services/user-management.service";
@@ -59,7 +55,7 @@ import {
   createAdmin,
   changeAdminRole,
 } from "../services/admin-management.service";
-import { showToast } from "@repo/ui/components/ui/toasts";
+import { localizeErrorMessage, showToast } from "@repo/ui/components/ui/toasts";
 import { useViewProfile } from "@/features/shared/hooks/useProfile";
 import { useReport } from "@/features/shared/hooks/useReport";
 import type {
@@ -67,6 +63,7 @@ import type {
   ReportType,
 } from "@repo/ui/components/complex-modal/ReportModal";
 import { useAuthStore } from "@repo/ui/store/useAuthStore";
+import { normalizeAdminRole } from "@repo/ui/types/auth";
 import { useTranslation } from "react-i18next";
 
 type UserRole = "patient" | "doctor" | "admin";
@@ -104,18 +101,6 @@ function formatJoinedDate(value: string, locale: string) {
     day: "numeric",
     year: "numeric",
   });
-}
-
-function getAdminRoleLabel(role?: AdminAssignedRole) {
-  if (role === "super_admin") {
-    return "Super admin";
-  }
-
-  if (role === "user_admin") {
-    return "User admin";
-  }
-
-  return "AI admin";
 }
 
 function mapUserToRecord(user: UserManagementUser): UserRecord {
@@ -163,16 +148,6 @@ export function UserManagement() {
     isLoading: isUnbanning,
     error: unbanError,
   } = useUnbanUser();
-  const {
-    submitDeactivateUser,
-    isLoading: isDeactivating,
-    error: deactivateError,
-  } = useDeactivateUser();
-  const {
-    submitDeleteAdmin,
-    isLoading: isDeletingAdmin,
-    error: deleteAdminError,
-  } = useDeleteAdmin();
   const { submitReport, error: submitReportError } = useReport();
   const [localUsers, setLocalUsers] = useState<UserRecord[]>([]);
   const [selectedRole, setSelectedRole] = useState<UserRole | "all">("patient");
@@ -207,24 +182,29 @@ export function UserManagement() {
     operationalSummaryUser?.id ?? null,
     operationalSummaryUser?.role ?? null,
   );
-  const [confirmTarget, setConfirmTarget] = useState<{
-    user: UserRecord;
-    mode: "deactivate" | "delete_admin";
-  } | null>(null);
+
+  const getAdminRoleLabel = (role?: AdminAssignedRole) => {
+    const resolved = role ?? "ai_admin";
+    return t(`userManagement.roles.${resolved}`, resolved);
+  };
 
   const baseUsers = useMemo(
     () => usersData.userList.map(mapUserToRecord),
     [usersData.userList],
   );
 
-  const users = useMemo(
-    () => mergeUsers(baseUsers, localUsers),
-    [baseUsers, localUsers],
-  );
+  const currentAdmin = useAuthStore((state) => state.user);
+  const isSuperAdmin =
+    normalizeAdminRole(currentAdmin?.adminRole) === "super_admin";
+
+  const users = useMemo(() => {
+    const allMerged = mergeUsers(baseUsers, localUsers);
+    return isSuperAdmin
+      ? allMerged
+      : allMerged.filter((item) => item.role !== "admin");
+  }, [baseUsers, isSuperAdmin, localUsers]);
 
   const selectedUser = users.find((user) => user.id === selectedUserId);
-
-  const currentAdmin = useAuthStore((state) => state.user);
 
   const handleCloseProfileModal = () => {
     setProfileModalOpen(false);
@@ -266,18 +246,6 @@ export function UserManagement() {
       showToast.error(unbanError);
     }
   }, [unbanError]);
-
-  useEffect(() => {
-    if (deactivateError) {
-      showToast.error(deactivateError);
-    }
-  }, [deactivateError]);
-
-  useEffect(() => {
-    if (deleteAdminError) {
-      showToast.error(deleteAdminError);
-    }
-  }, [deleteAdminError]);
 
   const handleSubmitProfileReport = async (payload: {
     target: ReportActor;
@@ -547,27 +515,6 @@ export function UserManagement() {
     }
   };
 
-  const handleConfirmDestructiveAction = async () => {
-    if (!confirmTarget || isDeactivating || isDeletingAdmin) {
-      return;
-    }
-
-    const res =
-      confirmTarget.mode === "delete_admin"
-        ? await submitDeleteAdmin(confirmTarget.user.id)
-        : await submitDeactivateUser(confirmTarget.user.id);
-
-    if (res) {
-      await refresh();
-      showToast.success(
-        confirmTarget.mode === "delete_admin"
-          ? t("userManagement.toasts.adminDeleted", "Admin profile removed.")
-          : t("userManagement.toasts.userDeactivated", "Account deactivated."),
-      );
-      setConfirmTarget(null);
-    }
-  };
-
   const handleAssignAdminRole = async (
     userId: string,
     nextRole: AdminAssignedRole,
@@ -593,12 +540,16 @@ export function UserManagement() {
       setCurrentPage(1);
       setOpenActionUserId(null);
       setOpenActionRect(null);
-      showToast.success(`Role updated to ${getAdminRoleLabel(nextRole)}`);
+      showToast.success(
+        t("userManagement.toasts.roleUpdated", {
+          role: getAdminRoleLabel(nextRole),
+        }),
+      );
     } catch (createError) {
       showToast.error(
         createError instanceof Error
           ? createError.message
-          : "Failed to update admin role",
+          : t("userManagement.toasts.roleUpdateFailed"),
       );
     }
 
@@ -646,19 +597,6 @@ export function UserManagement() {
         onHandle: () => void handleToggleStatus(user.id),
         disabled: isTogglingStatus,
       });
-
-      actions.push({
-        id: `${user.id}-deactivate-user`,
-        title: t("userManagement.actions.deactivateUser", "Deactivate account"),
-        icon: <UserX className="h-4 w-4" />,
-        iconColor: "text-red-600",
-        onHandle: () => {
-          setConfirmTarget({ user, mode: "deactivate" });
-          setOpenActionUserId(null);
-          setOpenActionRect(null);
-        },
-        disabled: isDeactivating || isDeletingAdmin,
-      });
     }
 
     if (!isSelf && user.role === "admin") {
@@ -667,24 +605,13 @@ export function UserManagement() {
         (role) => role !== currentRole,
       ).map((role) => ({
         id: `${user.id}-assign-role-${role}`,
-        title: `${getAdminRoleLabel(role)}`,
+        title: t("userManagement.actions.assignRoleTo", {
+          role: getAdminRoleLabel(role),
+        }),
         icon: <ArrowLeftRight className="h-4 w-4" />,
         iconColor: "text-indigo-700",
         onHandle: () => handleAssignAdminRole(user.id, role),
       }));
-
-      roleActions.push({
-        id: `${user.id}-delete-admin`,
-        title: t("userManagement.actions.deleteAdmin", "Remove admin"),
-        icon: <Trash2 className="h-4 w-4" />,
-        iconColor: "text-red-600",
-        onHandle: () => {
-          setConfirmTarget({ user, mode: "delete_admin" });
-          setOpenActionUserId(null);
-          setOpenActionRect(null);
-        },
-        disabled: isDeactivating || isDeletingAdmin,
-      });
 
       actions.splice(1, 0, ...roleActions);
     }
@@ -703,18 +630,22 @@ export function UserManagement() {
       label: t("userManagement.tabs.doctors"),
       count: roleCounts.doctor,
     },
-    {
-      key: "admin" as const,
-      label: t("userManagement.tabs.admin"),
-      count: roleCounts.admin,
-    },
+    ...(isSuperAdmin
+      ? [
+          {
+            key: "admin" as const,
+            label: t("userManagement.tabs.admin"),
+            count: roleCounts.admin,
+          },
+        ]
+      : []),
   ];
 
   const getAssignedRoleBadge = (role?: AdminAssignedRole) => {
     if (role === "super_admin") {
       return (
         <span className="rounded-xl bg-[#DDD6FE] p-1 font-bold text-[#7C3AED]">
-          Super admin
+          {getAdminRoleLabel("super_admin")}
         </span>
       );
     }
@@ -722,14 +653,14 @@ export function UserManagement() {
     if (role === "user_admin") {
       return (
         <span className="rounded-xl bg-[#DBEAFE] p-1 font-bold text-[#3B7BF8]">
-          User admin
+          {getAdminRoleLabel("user_admin")}
         </span>
       );
     }
 
     return (
       <span className="rounded-xl bg-[#FED7AA] p-1 font-bold text-[#EA580C]">
-        AI admin
+        {getAdminRoleLabel("ai_admin")}
       </span>
     );
   };
@@ -753,7 +684,7 @@ export function UserManagement() {
 
         {error ? (
           <div className="mb-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900/30 dark:bg-red-900/20 dark:text-red-400">
-            {error}
+            {localizeErrorMessage(error, t)}
           </div>
         ) : null}
 
@@ -818,7 +749,7 @@ export function UserManagement() {
                   className="h-9 w-64 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:border-slate-700 dark:bg-slate-900 pl-9 pr-3 text-xs text-slate-700 dark:text-slate-200 outline-none ring-brand/30 transition focus:ring-2"
                 />
               </div>
-              {selectedRole === "admin" ? (
+              {isSuperAdmin && selectedRole === "admin" ? (
                 <Button
                   onClick={handleOpenAddAdminModal}
                   disabled={isCreatingAdmin}
@@ -844,7 +775,7 @@ export function UserManagement() {
                       {t("userManagement.table.specialty")}
                     </TableHead>
                   ) : null}
-                  {selectedRole === "admin" ? (
+                  {isSuperAdmin && selectedRole === "admin" ? (
                     <TableHead className="px-3 text-xs text-slate-400 dark:text-slate-500">
                       {t("userManagement.table.assignedRole")}
                     </TableHead>
@@ -886,19 +817,11 @@ export function UserManagement() {
                   <TableRow key={user.id}>
                     <TableCell className="px-3 py-3">
                       <div className="flex items-center gap-3">
-                        <div className="relative inline-flex">
-                          <UserAvatar name={user.name} url={user.avatarUrl} />
-                          <span
-                            title={
-                              user.isOnline
-                                ? t("userManagement.presence.online", "Online")
-                                : t("userManagement.presence.offline", "Offline")
-                            }
-                            className={`absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-white dark:border-slate-900 ${
-                              user.isOnline ? "bg-emerald-500" : "bg-slate-300 dark:bg-slate-600"
-                            }`}
-                          />
-                        </div>
+                        <UserAvatar
+                          name={user.name}
+                          url={user.avatarUrl}
+                          isOnline={Boolean(user.isOnline)}
+                        />
                       </div>
                     </TableCell>
                     <TableCell className="px-3 text-sm text-slate-500 dark:text-slate-400">
@@ -911,7 +834,7 @@ export function UserManagement() {
                         </span>
                       </TableCell>
                     ) : null}
-                    {selectedRole === "admin" ? (
+                    {isSuperAdmin && selectedRole === "admin" ? (
                       <TableCell className="px-3 text-sm text-slate-500 dark:text-slate-400">
                         {getAssignedRoleBadge(user.assigned_role)}
                       </TableCell>
@@ -1199,7 +1122,7 @@ export function UserManagement() {
                   </div>
                 ) : operationalError ? (
                   <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-red-700 dark:border-red-900/40 dark:bg-red-950/30 dark:text-red-300">
-                    {operationalError}
+                    {localizeErrorMessage(operationalError, t)}
                   </div>
                 ) : (
                   <div className="grid grid-cols-2 gap-3">
@@ -1295,60 +1218,6 @@ export function UserManagement() {
           </div>
         )}
 
-        {/* Destructive Action Confirmation Modal */}
-        {confirmTarget && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm animate-fade-in">
-            <div className="w-full max-w-md rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-2xl">
-              <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                <Trash2 className="h-5 w-5 text-red-600" />
-                {confirmTarget.mode === "delete_admin"
-                  ? t("userManagement.confirmDeleteAdmin.title", "Remove admin account")
-                  : t("userManagement.confirmDeactivate.title", "Deactivate user account")}
-              </h3>
-              <p className="mt-2 text-xs text-slate-600 dark:text-slate-300">
-                {confirmTarget.mode === "delete_admin"
-                  ? t(
-                      "userManagement.confirmDeleteAdmin.desc",
-                      "This will permanently remove admin privileges for this account.",
-                    )
-                  : t(
-                      "userManagement.confirmDeactivate.desc",
-                      "This will deactivate the selected user account.",
-                    )}
-              </p>
-              <div className="my-4 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 text-xs">
-                <div className="font-semibold text-slate-900 dark:text-slate-100">
-                  {confirmTarget.user.name}
-                </div>
-                <div className="text-slate-500 dark:text-slate-400">
-                  {confirmTarget.user.email}
-                </div>
-              </div>
-              <div className="flex justify-end gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  disabled={isDeactivating || isDeletingAdmin}
-                  onClick={() => setConfirmTarget(null)}
-                >
-                  {t("common.cancel")}
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  className="bg-red-600 hover:bg-red-700 text-white"
-                  disabled={isDeactivating || isDeletingAdmin}
-                  onClick={() => void handleConfirmDestructiveAction()}
-                >
-                  {isDeactivating || isDeletingAdmin
-                    ? t("common.processing", "Processing...")
-                    : t("common.confirm", "Confirm")}
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

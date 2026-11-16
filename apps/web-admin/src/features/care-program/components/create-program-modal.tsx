@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { X, Check, Plus, Trash2, Clock, BookOpen, ClipboardCheck } from "lucide-react";
-import { toast } from "react-toastify";
+import { showToast } from "@repo/ui/components/ui/toasts";
 import {
   BASELINE_OPTIONS,
   DEFAULT_PROGRAM_TASK_TEMPLATES,
@@ -83,7 +83,7 @@ export function CreateProgramModal({
 
   const handleRemoveTaskTemplate = (index: number) => {
     if (taskTemplates.length <= 1) {
-      toast.warning(
+      showToast.warning(
         t("careProgram.toasts.minOneTask", "At least one monitoring task is required")
       );
       return;
@@ -163,7 +163,7 @@ export function CreateProgramModal({
   const handleSubmit = async (status: "draft" | "published") => {
     if (isSubmitting) return;
     if (!name.trim()) {
-      toast.warning(t("careProgram.toasts.nameRequired", "Please enter a program name"));
+      showToast.warning(t("careProgram.toasts.nameRequired", "Please enter a program name"));
       return;
     }
 
@@ -172,7 +172,7 @@ export function CreateProgramModal({
         tpl.type === "check_in" &&
         (!tpl.allowedSymptomCodes || tpl.allowedSymptomCodes.length === 0)
       ) {
-        toast.warning(
+        showToast.warning(
           t(
             "careProgram.toasts.symptomSelectionRequired",
             "Please select at least one tracked symptom for the check-in task"
@@ -181,7 +181,7 @@ export function CreateProgramModal({
         return;
       }
       if (tpl.type === "education" && !tpl.contentId) {
-        toast.warning(
+        showToast.warning(
           t(
             "careProgram.toasts.educationContentRequired",
             "Please select a published educational material"
