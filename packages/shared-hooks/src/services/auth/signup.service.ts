@@ -32,14 +32,14 @@ export interface SignUpPatient {
   email: string;
   password: string;
   fullName: string;
-  phoneNumber?: string;
+  phoneNumber: string;
 }
 
 export interface SignUpDoctor {
   email: string;
   password: string;
   fullName: string;
-  phoneNumber?: string;
+  phoneNumber: string;
   specialty: string;
   workplace: string;
   experienceYears: number;
@@ -52,7 +52,7 @@ export type DoctorVerificationStatus = "rejected" | "pending" | "approved";
 export type DoctorReRegisterPrefillApiResponse = {
   email?: string;
   phone?: string;
-  phoneNumber?: string | null;
+  phoneNumber?: string;
   fullName?: string;
   specialty?: string;
   workplace?: string;
@@ -62,7 +62,7 @@ export type DoctorReRegisterPrefillApiResponse = {
   verification_status?: DoctorVerificationStatus;
   rejectReason?: string | null;
   reason?: string | null;
-  verificationDocuments?: Array<string | { id: string; label: string }>;
+  verificationDocuments?: string[];
   verificationDocumentCount?: number;
   verification_documents?: string[];
   existingDocuments?: unknown[];
@@ -94,7 +94,7 @@ export type ApiSignUpResponse = {
 export async function submitSignUpPatient(
   payload: SignUpPatient,
 ): Promise<ApiSignUpResponse> {
-  const cleanPhone = payload.phoneNumber?.trim();
+  const cleanPhone = (payload.phoneNumber ?? "").trim();
   return mobileApi.authRegisterPatient({
     email: payload.email.trim(),
     password: payload.password,
@@ -122,7 +122,7 @@ export async function restoreDoctorReapplication(
 export async function submitSignUpDoctor(
   payload: SignUpDoctor,
 ): Promise<ApiSignUpResponse> {
-  const cleanPhone = payload.phoneNumber?.trim();
+  const cleanPhone = (payload.phoneNumber ?? "").trim();
   const files = payload.newVerificationDocuments ?? [];
 
   if (files.length === 0) {

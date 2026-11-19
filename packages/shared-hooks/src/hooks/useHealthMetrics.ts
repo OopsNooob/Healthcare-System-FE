@@ -32,13 +32,23 @@ export type UpdateEntryInput = CreateEntryInput & {
 };
 
 export function useHealthMetrics(options: UseHealthMetricsOptions = {}) {
-  const { enabled = true, ...query } = options;
+  const {
+    enabled = true,
+    type,
+    metricType,
+    patientId,
+    startDate,
+    endDate,
+    page,
+    limit,
+    cursor,
+    sortBy,
+    sortOrder,
+  } = options;
   const [data, setData] = useState<HealthMetric[]>([]);
   const [alerts, setAlerts] = useState<HealthMetric[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const metricFilterType = query.metricType ?? query.type;
 
   const fetchMetrics = useCallback(async () => {
     if (!enabled) return;
@@ -47,7 +57,19 @@ export function useHealthMetrics(options: UseHealthMetricsOptions = {}) {
     setError(null);
 
     try {
-      const metrics = await getAllHealthMetrics(query);
+      const requestQuery: HealthMetricsQuery = {
+        ...(type !== undefined ? { type } : {}),
+        ...(metricType !== undefined ? { metricType } : {}),
+        ...(patientId !== undefined ? { patientId } : {}),
+        ...(startDate !== undefined ? { startDate } : {}),
+        ...(endDate !== undefined ? { endDate } : {}),
+        ...(page !== undefined ? { page } : {}),
+        ...(limit !== undefined ? { limit } : {}),
+        ...(cursor !== undefined ? { cursor } : {}),
+        ...(sortBy !== undefined ? { sortBy } : {}),
+        ...(sortOrder !== undefined ? { sortOrder } : {}),
+      };
+      const metrics = await getAllHealthMetrics(requestQuery);
       setData(metrics);
     } catch (err) {
       setError(
@@ -58,15 +80,16 @@ export function useHealthMetrics(options: UseHealthMetricsOptions = {}) {
     }
   }, [
     enabled,
-    query.patientId,
-    query.endDate,
-    query.limit,
-    query.page,
-    query.cursor,
-    query.sortBy,
-    query.sortOrder,
-    query.startDate,
-    metricFilterType,
+    type,
+    metricType,
+    patientId,
+    startDate,
+    endDate,
+    page,
+    limit,
+    cursor,
+    sortBy,
+    sortOrder,
   ]);
 
   const refreshAlerts = useCallback(async () => {
