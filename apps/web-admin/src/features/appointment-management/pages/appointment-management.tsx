@@ -36,8 +36,8 @@ import {
 const PAGE_LIMIT = 20;
 
 export function AppointmentManagement() {
-  const { t, i18n } = useTranslation();
-  const locale = i18n.language?.startsWith("vi") ? "vi-VN" : "en-US";
+  const { t } = useTranslation();
+  const locale = t("common.dateLocale", "vi-VN");
   const token = useAuthStore((state) => state.token);
 
   const [appointments, setAppointments] = useState<Appointment[]>([]);

@@ -37,7 +37,10 @@ export const SOCKET_EVENTS = {
 } as const;
 export * from "./hooks/auth/useLogin";
 export * from "./hooks/auth/useLogout";
+export * from "./hooks/auth/useAuthSessions";
 export * from "./hooks/auth/useSignUp";
+export * from "./hooks/auth/useVerifyEmail";
+export * from "./hooks/auth/useRestoreDoctorReapplication";
 export * from "./hooks/auth/useChangePassword";
 export * from "./hooks/auth/useConfirmOtp";
 export * from "./hooks/auth/useForgotPassword";

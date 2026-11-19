@@ -48,7 +48,15 @@
       "changePasswordButton": "Change Password",
       "sendOtpFailed": "Failed to send OTP",
       "logInAgain": "Log in again",
-      "close": "Close"
+      "close": "Close",
+      "otpInvalid6": "OTP must be 6 digits.",
+      "continueResetButton": "Continue",
+      "resendOtpButton": "Resend OTP",
+      "validation": {
+        "passwordRequired": "Please enter your new password.",
+        "passwordMin12": "New password must have at least 12 characters.",
+        "confirmPasswordRequired": "Please confirm your new password."
+      }
     },
     "sidebar": {
       "overview": "Overview",
@@ -1000,7 +1008,8 @@
         "saveBtn": "Save Chunk",
         "searchPlaceholder": "Search chunks...",
         "updateFailed": "Failed to update chunk.",
-        "updateSuccess": "Updated chunk."
+        "updateSuccess": "Updated chunk.",
+        "deepSearchBtn": "Deep Search"
       },
       "status": {
         "active": "Active",
@@ -1302,6 +1311,21 @@
         "noDocs": "No verification documents uploaded yet.",
         "profileUpdated": "Profile updated successfully",
         "failedToSave": "Failed to save profile"
+      },
+      "sessions": {
+        "title": "Security & Active Sessions",
+        "subtitle": "Monitor signed-in browsers and revoke active refresh sessions.",
+        "loadFailed": "Unable to load active sessions.",
+        "revokedSuccess": "Device session revoked.",
+        "revokeFailed": "Unable to revoke session.",
+        "logoutAllSuccess": "Signed out from all devices.",
+        "logoutAll": "Sign out all devices",
+        "empty": "No active sessions found.",
+        "unknownDevice": "Recognized Browser / Device",
+        "currentBadge": "Current",
+        "revokedBadge": "Revoked",
+        "lastSeen": "Last active",
+        "revoke": "Revoke"
       }
     },
     "careProgram": {
@@ -1829,7 +1853,9 @@
         "notFound": "Requested resource was not found.",
         "unauthorized": "Session is invalid or expired.",
         "serverError": "Internal server error. Please try again later."
-      }
+      },
+      "dateLocale": "en-US",
+      "langCode": "en"
     },
     "auditLogs": {
       "tabSystemLogs": "System Audit Logs",

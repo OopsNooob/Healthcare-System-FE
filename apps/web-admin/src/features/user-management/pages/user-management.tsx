@@ -139,8 +139,8 @@ function mergeUsers(baseUsers: UserRecord[], localUsers: UserRecord[]) {
 }
 
 export function UserManagement() {
-  const { t, i18n } = useTranslation();
-  const dateLocale = i18n.language?.startsWith("vi") ? "vi-VN" : "en-US";
+  const { t } = useTranslation();
+  const dateLocale = t("common.dateLocale", "vi-VN");
   const { users: usersData, isLoading, error, refresh } = useUsers();
   const { submitBanUser, isLoading: isBanning, error: banError } = useBanUser();
   const {

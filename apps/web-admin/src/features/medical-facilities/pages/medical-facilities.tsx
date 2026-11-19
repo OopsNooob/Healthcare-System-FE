@@ -11,9 +11,11 @@ import {
   Archive,
   GitBranch,
   Edit,
+  RefreshCw,
   X,
 } from "lucide-react";
 import { Badge } from "@repo/ui/components/ui/badge";
+import { Skeleton } from "@repo/ui/components/ui/skeleton";
 import { showToast } from "@repo/ui/components/ui/toasts";
 import { FacilityFormModal } from "../components/facility-form-modal";
 import type { MedicalFacilityItem } from "../components/facility-form-modal";
@@ -32,13 +34,12 @@ interface DiseaseSpecialtyMappingItem {
 }
 
 export function MedicalFacilities() {
-  const { t, i18n } = useTranslation();
-  const pickLocalizedText = (viText: string, enText?: string) =>
-    i18n.language?.startsWith("vi") ? viText : (enText || viText);
+  const { t } = useTranslation();
 
   const [activeTab, setActiveTab] = useState<"facilities" | "mappings">("facilities");
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const [facilities, setFacilities] = useState<MedicalFacilityItem[]>([
     {
@@ -322,23 +323,37 @@ export function MedicalFacilities() {
               {t("medicalFacilities.subtitle")}
             </p>
           </div>
-          {activeTab === "facilities" ? (
+          <div className="flex items-center gap-2">
             <button
-              onClick={handleOpenAdd}
-              className="flex items-center gap-2 rounded-xl bg-brand px-4 py-2.5 font-bold text-slate-900 transition-colors hover:bg-brand/90 shadow-sm"
+              type="button"
+              disabled={isRefreshing}
+              onClick={() => {
+                setIsRefreshing(true);
+                window.setTimeout(() => setIsRefreshing(false), 300);
+              }}
+              className="flex items-center gap-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3.5 py-2.5 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50"
             >
-              <Plus size={18} />
-              <span>{t("medicalFacilities.formModal.addTitle")}</span>
+              <RefreshCw size={15} className={isRefreshing ? "animate-spin" : ""} />
+              <span>{t("common.refresh", "Refresh")}</span>
             </button>
-          ) : (
-            <button
-              onClick={() => openMappingModal()}
-              className="flex items-center gap-2 rounded-xl bg-brand px-4 py-2.5 font-bold text-slate-900 transition-colors hover:bg-brand/90 shadow-sm"
-            >
-              <Plus size={18} />
-              <span>{t("medicalFacilities.diseaseSpecialty.addTitle")}</span>
-            </button>
-          )}
+            {activeTab === "facilities" ? (
+              <button
+                onClick={handleOpenAdd}
+                className="flex items-center gap-2 rounded-xl bg-brand px-4 py-2.5 font-bold text-slate-900 transition-colors hover:bg-brand/90 shadow-sm"
+              >
+                <Plus size={18} />
+                <span>{t("medicalFacilities.formModal.addTitle")}</span>
+              </button>
+            ) : (
+              <button
+                onClick={() => openMappingModal()}
+                className="flex items-center gap-2 rounded-xl bg-brand px-4 py-2.5 font-bold text-slate-900 transition-colors hover:bg-brand/90 shadow-sm"
+              >
+                <Plus size={18} />
+                <span>{t("medicalFacilities.diseaseSpecialty.addTitle")}</span>
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Sub-Tabs */}
@@ -412,7 +427,16 @@ export function MedicalFacilities() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200 dark:divide-slate-700 bg-white dark:bg-slate-900">
-                  {filteredFacilities.map((fac) => (
+                  {isRefreshing ? (
+                    Array.from({ length: 3 }).map((_, idx) => (
+                      <tr key={`fac-skel-${idx}`}>
+                        <td colSpan={5} className="px-6 py-4">
+                          <Skeleton className="h-10 w-full rounded-xl" />
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                  filteredFacilities.map((fac) => (
                     <tr
                       key={fac.id}
                       className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
@@ -518,7 +542,8 @@ export function MedicalFacilities() {
                         )}
                       </td>
                     </tr>
-                  ))}
+                  ))
+                  )}
                 </tbody>
               </table>
             </div>
@@ -537,14 +562,25 @@ export function MedicalFacilities() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200 dark:divide-slate-700 bg-white dark:bg-slate-900">
-                {mappings.map((m) => (
+                {isRefreshing ? (
+                  Array.from({ length: 3 }).map((_, idx) => (
+                    <tr key={`map-skel-${idx}`}>
+                      <td colSpan={5} className="px-6 py-4">
+                        <Skeleton className="h-10 w-full rounded-xl" />
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                mappings.map((m) => (
                   <tr key={m.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
                     <td className="px-6 py-4">
                       <div className="font-mono text-xs font-bold text-indigo-600 dark:text-indigo-400">
                         {m.diseaseCode}
                       </div>
                       <div className="font-semibold text-slate-900 dark:text-slate-100 mt-0.5">
-                        {pickLocalizedText(m.diseaseNameVi, m.diseaseNameEn)}
+                        {t("common.langCode", "vi") === "en"
+                          ? m.diseaseNameEn || m.diseaseNameVi
+                          : m.diseaseNameVi}
                       </div>
                     </td>
                     <td className="px-6 py-4">
@@ -557,7 +593,9 @@ export function MedicalFacilities() {
                       </div>
                     </td>
                     <td className="px-6 py-4 max-w-xs text-xs text-slate-600 dark:text-slate-300">
-                      {pickLocalizedText(m.urgencyGuidanceVi, m.urgencyGuidanceEn)}
+                      {t("common.langCode", "vi") === "en"
+                        ? m.urgencyGuidanceEn || m.urgencyGuidanceVi
+                        : m.urgencyGuidanceVi}
                     </td>
                     <td className="px-6 py-4">
                       {m.isActive ? (
@@ -588,7 +626,8 @@ export function MedicalFacilities() {
                       </div>
                     </td>
                   </tr>
-                ))}
+                ))
+                )}
               </tbody>
             </table>
           </div>

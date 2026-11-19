@@ -113,7 +113,7 @@ function parseSchemaFields(
 }
 
 export default function BaselineAssessmentScreen() {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const { isDark } = useThemeContext();
   const router = useRouter();
   const params = useLocalSearchParams<{ enrollmentId?: string }>();
@@ -410,7 +410,7 @@ export default function BaselineAssessmentScreen() {
     | undefined;
   const formattedNextTaskTime = nextTaskInfo?.scheduledFor
     ? new Date(nextTaskInfo.scheduledFor).toLocaleString(
-        i18n.language.startsWith('vi') ? 'vi-VN' : 'en-US',
+        t('mobile.date_locale', 'vi-VN'),
         { month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit' }
       )
     : t('mobile.scheduled_daily_tasks', 'Scheduled per care plan');
@@ -431,7 +431,7 @@ export default function BaselineAssessmentScreen() {
       >
         <View style={tw('flex-row items-center justify-between px-5 py-4 border-b border-slate-200/60 dark:border-slate-800/60 bg-white dark:bg-slate-900')}>
           <TouchableOpacity
-            onPress={() => router.back()}
+            onPress={() => router.back('/(patient)')}
             style={tw('w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 items-center justify-center')}
           >
             <ArrowLeft size={20} color={twInstance.color('text-slate-700 dark:text-slate-200')} />
@@ -522,7 +522,7 @@ export default function BaselineAssessmentScreen() {
               )}
             </Text>
             <TouchableOpacity
-              onPress={() => router.back()}
+              onPress={() => router.back('/(patient)')}
               style={tw('px-6 py-3.5 rounded-2xl bg-indigo-600')}
             >
               <Text style={tw('text-white font-bold text-sm')}>

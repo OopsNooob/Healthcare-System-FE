@@ -13,6 +13,7 @@ import {
 import { useLocalSearchParams } from 'expo-router';
 import Toast from 'react-native-toast-message';
 import { useChangePassword } from '@repo/shared-hooks';
+import { useThemeContext } from '@/context/ThemeContext';
 import { useSafeRouter as useRouter } from '@/utils/useSafeRouter';
 import { extractApiErrorMessage } from '@/utils/apiError';
 import { Lock, Cross, ArrowLeft } from 'lucide-react-native';
@@ -20,6 +21,7 @@ import { tw, twInstance } from '@/tw';
 
 export default function ChangePasswordScreen() {
   const { t } = useTranslation();
+  useThemeContext();
   const router = useRouter();
   const params = useLocalSearchParams<{ email?: string; otpCode?: string }>();
   const email = typeof params.email === 'string' ? params.email : '';
@@ -40,11 +42,11 @@ export default function ChangePasswordScreen() {
       router.replace('/(auth)/forgot-password');
       return;
     }
-    if (password.length < 8) {
+    if (password.length < 12) {
       Toast.show({
         type: 'error',
         text1: t('mobile.error', 'Error'),
-        text2: t('mobile.password_min_8', 'Password must be at least 8 characters.'),
+        text2: t('mobile.password_min_12', 'Password must be at least 12 characters.'),
       });
       return;
     }

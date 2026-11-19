@@ -66,8 +66,8 @@ export const DoctorReviewTaskModal: React.FC<DoctorReviewTaskModalProps> = ({
   programName,
   onSubmitReview,
 }) => {
-  const { t, i18n } = useTranslation();
-  const dateLocale = i18n.language?.startsWith('vi') ? 'vi-VN' : 'en-US';
+  const { t } = useTranslation();
+  const dateLocale = t('mobile.date_locale', 'vi-VN');
 
   const [reasonCode, setReasonCode] =
     useState<DoctorReviewReasonCode>('reviewed_no_action');

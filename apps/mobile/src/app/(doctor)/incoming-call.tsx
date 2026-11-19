@@ -14,6 +14,7 @@ import Toast from 'react-native-toast-message';
 import { MessageSquare, PhoneOff, Video } from 'lucide-react-native';
 import { mobileApi } from '@repo/shared-hooks';
 import { tw } from '@/tw';
+import { useThemeContext } from '@/context/ThemeContext';
 import { useSafeRouter } from '@/utils/useSafeRouter';
 import { extractApiErrorMessage } from '@/utils/apiError';
 import { Skeleton } from '@/components/ui/Skeleton';
@@ -37,6 +38,7 @@ export default function DoctorIncomingCallScreen() {
   const consultationId = String(params.consultationId ?? params.id ?? '');
 
   const { t } = useTranslation();
+  useThemeContext();
   const router = useSafeRouter();
 
   const [isLoading, setIsLoading] = useState(Boolean(consultationId));
@@ -119,7 +121,7 @@ export default function DoctorIncomingCallScreen() {
           body: {},
         });
       }
-      router.back();
+      router.back('/(doctor)');
     } catch (err) {
       Toast.show({ type: 'error', text1: extractApiErrorMessage(err) });
       setIsBusy(false);

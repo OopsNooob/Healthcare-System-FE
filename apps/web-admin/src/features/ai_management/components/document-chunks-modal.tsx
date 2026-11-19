@@ -18,6 +18,7 @@ import { Skeleton } from "@repo/ui/components/ui/skeleton";
 import { showToast } from "@repo/ui/components/ui/toasts";
 import {
   getDocumentChunks,
+  searchDocumentChunks,
   getChunkDetail,
   createDocumentChunk,
   createManyDocumentChunks,
@@ -48,6 +49,7 @@ export function DocumentChunksModal({
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [search, setSearch] = useState("");
+  const [isSemanticSearch, setIsSemanticSearch] = useState(false);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -63,15 +65,23 @@ export function DocumentChunksModal({
     setLoading(true);
     setError(null);
     try {
-      const res = await getDocumentChunks({
-        documentId: document.id,
-        page,
-        limit: CHUNK_PAGE_LIMIT,
-        search,
-      });
-      setChunks(res.items);
-      setTotal(res.total);
-      setTotalPages(res.totalPages);
+      const trimmed = search.trim();
+      if (isSemanticSearch && trimmed) {
+        const matched = await searchDocumentChunks(trimmed, document.id);
+        setChunks(matched);
+        setTotal(matched.length);
+        setTotalPages(1);
+      } else {
+        const res = await getDocumentChunks({
+          documentId: document.id,
+          page,
+          limit: CHUNK_PAGE_LIMIT,
+          search,
+        });
+        setChunks(res.items);
+        setTotal(res.total);
+        setTotalPages(res.totalPages);
+      }
     } catch (err) {
       setError(
         err instanceof Error
@@ -81,7 +91,7 @@ export function DocumentChunksModal({
     } finally {
       setLoading(false);
     }
-  }, [document, page, search, t]);
+  }, [document, isSemanticSearch, page, search, t]);
 
   useEffect(() => {
     if (!isOpen || !document?.id) return;
@@ -272,19 +282,46 @@ export function DocumentChunksModal({
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <div className="relative">
+            <div className="relative flex items-center">
               <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
               <input
                 type="text"
                 value={search}
                 onChange={(e) => {
-                  setSearch(e.target.value);
+                  const next = e.target.value;
+                  setSearch(next);
                   setPage(1);
+                  if (!next.trim() && isSemanticSearch) {
+                    setIsSemanticSearch(false);
+                  }
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && search.trim()) {
+                    e.preventDefault();
+                    setPage(1);
+                    setIsSemanticSearch(true);
+                  }
                 }}
                 placeholder={t("aiManagement.chunksModal.searchPlaceholder", "Tìm trong phân đoạn...")}
                 className="h-8 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 pl-8 pr-3 text-xs text-slate-800 dark:text-slate-200 outline-none focus:ring-2 focus:ring-brand/30"
               />
             </div>
+
+            <button
+              type="button"
+              disabled={loading || submitting || !search.trim()}
+              onClick={() => {
+                setPage(1);
+                setIsSemanticSearch((prev) => !prev);
+              }}
+              className={`inline-flex items-center gap-1 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition cursor-pointer disabled:opacity-40 ${
+                isSemanticSearch
+                  ? "border-indigo-300 dark:border-indigo-700 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300"
+                  : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
+              }`}
+            >
+              {t("aiManagement.chunksModal.deepSearchBtn", "Tìm sâu")}
+            </button>
 
             <button
               type="button"

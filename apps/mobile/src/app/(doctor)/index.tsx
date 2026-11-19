@@ -74,10 +74,10 @@ function formatCodeLabel(code: string): string {
 }
 
 export default function DoctorHomeScreen() {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   useThemeContext();
   const router = useRouter();
-  const dateLocale = i18n.language?.startsWith('vi') ? 'vi-VN' : 'en-US';
+  const dateLocale = t('mobile.date_locale', 'vi-VN');
 
   const [doctorName, setDoctorName] = useState('');
   const [isOnline, setIsOnline] = useState(false);

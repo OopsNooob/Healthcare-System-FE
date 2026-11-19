@@ -30,6 +30,7 @@ import {
   type FeTypes,
 } from '@repo/shared-hooks';
 import { tw, twInstance } from '@/tw';
+import { useThemeContext } from '@/context/ThemeContext';
 import { useSafeRouter as useRouter } from '@/utils/useSafeRouter';
 import { extractApiErrorMessage } from '@/utils/apiError';
 import { Skeleton } from '@/components/ui/Skeleton';
@@ -81,10 +82,11 @@ interface NotificationsScreenProps {
 }
 
 export function NotificationsScreen({ role }: NotificationsScreenProps) {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
+  useThemeContext();
   const router = useRouter();
   const token = useSharedAuthStore((s) => s.token);
-  const dateLocale = i18n.language?.startsWith('vi') ? 'vi-VN' : 'en-US';
+  const dateLocale = t('mobile.date_locale', 'vi-VN');
 
   const [items, setItems] = useState<NotificationViewItem[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -482,7 +484,7 @@ export function NotificationsScreen({ role }: NotificationsScreenProps) {
       >
         <View style={tw('flex-row items-center flex-1 mr-2')}>
           <TouchableOpacity
-            onPress={() => router.back()}
+            onPress={() => router.back(role === 'doctor' ? '/(doctor)' : '/(patient)')}
             style={tw(
               'w-10 h-10 rounded-full items-center justify-center bg-slate-100 dark:bg-slate-800 mr-3'
             )}

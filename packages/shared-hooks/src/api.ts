@@ -42,7 +42,7 @@ export function setAuthCallbacks(
 // We fallback to a hardcoded URL or require the consumer to inject it.
 let API_BASE_URL = typeof process !== 'undefined' && process.env.EXPO_PUBLIC_API_URL
   ? process.env.EXPO_PUBLIC_API_URL
-  : "http://localhost:3001/api/v1";
+  : "http://localhost:3000/api/v1";
 
 let SOCKET_BASE_URL = API_BASE_URL.replace(/\/api(\/.*)?$/, "");
 
@@ -158,6 +158,13 @@ type RetryConfig = InternalAxiosRequestConfig & {
 type RefreshResponse = {
   accessToken: string;
   refreshToken: string;
+  user?: {
+    id: string;
+    email?: string;
+    fullName?: string;
+    role?: string;
+    avatarUrl?: string;
+  };
 };
 
 type QueueItem = {
@@ -172,11 +179,15 @@ const authFreePaths = new Set([
   "/auth/login",
   "/auth/refresh",
   "/auth/logout",
-  "/auth/register",
-  "/auth/forgot-password",
-  "/auth/send-otp",
-  "/auth/confirm-otp",
-  "/auth/change-password",
+  "/auth/register/patient",
+  "/auth/register/doctor",
+  "/auth/doctor-reapplication/restore",
+  "/auth/verify-email",
+  "/auth/request-email-verification",
+  "/auth/resend-verification",
+  "/auth/password-recovery",
+  "/auth/reset-password",
+  "/auth/oauth/google/exchange",
 ]);
 
 type ApiErrorPayload = {
@@ -289,7 +300,7 @@ api.interceptors.response.use(
     const storage = getStorage();
     const refreshToken = await storage.getItem("refreshToken");
 
-    if (!currentUser?.id || !refreshToken) {
+    if (!refreshToken) {
       await clearAuthStorage();
       notifySessionExpired();
       return Promise.reject(error);
@@ -311,18 +322,30 @@ api.interceptors.response.use(
       const refreshResponse = await refreshApi.post<RefreshResponse>(
         "/auth/refresh",
         {
-          userId: currentUser.id,
           refreshToken,
         },
       );
 
       const nextAccessToken = refreshResponse.data.accessToken;
       const nextRefreshToken = refreshResponse.data.refreshToken;
+      const nextUser = refreshResponse.data.user
+        ? {
+            id: refreshResponse.data.user.id,
+            email: refreshResponse.data.user.email ?? currentUser?.email ?? "",
+            name:
+              refreshResponse.data.user.fullName ?? currentUser?.name ?? "",
+            role: refreshResponse.data.user.role ?? currentUser?.role ?? "patient",
+            avatar:
+              refreshResponse.data.user.avatarUrl ?? currentUser?.avatar,
+          }
+        : currentUser;
 
       await storage.setItem("accessToken", nextAccessToken);
       await storage.setItem("refreshToken", nextRefreshToken);
-      
-      setUserCallback(currentUser, nextAccessToken, nextRefreshToken);
+
+      if (nextUser) {
+        setUserCallback(nextUser, nextAccessToken, nextRefreshToken);
+      }
       updateSocketAuth(nextAccessToken);
 
       resolveRefreshQueue(nextAccessToken);

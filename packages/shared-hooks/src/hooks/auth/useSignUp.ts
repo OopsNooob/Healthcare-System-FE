@@ -110,7 +110,11 @@ export function useSignUpDoctor() {
       throw new Error(errorMsg);
     }
 
-    if (!payload.experienceYears) {
+    if (
+      typeof payload.experienceYears !== "number" ||
+      Number.isNaN(payload.experienceYears) ||
+      payload.experienceYears < 0
+    ) {
       const errorMsg = "Please enter your experience years.";
       setError(errorMsg);
       throw new Error(errorMsg);

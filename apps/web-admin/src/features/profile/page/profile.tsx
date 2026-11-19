@@ -1,6 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Badge } from "@repo/ui/components/ui/badge";
 import { Button } from "@repo/ui/components/ui/button";
+import { Skeleton } from "@repo/ui/components/ui/skeleton";
+import { useAuthStore } from "@repo/ui/store/useAuthStore";
 import {
   Field,
   FieldControl,
@@ -12,14 +15,19 @@ import { Input } from "@repo/ui/components/ui/input";
 import {
   Camera,
   FileText,
+  LogOut,
+  Monitor,
   Pencil,
   Plus,
+  RefreshCw,
+  Shield,
   ShieldUser,
   Stethoscope,
   Trash2,
   UserRound,
 } from "lucide-react";
 import { showToast } from "@repo/ui/components/ui/toasts";
+import { webAdminApi, type AuthSessionItem } from "@/lib/api";
 import { useProfile } from "../hooks/useProfile";
 import type {
   ProfileDataReceiver,
@@ -331,7 +339,78 @@ export function Profile({ role = "admin", onSave }: ProfileProps) {
   >(savedVerificationDocs);
   const [isSaving, setIsSaving] = useState(false);
 
+  const navigate = useNavigate();
+  const clearAuthState = useAuthStore((state) => state.logout);
+  const [sessions, setSessions] = useState<AuthSessionItem[]>([]);
+  const [isLoadingSessions, setIsLoadingSessions] = useState(true);
+  const [revokingSessionId, setRevokingSessionId] = useState<string | null>(null);
+  const [isLoggingOutAll, setIsLoggingOutAll] = useState(false);
+  const [sessionsError, setSessionsError] = useState<string | null>(null);
+
   const avatarInputRef = useRef<HTMLInputElement | null>(null);
+
+  const fetchSessions = useCallback(async () => {
+    setIsLoadingSessions(true);
+    setSessionsError(null);
+    try {
+      const list = await webAdminApi.authListSessions();
+      setSessions(Array.isArray(list) ? list : []);
+    } catch (err) {
+      setSessionsError(
+        err instanceof Error ? err.message : t("profile.sessions.loadFailed", "Unable to load active sessions"),
+      );
+    } finally {
+      setIsLoadingSessions(false);
+    }
+  }, [t]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      void fetchSessions();
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [fetchSessions]);
+
+  const handleRevokeSession = async (sessionId: string) => {
+    if (revokingSessionId || isLoggingOutAll) return;
+    setRevokingSessionId(sessionId);
+    try {
+      await webAdminApi.authRevokeSession({ sessionId });
+      setSessions((prev) =>
+        prev.map((item) =>
+          item.id === sessionId
+            ? { ...item, revokedAt: new Date().toISOString() }
+            : item,
+        ),
+      );
+      showToast.success(t("profile.sessions.revokedSuccess", "Device session revoked"));
+    } catch (err) {
+      showToast.error(
+        err instanceof Error ? err.message : t("profile.sessions.revokeFailed", "Unable to revoke session"),
+      );
+    } finally {
+      setRevokingSessionId(null);
+    }
+  };
+
+  const handleLogoutAll = async () => {
+    if (isLoggingOutAll || Boolean(revokingSessionId)) return;
+    setIsLoggingOutAll(true);
+    try {
+      await webAdminApi.authLogoutAll();
+      showToast.success(t("profile.sessions.logoutAllSuccess", "Signed out from all devices"));
+    } catch (err) {
+      showToast.error(
+        err instanceof Error ? err.message : t("common.failed", "Operation failed"),
+      );
+    } finally {
+      clearAuthState();
+      localStorage.removeItem("accessToken");
+      localStorage.removeItem("refreshToken");
+      setIsLoggingOutAll(false);
+      navigate("/login");
+    }
+  };
 
   const activeRole = profileData?.role ?? role;
   const roleMeta = ROLE_META[activeRole];
@@ -576,8 +655,19 @@ export function Profile({ role = "admin", onSave }: ProfileProps) {
   if (isLoading && !profileData) {
     return (
       <div className="w-full p-6">
-        <div className="mx-auto max-w-5xl rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm">
-          <p className="text-sm text-slate-500 dark:text-gray-400">{t("profile.subtitles.loading")}</p>
+        <div className="mx-auto max-w-5xl rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm space-y-6">
+          <div className="flex flex-col items-center gap-3 border-b border-slate-100 dark:border-slate-800 pb-6">
+            <Skeleton className="h-24 w-24 rounded-full" />
+            <Skeleton className="h-6 w-48" />
+            <Skeleton className="h-5 w-28" />
+          </div>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <Skeleton className="h-14 w-full rounded-xl" />
+            <Skeleton className="h-14 w-full rounded-xl" />
+            <Skeleton className="h-14 w-full rounded-xl" />
+            <Skeleton className="h-14 w-full rounded-xl" />
+          </div>
+          <p className="sr-only">{t("profile.subtitles.loading")}</p>
         </div>
       </div>
     );
@@ -843,6 +933,122 @@ export function Profile({ role = "admin", onSave }: ProfileProps) {
             </Button>
           </div>
         </FieldSet>
+
+        <div className="mt-8 border-t border-slate-100 dark:border-slate-800 pt-6">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400">
+                <Shield className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-semibold text-slate-900 dark:text-gray-100">
+                  {t("profile.sessions.title", "Security & Active Sessions")}
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-gray-400">
+                  {t("profile.sessions.subtitle", "Monitor signed-in browsers and revoke active refresh sessions.")}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => void fetchSessions()}
+                disabled={isLoadingSessions || isLoggingOutAll}
+                className="rounded-xl dark:border-slate-700 dark:text-gray-200 dark:hover:bg-slate-800"
+              >
+                <RefreshCw className={`mr-1.5 h-3.5 w-3.5 ${isLoadingSessions ? "animate-spin" : ""}`} />
+                {t("common.refresh", "Refresh")}
+              </Button>
+              <Button
+                type="button"
+                variant="destructive"
+                size="sm"
+                onClick={() => void handleLogoutAll()}
+                disabled={isLoggingOutAll || Boolean(revokingSessionId)}
+                className="rounded-xl"
+              >
+                <LogOut className="mr-1.5 h-3.5 w-3.5" />
+                {t("profile.sessions.logoutAll", "Sign out all devices")}
+              </Button>
+            </div>
+          </div>
+
+          {sessionsError && (
+            <div className="mb-4 rounded-xl border border-rose-200 dark:border-rose-900/50 bg-rose-50 dark:bg-rose-950/30 px-4 py-3 text-xs text-rose-700 dark:text-rose-300">
+              {sessionsError}
+            </div>
+          )}
+
+          {isLoadingSessions ? (
+            <div className="space-y-3">
+              <Skeleton className="h-16 w-full rounded-xl" />
+              <Skeleton className="h-16 w-full rounded-xl" />
+            </div>
+          ) : sessions.length === 0 ? (
+            <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40 p-6 text-center text-xs text-slate-500 dark:text-gray-400">
+              {t("profile.sessions.empty", "No active sessions found.")}
+            </div>
+          ) : (
+            <div className="space-y-2.5">
+              {sessions.map((session) => {
+                const isRevoked = Boolean(session.revokedAt);
+                const lastSeenRaw = session.lastActiveAt || session.issuedAt;
+                const formattedSeen = lastSeenRaw
+                  ? new Date(lastSeenRaw).toLocaleString(t("common.dateLocale", "vi-VN"))
+                  : "-";
+                return (
+                  <div
+                    key={session.id}
+                    className="flex flex-col gap-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 p-4 md:flex-row md:items-center md:justify-between"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300">
+                        <Monitor className="h-4 w-4" />
+                      </div>
+                      <div className="space-y-0.5">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-sm font-semibold text-slate-900 dark:text-gray-100">
+                            {session.deviceLabel || t("profile.sessions.unknownDevice", "Recognized Browser / Device")}
+                          </span>
+                          {session.current && (
+                            <Badge className="bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-none text-[11px]">
+                              {t("profile.sessions.currentBadge", "Current")}
+                            </Badge>
+                          )}
+                          {isRevoked && (
+                            <Badge className="bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border-none text-[11px]">
+                              {t("profile.sessions.revokedBadge", "Revoked")}
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-xs text-slate-500 dark:text-gray-400">
+                          {t("profile.sessions.lastSeen", "Last active")}: {formattedSeen}
+                        </p>
+                      </div>
+                    </div>
+
+                    {!session.current && !isRevoked && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={revokingSessionId === session.id || isLoggingOutAll}
+                        onClick={() => void handleRevokeSession(session.id)}
+                        className="rounded-lg border-rose-200 dark:border-rose-900/50 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30"
+                      >
+                        <Trash2 className="mr-1.5 h-3.5 w-3.5" />
+                        {t("profile.sessions.revoke", "Revoke")}
+                      </Button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

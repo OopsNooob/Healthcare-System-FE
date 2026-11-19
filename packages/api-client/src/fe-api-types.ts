@@ -95,31 +95,98 @@ export interface HealthReadyResponse {
 
 // ==================== AUTH ====================
 
-/** POST /api/v1/auth/register — input (Params/Query/Headers/Body theo tên field). */
-export interface AuthRegisterRequest {
+export type AuthenticationRole = 'patient' | 'doctor' | 'admin' | 'ai_manager';
+
+/** POST /api/v1/auth/register/patient — input. */
+export interface AuthRegisterPatientRequest {
   email: string;
   password: string;
   fullName: string;
   phoneNumber?: string;
-  role?: "patient" | "doctor" | "admin";
-  specialty?: string;
-  experienceYears?: number;
-  workplace?: string;
-  verificationDocuments?: Array<string>;
-  existingVerificationDocuments?: Array<string>;
+}
+
+/** POST /api/v1/auth/register/patient — response. */
+export interface AuthRegisterPatientResponse {
+  status: 'pending_verification' | string;
+  message: string;
+}
+
+/** POST /api/v1/auth/register/doctor — input. */
+export interface AuthRegisterDoctorRequest {
+  email: string;
+  password: string;
+  fullName: string;
+  specialty: string;
+  workplace: string;
+  experienceYears: number;
+  phoneNumber?: string;
   newFilesToUpload?: UploadBinary[];
 }
 
-/** POST /api/v1/auth/register — response thành công theo return type thực tế. */
-export interface AuthRegisterResponse {
-  accessToken: string;
-  refreshToken: string;
-  user: { id: string;
-  email: undefined | string;
+/** POST /api/v1/auth/register/doctor — response. */
+export interface AuthRegisterDoctorResponse {
+  status: string;
+  message: string;
+}
+
+/** POST /api/v1/auth/doctor-reapplication/restore — input. */
+export interface AuthRestoreDoctorReapplicationRequest {
+  email: string;
+  password: string;
+}
+
+/** POST /api/v1/auth/doctor-reapplication/restore — response. */
+export interface AuthRestoreDoctorReapplicationResponse {
   fullName: string;
-  role: "patient" | "doctor" | "admin";
-  avatarUrl: string;
-  };
+  phoneNumber: string | null;
+  specialty: string;
+  workplace: string;
+  experienceYears: number;
+  verificationDocuments: Array<{ id: string; label: string }>;
+  verificationDocumentCount: number;
+}
+
+/** POST /api/v1/auth/verify-email — input. */
+export interface AuthVerifyEmailRequest {
+  email: string;
+  otpCode: string;
+}
+
+/** POST /api/v1/auth/verify-email — response. */
+export interface AuthVerifyEmailResponse {
+  message: string;
+}
+
+/** POST /api/v1/auth/request-email-verification — input. */
+export interface AuthRequestEmailVerificationRequest {
+  email: string;
+}
+
+/** POST /api/v1/auth/request-email-verification — response. */
+export interface AuthRequestEmailVerificationResponse {
+  message: string;
+}
+
+/** POST /api/v1/auth/password-recovery — input. */
+export interface AuthPasswordRecoveryRequest {
+  email: string;
+}
+
+/** POST /api/v1/auth/password-recovery — response. */
+export interface AuthPasswordRecoveryResponse {
+  message: string;
+}
+
+/** POST /api/v1/auth/reset-password — input. */
+export interface AuthResetPasswordRequest {
+  email: string;
+  otpCode: string;
+  newPassword: string;
+}
+
+/** POST /api/v1/auth/reset-password — response. */
+export interface AuthResetPasswordResponse {
+  message: string;
 }
 
 /** POST /api/v1/auth/login — input (Params/Query/Headers/Body theo tên field). */
@@ -132,17 +199,25 @@ export interface AuthLoginRequest {
 export interface AuthLoginResponse {
   accessToken: string;
   refreshToken: string;
-  user: { id: string;
-  email: undefined | string;
-  fullName: string;
-  role: "patient" | "doctor" | "admin";
-  avatarUrl: string;
+  user: {
+    id: string;
+    email: undefined | string;
+    fullName: string;
+    role: "patient" | "doctor" | "admin";
+    avatarUrl?: string;
   };
 }
 
-/** POST /api/v1/auth/refresh — input (Params/Query/Headers/Body theo tên field). */
+/** POST /api/v1/auth/oauth/google/exchange — input. */
+export interface AuthExchangeGoogleOAuthTicketRequest {
+  ticket: string;
+}
+
+/** POST /api/v1/auth/oauth/google/exchange — response. */
+export type AuthExchangeGoogleOAuthTicketResponse = AuthLoginResponse;
+
+/** POST /api/v1/auth/refresh — input (Phase A: signed refresh token only, never userId). */
 export interface AuthRefreshRequest {
-  userId: string;
   refreshToken: string;
 }
 
@@ -150,17 +225,44 @@ export interface AuthRefreshRequest {
 export interface AuthRefreshResponse {
   accessToken: string;
   refreshToken: string;
-  user: { id: string;
-  email: undefined | string;
-  fullName: string;
-  role: "patient" | "doctor" | "admin";
-  avatarUrl: string;
+  user: {
+    id: string;
+    email: undefined | string;
+    fullName: string;
+    role: "patient" | "doctor" | "admin";
+    avatarUrl?: string;
   };
+}
+
+/** GET /api/v1/auth/sessions — session metadata item. */
+export interface AuthSessionItem {
+  id: string;
+  deviceLabel: string;
+  issuedAt: string;
+  lastActiveAt: string;
+  revokedAt: string | null;
+  current: boolean;
+}
+
+/** GET /api/v1/auth/sessions — input. */
+export interface AuthListSessionsRequest {}
+
+/** GET /api/v1/auth/sessions — response. */
+export type AuthListSessionsResponse = AuthSessionItem[];
+
+/** POST /api/v1/auth/sessions/revoke — input. */
+export interface AuthRevokeSessionRequest {
+  sessionId: string;
+}
+
+/** POST /api/v1/auth/sessions/revoke — response. */
+export interface AuthRevokeSessionResponse {
+  message: string;
 }
 
 /** POST /api/v1/auth/logout — input (Params/Query/Headers/Body theo tên field). */
 export interface AuthLogoutRequest {
-  
+
 }
 
 /** POST /api/v1/auth/logout — response thành công theo return type thực tế. */
@@ -168,9 +270,17 @@ export interface AuthLogoutResponse {
   message: string;
 }
 
+/** POST /api/v1/auth/logout-all — input. */
+export interface AuthLogoutAllRequest {}
+
+/** POST /api/v1/auth/logout-all — response. */
+export interface AuthLogoutAllResponse {
+  message: string;
+}
+
 /** GET /api/v1/auth/me — input (Params/Query/Headers/Body theo tên field). */
 export interface AuthGetProfileRequest {
-  
+
 }
 
 /** GET /api/v1/auth/me — response thành công theo return type thực tế. */
@@ -206,49 +316,6 @@ export interface AuthGetProfileResponse {
   };
   adminProfile?: { adminRole: "super_admin" | "user_manager" | "ai_manager";
   };
-}
-
-/** POST /api/v1/auth/change-password — input (Params/Query/Headers/Body theo tên field). */
-export interface AuthChangePasswordRequest {
-  email: string;
-  otpCode: string;
-  newPassword: string;
-}
-
-/** POST /api/v1/auth/change-password — response thành công theo return type thực tế. */
-export interface AuthChangePasswordResponse {
-  message: string;
-}
-
-/** POST /api/v1/auth/forgot-password — input (Params/Query/Headers/Body theo tên field). */
-export interface AuthForgotPasswordRequest {
-  email: string;
-}
-
-/** POST /api/v1/auth/forgot-password — response thành công theo return type thực tế. */
-export interface AuthForgotPasswordResponse {
-  message: string;
-}
-
-/** POST /api/v1/auth/send-otp — input (Params/Query/Headers/Body theo tên field). */
-export interface AuthSendOtpRequest {
-  email: string;
-}
-
-/** POST /api/v1/auth/send-otp — response thành công theo return type thực tế. */
-export interface AuthSendOtpResponse {
-  message: string;
-}
-
-/** POST /api/v1/auth/confirm-otp — input (Params/Query/Headers/Body theo tên field). */
-export interface AuthConfirmOtpRequest {
-  email: string;
-  otpCode: string;
-}
-
-/** POST /api/v1/auth/confirm-otp — response thành công theo return type thực tế. */
-export interface AuthConfirmOtpResponse {
-  message: string;
 }
 
 // ==================== UPLOAD ====================
@@ -2811,33 +2878,23 @@ export interface PaymentsGetRequest {
   };
 }
 
-/** GET /api/v1/billing/payments/orders/{id} — response thành công theo return type thực tế. */
+/** GET /api/v1/billing/payments/orders/{id} — response thành công (BILL-05 immutable projection). */
 export interface PaymentsGetResponse {
-  userId: string;
-  planId: string;
+  cancelledAt?: string;
+  paidAt?: string;
+  id: string;
   orderCode: string;
-  idempotencyKey: string;
-  orderSnapshot: { code: string;
-  version: number;
-  name: string;
-  durationDays: number;
-  aiRequestLimit: number;
-  aiTokenLimit: number;
-  aiQuotaPeriod: "day" | "subscription_cycle";
-  consultationLimitPerCycle: number;
-  activeCareProgramLimit: number;
-  benefits: Record<string, unknown>;
-  price: number;
-  currency: string;
-  };
+  status: "created" | "pending" | "processing" | "paid" | "expired" | "cancelled" | "failed" | "refund_pending" | "refunded";
   amount: number;
   currency: string;
-  status: "created" | "pending" | "processing" | "paid" | "expired" | "cancelled" | "failed" | "refund_pending" | "refunded";
+  plan: {
+    code: string;
+    name: string;
+    version: number;
+  };
   expiresAt: string;
-  paidAt?: string;
-  cancelledAt?: string;
-  cancelledBy?: string;
-  cancellationReason?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 /** GET /api/v1/billing/payments/orders/{id}/evidence — input (Params/Query/Headers/Body theo tên field). */
@@ -5710,4 +5767,289 @@ export type RealtimeAccountBanned = null;
 export interface RealtimePresenceChanged {
   userId: string;
   status: "online" | "offline";
+}
+
+// ==================== DA2 CURATED CONSUMER CONTRACT ====================
+
+export type Da2IsoDateTime = string;
+
+export interface Da2Page<T> {
+  items: T[];
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
+
+export interface Da2Pagination {
+  page: number;
+  limit: number;
+  total: number;
+  pages: number;
+}
+
+export interface Da2ApiError {
+  statusCode: number;
+  timestamp: Da2IsoDateTime;
+  path: string;
+  method: string;
+  correlationId: string;
+  error: string;
+  message: string | string[];
+  code?: string;
+  details?: Record<string, unknown>;
+}
+
+export interface Da2IdempotentResult<T> {
+  data: T;
+  replayed: boolean;
+}
+
+export interface Da2AvailableSlot {
+  id: string;
+  doctorId: string;
+  startAt: Da2IsoDateTime;
+  endAt: Da2IsoDateTime;
+  timezone: string;
+  status: "available";
+}
+
+export interface Da2DoctorAvailabilitySlot {
+  id: string;
+  doctorId: string;
+  startAt: Da2IsoDateTime;
+  endAt: Da2IsoDateTime;
+  timezone: string;
+  status: "available" | "booked" | "blocked" | "expired";
+  createdAt: Da2IsoDateTime;
+  updatedAt: Da2IsoDateTime;
+}
+
+export interface Da2ScheduledConsultation {
+  id: string;
+  patientId: string;
+  doctorId: string;
+  availabilitySlotId: string;
+  mode: "scheduled";
+  requestStatus: "pending" | "accepted" | "declined" | "cancelled" | "expired";
+  sessionStatus: "not_started" | "waiting" | "in_consultation" | "interrupted" | "completed" | "no_show";
+  quotaPolicy: "consultation_limit" | "care_program_included";
+  scheduledStartAt: Da2IsoDateTime;
+  scheduledEndAt: Da2IsoDateTime;
+  timezone: string;
+  expectedDurationMinutes: number;
+  createdAt: Da2IsoDateTime;
+  updatedAt: Da2IsoDateTime;
+}
+
+export interface Da2QueueSnapshot {
+  consultationId: string;
+  status: "waiting" | "called";
+  position: number;
+  estimatedWaitMinutes: number | null;
+  etaReason: string | null;
+  updatedAt: Da2IsoDateTime;
+}
+
+export interface Da2DoctorQueueEntry extends Da2QueueSnapshot {
+  patient: { id: string; fullName?: string; avatarUrl?: string };
+  mode: "scheduled";
+  scheduledStartAt: Da2IsoDateTime;
+  queueJoinedAt: Da2IsoDateTime;
+  queuePosition: number;
+  isCurrent: boolean;
+  isLate: boolean;
+  calledAt?: Da2IsoDateTime;
+}
+
+export interface Da2DoctorQueuePage {
+  data: Da2DoctorQueueEntry[];
+  currentSession: {
+    consultationId: string;
+    patientId: string;
+    sessionStatus: "not_started" | "waiting" | "in_consultation" | "interrupted" | "completed" | "no_show";
+    sessionStartedAt?: Da2IsoDateTime;
+  } | null;
+  pagination: Da2Pagination;
+}
+
+export interface Da2CareProgramSummary {
+  id: string;
+  programCode: string;
+  version: number;
+  name: string;
+  diseaseKey: string;
+  description?: string;
+  status: "draft" | "published" | "retired";
+  publishedAt?: Da2IsoDateTime;
+  retiredAt?: Da2IsoDateTime;
+}
+
+export interface Da2CareIdentitySummary {
+  id: string;
+  fullName: string;
+  avatarUrl?: string;
+  specialty?: string;
+}
+
+export interface Da2CareEnrollmentSummary {
+  id: string;
+  program: Da2CareProgramSummary;
+  status: "pending" | "active" | "paused" | "completed" | "cancelled";
+  patient?: Da2CareIdentitySummary;
+  assignedDoctor?: Da2CareIdentitySummary;
+  timezone: string;
+  allowedActions: string[];
+  startedAt?: Da2IsoDateTime;
+  expectedEndAt?: Da2IsoDateTime;
+  createdAt: Da2IsoDateTime;
+  updatedAt: Da2IsoDateTime;
+}
+
+export interface Da2CareTaskSummary {
+  id: string;
+  enrollmentId: string;
+  taskType: "metric" | "check_in" | "education" | "appointment" | "doctor_review";
+  templateKey: string;
+  status: "scheduled" | "due" | "completed" | "missed" | "cancelled";
+  required: boolean;
+  scheduledFor: Da2IsoDateTime;
+  windowStart: Da2IsoDateTime;
+  windowEnd: Da2IsoDateTime;
+  completedAt?: Da2IsoDateTime;
+  missedAt?: Da2IsoDateTime;
+  cancelledAt?: Da2IsoDateTime;
+  allowedActions: string[];
+}
+
+export interface Da2CareTaskDetail extends Da2CareTaskSummary {
+  presentation: unknown;
+  progress: unknown;
+  consultationReference?: unknown;
+}
+
+export interface Da2HealthCheckInRequest {
+  overallStatus: "improved" | "stable" | "worsened";
+  symptomCodes: string[];
+  severity: "none" | "mild" | "moderate" | "severe";
+}
+
+export interface Da2EducationAcknowledgementRequest {
+  action: "acknowledge";
+}
+
+export interface Da2DoctorReviewRequest {
+  reasonCode: "reviewed_no_action" | "follow_up_needed" | "consultation_recommended" | "care_plan_adjustment_needed";
+  note?: string;
+}
+
+export interface Da2CareRuleTestSummary {
+  status: "passed" | "failed" | "unavailable";
+  total?: number;
+  passed?: number;
+  failed?: number;
+  reasonCodes?: string[];
+  interpreterVersion?: string;
+  executedAt?: Da2IsoDateTime;
+}
+
+export interface Da2DoctorCareRule {
+  id: string;
+  careProgramId: string;
+  version: number;
+  status: "active";
+  testSummary?: Da2CareRuleTestSummary;
+}
+
+export interface Da2SanitizedDeclarativeRule {
+  operator: "all" | "any" | "not" | "gt" | "gte" | "lt" | "lte" | "between" | "exists" | "equal" | "not_equal";
+  key?: string;
+  value?: number | string | boolean;
+  min?: number;
+  max?: number;
+  rules?: Da2SanitizedDeclarativeRule[];
+  reasonCode?: string;
+  severity?: "attention" | "urgent";
+}
+
+export interface Da2AdminCareRule extends Omit<Da2DoctorCareRule, "status"> {
+  revision: number;
+  status: "active" | "draft";
+  rules: Da2SanitizedDeclarativeRule[];
+  dataSources: Array<{
+    kind: "care_task_check_in";
+    schemaVersion: "health-check-in.v1";
+    templateKey: string;
+    allowedFactPrefixes: string[];
+  }>;
+  testResults?: Array<{
+    scenarioKey: string;
+    passed: boolean;
+    expectedSeverity?: "normal" | "attention" | "urgent";
+    actualSeverity?: "normal" | "attention" | "urgent";
+    reasonCodes?: string[];
+  }>;
+}
+
+export interface Da2PatientPlan {
+  id: string;
+  code: string;
+  version: number;
+  name: string;
+  description?: string;
+  price: number;
+  currency: string;
+  durationDays: number;
+  quota: {
+    aiRequestLimit: number;
+    aiTokenLimit: number;
+    aiQuotaPeriod: "day" | "subscription_cycle";
+    consultationLimitPerCycle: number;
+    activeCareProgramLimit: number;
+  };
+  available: boolean;
+  purchasable: boolean;
+  effectiveFrom?: Da2IsoDateTime;
+  effectiveUntil?: Da2IsoDateTime;
+}
+
+export interface Da2PatientSubscriptionUsage {
+  subscriptionId: string;
+  cycle: { number: number; startedAt: Da2IsoDateTime; endsAt: Da2IsoDateTime };
+  consultations: {
+    limit: number | null;
+    counted: number;
+    reserved: number;
+    available: number | null;
+    unlimited: boolean;
+  };
+  asOf: Da2IsoDateTime;
+}
+
+export interface Da2PaymentOrder {
+  id: string;
+  orderCode: string;
+  status: "created" | "pending" | "processing" | "paid" | "expired" | "cancelled" | "failed" | "refund_pending" | "refunded";
+  amount: number;
+  currency: string;
+  plan: { code: string; name: string; version: number };
+  expiresAt: Da2IsoDateTime;
+  createdAt: Da2IsoDateTime;
+  updatedAt: Da2IsoDateTime;
+  paidAt?: Da2IsoDateTime;
+  cancelledAt?: Da2IsoDateTime;
+}
+
+export interface Da2CareReportExport {
+  id: string;
+  careReportId: string;
+  reportVersion: number;
+  format: "pdf" | "csv";
+  status: "pending" | "processing" | "ready" | "failed" | "expired";
+  createdAt: Da2IsoDateTime;
+  updatedAt: Da2IsoDateTime;
+  expiresAt?: Da2IsoDateTime;
+  download?: { url: string; expiresAt: Da2IsoDateTime };
+  failureReasonCode?: string;
+  replayed?: boolean;
 }

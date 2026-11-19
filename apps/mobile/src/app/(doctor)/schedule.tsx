@@ -78,9 +78,9 @@ function dayRangeIso(dateStr: string, timezone: string): { from: string; to: str
 }
 
 export default function DoctorScheduleScreen() {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   useThemeContext();
-  const dateLocale = i18n.language?.startsWith('vi') ? 'vi-VN' : 'en-US';
+  const dateLocale = t('mobile.date_locale', 'vi-VN');
 
   const [selectedDate, setSelectedDate] = useState(todayYyyyMmDd);
   const [showDatePicker, setShowDatePicker] = useState(false);

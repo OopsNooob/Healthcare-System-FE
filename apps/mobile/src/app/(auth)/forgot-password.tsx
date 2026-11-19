@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   View,
@@ -10,8 +10,10 @@ import {
   ScrollView,
   ActivityIndicator,
 } from 'react-native';
+import { useLocalSearchParams } from 'expo-router';
 import Toast from 'react-native-toast-message';
 import { useForgotPassword } from '@repo/shared-hooks';
+import { useThemeContext } from '@/context/ThemeContext';
 import { useSafeRouter as useRouter } from '@/utils/useSafeRouter';
 import { extractApiErrorMessage } from '@/utils/apiError';
 import { Mail, Cross, ArrowLeft } from 'lucide-react-native';
@@ -19,9 +21,19 @@ import { tw, twInstance } from '@/tw';
 
 export default function ForgotPasswordScreen() {
   const { t } = useTranslation();
+  useThemeContext();
   const router = useRouter();
+  const params = useLocalSearchParams<{ email?: string }>();
   const { sendOtp, isLoading } = useForgotPassword();
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(
+    typeof params.email === 'string' ? params.email : '',
+  );
+
+  useEffect(() => {
+    if (typeof params.email === 'string' && params.email && !email) {
+      setEmail(params.email);
+    }
+  }, [params.email, email]);
 
   const handleReset = async () => {
     if (isLoading) return;
@@ -125,7 +137,7 @@ export default function ForgotPasswordScreen() {
 
             <TouchableOpacity
               style={tw('mt-4 items-center')}
-              onPress={() => router.push('/(auth)/login')}
+              onPress={() => router.replace('/(auth)/login')}
               disabled={isLoading}
             >
               <Text style={tw('text-sm text-gray-500 dark:text-slate-400')}>

@@ -20,8 +20,8 @@ interface PlanDetailModalProps {
 }
 
 export function PlanDetailModal({ plan, onClose, onClone }: PlanDetailModalProps) {
-  const { t, i18n } = useTranslation();
-  const locale = i18n.language?.startsWith("vi") ? "vi-VN" : "en-US";
+  const { t } = useTranslation();
+  const locale = t("common.dateLocale", "vi-VN");
 
   if (!plan) return null;
 

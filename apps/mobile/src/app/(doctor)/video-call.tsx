@@ -362,7 +362,7 @@ export default function DoctorVideoCallScreen() {
           type: 'success',
           text1: t('mobile.consultation_completed', 'Consultation marked as completed'),
         });
-        router.back();
+        router.back('/(doctor)/consultations');
       } catch (err) {
         Toast.show({ type: 'error', text1: extractApiErrorMessage(err) });
       } finally {
@@ -370,7 +370,7 @@ export default function DoctorVideoCallScreen() {
       }
       return;
     }
-    router.back();
+    router.back('/(doctor)/consultations');
   }, [clinicalNotes, consultationId, isEndingCall, router, sessionStatus, t]);
 
   const canStart =
@@ -385,7 +385,7 @@ export default function DoctorVideoCallScreen() {
       {/* Top Overlay */}
       <View style={tw('px-4 pt-2 pb-3 flex-row items-center justify-between')}>
         <TouchableOpacity
-          onPress={() => router.back()}
+          onPress={() => router.back('/(doctor)/consultations')}
           style={tw('p-2.5 rounded-full bg-slate-800/80 border border-slate-700')}
         >
           <ChevronDown size={20} color="#ffffff" />

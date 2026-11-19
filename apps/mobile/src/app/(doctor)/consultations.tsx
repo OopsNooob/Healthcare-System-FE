@@ -130,7 +130,7 @@ function mapRawConsultation(raw: RawRecord, fallbackPatient: string): Consultati
 }
 
 export default function DoctorConsultationsScreen() {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const { isDark } = useThemeContext();
   const router = useSafeRouter();
 
@@ -173,7 +173,7 @@ export default function DoctorConsultationsScreen() {
   const [reportReason, setReportReason] = useState('');
 
   const patientNameCacheRef = useRef<Map<string, string>>(new Map());
-  const dateLocale = i18n.language?.startsWith('vi') ? 'vi-VN' : 'en-US';
+  const dateLocale = t('mobile.date_locale', 'vi-VN');
 
   const hydrateMissingPatientNames = useCallback(
     async (rows: ConsultationRow[]): Promise<ConsultationRow[]> => {

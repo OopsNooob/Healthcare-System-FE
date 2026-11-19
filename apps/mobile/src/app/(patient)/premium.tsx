@@ -1288,8 +1288,8 @@ export default function PremiumScreen() {
                       </View>
                       <Text style={tw('text-xs text-slate-700 dark:text-slate-300')}>
                         {t('mobile.plan_prefix', 'Gói')}:{' '}
-                        {selectedOrderDetail.orderSnapshot?.name} (v
-                        {selectedOrderDetail.orderSnapshot?.version})
+                        {selectedOrderDetail.plan?.name} (v
+                        {selectedOrderDetail.plan?.version})
                       </Text>
                       <Text style={tw('text-xs text-slate-700 dark:text-slate-300 mt-1')}>
                         {t('mobile.status_label', 'Trạng thái')}:{' '}
@@ -1305,10 +1305,10 @@ export default function PremiumScreen() {
                           {formatDateTime(selectedOrderDetail.paidAt)}
                         </Text>
                       ) : null}
-                      {selectedOrderDetail.cancellationReason ? (
+                      {selectedOrderDetail.cancelledAt ? (
                         <Text style={tw('text-xs text-red-600 dark:text-red-400 mt-1')}>
-                          {t('mobile.reason_label', 'Lý do')}:{' '}
-                          {selectedOrderDetail.cancellationReason}
+                          {t('mobile.cancelled_at', 'Huỷ lúc')}:{' '}
+                          {formatDateTime(selectedOrderDetail.cancelledAt)}
                         </Text>
                       ) : null}
                     </View>

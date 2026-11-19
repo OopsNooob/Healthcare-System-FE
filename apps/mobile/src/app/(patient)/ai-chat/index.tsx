@@ -62,6 +62,13 @@ type UserSummaryStats = {
   averageRating?: number;
 };
 
+type MyAiFeedbackItem = FeTypes.AiFeedbacksGetMyFeedbacksResponse['data'][number] & {
+  _id?: string;
+  id?: string;
+  createdAt?: string;
+  rating?: number;
+};
+
 function getConvId(item: ConversationItem): string {
   return String(item._id ?? item.id ?? '');
 }
@@ -76,7 +83,7 @@ const CONVERSATION_TYPES: Array<{ value: ConversationType; labelKey: string; def
 ];
 
 export default function AiChatHistoryScreen() {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const { colorScheme } = useThemeContext();
   const isDark = colorScheme === 'dark';
 
@@ -110,6 +117,12 @@ export default function AiChatHistoryScreen() {
   const [healthSummaryText, setHealthSummaryText] = useState('');
   const [healthSummaryError, setHealthSummaryError] = useState<string | null>(null);
 
+  const [myFeedbacksModalVisible, setMyFeedbacksModalVisible] = useState(false);
+  const [loadingMyFeedbacks, setLoadingMyFeedbacks] = useState(false);
+  const [refreshingMyFeedbacks, setRefreshingMyFeedbacks] = useState(false);
+  const [myFeedbacks, setMyFeedbacks] = useState<MyAiFeedbackItem[]>([]);
+  const [myFeedbacksError, setMyFeedbacksError] = useState<string | null>(null);
+
   useEffect(() => {
     if (prefill && handledPrefillRef.current !== prefill) {
       handledPrefillRef.current = prefill;
@@ -120,7 +133,7 @@ export default function AiChatHistoryScreen() {
     }
   }, [prefill, router]);
 
-  const dateLocale = i18n.language?.startsWith('vi') ? 'vi-VN' : 'en-US';
+  const dateLocale = t('mobile.date_locale', 'vi-VN');
 
   const fetchConversations = useCallback(
     async (targetPage = 1, append = false, opts?: { showLoader?: boolean }) => {
@@ -403,6 +416,42 @@ export default function AiChatHistoryScreen() {
     }
   };
 
+  const loadMyFeedbacks = useCallback(async (isRefresh = false) => {
+    if (isRefresh) {
+      setRefreshingMyFeedbacks(true);
+    } else {
+      setLoadingMyFeedbacks(true);
+    }
+    setMyFeedbacksError(null);
+    try {
+      const res = await mobileApi.aiFeedbacksGetMyFeedbacks({
+        query: {
+          page: 1,
+          limit: 20,
+          sortOrder: -1,
+        },
+      });
+      const parsed = normalizePaginatedList<MyAiFeedbackItem>(res, 1, 20);
+      setMyFeedbacks(parsed.items);
+    } catch (error) {
+      setMyFeedbacksError(
+        extractApiErrorMessage(
+          error,
+          t('mobile.ai_my_feedbacks_load_error', 'Could not load your submitted AI feedback.'),
+        ),
+      );
+    } finally {
+      setLoadingMyFeedbacks(false);
+      setRefreshingMyFeedbacks(false);
+    }
+  }, [t]);
+
+  const handleOpenMyFeedbacks = () => {
+    if (loadingMyFeedbacks) return;
+    setMyFeedbacksModalVisible(true);
+    void loadMyFeedbacks(false);
+  };
+
   const formatDate = (dateStr?: string) => {
     if (!dateStr) return '';
     const parsed = new Date(dateStr);
@@ -447,16 +496,27 @@ export default function AiChatHistoryScreen() {
               : t('mobile.your_health_analysis_history', 'Your health analysis history')}
           </Text>
         </View>
-        <TouchableOpacity
-          onPress={handleOpenHealthSummary}
-          disabled={loadingHealthSummary}
-          style={tw('flex-row items-center bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-800 px-3 py-2 rounded-xl')}
-        >
-          <HeartPulse color={isDark ? '#818cf8' : '#4f46e5'} size={16} style={tw('mr-1.5')} />
-          <Text style={tw('text-xs font-bold text-indigo-700 dark:text-indigo-300')}>
-            {t('mobile.ai_health_summary_btn', 'Summary')}
-          </Text>
-        </TouchableOpacity>
+        <View style={tw('flex-row items-center gap-2')}>
+          <TouchableOpacity
+            onPress={handleOpenMyFeedbacks}
+            disabled={loadingMyFeedbacks}
+            style={tw('p-2 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700')}
+            accessibilityLabel={t('mobile.ai_my_feedbacks_btn', 'My Feedback')}
+          >
+            <MessageSquare color={isDark ? '#cbd5e1' : '#334155'} size={17} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={handleOpenHealthSummary}
+            disabled={loadingHealthSummary}
+            style={tw('flex-row items-center bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-800 px-3 py-2 rounded-xl')}
+          >
+            <HeartPulse color={isDark ? '#818cf8' : '#4f46e5'} size={16} style={tw('mr-1.5')} />
+            <Text style={tw('text-xs font-bold text-indigo-700 dark:text-indigo-300')}>
+              {t('mobile.ai_health_summary_btn', 'Summary')}
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Search & Filters */}
@@ -857,6 +917,109 @@ export default function AiChatHistoryScreen() {
                 <Text style={tw('text-sm leading-6 text-slate-700 dark:text-slate-200')}>
                   {healthSummaryText || t('mobile.ai_health_summary_empty', 'No health summary available yet.')}
                 </Text>
+              )}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* My AI Feedbacks Modal */}
+      <Modal
+        visible={myFeedbacksModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setMyFeedbacksModalVisible(false)}
+      >
+        <View style={tw('flex-1 justify-end bg-black/60')}>
+          <View style={tw('bg-white dark:bg-slate-900 rounded-t-3xl border-t border-slate-200 dark:border-slate-800 max-h-[82%] p-5')}>
+            <View style={tw('flex-row items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 mb-4')}>
+              <View style={tw('flex-row items-center flex-1 mr-3')}>
+                <MessageSquare color={isDark ? '#34d399' : '#059669'} size={21} style={tw('mr-2.5')} />
+                <Text style={tw('text-lg font-bold text-slate-900 dark:text-white')}>
+                  {t('mobile.ai_my_feedbacks_title', 'My AI Feedback')}
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => setMyFeedbacksModalVisible(false)}
+                style={tw('p-2 rounded-full bg-slate-100 dark:bg-slate-800')}
+              >
+                <X color={twInstance.color('text-slate-600 dark:text-slate-300')} size={20} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={tw('pb-6 gap-3')}
+              refreshControl={
+                <RefreshControl
+                  refreshing={refreshingMyFeedbacks}
+                  onRefresh={() => void loadMyFeedbacks(true)}
+                  tintColor={isDark ? '#34d399' : '#10b981'}
+                />
+              }
+            >
+              {loadingMyFeedbacks ? (
+                <View style={tw('gap-3 py-2')}>
+                  <Skeleton className="h-20 w-full rounded-2xl" />
+                  <Skeleton className="h-20 w-full rounded-2xl" />
+                  <Skeleton className="h-20 w-full rounded-2xl" />
+                </View>
+              ) : myFeedbacksError ? (
+                <View style={tw('py-6 items-center')}>
+                  <AlertCircle color="#ef4444" size={28} style={tw('mb-2')} />
+                  <Text style={tw('text-sm text-slate-600 dark:text-slate-300 text-center mb-4')}>
+                    {myFeedbacksError}
+                  </Text>
+                  <TouchableOpacity
+                    onPress={() => void loadMyFeedbacks(false)}
+                    style={tw('bg-emerald-600 px-5 py-2.5 rounded-xl')}
+                  >
+                    <Text style={tw('text-white font-bold text-sm')}>{t('mobile.retry', 'Retry')}</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : myFeedbacks.length === 0 ? (
+                <View style={tw('py-8 items-center')}>
+                  <Text style={tw('text-sm text-slate-500 dark:text-slate-400 text-center')}>
+                    {t('mobile.ai_my_feedbacks_empty', 'You have not submitted any AI feedback yet.')}
+                  </Text>
+                </View>
+              ) : (
+                myFeedbacks.map((fb, idx) => (
+                  <TouchableOpacity
+                    key={String(fb._id ?? fb.id ?? `${fb.aiConversationId}-${idx}`)}
+                    onPress={() => {
+                      setMyFeedbacksModalVisible(false);
+                      if (fb.aiConversationId) {
+                        router.push({
+                          pathname: '/(patient)/ai-chat/[id]',
+                          params: { id: fb.aiConversationId },
+                        });
+                      }
+                    }}
+                    style={tw('p-4 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 gap-2')}
+                  >
+                    <View style={tw('flex-row items-center justify-between')}>
+                      <Text style={tw('text-xs font-bold text-emerald-700 dark:text-emerald-400')}>
+                        {t('mobile.ai_feedback_conversation_label', 'Consultation Session')}
+                      </Text>
+                      {typeof fb.rating === 'number' && (
+                        <View style={tw('bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 rounded-full')}>
+                          <Text style={tw('text-[11px] font-bold text-amber-700 dark:text-amber-300')}>
+                            {fb.rating}/5
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                    <Text style={tw('text-sm text-slate-800 dark:text-slate-200 leading-5')}>
+                      {fb.content}
+                    </Text>
+                    {Boolean(fb.createdAt) && (
+                      <Text style={tw('text-[11px] text-slate-500 dark:text-slate-400')}>
+                        {formatDate(fb.createdAt)}
+                      </Text>
+                    )}
+                  </TouchableOpacity>
+                ))
               )}
             </ScrollView>
           </View>

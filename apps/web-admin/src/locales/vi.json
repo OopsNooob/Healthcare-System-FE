@@ -48,7 +48,15 @@
       "changePasswordButton": "Thay đổi mật khẩu",
       "sendOtpFailed": "Gửi OTP thất bại",
       "logInAgain": "Đăng nhập lại",
-      "close": "Đóng"
+      "close": "Đóng",
+      "otpInvalid6": "Mã OTP phải gồm 6 chữ số.",
+      "continueResetButton": "Tiếp tục",
+      "resendOtpButton": "Gửi lại mã OTP",
+      "validation": {
+        "passwordRequired": "Vui lòng nhập mật khẩu mới.",
+        "passwordMin12": "Mật khẩu mới phải có ít nhất 12 ký tự.",
+        "confirmPasswordRequired": "Vui lòng xác nhận mật khẩu mới."
+      }
     },
     "sidebar": {
       "overview": "Tổng quan",
@@ -1000,7 +1008,8 @@
         "saveBtn": "Lưu phân đoạn",
         "searchPlaceholder": "Tìm trong phân đoạn...",
         "updateFailed": "Không thể cập nhật phân đoạn.",
-        "updateSuccess": "Đã cập nhật phân đoạn."
+        "updateSuccess": "Đã cập nhật phân đoạn.",
+        "deepSearchBtn": "Tìm sâu"
       },
       "status": {
         "active": "Hoạt động",
@@ -1302,6 +1311,21 @@
         "noDocs": "Chưa tải lên tài liệu xác thực nào.",
         "profileUpdated": "Cập nhật hồ sơ thành công",
         "failedToSave": "Lưu hồ sơ thất bại"
+      },
+      "sessions": {
+        "title": "Bảo mật & Phiên đăng nhập",
+        "subtitle": "Theo dõi các phiên đăng nhập đang hoạt động và thu hồi quyền truy cập từ xa.",
+        "loadFailed": "Không thể tải danh sách phiên đăng nhập.",
+        "revokedSuccess": "Đã thu hồi phiên đăng nhập.",
+        "revokeFailed": "Không thể thu hồi phiên đăng nhập.",
+        "logoutAllSuccess": "Đã đăng xuất khỏi tất cả thiết bị.",
+        "logoutAll": "Đăng xuất tất cả thiết bị",
+        "empty": "Không tìm thấy phiên đăng nhập nào.",
+        "unknownDevice": "Trình duyệt / Thiết bị đã nhận diện",
+        "currentBadge": "Phiên hiện tại",
+        "revokedBadge": "Đã thu hồi",
+        "lastSeen": "Hoạt động gần nhất",
+        "revoke": "Thu hồi"
       }
     },
     "careProgram": {
@@ -1829,7 +1853,9 @@
         "notFound": "Không tìm thấy dữ liệu yêu cầu.",
         "unauthorized": "Phiên đăng nhập không hợp lệ hoặc đã hết hạn.",
         "serverError": "Lỗi máy chủ nội bộ. Vui lòng thử lại sau."
-      }
+      },
+      "dateLocale": "vi-VN",
+      "langCode": "vi"
     },
     "auditLogs": {
       "tabSystemLogs": "Nhật ký Hệ thống",

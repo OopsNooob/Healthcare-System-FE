@@ -26,7 +26,17 @@ export type UpdateEntryInput = CreateEntryInput & {
 };
 
 export function useHealthMetrics(options: UseHealthMetricsOptions = {}) {
-  const { enabled = true, ...query } = options;
+  const {
+    enabled = true,
+    type,
+    patientId,
+    startDate,
+    endDate,
+    page,
+    limit,
+    sortBy,
+    sortOrder,
+  } = options;
   const [data, setData] = useState<HealthMetric[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -38,7 +48,17 @@ export function useHealthMetrics(options: UseHealthMetricsOptions = {}) {
     setError(null);
 
     try {
-      const metrics = await getAllHealthMetrics(query);
+      const requestQuery: HealthMetricsQuery = {
+        ...(type !== undefined ? { type } : {}),
+        ...(patientId !== undefined ? { patientId } : {}),
+        ...(startDate !== undefined ? { startDate } : {}),
+        ...(endDate !== undefined ? { endDate } : {}),
+        ...(page !== undefined ? { page } : {}),
+        ...(limit !== undefined ? { limit } : {}),
+        ...(sortBy !== undefined ? { sortBy } : {}),
+        ...(sortOrder !== undefined ? { sortOrder } : {}),
+      };
+      const metrics = await getAllHealthMetrics(requestQuery);
       setData(metrics);
     } catch (err) {
       setError(
@@ -49,14 +69,14 @@ export function useHealthMetrics(options: UseHealthMetricsOptions = {}) {
     }
   }, [
     enabled,
-    query.patientId,
-    query.endDate,
-    query.limit,
-    query.page,
-    query.sortBy,
-    query.sortOrder,
-    query.startDate,
-    query.type,
+    type,
+    patientId,
+    startDate,
+    endDate,
+    page,
+    limit,
+    sortBy,
+    sortOrder,
   ]);
 
   useEffect(() => {

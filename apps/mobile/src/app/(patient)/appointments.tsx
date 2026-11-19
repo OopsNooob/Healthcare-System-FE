@@ -77,9 +77,9 @@ interface SlotOption {
 }
 
 export default function AppointmentsScreen() {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   useThemeContext();
-  const dateLocale = i18n.language?.startsWith('vi') ? 'vi-VN' : 'en-US';
+  const dateLocale = t('mobile.date_locale', 'vi-VN');
 
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<'upcoming' | 'history'>('upcoming');

@@ -2,9 +2,11 @@ import { useTranslation } from 'react-i18next';
 import { Link, Stack } from 'expo-router';
 import { View, Text } from 'react-native';
 import { tw } from '../tw';
+import { useThemeContext } from '@/context/ThemeContext';
 
 export default function NotFoundScreen() {
   const { t } = useTranslation();
+  useThemeContext();
 
   return (
     <>

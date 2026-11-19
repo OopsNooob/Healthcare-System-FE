@@ -89,8 +89,8 @@ export const CareAlertsModal: React.FC<CareAlertsModalProps> = ({
   patientName,
   onChanged,
 }) => {
-  const { t, i18n } = useTranslation();
-  const dateLocale = i18n.language?.startsWith('vi') ? 'vi-VN' : 'en-US';
+  const { t } = useTranslation();
+  const dateLocale = t('mobile.date_locale', 'vi-VN');
 
   const [alerts, setAlerts] = useState<NormalizedCareAlert[]>([]);
   const [nextCursor, setNextCursor] = useState<string | null>(null);

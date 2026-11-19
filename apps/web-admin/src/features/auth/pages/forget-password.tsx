@@ -57,9 +57,9 @@ export function ForgetPassword({
     const nextErrors: ForgetPasswordErrors = {};
 
     if (!values.email.trim()) {
-      nextErrors.email = "Please enter your email.";
-    } else if (!/^\S+@\S+\.\S+$/.test(values.email)) {
-      nextErrors.email = "Invalid email.";
+      nextErrors.email = t("auth.emailRequired", "Please enter your email.");
+    } else if (!/^\S+@\S+\.\S+$/.test(values.email.trim())) {
+      nextErrors.email = t("auth.emailInvalid", "Invalid email.");
     }
 
     return nextErrors;
@@ -72,6 +72,7 @@ export function ForgetPassword({
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
+    if (isLoading || propIsLoading) return;
 
     const nextErrors = validate({ email });
     setLocalErrors(nextErrors);
@@ -81,23 +82,24 @@ export function ForgetPassword({
       return;
     }
 
+    const cleanEmail = email.trim();
     try {
       if (onSubmit) {
-        await onSubmit(email.trim());
+        await onSubmit(cleanEmail);
       } else {
-        await sendOtp({ email: email.trim() });
+        await sendOtp({ email: cleanEmail });
       }
 
       setCooldown(60);
 
-      localStorage.setItem("resetPasswordEmail", email.trim());
+      sessionStorage.setItem("resetPasswordEmail", cleanEmail);
       showToast.success(t("auth.otpSent", "OTP has been sent to your email"));
-      navigate("/confirm-otp");
+      navigate("/confirm-otp", { state: { email: cleanEmail } });
     } catch (submitError) {
       const message =
         submitError instanceof Error
           ? submitError.message
-          : "Failed to send OTP";
+          : t("auth.sendOtpFailed", "Failed to send OTP");
       showToast.error(message);
     }
   }
@@ -123,7 +125,7 @@ export function ForgetPassword({
           </p>
 
           {displayError && (
-            <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+            <div className="rounded-lg border border-red-200 dark:border-red-900/60 bg-red-50 dark:bg-red-950/30 px-4 py-3 text-sm text-red-600 dark:text-red-300">
               {displayError}
             </div>
           )}

@@ -119,7 +119,7 @@ function isSyntheticOpener(content: string): boolean {
 }
 
 export default function AiChatSessionScreen() {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const { colorScheme } = useThemeContext();
   const isDark = colorScheme === 'dark';
   const router = useRouter();
@@ -177,7 +177,7 @@ export default function AiChatSessionScreen() {
   } | null>(null);
   const [downloadingMsgId, setDownloadingMsgId] = useState<string | null>(null);
 
-  const timeLocale = i18n.language?.startsWith('vi') ? 'vi-VN' : 'en-US';
+  const timeLocale = t('mobile.date_locale', 'vi-VN');
 
   const formatMsgTime = useCallback(
     (iso?: string) => {

@@ -326,6 +326,32 @@ export async function getChunkDetail(
   return mapChunkToUi(record);
 }
 
+export async function searchDocumentChunks(
+  query: string,
+  documentId?: string,
+): Promise<DocumentChunkItem[]> {
+  const trimmed = query.trim();
+  if (!trimmed) return [];
+  const raw = await webAdminApi.aiDocumentChunksSearchChunks({
+    params: { query: trimmed },
+  });
+  const list = Array.isArray(raw)
+    ? raw
+    : Array.isArray((raw as unknown as { data?: unknown[] })?.data)
+      ? ((raw as unknown as { data?: unknown[] }).data as unknown[])
+      : [];
+
+  return list
+    .map((item) => mapChunkToUi(item as RawRecord))
+    .filter((item): item is DocumentChunkItem => {
+      if (!item) return false;
+      if (documentId && item.documentId && item.documentId !== documentId) {
+        return false;
+      }
+      return true;
+    });
+}
+
 export async function createDocumentChunk(input: {
   documentId: string;
   content: string;

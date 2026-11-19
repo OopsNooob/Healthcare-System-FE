@@ -142,7 +142,7 @@ export function MetricOverviewCard({
   unit,
   onView,
 }: MetricOverviewCardProps) {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   useThemeContext();
 
   const variant = VARIANT_STYLES[metricsType];
@@ -160,7 +160,7 @@ export function MetricOverviewCard({
     const date = new Date(recordedAt);
     if (Number.isNaN(date.getTime())) return '—';
 
-    const locale = i18n.language.startsWith('vi') ? 'vi-VN' : 'en-US';
+    const locale = t('mobile.date_locale', 'vi-VN');
     const today = new Date();
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
