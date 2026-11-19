@@ -10,6 +10,7 @@ import {
   ScrollView,
   ActivityIndicator,
 } from 'react-native';
+import * as Linking from 'expo-linking';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Toast from 'react-native-toast-message';
 import {
@@ -18,8 +19,10 @@ import {
   updateSocketAuth,
   useLogin,
 } from '@repo/shared-hooks';
+import { useThemeContext } from '@/context/ThemeContext';
 import { useSafeRouter as useRouter } from '@/utils/useSafeRouter';
 import { extractApiErrorMessage } from '@/utils/apiError';
+import { resolveMobileApiBaseUrl } from '@/utils/apiUrl';
 import { Mail, Lock, Cross, Check, Eye, EyeOff } from 'lucide-react-native';
 import { tw } from '@/tw';
 
@@ -27,6 +30,7 @@ const REMEMBERED_EMAIL_KEY = 'mobile_remembered_email';
 
 export default function LoginScreen() {
   const { t } = useTranslation();
+  useThemeContext();
   const router = useRouter();
   const { login, isLoading } = useLogin();
 
@@ -35,6 +39,8 @@ export default function LoginScreen() {
   const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [needsEmailVerification, setNeedsEmailVerification] = useState(false);
+  const [isOpeningGoogle, setIsOpeningGoogle] = useState(false);
 
   useEffect(() => {
     AsyncStorage.getItem(REMEMBERED_EMAIL_KEY)
@@ -48,8 +54,9 @@ export default function LoginScreen() {
   }, []);
 
   const handleLogin = async () => {
-    if (isLoading) return;
+    if (isLoading || isOpeningGoogle) return;
     setErrorMessage(null);
+    setNeedsEmailVerification(false);
 
     const trimmedEmail = email.trim();
     if (!trimmedEmail || !password) {
@@ -88,11 +95,31 @@ export default function LoginScreen() {
     } catch (err) {
       const msg = extractApiErrorMessage(err, 'mobile.login_failed');
       setErrorMessage(msg);
+      if (/email verification is required/i.test(msg)) {
+        setNeedsEmailVerification(true);
+      }
       Toast.show({
         type: 'error',
         text1: t('mobile.login_failed_title', 'Sign In Failed'),
         text2: msg,
       });
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    if (isLoading || isOpeningGoogle) return;
+    setIsOpeningGoogle(true);
+    try {
+      const base = resolveMobileApiBaseUrl().replace(/\/+$/, '');
+      await Linking.openURL(`${base}/auth/oauth/google`);
+    } catch (err) {
+      Toast.show({
+        type: 'error',
+        text1: t('mobile.error', 'Error'),
+        text2: extractApiErrorMessage(err, 'mobile.oauth_open_browser_failed'),
+      });
+    } finally {
+      setIsOpeningGoogle(false);
     }
   };
 
@@ -123,8 +150,23 @@ export default function LoginScreen() {
           </Text>
 
           {errorMessage && (
-            <View style={tw('mb-4 p-3 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50')}>
+            <View style={tw('mb-4 p-3 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 gap-2')}>
               <Text style={tw('text-xs font-medium text-rose-700 dark:text-rose-300')}>{errorMessage}</Text>
+              {needsEmailVerification && (
+                <TouchableOpacity
+                  onPress={() =>
+                    router.push({
+                      pathname: '/(auth)/verify-email',
+                      params: { email: email.trim() },
+                    })
+                  }
+                  style={tw('self-start bg-emerald-600 px-3 py-1.5 rounded-xl')}
+                >
+                  <Text style={tw('text-xs font-bold text-white')}>
+                    {t('mobile.verify_email_cta', 'Verify Email Now')}
+                  </Text>
+                </TouchableOpacity>
+              )}
             </View>
           )}
 
@@ -205,7 +247,7 @@ export default function LoginScreen() {
                 }`,
               )}
               onPress={handleLogin}
-              disabled={isLoading}
+              disabled={isLoading || isOpeningGoogle}
             >
               {isLoading ? (
                 <ActivityIndicator color="#ffffff" size="small" />
@@ -217,9 +259,23 @@ export default function LoginScreen() {
             </TouchableOpacity>
 
             <TouchableOpacity
+              style={tw('h-12 w-full rounded-2xl flex-row items-center justify-center border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800')}
+              onPress={() => void handleGoogleLogin()}
+              disabled={isLoading || isOpeningGoogle}
+            >
+              {isOpeningGoogle ? (
+                <ActivityIndicator color="#10b981" size="small" />
+              ) : (
+                <Text style={tw('text-slate-800 dark:text-slate-100 text-sm font-semibold')}>
+                  {t('mobile.sign_in_with_google', 'Continue with Google (Patient)')}
+                </Text>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
               style={tw('mt-4 items-center')}
               onPress={() => router.push('/(auth)/register')}
-              disabled={isLoading}
+              disabled={isLoading || isOpeningGoogle}
             >
               <Text style={tw('text-sm text-gray-500 dark:text-slate-400')}>
                 {t('mobile.dont_have_account', "Don't have an account?")}{' '}

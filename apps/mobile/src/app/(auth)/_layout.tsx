@@ -13,6 +13,8 @@ export default function AuthLayout() {
     >
       <Stack.Screen name="login" />
       <Stack.Screen name="register" />
+      <Stack.Screen name="verify-email" />
+      <Stack.Screen name="oauth-callback" />
       <Stack.Screen name="forgot-password" />
       <Stack.Screen name="confirm-otp" />
       <Stack.Screen name="change-password" />

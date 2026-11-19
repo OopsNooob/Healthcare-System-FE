@@ -29,7 +29,7 @@ export const HealthChartModal: React.FC<HealthChartModalProps> = ({
   patientId,
   patientName,
 }) => {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   useThemeContext();
   const [activeMetric, setActiveMetric] = useState<'bp' | 'glucose' | 'heartRate'>('bp');
   const [points, setPoints] = useState<ChartPoint[]>([]);
@@ -74,7 +74,7 @@ export const HealthChartModal: React.FC<HealthChartModalProps> = ({
         listRes.status === 'fulfilled'
           ? (listRes.value as FeTypes.HealthMetricsFindAllResponse).data ?? []
           : [];
-      const locale = i18n.language.startsWith('vi') ? 'vi-VN' : 'en-US';
+      const locale = t('mobile.date_locale', 'vi-VN');
 
       const mapped: ChartPoint[] = [...rawItems]
         .slice(0, 7)
@@ -148,7 +148,7 @@ export const HealthChartModal: React.FC<HealthChartModalProps> = ({
     } finally {
       setIsLoading(false);
     }
-  }, [patientId, metricType, i18n.language]);
+  }, [patientId, metricType, t]);
 
   useEffect(() => {
     if (visible) {

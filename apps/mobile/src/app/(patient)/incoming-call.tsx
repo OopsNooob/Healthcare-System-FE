@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams } from 'expo-router';
 import { PhoneIncoming, PhoneOff, Video } from 'lucide-react-native';
 import { tw } from '@/tw';
+import { useThemeContext } from '@/context/ThemeContext';
 import { useSafeRouter as useRouter } from '@/utils/useSafeRouter';
 import { mobileApi } from '@repo/shared-hooks';
 
@@ -17,6 +18,7 @@ function getInitials(name: string): string {
 
 export default function IncomingCallScreen() {
   const { t } = useTranslation();
+  useThemeContext();
   const router = useRouter();
   const params = useLocalSearchParams<{
     consultationId?: string;
@@ -119,7 +121,7 @@ export default function IncomingCallScreen() {
 
       <View style={tw('w-full flex-row justify-around items-center px-6 mb-8')}>
         <TouchableOpacity
-          onPress={() => router.back()}
+          onPress={() => router.back('/(patient)')}
           style={tw('items-center gap-3')}
         >
           <View style={tw('w-16 h-16 rounded-full bg-red-500 items-center justify-center shadow-lg')}>

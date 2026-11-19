@@ -37,7 +37,7 @@ export const EducationTaskModal: React.FC<EducationTaskModalProps> = ({
   isContentAvailable: propIsContentAvailable = true,
   onAcknowledge,
 }) => {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   useThemeContext();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [taskDetail, setTaskDetail] = useState<FeTypes.CareTaskDetailResponse | null>(null);
@@ -71,11 +71,11 @@ export const EducationTaskModal: React.FC<EducationTaskModalProps> = ({
   const presentation = (taskDetail?.presentation ?? {}) as Record<string, unknown>;
   const serverContent = (presentation.content ?? null) as Record<string, unknown> | null;
 
-  const pickLocalizedText = (val: unknown): string | undefined => {
+  const resolveServerLocalizedValue = (val: unknown): string | undefined => {
     if (typeof val === 'string') return val;
     if (val && typeof val === 'object') {
       const rec = val as Record<string, unknown>;
-      const lang = i18n.language.startsWith('vi') ? 'vi' : 'en';
+      const lang = t('mobile.lang_code', 'vi') === 'en' ? 'en' : 'vi';
       const preferred = rec[lang] ?? rec.vi ?? rec.en;
       return typeof preferred === 'string' ? preferred : undefined;
     }
@@ -86,17 +86,17 @@ export const EducationTaskModal: React.FC<EducationTaskModalProps> = ({
     ? {
         contentId: String(serverContent.contentId ?? serverContent.id ?? taskDetail?.templateKey ?? ''),
         version: String(serverContent.version ?? 'v1'),
-        locale: i18n.language.startsWith('vi') ? 'vi' : 'en',
+        locale: t('mobile.lang_code', 'vi') === 'en' ? 'en' : 'vi',
         displayType:
           serverContent.displayType === 'video' || serverContent.displayType === 'document'
             ? serverContent.displayType
             : 'article',
-        title: pickLocalizedText(serverContent.title),
-        summary: pickLocalizedText(serverContent.summary),
-        body: pickLocalizedText(serverContent.body),
+        title: resolveServerLocalizedValue(serverContent.title),
+        summary: resolveServerLocalizedValue(serverContent.summary),
+        body: resolveServerLocalizedValue(serverContent.body),
         bulletPoints: Array.isArray(serverContent.bulletPoints)
           ? serverContent.bulletPoints
-              .map((item) => pickLocalizedText(item))
+              .map((item) => resolveServerLocalizedValue(item))
               .filter((s): s is string => Boolean(s))
           : undefined,
       }

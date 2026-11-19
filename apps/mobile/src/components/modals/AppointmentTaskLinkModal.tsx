@@ -41,7 +41,7 @@ export const AppointmentTaskLinkModal: React.FC<AppointmentTaskLinkModalProps> =
   onLinkConsultation,
   onBookNewSlot,
 }) => {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   useThemeContext();
 
   const [candidates, setCandidates] = useState<CandidateConsultation[]>([]);
@@ -127,7 +127,7 @@ export const AppointmentTaskLinkModal: React.FC<AppointmentTaskLinkModalProps> =
         })
       );
 
-      const locale = i18n.language.startsWith('vi') ? 'vi-VN' : 'en-US';
+      const locale = t('mobile.date_locale', 'vi-VN');
       const mapped: CandidateConsultation[] = filtered.map((item) => {
         const id = String(item.id ?? item._id ?? '');
         const docId = String(item.doctorId ?? '');
@@ -166,7 +166,7 @@ export const AppointmentTaskLinkModal: React.FC<AppointmentTaskLinkModalProps> =
     } finally {
       setIsLoading(false);
     }
-  }, [taskId, doctorId, linkedConsultationId, i18n.language, t]);
+  }, [taskId, doctorId, linkedConsultationId, t]);
 
   useEffect(() => {
     if (visible) {

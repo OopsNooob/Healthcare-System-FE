@@ -1,10 +1,16 @@
 import { useFonts } from 'expo-font';
-import { Platform } from 'react-native';
-import Constants from 'expo-constants';
-import { Stack, ThemeProvider as NavigationThemeProvider, DarkTheme, DefaultTheme, useRouter } from 'expo-router';
+import * as Linking from 'expo-linking';
+import {
+  Stack,
+  ThemeProvider as NavigationThemeProvider,
+  DarkTheme,
+  DefaultTheme,
+  usePathname,
+  useRouter,
+} from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import Toast from 'react-native-toast-message';
 import { useTranslation } from 'react-i18next';
@@ -15,7 +21,6 @@ import { twInstance } from '@/tw';
 import { ThemeProvider as AppThemeProvider, useThemeContext } from '@/context/ThemeContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
-  API_BASE_URL,
   SOCKET_EVENTS,
   connectNotificationsSocket,
   connectPresenceSocket,
@@ -27,26 +32,7 @@ import {
 } from '@repo/shared-hooks';
 import { setApiBaseUrl as setClientApiBaseUrl, setTokenGetter } from '@healthcare/api-client';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-
-function resolveMobileApiBaseUrl(): string {
-  const rawUrl =
-    (typeof process !== 'undefined' && process.env?.EXPO_PUBLIC_API_URL) ||
-    API_BASE_URL ||
-    'http://10.0.2.2:3001/api/v1';
-
-  if (Platform.OS === 'android' && /\/\/(localhost|127\.0\.0\.1)(:|\/|$)/.test(rawUrl)) {
-    const host = Constants.expoConfig?.hostUri?.split(':')[0];
-    const targetHost =
-      host && host !== 'localhost' && host !== '127.0.0.1' ? host : '10.0.2.2';
-    return rawUrl.replace(/\/\/(localhost|127\.0\.0\.1)/, `//${targetHost}`);
-  }
-
-  if ((Platform.OS === 'web' || Platform.OS === 'ios') && rawUrl.includes('10.0.2.2')) {
-    return rawUrl.replace(/\/\/10\.0\.2\.2/, '//localhost');
-  }
-
-  return rawUrl;
-}
+import { resolveMobileApiBaseUrl } from '@/utils/apiUrl';
 
 const resolvedApiBaseUrl = resolveMobileApiBaseUrl();
 
@@ -89,9 +75,49 @@ function RootNavigator() {
   const { isDark } = useThemeContext();
   const { t } = useTranslation();
   const router = useRouter();
+  const pathname = usePathname();
+  const incomingUrl = Linking.useURL();
+  const handledDeepLinkRef = useRef<string | null>(null);
   const token = useSharedAuthStore((s) => s.token);
+  const user = useSharedAuthStore((s) => s.user);
   const isAuthenticated = useSharedAuthStore((s) => s.isAuthenticated);
   const logout = useSharedAuthStore((s) => s.logout);
+
+  useEffect(() => {
+    if (!incomingUrl || handledDeepLinkRef.current === incomingUrl) return;
+    const parsed = Linking.parse(incomingUrl);
+    const routeTarget = (parsed.path || parsed.hostname || '').replace(/^\/+/, '').toLowerCase();
+
+    if (routeTarget === 'oauth-callback' || incomingUrl.toLowerCase().includes('oauth-callback')) {
+      handledDeepLinkRef.current = incomingUrl;
+      if (pathname !== '/oauth-callback') {
+        const ticket = typeof parsed.queryParams?.ticket === 'string' ? parsed.queryParams.ticket : '';
+        const error = typeof parsed.queryParams?.error === 'string' ? parsed.queryParams.error : '';
+        router.replace({
+          pathname: '/(auth)/oauth-callback',
+          params: {
+            ...(ticket ? { ticket } : {}),
+            ...(error ? { error } : {}),
+          },
+        });
+      }
+      return;
+    }
+
+    if (
+      (routeTarget === 'premium' || Boolean(parsed.queryParams?.vnpay)) &&
+      isAuthenticated &&
+      user?.role === 'patient'
+    ) {
+      handledDeepLinkRef.current = incomingUrl;
+      if (pathname !== '/premium') {
+        router.replace({
+          pathname: '/(patient)/premium',
+          params: { vnpay: 'return' },
+        });
+      }
+    }
+  }, [incomingUrl, isAuthenticated, user?.role, pathname, router]);
 
   useEffect(() => {
     if (isAuthenticated && token) {

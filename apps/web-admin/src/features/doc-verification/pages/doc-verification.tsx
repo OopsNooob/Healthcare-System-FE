@@ -381,8 +381,8 @@ function ReviewModal({
 }
 
 export function DocumentVerification() {
-  const { t, i18n } = useTranslation();
-  const dateLocale = i18n.language?.startsWith("vi") ? "vi-VN" : "en-US";
+  const { t } = useTranslation();
+  const dateLocale = t("common.dateLocale", "vi-VN");
   type StatusFilter = "all" | "pending" | "approved" | "rejected";
 
   const [selectedStatus, setSelectedStatus] = useState<StatusFilter>("all");

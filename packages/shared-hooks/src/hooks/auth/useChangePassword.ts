@@ -24,8 +24,8 @@ export function useChangePassword() {
       throw new Error(errorMsg);
     }
 
-    if (!payload.newPassword.trim() || payload.newPassword.length < 8) {
-      const errorMsg = "New password must be at least 8 characters";
+    if (!payload.newPassword.trim() || payload.newPassword.length < 12) {
+      const errorMsg = "New password must be at least 12 characters";
       setError(errorMsg);
       throw new Error(errorMsg);
     }

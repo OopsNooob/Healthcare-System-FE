@@ -80,7 +80,7 @@ interface UpcomingConsultationItem {
 }
 
 export default function PatientHomeScreen() {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   useThemeContext();
   const router = useRouter();
 
@@ -218,7 +218,7 @@ export default function PatientHomeScreen() {
           }
           const rawStart = validNext.scheduledStartAt ?? validNext.requestedAt;
           const dateObj = rawStart ? new Date(rawStart) : null;
-          const locale = i18n.language.startsWith('vi') ? 'vi-VN' : 'en-US';
+          const locale = t('mobile.date_locale', 'vi-VN');
           const scheduledAtText =
             dateObj && !Number.isNaN(dateObj.getTime())
               ? dateObj.toLocaleString(locale, {
@@ -295,7 +295,7 @@ export default function PatientHomeScreen() {
       setIsLoading(false);
       setRefreshing(false);
     }
-  }, [i18n.language, t]);
+  }, [t]);
 
   useEffect(() => {
     void loadHomeData(false);
@@ -327,7 +327,7 @@ export default function PatientHomeScreen() {
     if (!iso) return '';
     const d = new Date(iso);
     if (Number.isNaN(d.getTime())) return '';
-    return d.toLocaleTimeString(i18n.language.startsWith('vi') ? 'vi-VN' : 'en-US', {
+    return d.toLocaleTimeString(t('mobile.date_locale', 'vi-VN'), {
       hour: '2-digit',
       minute: '2-digit',
     });

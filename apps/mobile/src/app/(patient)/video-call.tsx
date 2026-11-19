@@ -6,6 +6,7 @@ import { useLocalSearchParams } from 'expo-router';
 import { MessageCircle, Mic, MicOff, PhoneOff, Video, VideoOff } from 'lucide-react-native';
 import Toast from 'react-native-toast-message';
 import { tw } from '@/tw';
+import { useThemeContext } from '@/context/ThemeContext';
 import { useSafeRouter as useRouter } from '@/utils/useSafeRouter';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { extractApiErrorMessage } from '@/utils/apiError';
@@ -33,6 +34,7 @@ function getInitials(name: string): string {
 
 export default function PatientVideoCallScreen() {
   const { t } = useTranslation();
+  useThemeContext();
   const router = useRouter();
   const params = useLocalSearchParams<{ consultationId?: string; doctorId?: string }>();
   const token = useSharedAuthStore((s) => s.token);

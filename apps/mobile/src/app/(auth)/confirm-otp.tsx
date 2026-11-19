@@ -8,11 +8,11 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  ActivityIndicator,
 } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import Toast from 'react-native-toast-message';
-import { mobileApi, useConfirmOtp } from '@repo/shared-hooks';
+import { mobileApi } from '@repo/shared-hooks';
+import { useThemeContext } from '@/context/ThemeContext';
 import { useSafeRouter as useRouter } from '@/utils/useSafeRouter';
 import { extractApiErrorMessage } from '@/utils/apiError';
 import { Cross, ArrowLeft } from 'lucide-react-native';
@@ -20,11 +20,11 @@ import { tw, twInstance } from '@/tw';
 
 export default function ConfirmOTPScreen() {
   const { t } = useTranslation();
+  useThemeContext();
   const router = useRouter();
   const params = useLocalSearchParams<{ email?: string }>();
   const email = typeof params.email === 'string' ? params.email : '';
 
-  const { confirmOtp, isLoading } = useConfirmOtp();
   const [otp, setOtp] = useState('');
   const [isResending, setIsResending] = useState(false);
   const [cooldown, setCooldown] = useState(0);
@@ -37,8 +37,8 @@ export default function ConfirmOTPScreen() {
     return () => clearInterval(timer);
   }, [cooldown]);
 
-  const handleConfirm = async () => {
-    if (isLoading) return;
+  const handleConfirm = () => {
+    if (isResending) return;
     if (!email) {
       Toast.show({
         type: 'error',
@@ -48,40 +48,27 @@ export default function ConfirmOTPScreen() {
       router.replace('/(auth)/forgot-password');
       return;
     }
-    const cleanOtp = otp.trim();
-    if (!cleanOtp || cleanOtp.length < 4) {
+    const cleanOtp = otp.replace(/\s+/g, '').trim();
+    if (!/^\d{6}$/.test(cleanOtp)) {
       Toast.show({
         type: 'error',
         text1: t('mobile.error', 'Error'),
-        text2: t('mobile.please_enter_otp', 'Please enter the verification OTP code.'),
+        text2: t('mobile.please_enter_otp', 'Please enter the 6-digit verification OTP code.'),
       });
       return;
     }
 
-    try {
-      await confirmOtp({ email, otpCode: cleanOtp });
-      Toast.show({
-        type: 'success',
-        text1: t('mobile.otp_verified', 'OTP Verified'),
-      });
-      router.push({
-        pathname: '/(auth)/change-password',
-        params: { email, otpCode: cleanOtp },
-      });
-    } catch (err) {
-      Toast.show({
-        type: 'error',
-        text1: t('mobile.error', 'Error'),
-        text2: extractApiErrorMessage(err),
-      });
-    }
+    router.push({
+      pathname: '/(auth)/change-password',
+      params: { email, otpCode: cleanOtp },
+    });
   };
 
   const handleResend = async () => {
-    if (isLoading || isResending || cooldown > 0 || !email) return;
+    if (isResending || cooldown > 0 || !email) return;
     setIsResending(true);
     try {
-      await mobileApi.authSendOtp({ email });
+      await mobileApi.authPasswordRecovery({ email });
       setCooldown(60);
       Toast.show({
         type: 'success',
@@ -145,10 +132,10 @@ export default function ConfirmOTPScreen() {
                   placeholder="------"
                   placeholderTextColor="#9ca3af"
                   value={otp}
-                  onChangeText={setOtp}
+                  onChangeText={(val) => setOtp(val.replace(/[^\d]/g, ''))}
                   keyboardType="number-pad"
                   maxLength={6}
-                  editable={!isLoading}
+                  editable={!isResending}
                 />
               </View>
             </View>
@@ -156,25 +143,21 @@ export default function ConfirmOTPScreen() {
             <TouchableOpacity
               style={tw(
                 `h-12 w-full mt-4 rounded-2xl items-center justify-center ${
-                  isLoading ? 'bg-emerald-400' : 'bg-emerald-500'
+                  isResending ? 'bg-emerald-400' : 'bg-emerald-500'
                 }`,
               )}
               onPress={handleConfirm}
-              disabled={isLoading}
+              disabled={isResending}
             >
-              {isLoading ? (
-                <ActivityIndicator color="#ffffff" size="small" />
-              ) : (
-                <Text style={tw('text-white text-base font-semibold')}>
-                  {t('mobile.verify', 'Verify')}
-                </Text>
-              )}
+              <Text style={tw('text-white text-base font-semibold')}>
+                {t('mobile.continue_next', 'Continue')}
+              </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               style={tw('mt-4 items-center')}
               onPress={handleResend}
-              disabled={isLoading || isResending || cooldown > 0 || !email}
+              disabled={isResending || cooldown > 0 || !email}
             >
               <Text style={tw('text-sm text-gray-500 dark:text-slate-400')}>
                 {t('mobile.didnt_receive_code', "Didn't receive code?")}{' '}

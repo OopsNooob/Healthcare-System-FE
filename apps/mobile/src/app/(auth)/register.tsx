@@ -12,15 +12,10 @@ import {
 } from 'react-native';
 import Toast from 'react-native-toast-message';
 import {
-  connectNotificationsSocket,
-  connectPresenceSocket,
-  getStorage,
-  mobileApi,
-  updateSocketAuth,
-  useSharedAuthStore,
   useSignUpDoctor,
   useSignUpPatient,
 } from '@repo/shared-hooks';
+import { useThemeContext } from '@/context/ThemeContext';
 import { useSafeRouter as useRouter } from '@/utils/useSafeRouter';
 import { extractApiErrorMessage } from '@/utils/apiError';
 import { Mail, Lock, Cross, User, Phone, Briefcase, Stethoscope, Clock, UploadCloud } from 'lucide-react-native';
@@ -30,8 +25,8 @@ import type { VerificationDocument } from '@/components/modals/DocUploadModal';
 
 export default function RegisterScreen() {
   const { t } = useTranslation();
+  useThemeContext();
   const router = useRouter();
-  const setUser = useSharedAuthStore((s) => s.setUser);
   const { signUpPatient, isLoading: isPatientLoading } = useSignUpPatient();
   const { signUpDoctor, isLoading: isDoctorLoading } = useSignUpDoctor();
 
@@ -49,6 +44,7 @@ export default function RegisterScreen() {
   const [restoreDraftModalVisible, setRestoreDraftModalVisible] = useState(false);
   const [docUploadModalVisible, setDocUploadModalVisible] = useState(false);
   const [verificationDocs, setVerificationDocs] = useState<VerificationDocument[]>([]);
+  const [hasRestoredDocs, setHasRestoredDocs] = useState(false);
 
   const isLoading = isPatientLoading || isDoctorLoading;
 
@@ -68,11 +64,11 @@ export default function RegisterScreen() {
       return;
     }
 
-    if (password.length < 8) {
+    if (password.length < 12) {
       Toast.show({
         type: 'error',
         text1: t('mobile.error', 'Error'),
-        text2: t('mobile.password_min_8', 'Password must be at least 8 characters.'),
+        text2: t('mobile.password_min_12', 'Password must be at least 12 characters.'),
       });
       return;
     }
@@ -95,39 +91,25 @@ export default function RegisterScreen() {
           phoneNumber: cleanPhone,
         });
 
-        if (res.accessToken && res.user) {
-          await getStorage().setItem('accessToken', res.accessToken);
-          await getStorage().setItem('refreshToken', res.refreshToken || '');
-          setUser(
-            {
-              id: res.user.id,
-              email: res.user.email,
-              name: res.user.fullName,
-              role: res.user.role,
-            },
-            res.accessToken,
-            res.refreshToken || '',
-          );
-          updateSocketAuth(res.accessToken);
-          void connectNotificationsSocket(res.accessToken);
-          void connectPresenceSocket(res.accessToken);
-          Toast.show({
-            type: 'success',
-            text1: t('mobile.registration_success', 'Account Created'),
-          });
-          router.replace('/(patient)');
-        } else {
-          Toast.show({
-            type: 'success',
-            text1: t('mobile.registration_success', 'Account Created'),
-          });
-          router.replace('/(auth)/login');
-        }
+        Toast.show({
+          type: 'success',
+          text1: t('mobile.registration_success', 'Account Created'),
+          text2:
+            res?.message ||
+            t(
+              'mobile.verify_email_prompt_patient',
+              'Please check your email and enter the 6-digit verification code.',
+            ),
+        });
+        router.replace({
+          pathname: '/(auth)/verify-email',
+          params: { email: cleanEmail, role: 'patient' },
+        });
         return;
       }
 
       const expYears = Number(experience);
-      if (!specialty.trim() || !workplace.trim() || !Number.isFinite(expYears) || expYears <= 0) {
+      if (!specialty.trim() || !workplace.trim() || !Number.isFinite(expYears) || expYears < 0) {
         Toast.show({
           type: 'error',
           text1: t('mobile.error', 'Error'),
@@ -143,11 +125,8 @@ export default function RegisterScreen() {
           name: d.fileName,
           type: d.mimeType || 'application/pdf',
         }));
-      const existingUrls = verificationDocs
-        .map((d) => d.remoteUrl)
-        .filter((url): url is string => Boolean(url));
 
-      if (newFiles.length === 0 && existingUrls.length === 0) {
+      if (newFiles.length === 0 && !hasRestoredDocs) {
         Toast.show({
           type: 'error',
           text1: t('mobile.error', 'Error'),
@@ -165,39 +144,30 @@ export default function RegisterScreen() {
         workplace: workplace.trim(),
         experienceYears: expYears,
         newVerificationDocuments: newFiles,
-        existingVerificationDocuments: existingUrls,
       });
 
-      let verificationStatus: string = 'pending';
-      try {
-        const statusInfo = await mobileApi.usersFindDoctorByEmail({ params: { email: cleanEmail } });
-        verificationStatus = statusInfo?.verificationStatus ?? 'pending';
-      } catch {
-        // Keep safe pending default
-      }
-
-      if (res.accessToken && res.user && verificationStatus === 'approved') {
-        await getStorage().setItem('accessToken', res.accessToken);
-        await getStorage().setItem('refreshToken', res.refreshToken || '');
-        setUser(
-          {
-            id: res.user.id,
-            email: res.user.email,
-            name: res.user.fullName,
-            role: res.user.role,
-          },
-          res.accessToken,
-          res.refreshToken || '',
-        );
-        updateSocketAuth(res.accessToken);
-        void connectNotificationsSocket(res.accessToken);
-        void connectPresenceSocket(res.accessToken);
-        router.replace('/(doctor)');
+      if (res.status === 'pending_verification') {
+        Toast.show({
+          type: 'success',
+          text1: t('mobile.registration_success', 'Account Created'),
+          text2:
+            res.message ||
+            t(
+              'mobile.verify_email_prompt_doctor',
+              'Please verify your email first so administrators can review your doctor application.',
+            ),
+        });
+        router.replace({
+          pathname: '/(auth)/verify-email',
+          params: { email: cleanEmail, role: 'doctor' },
+        });
       } else {
         Toast.show({
           type: 'success',
           text1: t('mobile.doctor_registration_submitted', 'Application Submitted'),
-          text2: t('mobile.doctor_pending_review_desc', 'Your credentials are under admin review. Sign in once approved.'),
+          text2:
+            res.message ||
+            t('mobile.doctor_pending_review_desc', 'Your credentials are under admin review. Sign in once approved.'),
         });
         router.replace('/(auth)/login');
       }
@@ -441,7 +411,9 @@ export default function RegisterScreen() {
                     <Text style={tw('text-sm font-semibold text-gray-700 dark:text-slate-300')}>
                       {verificationDocs.length > 0
                         ? `${verificationDocs.length} ${t('mobile.docs_uploaded', 'documents attached')}`
-                        : t('mobile.tap_to_select_documents', 'Tap to select documents')}
+                        : hasRestoredDocs
+                          ? t('mobile.docs_restored_on_server', 'Existing verification documents preserved on server (optional to add more)')
+                          : t('mobile.tap_to_select_documents', 'Tap to select documents')}
                     </Text>
                     <Text style={tw('text-xs text-gray-500 dark:text-slate-400 mt-1')}>
                       {t('mobile.upload_medical_degree_and_prac', 'Upload Medical Degree and Practice License')}
@@ -497,22 +469,10 @@ export default function RegisterScreen() {
           setSpecialty(draft.specialty);
           setWorkplace(draft.workplace);
           setExperience(draft.experience);
-          if (draft.verificationDocuments && draft.verificationDocuments.length > 0) {
-            setVerificationDocs(
-              draft.verificationDocuments.map((url, idx) => ({
-                id: `restored-${idx}`,
-                type: 'license',
-                title: t('mobile.doc_practice_license', 'Existing Verification Document'),
-                fileName: url.split('/').pop() || `document-${idx + 1}.pdf`,
-                fileSize: 'URL',
-                status: 'verified',
-                uploadDate: '',
-                remoteUrl: url,
-              })),
-            );
-          }
+          setHasRestoredDocs(Boolean(draft.hasServerDocuments));
         }}
         onClearDraft={() => {
+          setHasRestoredDocs(false);
           setVerificationDocs([]);
         }}
       />

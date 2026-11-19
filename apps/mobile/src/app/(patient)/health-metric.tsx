@@ -121,7 +121,7 @@ function formatMetricReading(metric: HealthMetric): string {
 }
 
 export default function HealthMetricScreen() {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const { isDark } = useThemeContext();
   const router = useRouter();
 
@@ -192,7 +192,7 @@ export default function HealthMetricScreen() {
     }
   }, [refresh, refreshAlerts, loadStatistics]);
 
-  const locale = i18n.language.startsWith('vi') ? 'vi-VN' : 'en-US';
+  const locale = t('mobile.date_locale', 'vi-VN');
   const formatTime = (date: Date) =>
     date.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
   const formatDate = (date: Date) =>
@@ -359,7 +359,7 @@ export default function HealthMetricScreen() {
       <View style={tw('flex-row justify-between items-center px-6 pt-5 pb-4')}>
         <View style={tw('flex-row items-center gap-3 flex-1 mr-3')}>
           <TouchableOpacity
-            onPress={() => router.back()}
+            onPress={() => router.back('/(patient)')}
             style={tw('w-10 h-10 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 items-center justify-center')}
           >
             <ArrowLeft color={twInstance.color('text-slate-700 dark:text-slate-200')} size={18} />

@@ -22,8 +22,8 @@ export function DocumentPreviewModal({
   isOpen,
   onClose,
 }: DocumentPreviewModalProps) {
-  const { t, i18n } = useTranslation();
-  const locale = i18n.language?.startsWith("vi") ? "vi-VN" : "en-US";
+  const { t } = useTranslation();
+  const locale = t("common.dateLocale", "vi-VN");
   const [fetchedDetail, setFetchedDetail] = useState<DocumentItem | null>(null);
   const detail = fetchedDetail?.id === document?.id ? fetchedDetail : document;
 

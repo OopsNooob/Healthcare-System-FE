@@ -51,10 +51,10 @@ export const DoctorReviewsModal: React.FC<DoctorReviewsModalProps> = ({
   doctorId,
   doctorName,
 }) => {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   useThemeContext();
 
-  const dateLocale = i18n.language?.startsWith('vi') ? 'vi-VN' : 'en-US';
+  const dateLocale = t('mobile.date_locale', 'vi-VN');
 
   const [resolvedDoctorId, setResolvedDoctorId] = useState<string>('');
   const [currentUserId, setCurrentUserId] = useState<string>('');

@@ -125,7 +125,7 @@ export default function PatientProfileScreen() {
   const [securityModalVisible, setSecurityModalVisible] = useState(false);
   const [privacyModalVisible, setPrivacyModalVisible] = useState(false);
 
-  const dateLocale = i18n.language?.startsWith('vi') ? 'vi-VN' : 'en-US';
+  const dateLocale = t('mobile.date_locale', 'vi-VN');
 
   const loadProfileData = useCallback(
     async (silent = false) => {
@@ -324,7 +324,7 @@ export default function PatientProfileScreen() {
     ]);
   };
 
-  const currentLang = i18n.language?.startsWith('vi') ? 'vi' : 'en';
+  const currentLang = t('mobile.lang_code', 'vi') === 'en' ? 'en' : 'vi';
   const consentAccepted = Boolean(
     (enrollmentDetail?.consent as Record<string, unknown> | undefined)?.acceptedAt
   );
@@ -1020,7 +1020,12 @@ export default function PatientProfileScreen() {
       <SecuritySessionsModal
         visible={securityModalVisible}
         onClose={() => setSecurityModalVisible(false)}
-        onNavigateChangePassword={() => router.push('/(auth)/change-password')}
+        onNavigateChangePassword={() =>
+          router.push({
+            pathname: '/(auth)/forgot-password',
+            params: { email: savedForm.email || '' },
+          })
+        }
       />
 
       <PrivacyDataModal

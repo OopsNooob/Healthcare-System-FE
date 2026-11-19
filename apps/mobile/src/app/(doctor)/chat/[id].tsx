@@ -170,11 +170,11 @@ export default function DoctorChatSessionScreen() {
   const params = useLocalSearchParams<{ id?: string; consultationId?: string }>();
   const consultationId = String(params.consultationId ?? params.id ?? '');
 
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const { isDark } = useThemeContext();
   const router = useSafeRouter();
   const scrollRef = useRef<ScrollView>(null);
-  const dateLocale = i18n.language?.startsWith('vi') ? 'vi-VN' : 'en-US';
+  const dateLocale = t('mobile.date_locale', 'vi-VN');
 
   const [patientId, setPatientId] = useState('');
   const [patientName, setPatientName] = useState(() => t('mobile.patient_fallback', 'Patient'));
@@ -618,7 +618,7 @@ export default function DoctorChatSessionScreen() {
         )}
       >
         <View style={tw('flex-row items-center gap-2.5 flex-1 min-w-0 pr-2')}>
-          <TouchableOpacity onPress={() => router.back()} style={tw('p-2 -ml-1 rounded-xl')}>
+          <TouchableOpacity onPress={() => router.back('/(doctor)/chat')} style={tw('p-2 -ml-1 rounded-xl')}>
             <ArrowLeft size={20} color={isDark ? '#e2e8f0' : '#0f172a'} />
           </TouchableOpacity>
           {patientAvatar ? (

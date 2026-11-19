@@ -16,7 +16,7 @@ import { useTheme } from "next-themes";
 
 export function Overview() {
   const { summary, isLoading, error, refresh } = useOverview();
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const { resolvedTheme, theme } = useTheme();
 
   const isDark = (resolvedTheme ?? theme) === "dark";
@@ -181,7 +181,7 @@ export function Overview() {
     },
   ];
 
-  const locale = i18n.language?.startsWith("vi") ? "vi-VN" : "en-US";
+  const locale = t("common.dateLocale", "vi-VN");
   const today = new Date().toLocaleDateString(locale, {
     weekday: "long",
     year: "numeric",

@@ -14,7 +14,7 @@ import type { FormEvent } from "react";
 import { Lock } from "lucide-react";
 import { Spinner } from "@repo/ui/components/ui/spinner";
 import { showToast } from "@repo/ui/components/ui/toasts";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useChangePassword } from "../hooks/useChangePassword";
 
@@ -41,6 +41,7 @@ export function ChangePassword({
 }: ChangePasswordProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const location = useLocation();
   const { changePassword, isLoading, error } = useChangePassword();
 
   const [password, setPassword] = useState("");
@@ -59,15 +60,27 @@ export function ChangePassword({
     const nextErrors: ChangePasswordErrors = {};
 
     if (!values.password.trim()) {
-      nextErrors.password = "Please enter your new password.";
-    } else if (values.password.trim().length < 8) {
-      nextErrors.password = "New password must have at least 8 characters.";
+      nextErrors.password = t(
+        "auth.validation.passwordRequired",
+        "Please enter your new password.",
+      );
+    } else if (values.password.trim().length < 12) {
+      nextErrors.password = t(
+        "auth.validation.passwordMin12",
+        "New password must have at least 12 characters.",
+      );
     }
 
     if (!values.confirmedPassword.trim()) {
-      nextErrors.confirmedPassword = "Please confirm your new password.";
+      nextErrors.confirmedPassword = t(
+        "auth.validation.confirmPasswordRequired",
+        "Please confirm your new password.",
+      );
     } else if (values.confirmedPassword.trim() !== values.password.trim()) {
-      nextErrors.confirmedPassword = "Your password does not match.";
+      nextErrors.confirmedPassword = t(
+        "auth.passwordsNotMatch",
+        "Your password does not match.",
+      );
     }
 
     return nextErrors;
@@ -80,6 +93,7 @@ export function ChangePassword({
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
+    if (isLoading || propIsLoading) return;
 
     const nextErrors = validate({ password, confirmedPassword });
     setLocalErrors(nextErrors);
@@ -93,12 +107,24 @@ export function ChangePassword({
       if (onSubmit) {
         await onSubmit({ password, confirmedPassword });
       } else {
-        const email = localStorage.getItem("resetPasswordEmail");
-        const otpCode = localStorage.getItem("resetPasswordOtp");
+        const locationState =
+          (location.state as { email?: string; otpCode?: string } | null) ??
+          null;
+        const email =
+          locationState?.email ||
+          sessionStorage.getItem("resetPasswordEmail") ||
+          "";
+        const otpCode =
+          locationState?.otpCode ||
+          sessionStorage.getItem("resetPasswordOtp") ||
+          "";
 
         if (!email || !otpCode) {
           throw new Error(
-            "Missing email or OTP. Please restart from Forgot Password.",
+            t(
+              "auth.missingEmailError",
+              "Missing email or OTP. Please restart from Forgot Password.",
+            ),
           );
         }
 
@@ -109,15 +135,15 @@ export function ChangePassword({
         });
       }
 
-      localStorage.removeItem("resetPasswordEmail");
-      localStorage.removeItem("resetPasswordOtp");
+      sessionStorage.removeItem("resetPasswordEmail");
+      sessionStorage.removeItem("resetPasswordOtp");
       showToast.success(t("auth.changePasswordSuccess", "Password reset successfully"));
       navigate("/login");
     } catch (submitError) {
       const message =
         submitError instanceof Error
           ? submitError.message
-          : "Failed to reset password";
+          : t("auth.changePasswordFailed", "Failed to reset password");
       showToast.error(message);
     }
   }
@@ -144,7 +170,7 @@ export function ChangePassword({
           </p>
 
           {displayError && (
-            <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+            <div className="rounded-lg border border-red-200 dark:border-red-900/60 bg-red-50 dark:bg-red-950/30 px-4 py-3 text-sm text-red-600 dark:text-red-300">
               {displayError}
             </div>
           )}

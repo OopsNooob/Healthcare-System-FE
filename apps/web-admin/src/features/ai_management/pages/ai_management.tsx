@@ -91,8 +91,8 @@ function getStatusClassName(status: DocumentStatus) {
 }
 
 export function AIManagement() {
-  const { t, i18n } = useTranslation();
-  const locale = i18n.language?.startsWith("vi") ? "vi-VN" : "en-US";
+  const { t } = useTranslation();
+  const locale = t("common.dateLocale", "vi-VN");
 
   const [tab, setTab] = useState<TabSwitch>("doc");
   const [searchDoc, setSearchDoc] = useState("");

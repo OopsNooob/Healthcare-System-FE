@@ -88,9 +88,9 @@ function getInitials(name: string): string {
 }
 
 export default function MyDoctorsScreen() {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   useThemeContext();
-  const dateLocale = i18n.language?.startsWith('vi') ? 'vi-VN' : 'en-US';
+  const dateLocale = t('mobile.date_locale', 'vi-VN');
 
   const router = useRouter();
   const params = useLocalSearchParams<{ search?: string }>();

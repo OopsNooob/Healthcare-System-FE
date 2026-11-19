@@ -16,7 +16,7 @@ import {
 
 import { io } from "socket.io-client";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3001/api/v1";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api/v1";
 
 if (!import.meta.env.VITE_API_BASE_URL) {
   console.warn("VITE_API_BASE_URL is missing in environment variables. Falling back to:", API_BASE_URL);
@@ -123,6 +123,13 @@ type RetryConfig = InternalAxiosRequestConfig & {
 type RefreshResponse = {
   accessToken: string;
   refreshToken: string;
+  user?: {
+    id: string;
+    email: string;
+    fullName: string;
+    role: string;
+    avatarUrl?: string;
+  };
 };
 
 type QueueItem = {
@@ -137,11 +144,10 @@ const authFreePaths = new Set([
   "/auth/login",
   "/auth/refresh",
   "/auth/logout",
-  "/auth/register",
-  "/auth/forgot-password",
-  "/auth/send-otp",
-  "/auth/confirm-otp",
-  "/auth/change-password",
+  "/auth/password-recovery",
+  "/auth/reset-password",
+  "/auth/request-email-verification",
+  "/auth/verify-email",
 ]);
 
 type ApiErrorPayload = {
@@ -283,7 +289,7 @@ api.interceptors.response.use(
       useAuthStore.getState().refreshToken ||
       localStorage.getItem("refreshToken");
 
-    if (!currentUser?.id || !refreshToken) {
+    if (!refreshToken) {
       clearAuthStorage();
       notifySessionExpired();
       return Promise.reject(error);
@@ -305,19 +311,33 @@ api.interceptors.response.use(
       const refreshResponse = await refreshApi.post<RefreshResponse>(
         "/auth/refresh",
         {
-          userId: currentUser.id,
           refreshToken,
         },
       );
 
       const nextAccessToken = refreshResponse.data.accessToken;
       const nextRefreshToken = refreshResponse.data.refreshToken;
+      const hydratedUser = refreshResponse.data.user
+        ? {
+            id: refreshResponse.data.user.id,
+            email: refreshResponse.data.user.email,
+            name: refreshResponse.data.user.fullName,
+            role: refreshResponse.data.user.role,
+            avatar: refreshResponse.data.user.avatarUrl,
+          }
+        : currentUser;
 
       localStorage.setItem("accessToken", nextAccessToken);
       localStorage.setItem("refreshToken", nextRefreshToken);
-      useAuthStore
-        .getState()
-        .setUser(currentUser, nextAccessToken, nextRefreshToken);
+      if (hydratedUser) {
+        useAuthStore
+          .getState()
+          .setUser(
+            hydratedUser as NonNullable<typeof currentUser>,
+            nextAccessToken,
+            nextRefreshToken,
+          );
+      }
       updateSocketAuth(nextAccessToken);
 
       resolveRefreshQueue(nextAccessToken);

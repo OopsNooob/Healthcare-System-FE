@@ -380,15 +380,120 @@ export function createFeApiSdk(executor: ApiExecutor) {
         options,
       );
     },
-    /** POST /api/v1/auth/register */
-    authRegister(input: WithNativeMultipart<FeTypes.AuthRegisterRequest> | FormData, options?: RequestRuntimeOptions): Promise<FeTypes.AuthRegisterResponse> {
-      return runEndpoint<WithNativeMultipart<FeTypes.AuthRegisterRequest> | FormData, FeTypes.AuthRegisterResponse>(
+    /** POST /api/v1/auth/register/patient */
+    authRegisterPatient(input: FeTypes.AuthRegisterPatientRequest, options?: RequestRuntimeOptions): Promise<FeTypes.AuthRegisterPatientResponse> {
+      return runEndpoint<FeTypes.AuthRegisterPatientRequest, FeTypes.AuthRegisterPatientResponse>(
         executor,
         {
           method: 'POST',
-          path: '/auth/register',
+          path: '/auth/register/patient',
+          isWrapper: false,
+          isMultipart: false,
+          requiresIdempotency: false,
+        },
+        input,
+        options,
+      );
+    },
+    /** POST /api/v1/auth/register/doctor */
+    authRegisterDoctor(input: WithNativeMultipart<FeTypes.AuthRegisterDoctorRequest> | FormData, options?: RequestRuntimeOptions): Promise<FeTypes.AuthRegisterDoctorResponse> {
+      return runEndpoint<WithNativeMultipart<FeTypes.AuthRegisterDoctorRequest> | FormData, FeTypes.AuthRegisterDoctorResponse>(
+        executor,
+        {
+          method: 'POST',
+          path: '/auth/register/doctor',
           isWrapper: false,
           isMultipart: true,
+          requiresIdempotency: false,
+        },
+        input,
+        options,
+      );
+    },
+    /** POST /api/v1/auth/doctor-reapplication/restore */
+    authRestoreDoctorReapplication(input: FeTypes.AuthRestoreDoctorReapplicationRequest, options?: RequestRuntimeOptions): Promise<FeTypes.AuthRestoreDoctorReapplicationResponse> {
+      return runEndpoint<FeTypes.AuthRestoreDoctorReapplicationRequest, FeTypes.AuthRestoreDoctorReapplicationResponse>(
+        executor,
+        {
+          method: 'POST',
+          path: '/auth/doctor-reapplication/restore',
+          isWrapper: false,
+          isMultipart: false,
+          requiresIdempotency: false,
+        },
+        input,
+        options,
+      );
+    },
+    /** POST /api/v1/auth/verify-email */
+    authVerifyEmail(input: FeTypes.AuthVerifyEmailRequest, options?: RequestRuntimeOptions): Promise<FeTypes.AuthVerifyEmailResponse> {
+      return runEndpoint<FeTypes.AuthVerifyEmailRequest, FeTypes.AuthVerifyEmailResponse>(
+        executor,
+        {
+          method: 'POST',
+          path: '/auth/verify-email',
+          isWrapper: false,
+          isMultipart: false,
+          requiresIdempotency: false,
+        },
+        input,
+        options,
+      );
+    },
+    /** POST /api/v1/auth/request-email-verification */
+    authRequestEmailVerification(input: FeTypes.AuthRequestEmailVerificationRequest, options?: RequestRuntimeOptions): Promise<FeTypes.AuthRequestEmailVerificationResponse> {
+      return runEndpoint<FeTypes.AuthRequestEmailVerificationRequest, FeTypes.AuthRequestEmailVerificationResponse>(
+        executor,
+        {
+          method: 'POST',
+          path: '/auth/request-email-verification',
+          isWrapper: false,
+          isMultipart: false,
+          requiresIdempotency: false,
+        },
+        input,
+        options,
+      );
+    },
+    /** POST /api/v1/auth/password-recovery */
+    authPasswordRecovery(input: FeTypes.AuthPasswordRecoveryRequest, options?: RequestRuntimeOptions): Promise<FeTypes.AuthPasswordRecoveryResponse> {
+      return runEndpoint<FeTypes.AuthPasswordRecoveryRequest, FeTypes.AuthPasswordRecoveryResponse>(
+        executor,
+        {
+          method: 'POST',
+          path: '/auth/password-recovery',
+          isWrapper: false,
+          isMultipart: false,
+          requiresIdempotency: false,
+        },
+        input,
+        options,
+      );
+    },
+    /** POST /api/v1/auth/reset-password */
+    authResetPassword(input: FeTypes.AuthResetPasswordRequest, options?: RequestRuntimeOptions): Promise<FeTypes.AuthResetPasswordResponse> {
+      return runEndpoint<FeTypes.AuthResetPasswordRequest, FeTypes.AuthResetPasswordResponse>(
+        executor,
+        {
+          method: 'POST',
+          path: '/auth/reset-password',
+          isWrapper: false,
+          isMultipart: false,
+          requiresIdempotency: false,
+        },
+        input,
+        options,
+      );
+    },
+    /** POST /api/v1/auth/oauth/google/exchange */
+    authExchangeGoogleOAuthTicket(input: FeTypes.AuthExchangeGoogleOAuthTicketRequest, options?: RequestRuntimeOptions): Promise<FeTypes.AuthExchangeGoogleOAuthTicketResponse> {
+      return runEndpoint<FeTypes.AuthExchangeGoogleOAuthTicketRequest, FeTypes.AuthExchangeGoogleOAuthTicketResponse>(
+        executor,
+        {
+          method: 'POST',
+          path: '/auth/oauth/google/exchange',
+          isWrapper: false,
+          isMultipart: false,
           requiresIdempotency: false,
         },
         input,
@@ -425,6 +530,36 @@ export function createFeApiSdk(executor: ApiExecutor) {
         options,
       );
     },
+    /** GET /api/v1/auth/sessions */
+    authListSessions(input?: FeTypes.AuthListSessionsRequest, options?: RequestRuntimeOptions): Promise<FeTypes.AuthListSessionsResponse> {
+      return runEndpoint<FeTypes.AuthListSessionsRequest, FeTypes.AuthListSessionsResponse>(
+        executor,
+        {
+          method: 'GET',
+          path: '/auth/sessions',
+          isWrapper: false,
+          isMultipart: false,
+          requiresIdempotency: false,
+        },
+        input,
+        options,
+      );
+    },
+    /** POST /api/v1/auth/sessions/revoke */
+    authRevokeSession(input: FeTypes.AuthRevokeSessionRequest, options?: RequestRuntimeOptions): Promise<FeTypes.AuthRevokeSessionResponse> {
+      return runEndpoint<FeTypes.AuthRevokeSessionRequest, FeTypes.AuthRevokeSessionResponse>(
+        executor,
+        {
+          method: 'POST',
+          path: '/auth/sessions/revoke',
+          isWrapper: false,
+          isMultipart: false,
+          requiresIdempotency: false,
+        },
+        input,
+        options,
+      );
+    },
     /** POST /api/v1/auth/logout */
     authLogout(input?: FeTypes.AuthLogoutRequest, options?: RequestRuntimeOptions): Promise<FeTypes.AuthLogoutResponse> {
       return runEndpoint<FeTypes.AuthLogoutRequest, FeTypes.AuthLogoutResponse>(
@@ -440,6 +575,21 @@ export function createFeApiSdk(executor: ApiExecutor) {
         options,
       );
     },
+    /** POST /api/v1/auth/logout-all */
+    authLogoutAll(input?: FeTypes.AuthLogoutAllRequest, options?: RequestRuntimeOptions): Promise<FeTypes.AuthLogoutAllResponse> {
+      return runEndpoint<FeTypes.AuthLogoutAllRequest, FeTypes.AuthLogoutAllResponse>(
+        executor,
+        {
+          method: 'POST',
+          path: '/auth/logout-all',
+          isWrapper: false,
+          isMultipart: false,
+          requiresIdempotency: false,
+        },
+        input,
+        options,
+      );
+    },
     /** GET /api/v1/auth/me */
     authGetProfile(input?: FeTypes.AuthGetProfileRequest, options?: RequestRuntimeOptions): Promise<FeTypes.AuthGetProfileResponse> {
       return runEndpoint<FeTypes.AuthGetProfileRequest, FeTypes.AuthGetProfileResponse>(
@@ -448,66 +598,6 @@ export function createFeApiSdk(executor: ApiExecutor) {
           method: 'GET',
           path: '/auth/me',
           isWrapper: true,
-          isMultipart: false,
-          requiresIdempotency: false,
-        },
-        input,
-        options,
-      );
-    },
-    /** POST /api/v1/auth/change-password */
-    authChangePassword(input: FeTypes.AuthChangePasswordRequest, options?: RequestRuntimeOptions): Promise<FeTypes.AuthChangePasswordResponse> {
-      return runEndpoint<FeTypes.AuthChangePasswordRequest, FeTypes.AuthChangePasswordResponse>(
-        executor,
-        {
-          method: 'POST',
-          path: '/auth/change-password',
-          isWrapper: false,
-          isMultipart: false,
-          requiresIdempotency: false,
-        },
-        input,
-        options,
-      );
-    },
-    /** POST /api/v1/auth/forgot-password */
-    authForgotPassword(input: FeTypes.AuthForgotPasswordRequest, options?: RequestRuntimeOptions): Promise<FeTypes.AuthForgotPasswordResponse> {
-      return runEndpoint<FeTypes.AuthForgotPasswordRequest, FeTypes.AuthForgotPasswordResponse>(
-        executor,
-        {
-          method: 'POST',
-          path: '/auth/forgot-password',
-          isWrapper: false,
-          isMultipart: false,
-          requiresIdempotency: false,
-        },
-        input,
-        options,
-      );
-    },
-    /** POST /api/v1/auth/send-otp */
-    authSendOtp(input: FeTypes.AuthSendOtpRequest, options?: RequestRuntimeOptions): Promise<FeTypes.AuthSendOtpResponse> {
-      return runEndpoint<FeTypes.AuthSendOtpRequest, FeTypes.AuthSendOtpResponse>(
-        executor,
-        {
-          method: 'POST',
-          path: '/auth/send-otp',
-          isWrapper: false,
-          isMultipart: false,
-          requiresIdempotency: false,
-        },
-        input,
-        options,
-      );
-    },
-    /** POST /api/v1/auth/confirm-otp */
-    authConfirmOtp(input: FeTypes.AuthConfirmOtpRequest, options?: RequestRuntimeOptions): Promise<FeTypes.AuthConfirmOtpResponse> {
-      return runEndpoint<FeTypes.AuthConfirmOtpRequest, FeTypes.AuthConfirmOtpResponse>(
-        executor,
-        {
-          method: 'POST',
-          path: '/auth/confirm-otp',
-          isWrapper: false,
           isMultipart: false,
           requiresIdempotency: false,
         },

@@ -54,8 +54,8 @@ export const ClinicalNotesModal: React.FC<ClinicalNotesModalProps> = ({
   patientName,
   onSaved,
 }) => {
-  const { t, i18n } = useTranslation();
-  const dateLocale = i18n.language?.startsWith('vi') ? 'vi-VN' : 'en-US';
+  const { t } = useTranslation();
+  const dateLocale = t('mobile.date_locale', 'vi-VN');
 
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);

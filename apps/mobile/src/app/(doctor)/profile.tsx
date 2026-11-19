@@ -423,7 +423,7 @@ export default function DoctorProfileScreen() {
     ]);
   };
 
-  const currentLang = i18n.language?.startsWith('vi') ? 'vi' : 'en';
+  const currentLang = t('mobile.lang_code', 'vi') === 'en' ? 'en' : 'vi';
 
   const genderLabel = (g: NormalizedGender) => {
     if (g === 'male') return t('mobile.gender_male');
@@ -1150,7 +1150,12 @@ export default function DoctorProfileScreen() {
       <SecuritySessionsModal
         visible={securityModalVisible}
         onClose={() => setSecurityModalVisible(false)}
-        onNavigateChangePassword={() => router.push('/(auth)/change-password')}
+        onNavigateChangePassword={() =>
+          router.push({
+            pathname: '/(auth)/forgot-password',
+            params: { email: savedForm.email || '' },
+          })
+        }
       />
     </SafeAreaView>
   );

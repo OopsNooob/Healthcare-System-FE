@@ -86,7 +86,7 @@ function extractPatientMeta(field: unknown, fallbackLabel: string): {
 }
 
 export default function DoctorChatListScreen() {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const { isDark } = useThemeContext();
   const router = useSafeRouter();
 
@@ -98,7 +98,7 @@ export default function DoctorChatListScreen() {
   const [loadError, setLoadError] = useState<string | null>(null);
 
   const profileCacheRef = useRef<Map<string, { name: string; avatarUrl?: string }>>(new Map());
-  const dateLocale = i18n.language?.startsWith('vi') ? 'vi-VN' : 'en-US';
+  const dateLocale = t('mobile.date_locale', 'vi-VN');
 
   const loadThreads = useCallback(async () => {
     try {

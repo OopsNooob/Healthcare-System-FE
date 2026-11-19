@@ -33,8 +33,8 @@ interface InspectedOrderEntry {
 }
 
 export function PremiumManagement() {
-  const { t, i18n } = useTranslation();
-  const locale = i18n.language?.startsWith("vi") ? "vi-VN" : "en-US";
+  const { t } = useTranslation();
+  const locale = t("common.dateLocale", "vi-VN");
 
   const [activeTab, setActiveTab] = useState<"config" | "evidence">("config");
   const [loading, setLoading] = useState(true);
