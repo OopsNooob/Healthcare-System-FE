@@ -141,8 +141,6 @@ export const PatientProfileModal: React.FC<PatientProfileModalProps> = ({
   const [gender, setGender] = useState('');
   const [dateOfBirth, setDateOfBirth] = useState('');
   const [addressText, setAddressText] = useState('');
-  const [emergencyContactText, setEmergencyContactText] = useState('');
-  const [allergiesText, setAllergiesText] = useState('');
   const [recentMetrics, setRecentMetrics] = useState<Array<{ id: string; label: string; value: string; recordedAt: string }>>([]);
   const [baselineSummary, setBaselineSummary] = useState('');
   const [adherenceRate, setAdherenceRate] = useState<number | null>(null);
@@ -180,32 +178,6 @@ export const PatientProfileModal: React.FC<PatientProfileModalProps> = ({
         setGender(normalized.gender);
         setDateOfBirth(normalized.dateOfBirth);
         setAddressText(formatAddressSummary(normalized.address));
-
-        const rawRoot = (profileRes.value ?? {}) as Record<string, unknown>;
-        const rawData =
-          rawRoot.data && typeof rawRoot.data === 'object'
-            ? (rawRoot.data as Record<string, unknown>)
-            : rawRoot;
-        const pProfile = (rawData.patientProfile ?? {}) as Record<string, unknown>;
-        const allergies = pProfile.allergies;
-        if (Array.isArray(allergies) && allergies.length > 0) {
-          setAllergiesText(allergies.map(String).join(', '));
-        } else if (typeof allergies === 'string' && allergies.trim()) {
-          setAllergiesText(allergies.trim());
-        } else {
-          setAllergiesText('');
-        }
-        const ec = (pProfile.emergencyContact ?? rawData.emergencyContact) as
-          | Record<string, unknown>
-          | undefined;
-        if (ec && (ec.name || ec.phoneNumber || ec.phone)) {
-          const parts = [ec.name, ec.relationship, ec.phoneNumber ?? ec.phone]
-            .filter(Boolean)
-            .map(String);
-          setEmergencyContactText(parts.join(' • '));
-        } else {
-          setEmergencyContactText('');
-        }
       } else if (metricsRes.status === 'rejected') {
         throw profileRes.reason;
       }
@@ -464,15 +436,6 @@ export const PatientProfileModal: React.FC<PatientProfileModalProps> = ({
                         {addressText || t('mobile.not_provided')}
                       </Text>
                     </View>
-                    <View style={tw('flex-row items-center')}>
-                      <AlertCircle color={twInstance.color('text-amber-500')} size={16} style={tw('mr-2.5')} />
-                      <Text style={tw('text-xs text-slate-500 dark:text-slate-400 w-24')}>
-                        {t('mobile.emergency')}:
-                      </Text>
-                      <Text style={tw('text-xs font-medium text-slate-800 dark:text-slate-200 flex-1')}>
-                        {emergencyContactText || t('mobile.not_provided')}
-                      </Text>
-                    </View>
                   </View>
                 </View>
 
@@ -490,24 +453,6 @@ export const PatientProfileModal: React.FC<PatientProfileModalProps> = ({
                     {t('mobile.clinical_baseline')}
                   </Text>
                   <View style={tw('gap-2.5')}>
-                    <View
-                      style={tw(
-                        'flex-row justify-between gap-2 py-1 border-b border-slate-100 dark:border-slate-800'
-                      )}
-                    >
-                      <Text style={tw('text-xs text-slate-500 dark:text-slate-400')}>
-                        {t('mobile.known_allergies')}
-                      </Text>
-                      <Text
-                        style={tw(
-                          `text-xs font-bold text-right flex-1 ${
-                            allergiesText ? 'text-red-500' : 'text-slate-600 dark:text-slate-300'
-                          }`
-                        )}
-                      >
-                        {allergiesText || t('mobile.none_reported')}
-                      </Text>
-                    </View>
                     <View
                       style={tw(
                         'flex-row justify-between gap-2 py-1 border-b border-slate-100 dark:border-slate-800'

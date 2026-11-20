@@ -585,7 +585,7 @@ export default function PatientHomeScreen() {
 
             {/* Care Program Banner (Amber Pending Setup / Indigo Active / Indigo Discovery) */}
             {needsSetup && enrollment ? (
-              <View style={tw('bg-amber-500 dark:bg-amber-600 rounded-3xl p-5 shadow-md border border-amber-400 dark:border-amber-500')}>
+              <View style={tw('bg-amber-500 dark:bg-amber-600 rounded-3xl p-5 border border-amber-400 dark:border-amber-500')}>
                 <View style={tw('flex-row items-center justify-between mb-2.5')}>
                   <View style={tw('flex-row items-center gap-2')}>
                     <View style={tw('w-7 h-7 rounded-full bg-white/20 items-center justify-center')}>
@@ -627,7 +627,7 @@ export default function PatientHomeScreen() {
                 </TouchableOpacity>
               </View>
             ) : enrollment ? (
-              <View style={tw('bg-indigo-600 dark:bg-indigo-700 rounded-3xl p-5 shadow-md')}>
+              <View style={tw('bg-indigo-600 dark:bg-indigo-700 rounded-3xl p-5')}>
                 <View style={tw('flex-row justify-between items-start mb-4')}>
                   <View style={tw('flex-1 mr-3')}>
                     <Text style={tw('text-indigo-100 text-xs font-semibold uppercase tracking-wider mb-1')}>
@@ -694,7 +694,7 @@ export default function PatientHomeScreen() {
                 </View>
               </View>
             ) : (
-              <View style={tw('bg-indigo-600 dark:bg-indigo-700 rounded-3xl p-5 shadow-md')}>
+              <View style={tw('bg-indigo-600 dark:bg-indigo-700 rounded-3xl p-5')}>
                 <View style={tw('flex-row items-center gap-3 mb-2.5')}>
                   <View style={tw('w-10 h-10 rounded-2xl bg-white/20 items-center justify-center shrink-0')}>
                     <Shield color="#ffffff" size={20} />
@@ -783,10 +783,10 @@ export default function PatientHomeScreen() {
                         style={tw(
                           `p-4 rounded-2xl border flex-row items-center justify-between ${
                             isTerminal
-                              ? 'bg-slate-100/70 dark:bg-slate-900/60 border-slate-200 dark:border-slate-800 opacity-75'
+                              ? 'bg-slate-100 dark:bg-slate-900 border-slate-200 dark:border-slate-800 opacity-75'
                               : task.status === 'due'
-                                ? 'bg-indigo-50/70 dark:bg-indigo-950/20 border-indigo-200 dark:border-indigo-800/60 shadow-sm'
-                                : 'bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 shadow-sm'
+                                ? 'bg-indigo-50 dark:bg-slate-900 border-indigo-200 dark:border-indigo-800'
+                                : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800'
                           }`
                         )}
                       >
@@ -852,7 +852,7 @@ export default function PatientHomeScreen() {
             <TouchableOpacity
               onPress={() => router.push('/(patient)/premium')}
               activeOpacity={0.88}
-              style={tw('bg-amber-500 dark:bg-amber-600 rounded-3xl p-5 flex-row items-center justify-between shadow-md')}
+              style={tw('bg-amber-500 dark:bg-amber-600 rounded-3xl p-5 flex-row items-center justify-between')}
             >
               <View style={tw('flex-1 pr-4')}>
                 <View style={tw('flex-row items-center mb-1')}>
@@ -887,7 +887,7 @@ export default function PatientHomeScreen() {
                 <TouchableOpacity
                   onPress={() => router.push('/(patient)/appointments')}
                   activeOpacity={0.88}
-                  style={tw('bg-emerald-500 dark:bg-emerald-600 rounded-3xl p-5 shadow-md')}
+                  style={tw('bg-emerald-500 dark:bg-emerald-600 rounded-3xl p-5')}
                 >
                   <View style={tw('flex-row items-center mb-4')}>
                     <View style={tw('w-12 h-12 rounded-2xl bg-white/20 items-center justify-center shrink-0')}>

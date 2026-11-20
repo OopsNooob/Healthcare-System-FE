@@ -2011,5 +2011,6 @@
   "mobile.reason_code_systolic_elevated": "Elevated Systolic BP",
   "mobile.reason_code_systolic_urgent": "Urgent Systolic BP",
   "mobile.reason_code_glucose_elevated": "Elevated Blood Glucose",
-  "mobile.reason_code_glucose_urgent": "Urgent Blood Glucose"
+  "mobile.reason_code_glucose_urgent": "Urgent Blood Glucose",
+  "mobile.sym_chest_pain": "Chest pain"
 }

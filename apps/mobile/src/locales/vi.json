@@ -2011,5 +2011,6 @@
   "mobile.reason_code_systolic_elevated": "Huyết áp tâm thu tăng",
   "mobile.reason_code_systolic_urgent": "Huyết áp tâm thu ngưỡng khẩn cấp",
   "mobile.reason_code_glucose_elevated": "Đường huyết tăng",
-  "mobile.reason_code_glucose_urgent": "Đường huyết ngưỡng khẩn cấp"
+  "mobile.reason_code_glucose_urgent": "Đường huyết ngưỡng khẩn cấp",
+  "mobile.sym_chest_pain": "Đau tức ngực"
 }
