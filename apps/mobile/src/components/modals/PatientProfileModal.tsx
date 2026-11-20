@@ -11,6 +11,7 @@ import { useTranslation } from 'react-i18next';
 import {
   Activity,
   AlertCircle,
+  Mail,
   MapPin,
   Phone,
   RefreshCw,
@@ -47,9 +48,68 @@ interface PatientProfileModalProps {
   patient: PatientProfileModalTarget | null;
 }
 
-function formatMetricSummary(item: Record<string, unknown>): string {
-  const metricType = String(item.metricType ?? '').replace(/_/g, ' ');
-  const unit = String(item.unit ?? '');
+type TranslateFn = (key: string, defaultValue: string) => string;
+
+const METRIC_LABEL_KEYS: Record<string, { key: string; fallback: string }> = {
+  blood_pressure: { key: 'mobile.blood_pressure', fallback: 'Blood Pressure' },
+  blood_glucose: { key: 'mobile.blood_glucose', fallback: 'Blood Glucose' },
+  heart_rate: { key: 'mobile.heart_rate', fallback: 'Heart Rate' },
+  oxygen_saturation: { key: 'mobile.oxygen_saturation', fallback: 'Oxygen Saturation' },
+  body_temperature: { key: 'mobile.body_temperature', fallback: 'Body Temperature' },
+  respiratory_rate: { key: 'mobile.respiratory_rate', fallback: 'Respiratory Rate' },
+  bmi: { key: 'mobile.bmi', fallback: 'BMI' },
+  weight: { key: 'mobile.weight', fallback: 'Weight' },
+  height: { key: 'mobile.height', fallback: 'Height' },
+  water_intake: { key: 'mobile.water_intake', fallback: 'Water Intake' },
+  kcal_intake: { key: 'mobile.calories', fallback: 'Calories' },
+  calories: { key: 'mobile.calories', fallback: 'Calories' },
+};
+
+const UNIT_LABEL_KEYS: Record<string, string> = {
+  'breaths/min': 'mobile.unit_breaths_per_min',
+  times: 'mobile.unit_times',
+};
+
+function getMetricLabel(metricType: unknown, t: TranslateFn): string {
+  const raw = String(metricType ?? '').trim().toLowerCase();
+  const mapped = METRIC_LABEL_KEYS[raw];
+  if (mapped) return t(mapped.key, mapped.fallback);
+  return raw.replace(/_/g, ' ');
+}
+
+function getBaselineFieldLabel(fieldKey: string, t: TranslateFn): string {
+  const clean = fieldKey.trim();
+  switch (clean) {
+    case 'usual_systolic':
+      return t('mobile.baseline_field_usual_systolic', 'Usual Systolic');
+    case 'usual_diastolic':
+      return t('mobile.baseline_field_usual_diastolic', 'Usual Diastolic');
+    case 'usual_fasting_glucose':
+      return t('mobile.baseline_field_usual_fasting_glucose', 'Usual Fasting Glucose');
+    case 'usual_weight':
+      return t('mobile.baseline_field_usual_weight', 'Usual Weight');
+    case 'usual_heart_rate':
+      return t('mobile.baseline_field_usual_heart_rate', 'Usual Heart Rate');
+    case 'baseline_hba1c':
+      return t('mobile.baseline_field_baseline_hba1c', 'Baseline HbA1c');
+    case 'current_medications':
+      return t('mobile.current_medications_label', 'Current Medications');
+    case 'baseline_symptoms':
+      return t('mobile.baseline_field_baseline_symptoms', 'Baseline Symptoms');
+    default:
+      return t(`mobile.baseline_field_${clean}`, clean.replace(/_/g, ' '));
+  }
+}
+
+function formatMetricUnit(unit: unknown, t: TranslateFn): string {
+  const raw = String(unit ?? '').trim();
+  if (!raw) return '';
+  const key = UNIT_LABEL_KEYS[raw.toLowerCase()];
+  return key ? t(key, raw) : raw;
+}
+
+function formatMetricSummary(item: Record<string, unknown>, t: TranslateFn): string {
+  const unit = formatMetricUnit(item.unit, t);
   const values = (item.values ?? {}) as Record<string, unknown>;
   if (values.systolic !== undefined && values.diastolic !== undefined) {
     return `${String(values.systolic)}/${String(values.diastolic)} ${unit}`.trim();
@@ -58,7 +118,7 @@ function formatMetricSummary(item: Record<string, unknown>): string {
   if (val !== undefined) {
     return `${String(val)} ${unit}`.trim();
   }
-  return metricType || '—';
+  return getMetricLabel(item.metricType, t) || '—';
 }
 
 export const PatientProfileModal: React.FC<PatientProfileModalProps> = ({
@@ -81,8 +141,6 @@ export const PatientProfileModal: React.FC<PatientProfileModalProps> = ({
   const [gender, setGender] = useState('');
   const [dateOfBirth, setDateOfBirth] = useState('');
   const [addressText, setAddressText] = useState('');
-  const [emergencyContactText, setEmergencyContactText] = useState('');
-  const [allergiesText, setAllergiesText] = useState('');
   const [recentMetrics, setRecentMetrics] = useState<Array<{ id: string; label: string; value: string; recordedAt: string }>>([]);
   const [baselineSummary, setBaselineSummary] = useState('');
   const [adherenceRate, setAdherenceRate] = useState<number | null>(null);
@@ -120,32 +178,6 @@ export const PatientProfileModal: React.FC<PatientProfileModalProps> = ({
         setGender(normalized.gender);
         setDateOfBirth(normalized.dateOfBirth);
         setAddressText(formatAddressSummary(normalized.address));
-
-        const rawRoot = (profileRes.value ?? {}) as Record<string, unknown>;
-        const rawData =
-          rawRoot.data && typeof rawRoot.data === 'object'
-            ? (rawRoot.data as Record<string, unknown>)
-            : rawRoot;
-        const pProfile = (rawData.patientProfile ?? {}) as Record<string, unknown>;
-        const allergies = pProfile.allergies;
-        if (Array.isArray(allergies) && allergies.length > 0) {
-          setAllergiesText(allergies.map(String).join(', '));
-        } else if (typeof allergies === 'string' && allergies.trim()) {
-          setAllergiesText(allergies.trim());
-        } else {
-          setAllergiesText('');
-        }
-        const ec = (pProfile.emergencyContact ?? rawData.emergencyContact) as
-          | Record<string, unknown>
-          | undefined;
-        if (ec && (ec.name || ec.phoneNumber || ec.phone)) {
-          const parts = [ec.name, ec.relationship, ec.phoneNumber ?? ec.phone]
-            .filter(Boolean)
-            .map(String);
-          setEmergencyContactText(parts.join(' • '));
-        } else {
-          setEmergencyContactText('');
-        }
       } else if (metricsRes.status === 'rejected') {
         throw profileRes.reason;
       }
@@ -156,8 +188,8 @@ export const PatientProfileModal: React.FC<PatientProfileModalProps> = ({
           items
             .map((m) => ({
               id: String(m.id ?? m._id ?? ''),
-              label: String(m.metricType ?? '').replace(/_/g, ' '),
-              value: formatMetricSummary(m),
+              label: getMetricLabel(m.metricType, t),
+              value: formatMetricSummary(m, t),
               recordedAt: String(m.recordedAt ?? m.createdAt ?? ''),
             }))
             .filter((m) => Boolean(m.id))
@@ -178,8 +210,9 @@ export const PatientProfileModal: React.FC<PatientProfileModalProps> = ({
           | undefined;
         if (answers && typeof answers === 'object') {
           const formatted = Object.entries(answers)
-            .slice(0, 3)
-            .map(([k, v]) => `${k.replace(/_/g, ' ')}: ${String(v)}`)
+            .filter(([, v]) => v !== undefined && v !== null && String(v).trim() !== '')
+            .slice(0, 4)
+            .map(([k, v]) => `${getBaselineFieldLabel(k, t)}: ${String(v)}`)
             .join(' • ');
           setBaselineSummary(formatted);
         } else {
@@ -377,6 +410,15 @@ export const PatientProfileModal: React.FC<PatientProfileModalProps> = ({
                   </Text>
                   <View style={tw('gap-2.5')}>
                     <View style={tw('flex-row items-center')}>
+                      <Mail color={twInstance.color('text-slate-400')} size={16} style={tw('mr-2.5')} />
+                      <Text style={tw('text-xs text-slate-500 dark:text-slate-400 w-24')}>
+                        {t('mobile.email')}:
+                      </Text>
+                      <Text style={tw('text-xs font-medium text-slate-800 dark:text-slate-200 flex-1')}>
+                        {email || t('mobile.not_provided')}
+                      </Text>
+                    </View>
+                    <View style={tw('flex-row items-center')}>
                       <Phone color={twInstance.color('text-slate-400')} size={16} style={tw('mr-2.5')} />
                       <Text style={tw('text-xs text-slate-500 dark:text-slate-400 w-24')}>
                         {t('mobile.phone')}:
@@ -392,15 +434,6 @@ export const PatientProfileModal: React.FC<PatientProfileModalProps> = ({
                       </Text>
                       <Text style={tw('text-xs font-medium text-slate-800 dark:text-slate-200 flex-1')}>
                         {addressText || t('mobile.not_provided')}
-                      </Text>
-                    </View>
-                    <View style={tw('flex-row items-center')}>
-                      <AlertCircle color={twInstance.color('text-amber-500')} size={16} style={tw('mr-2.5')} />
-                      <Text style={tw('text-xs text-slate-500 dark:text-slate-400 w-24')}>
-                        {t('mobile.emergency')}:
-                      </Text>
-                      <Text style={tw('text-xs font-medium text-slate-800 dark:text-slate-200 flex-1')}>
-                        {emergencyContactText || t('mobile.not_provided')}
                       </Text>
                     </View>
                   </View>
@@ -420,24 +453,6 @@ export const PatientProfileModal: React.FC<PatientProfileModalProps> = ({
                     {t('mobile.clinical_baseline')}
                   </Text>
                   <View style={tw('gap-2.5')}>
-                    <View
-                      style={tw(
-                        'flex-row justify-between gap-2 py-1 border-b border-slate-100 dark:border-slate-800'
-                      )}
-                    >
-                      <Text style={tw('text-xs text-slate-500 dark:text-slate-400')}>
-                        {t('mobile.known_allergies')}
-                      </Text>
-                      <Text
-                        style={tw(
-                          `text-xs font-bold text-right flex-1 ${
-                            allergiesText ? 'text-red-500' : 'text-slate-600 dark:text-slate-300'
-                          }`
-                        )}
-                      >
-                        {allergiesText || t('mobile.none_reported')}
-                      </Text>
-                    </View>
                     <View
                       style={tw(
                         'flex-row justify-between gap-2 py-1 border-b border-slate-100 dark:border-slate-800'
@@ -503,7 +518,7 @@ export const PatientProfileModal: React.FC<PatientProfileModalProps> = ({
                           )}
                         >
                           <View style={tw('flex-1 mr-2')}>
-                            <Text style={tw('text-xs font-bold text-slate-800 dark:text-slate-200 capitalize')}>
+                            <Text style={tw('text-xs font-bold text-slate-800 dark:text-slate-200')}>
                               {m.label}
                             </Text>
                             <Text style={tw('text-[11px] text-slate-400')}>

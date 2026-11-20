@@ -43,27 +43,36 @@ export function extractUserProfileData(raw: unknown): NormalizedUserProfile {
     ('_id' in (root.data as object) ||
       'id' in (root.data as object) ||
       'email' in (root.data as object) ||
-      'fullName' in (root.data as object))
+      'fullName' in (root.data as object) ||
+      'full_name' in (root.data as object))
       ? (root.data as Record<string, unknown>)
       : root;
 
   const addr = (data.address ?? {}) as Record<string, unknown>;
+  const addressDisplay = typeof data.address_display === 'string' ? data.address_display.trim() : '';
+  const hasAddressObj = Boolean(addr.street || addr.ward || addr.district || addr.city || addr.country);
+  const rawDob =
+    typeof data.dateOfBirth === 'string'
+      ? data.dateOfBirth
+      : typeof data.date_of_birth === 'string'
+        ? data.date_of_birth
+        : '';
   const doc = (data.doctorProfile ?? null) as Record<string, unknown> | null;
 
   return {
     id: String(data._id ?? data.id ?? ''),
     email: String(data.email ?? ''),
-    fullName: String(data.fullName ?? ''),
-    phoneNumber: String(data.phoneNumber ?? ''),
+    fullName: String(data.fullName ?? data.full_name ?? ''),
+    phoneNumber: String(data.phoneNumber ?? data.phone_number ?? ''),
     gender: normalizeGenderValue(typeof data.gender === 'string' ? data.gender : ''),
-    dateOfBirth: formatDateInput(typeof data.dateOfBirth === 'string' ? data.dateOfBirth : ''),
-    avatarUrl: String(data.avatarUrl ?? ''),
-    avatarPublicId: String(data.avatarPublicId ?? ''),
-    isOnline: Boolean(data.isOnline),
+    dateOfBirth: formatDateInput(rawDob),
+    avatarUrl: String(data.avatarUrl ?? data.avatar_url ?? ''),
+    avatarPublicId: String(data.avatarPublicId ?? data.avatar_public_id ?? ''),
+    isOnline: Boolean(data.isOnline ?? data.is_online),
     role: String(data.role ?? ''),
-    accountStatus: String(data.accountStatus ?? 'active'),
+    accountStatus: String(data.accountStatus ?? data.account_status ?? 'active'),
     address: {
-      street: String(addr.street ?? ''),
+      street: String(addr.street ?? (!hasAddressObj ? addressDisplay : '')),
       ward: String(addr.ward ?? ''),
       district: String(addr.district ?? ''),
       city: String(addr.city ?? ''),
@@ -83,7 +92,12 @@ export function extractUserProfileData(raw: unknown): NormalizedUserProfile {
               ? doc.verificationDocuments.filter((v): v is string => typeof v === 'string' && v.length > 0)
               : [],
             averageRating: typeof doc.averageRating === 'number' ? doc.averageRating : 0,
-            totalReviews: typeof doc.totalReviews === 'number' ? doc.totalReviews : 0,
+            totalReviews:
+              typeof doc.totalReviews === 'number'
+                ? doc.totalReviews
+                : typeof doc.reviewCount === 'number'
+                  ? doc.reviewCount
+                  : 0,
           },
         }
       : {}),

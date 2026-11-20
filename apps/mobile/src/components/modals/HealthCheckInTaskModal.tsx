@@ -31,6 +31,7 @@ interface HealthCheckInTaskModalProps {
 const SYMPTOM_ALLOWLIST = [
   { code: 'headache', key: 'mobile.sym_headache', fallback: 'Headache' },
   { code: 'dizziness', key: 'mobile.sym_dizziness', fallback: 'Dizziness' },
+  { code: 'chest_pain', key: 'mobile.sym_chest_pain', fallback: 'Chest Pain' },
   { code: 'chest_discomfort', key: 'mobile.sym_chest_discomfort', fallback: 'Chest Discomfort' },
   { code: 'chest_tightness', key: 'mobile.sym_chest_tightness', fallback: 'Chest Tightness' },
   { code: 'shortness_of_breath', key: 'mobile.sym_shortness_of_breath', fallback: 'Shortness of Breath' },

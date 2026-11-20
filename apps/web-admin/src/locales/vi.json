@@ -486,7 +486,7 @@
     },
     "premiumManagement": {
       "title": "Premium & Thanh toán",
-      "subtitle": "Quản lý giao dịch VNPAY và gói đăng ký Premium",
+      "subtitle": "Quản lý dòng tiền vào/ra, hoàn tiền thủ công và cấu hình gói dịch vụ",
       "stats": {
         "totalRevenue": "Tổng doanh thu",
         "successfulTransactions": "Giao dịch thành công",
@@ -499,7 +499,8 @@
         "transactions": "Giao dịch VNPAY",
         "config": "Cấu hình Gói",
         "refunds": "Yêu cầu Hoàn tiền",
-        "evidence": "Đối soát đơn thanh toán"
+        "evidence": "Đối soát đơn thanh toán",
+        "payments": "Quản lý các thanh toán"
       },
       "searchPlaceholder": "Tìm giao dịch...",
       "table": {
@@ -756,6 +757,126 @@
         "recentLookups": "Tra cứu gần đây",
         "searchPlaceholder": "Nhập mã đơn thanh toán để kiểm tra...",
         "transactionSection": "Giao dịch & IPN"
+      },
+      "payments": {
+        "bannerBadge": "Theo dõi dòng tiền",
+        "manualRefundNotice": "Hệ thống hiện chưa kết nối luồng hoàn tiền tự động qua VNPAY. Quản trị viên xử lý hoàn tiền qua cổng ngân hàng/VNPAY Merchant rồi ghi nhận trạng thái hoàn tiền thủ công tại đây để quản lý dòng tiền ra.",
+        "liveEvidenceToggle": "Tra cứu Evidence API thực tế",
+        "liveEvidenceHide": "Ẩn tra cứu Evidence",
+        "kpi": {
+          "inflowTitle": "Tổng tiền vào (Đã thu)",
+          "inflowSub": "{{count}} giao dịch thanh toán thành công",
+          "outflowTitle": "Tổng tiền ra (Hoàn tiền)",
+          "outflowSub": "{{refunded}} đã hoàn • {{pending}} chờ hoàn",
+          "netFlowTitle": "Dòng tiền ròng (Thực thu)",
+          "netFlowSub": "Tổng tiền vào trừ tiền đã hoàn trả",
+          "pendingTitle": "Chờ thu / Cần đối soát",
+          "pendingSub": "{{pending}} chờ xác nhận • {{failed}} thất bại/hủy"
+        },
+        "filters": {
+          "all": "Tất cả ({{count}})",
+          "inflow": "Tiền vào • Đã thu ({{count}})",
+          "outflow": "Tiền ra • Hoàn tiền ({{count}})",
+          "pending": "Chờ xử lý ({{count}})",
+          "failed": "Thất bại / Hủy ({{count}})",
+          "allPlans": "Tất cả gói"
+        },
+        "searchPlaceholder": "Tìm theo mã đơn, tên bệnh nhân, email hoặc mã VNPAY...",
+        "flow": {
+          "inflow": "Tiền vào (+)",
+          "outflow": "Tiền ra (-)",
+          "pending": "Chờ thu",
+          "none": "Không phát sinh"
+        },
+        "status": {
+          "paid": "Đã thanh toán",
+          "pending": "Chờ thanh toán",
+          "processing": "Đang xử lý",
+          "refund_pending": "Chờ hoàn tiền",
+          "refunded": "Đã hoàn tiền",
+          "failed": "Thất bại",
+          "expired": "Hết hạn",
+          "cancelled": "Đã hủy"
+        },
+        "table": {
+          "orderCode": "Mã đơn / Giao dịch",
+          "patient": "Bệnh nhân",
+          "plan": "Gói đăng ký",
+          "cashFlow": "Loại dòng tiền",
+          "amount": "Số tiền",
+          "gateway": "Cổng & Ngân hàng",
+          "time": "Thời gian",
+          "status": "Trạng thái",
+          "actions": "Thao tác",
+          "showing": "Hiển thị {{from}}–{{to}} trên {{total}} giao dịch",
+          "noResults": "Không tìm thấy giao dịch phù hợp",
+          "noResultsHint": "Thử thay đổi bộ lọc dòng tiền, gói dịch vụ hoặc từ khóa tìm kiếm.",
+          "resetFilters": "Đặt lại bộ lọc"
+        },
+        "actions": {
+          "viewDetail": "Chi tiết & Đối soát",
+          "markRefundPending": "Chờ hoàn tiền",
+          "confirmManualRefund": "Xác nhận đã hoàn",
+          "reconcileNow": "Đối soát",
+          "prev": "Trước",
+          "next": "Sau"
+        },
+        "pullToRefresh": {
+          "pull": "Kéo xuống để làm mới dữ liệu thanh toán...",
+          "release": "Thả tay để tải lại dữ liệu ngay...",
+          "refreshing": "Đang đồng bộ dữ liệu thanh toán..."
+        },
+        "modal": {
+          "title": "Chi tiết Thanh toán & Dòng tiền",
+          "subtitle": "Kiểm tra chứng từ VNPAY IPN, quyền lợi gói và ghi nhận hoàn tiền thủ công",
+          "cashFlowLabel": "Phân loại dòng tiền",
+          "orderCode": "Mã đơn hàng",
+          "copyOrderCode": "Sao chép mã",
+          "mongoOrderId": "MongoDB Order ID",
+          "patientInfo": "Khách hàng / Bệnh nhân",
+          "planInfo": "Gói dịch vụ",
+          "gatewayBank": "Cổng thanh toán & Ngân hàng",
+          "providerRef": "Mã tham chiếu cổng",
+          "createdAt": "Thời điểm tạo đơn",
+          "paidAt": "Thời điểm thu tiền (IPN)",
+          "refundedAt": "Thời điểm hoàn tiền",
+          "grantStatus": "Trạng thái kích hoạt gói",
+          "grantPeriod": "Chu kỳ hiệu lực",
+          "outboxStatus": "Trạng thái Outbox",
+          "timelineTitle": "Tiến trình xác thực thanh toán",
+          "stepCheckout": "1. Khởi tạo đơn thanh toán",
+          "stepReturn": "2. Chuyển hướng từ cổng VNPAY",
+          "stepIpn": "3. Xác thực chữ ký VNPAY IPN & Cấp gói",
+          "awaitingIpn": "Chờ xác nhận IPN từ VNPAY",
+          "manualRefundSection": "Quản lý Hoàn tiền Thủ công (Tiền ra)",
+          "refundReasonLabel": "Lý do / Mã tham chiếu hoàn tiền thủ công",
+          "refundReasonPlaceholder": "Ví dụ: Hoàn tiền chuyển khoản VCB ref #RF20261120 theo yêu cầu bệnh nhân...",
+          "currentRefundNote": "Ghi chú hoàn tiền đã lưu",
+          "reconcileSection": "Đối soát đơn chưa hoàn tất",
+          "reconcileHint": "Đơn hàng đang ở trạng thái chờ hoặc lỗi. Quản trị viên có thể đối soát để đánh dấu đã thu tiền vào nếu giao dịch đã thành công phía ngân hàng.",
+          "liveEvidenceSection": "Kiểm tra chứng từ thực tế từ Backend (API Evidence)",
+          "liveEvidenceHint": "Nhập Payment Order ID (MongoDB 24 ký tự) để gọi API GET /api/v1/billing/payments/orders/:id/evidence kiểm tra trực tiếp.",
+          "orderIdInputPlaceholder": "Nhập Payment Order ID (ObjectId 24 ký tự)...",
+          "fetchLiveEvidence": "Truy vấn Evidence",
+          "checkingEvidence": "Đang truy vấn...",
+          "liveOrderLabel": "Trạng thái đơn (Server)",
+          "liveTxLabel": "Giao dịch cổng VNPAY",
+          "liveOutboxLabel": "Hàng đợi Outbox",
+          "liveGrantLabel": "Quyền lợi gói",
+          "noLiveTx": "Chưa có bản ghi giao dịch VNPAY.",
+          "noLiveOutbox": "Chưa có bản ghi Outbox.",
+          "noLiveGrant": "Chưa kích hoạt gói đăng ký.",
+          "close": "Đóng"
+        },
+        "toasts": {
+          "copied": "Đã sao chép mã đơn vào bộ nhớ tạm!",
+          "reconciled": "Đã đối soát đơn {{orderId}} thành công (Ghi nhận Tiền vào).",
+          "markedRefundPending": "Đã chuyển đơn {{orderId}} sang trạng thái Chờ hoàn tiền.",
+          "confirmedManualRefund": "Đã xác nhận hoàn tiền thủ công cho đơn {{orderId}} (Ghi nhận Tiền ra).",
+          "refreshed": "Đã làm mới dữ liệu thanh toán và danh mục gói.",
+          "evidenceLoaded": "Đã tải chứng từ thực tế từ máy chủ cho đơn {{orderId}}.",
+          "refundReasonDefault": "Hoàn tiền thủ công bởi quản trị viên qua đối soát ngân hàng."
+        }
       }
     },
     "appointmentManagement": {

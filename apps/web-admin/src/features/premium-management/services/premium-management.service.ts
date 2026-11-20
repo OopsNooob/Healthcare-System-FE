@@ -125,3 +125,49 @@ export const premiumManagementService = {
     return webAdminApi.paymentsGetEvidence({ params: { id: orderId.trim() } });
   },
 };
+
+export type PaymentOrderStatus =
+  | "paid"
+  | "pending"
+  | "processing"
+  | "refund_pending"
+  | "refunded"
+  | "failed"
+  | "expired"
+  | "cancelled";
+
+export type CashFlowDirection = "inflow" | "outflow" | "pending" | "none";
+
+export interface PaymentTransactionRecord {
+  id: string;
+  mongoOrderId?: string;
+  user: string;
+  userEmail: string;
+  planCode: "FREE" | "PLUS" | "CARE";
+  planName: string;
+  planVersion: string;
+  amount: number;
+  currency: string;
+  paymentGateway: "vnpay";
+  bankCode: string;
+  maskedReference: string;
+  createdAt: string;
+  paidAt?: string;
+  refundedAt?: string;
+  status: PaymentOrderStatus;
+  subscriptionGranted: boolean;
+  grantPeriod?: string;
+  outboxStatus: "delivered" | "pending" | "processing" | "none";
+  refundNote?: string;
+  refundNoteKey?: string;
+}
+
+/**
+ * Classifies a payment order into an admin cash-flow direction.
+ */
+export function getCashFlowDirection(status: PaymentOrderStatus): CashFlowDirection {
+  if (status === "paid") return "inflow";
+  if (status === "refunded" || status === "refund_pending") return "outflow";
+  if (status === "pending" || status === "processing") return "pending";
+  return "none";
+}

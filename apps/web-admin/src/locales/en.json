@@ -486,7 +486,7 @@
     },
     "premiumManagement": {
       "title": "Premium & Payments",
-      "subtitle": "Manage VNPAY transactions and Premium subscription packages",
+      "subtitle": "Manage cash inflow/outflow, manual refunds, and subscription plan tiers",
       "stats": {
         "totalRevenue": "Total Revenue",
         "successfulTransactions": "Successful Transactions",
@@ -499,7 +499,8 @@
         "transactions": "VNPAY Transactions",
         "config": "Package Configuration",
         "refunds": "Refund Requests",
-        "evidence": "Payment Order Evidence"
+        "evidence": "Payment Order Evidence",
+        "payments": "Payment Management"
       },
       "searchPlaceholder": "Search transaction...",
       "table": {
@@ -756,6 +757,126 @@
         "recentLookups": "Recent Lookups",
         "searchPlaceholder": "Enter Payment Order ID to verify...",
         "transactionSection": "Gateway & IPN"
+      },
+      "payments": {
+        "bannerBadge": "Cash Flow Ledger",
+        "manualRefundNotice": "Automated VNPAY refund flow is not yet available. Process the refund via your bank/VNPAY Merchant portal and record the manual refund status here to track cash outflow.",
+        "liveEvidenceToggle": "Query Live API Evidence",
+        "liveEvidenceHide": "Hide Live Evidence",
+        "kpi": {
+          "inflowTitle": "Total Cash Inflow (Paid)",
+          "inflowSub": "{{count}} successful paid orders",
+          "outflowTitle": "Total Cash Outflow (Refunds)",
+          "outflowSub": "{{refunded}} refunded • {{pending}} pending refund",
+          "netFlowTitle": "Net Cash Flow",
+          "netFlowSub": "Total inflow minus confirmed refunds",
+          "pendingTitle": "Pending / Needs Review",
+          "pendingSub": "{{pending}} awaiting payment • {{failed}} failed/cancelled"
+        },
+        "filters": {
+          "all": "All ({{count}})",
+          "inflow": "Cash In • Paid ({{count}})",
+          "outflow": "Cash Out • Refunds ({{count}})",
+          "pending": "Pending ({{count}})",
+          "failed": "Failed / Cancelled ({{count}})",
+          "allPlans": "All Plans"
+        },
+        "searchPlaceholder": "Search by order code, patient name, email, or VNPAY ref...",
+        "flow": {
+          "inflow": "Cash In (+)",
+          "outflow": "Cash Out (-)",
+          "pending": "Awaiting",
+          "none": "No Flow"
+        },
+        "status": {
+          "paid": "Paid",
+          "pending": "Pending",
+          "processing": "Processing",
+          "refund_pending": "Refund Pending",
+          "refunded": "Refunded",
+          "failed": "Failed",
+          "expired": "Expired",
+          "cancelled": "Cancelled"
+        },
+        "table": {
+          "orderCode": "Order / Txn Code",
+          "patient": "Patient",
+          "plan": "Subscription Plan",
+          "cashFlow": "Cash Flow",
+          "amount": "Amount",
+          "gateway": "Gateway & Bank",
+          "time": "Timestamp",
+          "status": "Status",
+          "actions": "Actions",
+          "showing": "Showing {{from}}–{{to}} of {{total}} transactions",
+          "noResults": "No matching payment records found",
+          "noResultsHint": "Try adjusting the cash flow filter, plan tier, or search keywords.",
+          "resetFilters": "Reset Filters"
+        },
+        "actions": {
+          "viewDetail": "Details & Reconcile",
+          "markRefundPending": "Mark Refund Pending",
+          "confirmManualRefund": "Confirm Refund",
+          "reconcileNow": "Reconcile",
+          "prev": "Previous",
+          "next": "Next"
+        },
+        "pullToRefresh": {
+          "pull": "Pull down to refresh payment ledger...",
+          "release": "Release to reload data now...",
+          "refreshing": "Refreshing payment data..."
+        },
+        "modal": {
+          "title": "Payment & Cash Flow Details",
+          "subtitle": "Inspect VNPAY IPN verification, entitlement status, and record manual refunds",
+          "cashFlowLabel": "Cash Flow Classification",
+          "orderCode": "Order Code",
+          "copyOrderCode": "Copy code",
+          "mongoOrderId": "MongoDB Order ID",
+          "patientInfo": "Customer / Patient",
+          "planInfo": "Subscription Plan",
+          "gatewayBank": "Gateway & Bank",
+          "providerRef": "Provider Reference",
+          "createdAt": "Order Created At",
+          "paidAt": "Paid At (IPN)",
+          "refundedAt": "Refunded At",
+          "grantStatus": "Subscription Activation",
+          "grantPeriod": "Effective Cycle",
+          "outboxStatus": "Outbox Dispatch Status",
+          "timelineTitle": "Payment Verification Timeline",
+          "stepCheckout": "1. Payment order initialized",
+          "stepReturn": "2. Returned from VNPAY gateway",
+          "stepIpn": "3. VNPAY IPN signature verified & plan granted",
+          "awaitingIpn": "Awaiting VNPAY IPN confirmation",
+          "manualRefundSection": "Manual Refund Tracking (Cash Outflow)",
+          "refundReasonLabel": "Manual Refund Reason / Bank Reference Note",
+          "refundReasonPlaceholder": "E.g. Manual bank transfer refund #RF20261120 upon patient request...",
+          "currentRefundNote": "Recorded Refund Note",
+          "reconcileSection": "Reconcile Unfinished Order",
+          "reconcileHint": "This order is pending or failed. Admin can manually reconcile and mark it as paid if bank settlement succeeded.",
+          "liveEvidenceSection": "Live Backend Evidence Lookup (API Evidence)",
+          "liveEvidenceHint": "Enter a 24-char MongoDB Payment Order ID to call GET /api/v1/billing/payments/orders/:id/evidence directly.",
+          "orderIdInputPlaceholder": "Enter Payment Order ID (24-char ObjectId)...",
+          "fetchLiveEvidence": "Query Evidence",
+          "checkingEvidence": "Querying...",
+          "liveOrderLabel": "Order Status (Server)",
+          "liveTxLabel": "Gateway Transaction",
+          "liveOutboxLabel": "Outbox Dispatch",
+          "liveGrantLabel": "Subscription Grant",
+          "noLiveTx": "No gateway transaction recorded yet.",
+          "noLiveOutbox": "No outbox entry recorded.",
+          "noLiveGrant": "No subscription grant created yet.",
+          "close": "Close"
+        },
+        "toasts": {
+          "copied": "Order code copied to clipboard!",
+          "reconciled": "Order {{orderId}} reconciled successfully (Cash Inflow recorded).",
+          "markedRefundPending": "Marked order {{orderId}} as Refund Pending.",
+          "confirmedManualRefund": "Confirmed manual refund for order {{orderId}} (Cash Outflow recorded).",
+          "refreshed": "Payment ledger and plan catalog refreshed.",
+          "evidenceLoaded": "Live server evidence loaded for order {{orderId}}.",
+          "refundReasonDefault": "Manual refund confirmed by administrator after bank verification."
+        }
       }
     },
     "appointmentManagement": {

@@ -275,7 +275,13 @@ export default function PatientHomeScreen() {
           }
           if (tasksRes.status === 'fulfilled') {
             const { items: rawTasks } = normalizePaginatedList<Record<string, unknown>>(tasksRes.value);
-            const mappedTasks: TaskRow[] = rawTasks.map((tk) => ({
+            const nowLocal = new Date();
+            const pad2 = (n: number) => String(n).padStart(2, '0');
+            const toLocalDateKey = (d: Date) =>
+              `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+            const todayKey = toLocalDateKey(nowLocal);
+
+            const allMapped: TaskRow[] = rawTasks.map((tk) => ({
               id: String(tk.id ?? tk._id ?? ''),
               taskType: (tk.taskType as TaskRow['taskType']) ?? 'metric',
               templateKey: String(tk.templateKey ?? tk.taskType ?? 'task'),
@@ -285,7 +291,33 @@ export default function PatientHomeScreen() {
                 ? tk.allowedActions.filter((a): a is string => typeof a === 'string')
                 : undefined,
             }));
-            setTasks(mappedTasks);
+
+            const todayTasks = allMapped.filter((tk) => {
+              if (!tk.scheduledFor) return false;
+              const d = new Date(tk.scheduledFor);
+              return !Number.isNaN(d.getTime()) && toLocalDateKey(d) === todayKey;
+            });
+
+            let displayTasks = todayTasks;
+            if (displayTasks.length === 0 && allMapped.length > 0) {
+              const firstDated = allMapped.find((tk) => {
+                if (!tk.scheduledFor) return false;
+                const d = new Date(tk.scheduledFor);
+                return !Number.isNaN(d.getTime());
+              });
+              if (firstDated?.scheduledFor) {
+                const firstDayKey = toLocalDateKey(new Date(firstDated.scheduledFor));
+                displayTasks = allMapped.filter((tk) => {
+                  if (!tk.scheduledFor) return false;
+                  const d = new Date(tk.scheduledFor);
+                  return !Number.isNaN(d.getTime()) && toLocalDateKey(d) === firstDayKey;
+                });
+              } else {
+                displayTasks = allMapped;
+              }
+            }
+
+            setTasks(displayTasks);
           }
         }
       }
@@ -308,18 +340,24 @@ export default function PatientHomeScreen() {
 
   const getTaskTitle = (task: TaskRow): string => {
     switch (task.templateKey) {
+      case 'morning_vital_measurement':
+        return t('mobile.task_template_morning_vital_measurement', 'Morning Vital Measurement');
       case 'morning_blood_pressure':
       case 'evening_blood_pressure':
         return t('mobile.task_bp_measurement', 'Blood Pressure Measurement');
       case 'morning_blood_glucose':
         return t('mobile.task_glucose_measurement', 'Blood Glucose Measurement');
+      case 'daily_symptom_checkin':
       case 'daily_symptom_check_in':
       case 'symptom_check_in':
         return t('mobile.health_check_in_title', 'Routine Symptom Check-in');
       case 'follow_up_appointment':
         return t('mobile.task_follow_up_appointment', 'Follow-up Appointment');
       default:
-        return t(`mobile.task_type_${task.taskType}`, task.templateKey.replace(/_/g, ' '));
+        return t(
+          `mobile.task_template_${task.templateKey}`,
+          t(`mobile.task_type_${task.taskType}`, task.templateKey.replace(/_/g, ' '))
+        );
     }
   };
 
@@ -406,8 +444,12 @@ export default function PatientHomeScreen() {
     (enrollment.allowedActions?.includes('submit_consent') ||
       enrollment.allowedActions?.includes('submit_baseline'));
 
-  const completedTasksCount = completionRate?.completed ?? tasks.filter((x) => x.status === 'completed').length;
-  const totalTasksCount = completionRate?.expected ?? tasks.length;
+  const todayCompletedCount = tasks.filter((x) => x.status === 'completed').length;
+  const todayTotalCount = tasks.length;
+  const completedTasksCount =
+    todayTotalCount > 0 ? todayCompletedCount : (completionRate?.completed ?? 0);
+  const totalTasksCount =
+    todayTotalCount > 0 ? todayTotalCount : (completionRate?.expected ?? 0);
   const adherencePercent =
     typeof completionRate?.completionRate === 'number'
       ? Math.min(100, Math.max(0, Math.round(completionRate.completionRate * 100)))
@@ -543,7 +585,7 @@ export default function PatientHomeScreen() {
 
             {/* Care Program Banner (Amber Pending Setup / Indigo Active / Indigo Discovery) */}
             {needsSetup && enrollment ? (
-              <View style={tw('bg-amber-500 dark:bg-amber-600 rounded-3xl p-5 shadow-md border border-amber-400 dark:border-amber-500')}>
+              <View style={tw('bg-amber-500 dark:bg-amber-600 rounded-3xl p-5 border border-amber-400 dark:border-amber-500')}>
                 <View style={tw('flex-row items-center justify-between mb-2.5')}>
                   <View style={tw('flex-row items-center gap-2')}>
                     <View style={tw('w-7 h-7 rounded-full bg-white/20 items-center justify-center')}>
@@ -585,7 +627,7 @@ export default function PatientHomeScreen() {
                 </TouchableOpacity>
               </View>
             ) : enrollment ? (
-              <View style={tw('bg-indigo-600 dark:bg-indigo-700 rounded-3xl p-5 shadow-md')}>
+              <View style={tw('bg-indigo-600 dark:bg-indigo-700 rounded-3xl p-5')}>
                 <View style={tw('flex-row justify-between items-start mb-4')}>
                   <View style={tw('flex-1 mr-3')}>
                     <Text style={tw('text-indigo-100 text-xs font-semibold uppercase tracking-wider mb-1')}>
@@ -652,7 +694,7 @@ export default function PatientHomeScreen() {
                 </View>
               </View>
             ) : (
-              <View style={tw('bg-indigo-600 dark:bg-indigo-700 rounded-3xl p-5 shadow-md')}>
+              <View style={tw('bg-indigo-600 dark:bg-indigo-700 rounded-3xl p-5')}>
                 <View style={tw('flex-row items-center gap-3 mb-2.5')}>
                   <View style={tw('w-10 h-10 rounded-2xl bg-white/20 items-center justify-center shrink-0')}>
                     <Shield color="#ffffff" size={20} />
@@ -741,10 +783,10 @@ export default function PatientHomeScreen() {
                         style={tw(
                           `p-4 rounded-2xl border flex-row items-center justify-between ${
                             isTerminal
-                              ? 'bg-slate-100/70 dark:bg-slate-900/60 border-slate-200 dark:border-slate-800 opacity-75'
+                              ? 'bg-slate-100 dark:bg-slate-900 border-slate-200 dark:border-slate-800 opacity-75'
                               : task.status === 'due'
-                                ? 'bg-indigo-50/70 dark:bg-indigo-950/20 border-indigo-200 dark:border-indigo-800/60 shadow-sm'
-                                : 'bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 shadow-sm'
+                                ? 'bg-indigo-50 dark:bg-slate-900 border-indigo-200 dark:border-indigo-800'
+                                : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800'
                           }`
                         )}
                       >
@@ -810,7 +852,7 @@ export default function PatientHomeScreen() {
             <TouchableOpacity
               onPress={() => router.push('/(patient)/premium')}
               activeOpacity={0.88}
-              style={tw('bg-amber-500 dark:bg-amber-600 rounded-3xl p-5 flex-row items-center justify-between shadow-md')}
+              style={tw('bg-amber-500 dark:bg-amber-600 rounded-3xl p-5 flex-row items-center justify-between')}
             >
               <View style={tw('flex-1 pr-4')}>
                 <View style={tw('flex-row items-center mb-1')}>
@@ -845,7 +887,7 @@ export default function PatientHomeScreen() {
                 <TouchableOpacity
                   onPress={() => router.push('/(patient)/appointments')}
                   activeOpacity={0.88}
-                  style={tw('bg-emerald-500 dark:bg-emerald-600 rounded-3xl p-5 shadow-md')}
+                  style={tw('bg-emerald-500 dark:bg-emerald-600 rounded-3xl p-5')}
                 >
                   <View style={tw('flex-row items-center mb-4')}>
                     <View style={tw('w-12 h-12 rounded-2xl bg-white/20 items-center justify-center shrink-0')}>

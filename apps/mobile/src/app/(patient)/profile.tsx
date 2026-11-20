@@ -29,6 +29,7 @@ import {
   Edit3,
   FileBarChart2,
   Globe,
+  Lock,
   LogOut,
   Mail,
   MapPin,
@@ -538,19 +539,20 @@ export default function PatientProfileScreen() {
               )}
             >
               <View style={tw('flex-row items-center justify-between mb-3')}>
-                <View style={tw('flex-row items-center')}>
+                <View style={tw('flex-row items-center flex-1 mr-2')}>
                   <ClipboardList
                     size={18}
                     color={twInstance.color('text-emerald-600 dark:text-emerald-400')}
+                    style={tw('shrink-0')}
                   />
-                  <Text style={tw('text-base font-bold text-slate-900 dark:text-white ml-2')}>
+                  <Text style={tw('text-base font-bold text-slate-900 dark:text-white ml-2 flex-1')}>
                     {t('mobile.care_program_status')}
                   </Text>
                 </View>
                 {enrollmentDetail ? (
                   <View
                     style={tw(
-                      `px-2.5 py-1 rounded-full ${
+                      `px-2.5 py-1 rounded-full shrink-0 ${
                         enrollmentDetail.status === 'active'
                           ? 'bg-emerald-100 dark:bg-emerald-900/30'
                           : 'bg-amber-100 dark:bg-amber-900/30'
@@ -688,6 +690,28 @@ export default function PatientProfileScreen() {
                         'bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 dark:text-white'
                       )}
                     />
+                  </View>
+
+                  <View>
+                    <Text style={tw('text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1')}>
+                      {t('mobile.email')}
+                    </Text>
+                    <View
+                      style={tw(
+                        'flex-row items-center bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5'
+                      )}
+                    >
+                      <TextInput
+                        value={form.email || t('mobile.not_set')}
+                        editable={false}
+                        selectTextOnFocus={false}
+                        style={tw('flex-1 text-sm text-slate-500 dark:text-slate-400')}
+                      />
+                      <Lock size={14} color={twInstance.color('text-slate-400 dark:text-slate-500')} />
+                    </View>
+                    <Text style={tw('text-[11px] text-slate-400 dark:text-slate-500 mt-1')}>
+                      {t('mobile.email_readonly_hint')}
+                    </Text>
                   </View>
 
                   <View>
