@@ -252,7 +252,7 @@ export default function PatientHomeScreen() {
           items.find((e) => e.status === 'pending') ??
           items.find((e) => e.status === 'active') ??
           items.find((e) => e.status === 'paused') ??
-          items[0];
+          null;
         const enrollmentId = target ? String(target.id ?? target._id ?? '') : '';
         if (!enrollmentId) {
           setEnrollment(null);
@@ -281,16 +281,18 @@ export default function PatientHomeScreen() {
               `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
             const todayKey = toLocalDateKey(nowLocal);
 
-            const allMapped: TaskRow[] = rawTasks.map((tk) => ({
-              id: String(tk.id ?? tk._id ?? ''),
-              taskType: (tk.taskType as TaskRow['taskType']) ?? 'metric',
-              templateKey: String(tk.templateKey ?? tk.taskType ?? 'task'),
-              status: (tk.status as TaskRow['status']) ?? 'scheduled',
-              scheduledFor: typeof tk.scheduledFor === 'string' ? tk.scheduledFor : undefined,
-              allowedActions: Array.isArray(tk.allowedActions)
-                ? tk.allowedActions.filter((a): a is string => typeof a === 'string')
-                : undefined,
-            }));
+            const allMapped: TaskRow[] = rawTasks
+              .filter((tk) => tk.status !== 'cancelled')
+              .map((tk) => ({
+                id: String(tk.id ?? tk._id ?? ''),
+                taskType: (tk.taskType as TaskRow['taskType']) ?? 'metric',
+                templateKey: String(tk.templateKey ?? tk.taskType ?? 'task'),
+                status: (tk.status as TaskRow['status']) ?? 'scheduled',
+                scheduledFor: typeof tk.scheduledFor === 'string' ? tk.scheduledFor : undefined,
+                allowedActions: Array.isArray(tk.allowedActions)
+                  ? tk.allowedActions.filter((a): a is string => typeof a === 'string')
+                  : undefined,
+              }));
 
             const todayTasks = allMapped.filter((tk) => {
               if (!tk.scheduledFor) return false;

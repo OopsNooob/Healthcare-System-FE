@@ -2012,5 +2012,8 @@
   "mobile.reason_code_systolic_urgent": "Urgent Systolic BP",
   "mobile.reason_code_glucose_elevated": "Elevated Blood Glucose",
   "mobile.reason_code_glucose_urgent": "Urgent Blood Glucose",
-  "mobile.sym_chest_pain": "Chest pain"
+  "mobile.sym_chest_pain": "Chest pain",
+  "mobile.last_program_ended": "Previous",
+  "mobile.no_lifecycle_actions": "This enrollment has ended and cannot change status.",
+  "mobile.loading_enrollment_status": "Syncing latest status..."
 }

@@ -4776,6 +4776,7 @@ export interface CareEnrollmentDetailRequest {
 /** GET /api/v1/care-enrollments/{id} — response thành công theo return type thực tế. */
 export interface CareEnrollmentDetailResponse {
   id: string;
+  revision?: number;
   program: { id: string;
   programCode: string;
   version: number;
