@@ -186,7 +186,8 @@ export default function PatientProfileScreen() {
           const preferred =
             enrollments.find((e) => e.status === 'active') ??
             enrollments.find((e) => e.status === 'pending') ??
-            enrollments[0];
+            enrollments.find((e) => e.status === 'paused') ??
+            null;
 
           if (preferred?.id) {
             try {

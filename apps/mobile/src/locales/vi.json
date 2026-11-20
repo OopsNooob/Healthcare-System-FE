@@ -2012,5 +2012,8 @@
   "mobile.reason_code_systolic_urgent": "Huyết áp tâm thu ngưỡng khẩn cấp",
   "mobile.reason_code_glucose_elevated": "Đường huyết tăng",
   "mobile.reason_code_glucose_urgent": "Đường huyết ngưỡng khẩn cấp",
-  "mobile.sym_chest_pain": "Đau tức ngực"
+  "mobile.sym_chest_pain": "Đau tức ngực",
+  "mobile.last_program_ended": "Gần nhất",
+  "mobile.no_lifecycle_actions": "Chương trình này đã kết thúc và không thể chuyển trạng thái.",
+  "mobile.loading_enrollment_status": "Đang đồng bộ trạng thái mới nhất..."
 }

@@ -23,7 +23,6 @@ import {
   RefreshCw,
   Search,
   Stethoscope,
-  Trash2,
   UserPlus,
   X,
 } from 'lucide-react-native';
@@ -41,11 +40,15 @@ import { AiSummaryModal } from '@/components/modals/AiSummaryModal';
 import { ClinicalNotesModal } from '@/components/modals/ClinicalNotesModal';
 import { ProgramRulePreviewModal } from '@/components/modals/ProgramRulePreviewModal';
 import { DoctorReviewTaskModal } from '@/components/modals/DoctorReviewTaskModal';
-import { VoidDataModal } from '@/components/modals/VoidDataModal';
 import { PatientProfileModal } from '@/components/modals/PatientProfileModal';
 import { CareAlertsModal } from '@/components/modals/CareAlertsModal';
 
 type EnrollmentStatus = 'pending' | 'active' | 'paused' | 'completed' | 'cancelled';
+type LifecycleAction = 'pause' | 'resume' | 'complete' | 'cancel';
+
+const LIFECYCLE_ACTIONS: readonly LifecycleAction[] = ['pause', 'resume', 'complete', 'cancel'];
+const ADMITTED_STATUSES = new Set<EnrollmentStatus>(['pending', 'active', 'paused']);
+const ADMITTED_PRIORITY: Record<string, number> = { active: 0, pending: 1, paused: 2 };
 
 interface PublishedProgramOption {
   id: string;
@@ -62,13 +65,88 @@ interface DoctorPatientRecord {
   programId?: string;
   programName?: string;
   enrollmentStatus?: EnrollmentStatus;
+  allowedActions: LifecycleAction[];
+  lastEndedProgram?: {
+    name: string;
+    status: 'completed' | 'cancelled';
+  };
   revision: number;
   baseline: string;
   current: string;
-  latestMetricId?: string;
   adherence?: number;
   openAlertCount: number;
   pendingReviewTaskId?: string;
+}
+
+function resolveAllowedLifecycleActions(
+  rawActions: unknown,
+  status?: EnrollmentStatus
+): LifecycleAction[] {
+  if (Array.isArray(rawActions)) {
+    return rawActions.filter(
+      (a): a is LifecycleAction =>
+        typeof a === 'string' && (LIFECYCLE_ACTIONS as readonly string[]).includes(a)
+    );
+  }
+  switch (status) {
+    case 'pending':
+      return ['cancel'];
+    case 'active':
+      return ['pause', 'complete', 'cancel'];
+    case 'paused':
+      return ['resume', 'complete', 'cancel'];
+    default:
+      return [];
+  }
+}
+
+function extractEnrollmentTimestampMs(enr: Record<string, unknown>): number {
+  const raw = enr.updatedAt ?? enr.createdAt;
+  if (typeof raw !== 'string') return 0;
+  const parsed = Date.parse(raw);
+  return Number.isNaN(parsed) ? 0 : parsed;
+}
+
+function extractEnrollmentProgramName(
+  enr: Record<string, unknown>,
+  programMap: Record<string, PublishedProgramOption>,
+  fallback: string
+): string {
+  const progRaw = enr.programId ?? enr.program;
+  const progObj =
+    typeof progRaw === 'object' && progRaw !== null ? (progRaw as Record<string, unknown>) : null;
+  const progId = String(progObj?._id ?? progObj?.id ?? progRaw ?? '');
+  return String(enr.programName ?? progObj?.name ?? programMap[progId]?.name ?? fallback);
+}
+
+function mergeDoctorPatientRecords(
+  prev: DoctorPatientRecord[],
+  nextEnrolled: DoctorPatientRecord[],
+  nextUnenrolled: DoctorPatientRecord[]
+): DoctorPatientRecord[] {
+  const byPatient = new Map<string, DoctorPatientRecord>();
+  const upsert = (record: DoctorPatientRecord) => {
+    const existing = byPatient.get(record.patientId);
+    if (!existing) {
+      byPatient.set(record.patientId, record);
+      return;
+    }
+    if (record.enrollmentId) {
+      byPatient.set(record.patientId, record);
+      return;
+    }
+    if (!existing.enrollmentId) {
+      byPatient.set(record.patientId, {
+        ...existing,
+        ...record,
+        lastEndedProgram: record.lastEndedProgram ?? existing.lastEndedProgram,
+      });
+    }
+  };
+  for (const row of prev) upsert(row);
+  for (const row of nextEnrolled) upsert(row);
+  for (const row of nextUnenrolled) upsert(row);
+  return Array.from(byPatient.values());
 }
 
 function formatMetricCompact(item: Record<string, unknown> | undefined): string {
@@ -116,8 +194,9 @@ export default function DoctorPatientsScreen() {
 
   // Lifecycle Transition Modal State
   const [lifecycleModalVisible, setLifecycleModalVisible] = useState(false);
-  const [lifecycleAction, setLifecycleAction] = useState<'pause' | 'resume' | 'complete' | 'cancel'>('pause');
+  const [lifecycleAction, setLifecycleAction] = useState<LifecycleAction>('pause');
   const [lifecycleReason, setLifecycleReason] = useState('');
+  const [isLoadingLifecycleDetail, setIsLoadingLifecycleDetail] = useState(false);
   const [isSubmittingLifecycle, setIsSubmittingLifecycle] = useState(false);
 
   // Child Modals State
@@ -126,7 +205,6 @@ export default function DoctorPatientsScreen() {
   const [clinicalNotesVisible, setClinicalNotesVisible] = useState(false);
   const [programRulePreviewVisible, setProgramRulePreviewVisible] = useState(false);
   const [doctorReviewTaskVisible, setDoctorReviewTaskVisible] = useState(false);
-  const [voidDataVisible, setVoidDataVisible] = useState(false);
   const [patientProfileVisible, setPatientProfileVisible] = useState(false);
   const [careAlertsVisible, setCareAlertsVisible] = useState(false);
 
@@ -138,7 +216,7 @@ export default function DoctorPatientsScreen() {
     try {
       const [enrollRes, programsRes, consultRes, alertsRes] = await Promise.all([
         mobileApi.careEnrollmentList({
-          query: { page: targetPage, limit: 20, sortOrder: -1 },
+          query: { page: targetPage, limit: 50, sortOrder: -1 },
         }),
         targetPage === 1
           ? mobileApi.careProgramRuleListPrograms({
@@ -201,32 +279,71 @@ export default function DoctorPatientsScreen() {
         }
       }
 
-      const enrolledPatientIds = new Set<string>();
+      const admittedByPatient: Record<string, Record<string, unknown>> = {};
+      const lastEndedByPatient: Record<
+        string,
+        { name: string; status: 'completed' | 'cancelled'; updatedAtMs: number }
+      > = {};
       const allPatientIdsToResolve = new Set<string>();
 
       for (const enr of rawEnrollments) {
         const pRaw = enr.patientId ?? enr.patient;
         const pObj = typeof pRaw === 'object' && pRaw !== null ? (pRaw as Record<string, unknown>) : null;
         const pId = String(pObj?._id ?? pObj?.id ?? pRaw ?? '');
-        if (pId) {
-          enrolledPatientIds.add(pId);
-          allPatientIdsToResolve.add(pId);
-          if (pObj?.fullName) patientNameFallback[pId] = String(pObj.fullName);
+        if (!pId) continue;
+
+        allPatientIdsToResolve.add(pId);
+        if (pObj?.fullName) patientNameFallback[pId] = String(pObj.fullName);
+
+        const status = String(enr.status ?? '') as EnrollmentStatus;
+        if (ADMITTED_STATUSES.has(status)) {
+          const existing = admittedByPatient[pId];
+          if (!existing) {
+            admittedByPatient[pId] = enr;
+          } else {
+            const existingPriority = ADMITTED_PRIORITY[String(existing.status ?? '')] ?? 99;
+            const nextPriority = ADMITTED_PRIORITY[status] ?? 99;
+            if (
+              nextPriority < existingPriority ||
+              (nextPriority === existingPriority &&
+                extractEnrollmentTimestampMs(enr) >= extractEnrollmentTimestampMs(existing))
+            ) {
+              admittedByPatient[pId] = enr;
+            }
+          }
+        } else if (status === 'cancelled' || status === 'completed') {
+          const updatedAtMs = extractEnrollmentTimestampMs(enr);
+          const existingEnded = lastEndedByPatient[pId];
+          if (!existingEnded || updatedAtMs >= existingEnded.updatedAtMs) {
+            lastEndedByPatient[pId] = {
+              name: extractEnrollmentProgramName(enr, programMap, t('mobile.chronic_care')),
+              status,
+              updatedAtMs,
+            };
+          }
         }
       }
 
-      const unenrolledPatientIds =
-        targetPage === 1
-          ? consultationPatientIds.filter((id) => !enrolledPatientIds.has(id))
-          : [];
+      const admittedPatientIds = new Set(Object.keys(admittedByPatient));
+      const enrolledList = Object.values(admittedByPatient);
+      const candidateUnenrolledIds = new Set<string>();
+      if (targetPage === 1) {
+        for (const id of consultationPatientIds) {
+          if (!admittedPatientIds.has(id)) candidateUnenrolledIds.add(id);
+        }
+      }
+      for (const id of Object.keys(lastEndedByPatient)) {
+        if (!admittedPatientIds.has(id)) candidateUnenrolledIds.add(id);
+      }
+      const unenrolledPatientIds = Array.from(candidateUnenrolledIds);
       for (const id of unenrolledPatientIds) allPatientIdsToResolve.add(id);
 
       const profileNames: Record<string, string> = { ...patientNameFallback };
-      const latestMetricMap: Record<string, { label: string; id: string }> = {};
+      const latestMetricMap: Record<string, string> = {};
 
       await Promise.allSettled(
         Array.from(allPatientIdsToResolve)
-          .slice(0, 25)
+          .slice(0, 50)
           .map(async (pId) => {
             const [profRes, metricRes] = await Promise.allSettled([
               profileNames[pId]
@@ -244,18 +361,15 @@ export default function DoctorPatientsScreen() {
             if (metricRes.status === 'fulfilled') {
               const firstMetric = normalizePaginatedList<Record<string, unknown>>(metricRes.value).items[0];
               if (firstMetric) {
-                latestMetricMap[pId] = {
-                  label: formatMetricCompact(firstMetric),
-                  id: String(firstMetric.id ?? firstMetric._id ?? ''),
-                };
+                latestMetricMap[pId] = formatMetricCompact(firstMetric);
               }
             }
           })
       );
 
-      // Enrich each enrollment with completion rate & pending doctor_review task
+      // Enrich each admitted enrollment with completion rate & pending doctor_review task
       const enrolledRows: DoctorPatientRecord[] = await Promise.all(
-        rawEnrollments.map(async (enr) => {
+        enrolledList.map(async (enr) => {
           const enrollmentId = String(enr.id ?? enr._id ?? '');
           const pRaw = enr.patientId ?? enr.patient;
           const pObj = typeof pRaw === 'object' && pRaw !== null ? (pRaw as Record<string, unknown>) : null;
@@ -265,12 +379,8 @@ export default function DoctorPatientsScreen() {
           const progObj =
             typeof progRaw === 'object' && progRaw !== null ? (progRaw as Record<string, unknown>) : null;
           const progId = String(progObj?._id ?? progObj?.id ?? progRaw ?? '');
-          const progName = String(
-            enr.programName ??
-              progObj?.name ??
-              programMap[progId]?.name ??
-              t('mobile.chronic_care')
-          );
+          const progName = extractEnrollmentProgramName(enr, programMap, t('mobile.chronic_care'));
+          const enrollmentStatus = (String(enr.status ?? 'active') as EnrollmentStatus) || 'active';
 
           let adherence: number | undefined;
           let pendingReviewTaskId: string | undefined;
@@ -312,11 +422,11 @@ export default function DoctorPatientsScreen() {
             enrollmentId,
             programId: progId || undefined,
             programName: progName,
-            enrollmentStatus: (String(enr.status ?? 'active') as EnrollmentStatus) || 'active',
-            revision: Number(enr.revision ?? 1),
+            enrollmentStatus,
+            allowedActions: resolveAllowedLifecycleActions(enr.allowedActions, enrollmentStatus),
+            revision: typeof enr.revision === 'number' ? enr.revision : Number(enr.revision ?? 1) || 1,
             baseline: formatBaselineCompact(enr),
-            current: latestMetricMap[pId]?.label ?? '—',
-            latestMetricId: latestMetricMap[pId]?.id,
+            current: latestMetricMap[pId] ?? '—',
             adherence,
             openAlertCount: alertCountByPatient[pId] ?? 0,
             pendingReviewTaskId,
@@ -324,19 +434,25 @@ export default function DoctorPatientsScreen() {
         })
       );
 
-      const unenrolledRows: DoctorPatientRecord[] = unenrolledPatientIds.map((pId) => ({
-        id: `consult-patient-${pId}`,
-        patientId: pId,
-        name: profileNames[pId] || t('mobile.patient'),
-        revision: 1,
-        baseline: '—',
-        current: latestMetricMap[pId]?.label ?? '—',
-        latestMetricId: latestMetricMap[pId]?.id,
-        openAlertCount: alertCountByPatient[pId] ?? 0,
-      }));
+      const unenrolledRows: DoctorPatientRecord[] = unenrolledPatientIds.map((pId) => {
+        const ended = lastEndedByPatient[pId];
+        return {
+          id: `patient-${pId}`,
+          patientId: pId,
+          name: profileNames[pId] || t('mobile.patient'),
+          allowedActions: [],
+          lastEndedProgram: ended ? { name: ended.name, status: ended.status } : undefined,
+          revision: 1,
+          baseline: '—',
+          current: latestMetricMap[pId] ?? '—',
+          openAlertCount: alertCountByPatient[pId] ?? 0,
+        };
+      });
 
       setPatients((prev) =>
-        append ? [...prev, ...enrolledRows] : [...enrolledRows, ...unenrolledRows]
+        append
+          ? mergeDoctorPatientRecords(prev, enrolledRows, unenrolledRows)
+          : mergeDoctorPatientRecords([], enrolledRows, unenrolledRows)
       );
       setPage(targetPage);
 
@@ -418,8 +534,81 @@ export default function DoctorPatientsScreen() {
     }
   };
 
+  const availableLifecycleActions = useMemo(
+    () =>
+      activePatientData
+        ? resolveAllowedLifecycleActions(
+            activePatientData.allowedActions,
+            activePatientData.enrollmentStatus
+          )
+        : [],
+    [activePatientData]
+  );
+
+  const handleOpenLifecycleModal = async (patient: DoctorPatientRecord) => {
+    if (!patient.enrollmentId) return;
+    const initialActions = resolveAllowedLifecycleActions(
+      patient.allowedActions,
+      patient.enrollmentStatus
+    );
+    setActivePatientData(patient);
+    setLifecycleReason('');
+    setLifecycleAction(initialActions[0] ?? 'cancel');
+    setLifecycleModalVisible(true);
+
+    setIsLoadingLifecycleDetail(true);
+    try {
+      const detailRes = await mobileApi.careEnrollmentDetail({
+        params: { id: patient.enrollmentId },
+      });
+      const rawObj = detailRes as unknown as Record<string, unknown>;
+      const detail =
+        rawObj?.data && typeof rawObj.data === 'object'
+          ? (rawObj.data as Record<string, unknown>)
+          : rawObj;
+      const freshStatus = String(
+        detail?.status ?? patient.enrollmentStatus ?? 'active'
+      ) as EnrollmentStatus;
+      const freshRevision =
+        typeof detail?.revision === 'number' && Number.isFinite(detail.revision)
+          ? detail.revision
+          : patient.revision;
+      const freshActions = resolveAllowedLifecycleActions(
+        detail?.allowedActions ?? patient.allowedActions,
+        freshStatus
+      );
+
+      setActivePatientData((curr) =>
+        curr && curr.enrollmentId === patient.enrollmentId
+          ? {
+              ...curr,
+              revision: freshRevision,
+              enrollmentStatus: freshStatus,
+              allowedActions: freshActions,
+            }
+          : curr
+      );
+      if (freshActions.length > 0) {
+        setLifecycleAction((currAct) =>
+          freshActions.includes(currAct) ? currAct : freshActions[0]
+        );
+      }
+    } catch {
+      // Keep cached record if sync fails; submit still receives server validation feedback.
+    } finally {
+      setIsLoadingLifecycleDetail(false);
+    }
+  };
+
   const handleLifecycleSubmit = async () => {
-    if (!activePatientData?.enrollmentId || isSubmittingLifecycle) return;
+    if (
+      !activePatientData?.enrollmentId ||
+      isSubmittingLifecycle ||
+      isLoadingLifecycleDetail ||
+      !availableLifecycleActions.includes(lifecycleAction)
+    ) {
+      return;
+    }
     if (!lifecycleReason.trim()) {
       Toast.show({
         type: 'error',
@@ -670,14 +859,31 @@ export default function DoctorPatientsScreen() {
                         </View>
                       </View>
                     ) : (
-                      <View
-                        style={tw(
-                          'bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-full mt-2 self-start'
-                        )}
-                      >
-                        <Text style={tw('text-xs font-medium text-slate-500 dark:text-slate-400')}>
-                          {t('mobile.no_active_program')}
-                        </Text>
+                      <View style={tw('mt-2 gap-1.5')}>
+                        <View
+                          style={tw(
+                            'bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-full self-start'
+                          )}
+                        >
+                          <Text style={tw('text-xs font-medium text-slate-500 dark:text-slate-400')}>
+                            {t('mobile.no_active_program')}
+                          </Text>
+                        </View>
+                        {patient.lastEndedProgram ? (
+                          <View
+                            style={tw(
+                              'bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 px-3 py-1 rounded-full self-start'
+                            )}
+                          >
+                            <Text
+                              numberOfLines={1}
+                              style={tw('text-[11px] font-medium text-slate-600 dark:text-slate-300')}
+                            >
+                              {t('mobile.last_program_ended')}: {patient.lastEndedProgram.name} •{' '}
+                              {enrollmentStatusLabel(patient.lastEndedProgram.status)}
+                            </Text>
+                          </View>
+                        ) : null}
                       </View>
                     )}
                   </View>
@@ -699,13 +905,7 @@ export default function DoctorPatientsScreen() {
                     </TouchableOpacity>
                   ) : (
                     <TouchableOpacity
-                      onPress={() => {
-                        setActivePatientData(patient);
-                        setLifecycleAction(
-                          patient.enrollmentStatus === 'paused' ? 'resume' : 'pause'
-                        );
-                        setLifecycleModalVisible(true);
-                      }}
+                      onPress={() => void handleOpenLifecycleModal(patient)}
                       style={tw(
                         'flex-row items-center bg-slate-100 dark:bg-slate-800 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700'
                       )}
@@ -790,7 +990,7 @@ export default function DoctorPatientsScreen() {
                       </TouchableOpacity>
                     </View>
 
-                    {/* Row 2 Actions: Clinical Notes + Active CareRule Preview + Void Metric */}
+                    {/* Row 2 Actions: Clinical Notes + Active CareRule Preview */}
                     <View style={tw('flex-row gap-2 mt-2')}>
                       <TouchableOpacity
                         onPress={() => {
@@ -819,20 +1019,6 @@ export default function DoctorPatientsScreen() {
                         <Text style={tw('text-xs font-bold text-slate-700 dark:text-slate-300 ml-1')}>
                           {t('mobile.active_rule_preview')}
                         </Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        disabled={!patient.latestMetricId}
-                        onPress={() => {
-                          setActivePatientData(patient);
-                          setVoidDataVisible(true);
-                        }}
-                        style={tw(
-                          `px-3 bg-red-50 dark:bg-red-900/10 flex-row items-center justify-center py-2.5 rounded-lg border border-red-100 dark:border-red-900/30 ${
-                            !patient.latestMetricId ? 'opacity-40' : ''
-                          }`
-                        )}
-                      >
-                        <Trash2 color={twInstance.color('text-red-500')} size={15} />
                       </TouchableOpacity>
                     </View>
                   </View>
@@ -1008,39 +1194,62 @@ export default function DoctorPatientsScreen() {
               </TouchableOpacity>
             </View>
 
-            <View style={tw('flex-row flex-wrap gap-2 mb-4')}>
-              {(
-                [
-                  { id: 'pause', label: t('mobile.pause_program') },
-                  { id: 'resume', label: t('mobile.resume_program') },
-                  { id: 'complete', label: t('mobile.complete_program') },
-                  { id: 'cancel', label: t('mobile.cancel_program') },
-                ] as const
-              ).map((act) => (
-                <TouchableOpacity
-                  key={act.id}
-                  disabled={isSubmittingLifecycle}
-                  onPress={() => setLifecycleAction(act.id)}
-                  style={tw(
-                    `px-3.5 py-2 rounded-xl border ${
-                      lifecycleAction === act.id
-                        ? 'bg-indigo-600 border-indigo-600'
-                        : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700'
-                    }`
-                  )}
-                >
-                  <Text
-                    style={tw(
-                      `text-xs font-bold ${
-                        lifecycleAction === act.id ? 'text-white' : 'text-slate-700 dark:text-slate-200'
-                      }`
-                    )}
-                  >
-                    {act.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
+            {isLoadingLifecycleDetail ? (
+              <View style={tw('flex-row items-center mb-3')}>
+                <ActivityIndicator size="small" color="#4f46e5" style={tw('mr-2')} />
+                <Text style={tw('text-xs text-slate-500 dark:text-slate-400')}>
+                  {t('mobile.loading_enrollment_status')}
+                </Text>
+              </View>
+            ) : null}
+
+            {availableLifecycleActions.length > 0 ? (
+              <View style={tw('flex-row flex-wrap gap-2 mb-4')}>
+                {(
+                  [
+                    { id: 'pause', label: t('mobile.pause_program') },
+                    { id: 'resume', label: t('mobile.resume_program') },
+                    { id: 'complete', label: t('mobile.complete_program') },
+                    { id: 'cancel', label: t('mobile.cancel_program') },
+                  ] as const
+                )
+                  .filter((act) => availableLifecycleActions.includes(act.id))
+                  .map((act) => (
+                    <TouchableOpacity
+                      key={act.id}
+                      disabled={isSubmittingLifecycle || isLoadingLifecycleDetail}
+                      onPress={() => setLifecycleAction(act.id)}
+                      style={tw(
+                        `px-3.5 py-2 rounded-xl border ${
+                          lifecycleAction === act.id
+                            ? 'bg-indigo-600 border-indigo-600'
+                            : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700'
+                        }`
+                      )}
+                    >
+                      <Text
+                        style={tw(
+                          `text-xs font-bold ${
+                            lifecycleAction === act.id ? 'text-white' : 'text-slate-700 dark:text-slate-200'
+                          }`
+                        )}
+                      >
+                        {act.label}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+              </View>
+            ) : !isLoadingLifecycleDetail ? (
+              <View
+                style={tw(
+                  'bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 rounded-xl p-3.5 mb-4'
+                )}
+              >
+                <Text style={tw('text-xs text-slate-600 dark:text-slate-300')}>
+                  {t('mobile.no_lifecycle_actions')}
+                </Text>
+              </View>
+            ) : null}
 
             <Text style={tw('text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1.5')}>
               {t('mobile.lifecycle_reason_label')}
@@ -1048,7 +1257,7 @@ export default function DoctorPatientsScreen() {
             <TextInput
               value={lifecycleReason}
               onChangeText={setLifecycleReason}
-              editable={!isSubmittingLifecycle}
+              editable={!isSubmittingLifecycle && !isLoadingLifecycleDetail && availableLifecycleActions.length > 0}
               placeholder={t('mobile.lifecycle_reason_placeholder')}
               placeholderTextColor="#94a3b8"
               multiline
@@ -1060,10 +1269,20 @@ export default function DoctorPatientsScreen() {
 
             <TouchableOpacity
               onPress={() => void handleLifecycleSubmit()}
-              disabled={isSubmittingLifecycle}
+              disabled={
+                isSubmittingLifecycle ||
+                isLoadingLifecycleDetail ||
+                availableLifecycleActions.length === 0 ||
+                !availableLifecycleActions.includes(lifecycleAction)
+              }
               style={tw(
                 `bg-brand py-4 rounded-xl items-center flex-row justify-center ${
-                  isSubmittingLifecycle ? 'opacity-60' : ''
+                  isSubmittingLifecycle ||
+                  isLoadingLifecycleDetail ||
+                  availableLifecycleActions.length === 0 ||
+                  !availableLifecycleActions.includes(lifecycleAction)
+                    ? 'opacity-60'
+                    : ''
                 }`
               )}
             >
@@ -1114,24 +1333,6 @@ export default function DoctorPatientsScreen() {
         patientName={activePatientData?.name}
         programName={activePatientData?.programName}
         onSubmitReview={() => void loadPatients(1, false)}
-      />
-
-      <VoidDataModal
-        visible={voidDataVisible}
-        onClose={() => setVoidDataVisible(false)}
-        metricId={activePatientData?.latestMetricId}
-        patientName={activePatientData?.name}
-        metricLabel={
-          activePatientData ? `${t('mobile.current')}: ${activePatientData.current}` : undefined
-        }
-        onVoidConfirm={async (_reasonCode, note) => {
-          if (!activePatientData?.latestMetricId) return;
-          await mobileApi.healthMetricsVoid({
-            params: { id: activePatientData.latestMetricId },
-            body: { reason: note.trim() || t('mobile.clinician_voided') },
-          });
-          await loadPatients(1, false);
-        }}
       />
 
       <PatientProfileModal
