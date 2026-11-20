@@ -249,13 +249,33 @@ export async function getHealthMetricAlerts(): Promise<HealthMetric[]> {
   return items.map(mapApiMetric);
 }
 
+function serializeValuesForApi(
+  rawValues: Record<string, unknown> | undefined,
+): Record<string, number> {
+  const result: Record<string, number> = {};
+  if (!rawValues) return result;
+  for (const [key, entry] of Object.entries(rawValues)) {
+    if (typeof entry === "number" && Number.isFinite(entry)) {
+      result[key] = entry;
+    } else if (
+      typeof entry === "object" &&
+      entry !== null &&
+      typeof (entry as { value?: unknown }).value === "number" &&
+      Number.isFinite((entry as { value: number }).value)
+    ) {
+      result[key] = (entry as { value: number }).value;
+    }
+  }
+  return result;
+}
+
 export async function createHealthMetric(
   payload: CreateHealthMetricPayload,
 ): Promise<HealthMetric> {
   const metricType = payload.metricType ?? payload.type ?? "blood_pressure";
   const response = await mobileApi.healthMetricsCreate({
     metricType,
-    values: payload.values as Record<string, unknown>,
+    values: serializeValuesForApi(payload.values as Record<string, unknown>),
     source: payload.source ?? "manual",
     recordedTimezone: payload.recordedTimezone,
     recordedAt: payload.recordedAt,
@@ -276,7 +296,7 @@ export async function correctHealthMetric(
   const response = await mobileApi.healthMetricsCorrect({
     params: { id },
     body: {
-      values: payload.values,
+      values: serializeValuesForApi(payload.values),
       recordedAt: payload.recordedAt,
       recordedTimezone: payload.recordedTimezone,
       reason: payload.reason,

@@ -595,7 +595,7 @@ export default function HealthMetricScreen() {
                 <View style={tw('flex-row gap-3')}>
                   <View style={tw('flex-1')}>
                     <Text style={tw('text-xs font-semibold text-slate-700 dark:text-slate-200 mb-1.5')}>
-                      {t('mobile.bp_systolic_label', 'Systolic')} ({selectedConfig.unit})
+                      {t('mobile.bp_systolic_label', 'Systolic (mmHg)')}
                     </Text>
                     <TextInput
                       value={primaryInput}
@@ -608,7 +608,7 @@ export default function HealthMetricScreen() {
                   </View>
                   <View style={tw('flex-1')}>
                     <Text style={tw('text-xs font-semibold text-slate-700 dark:text-slate-200 mb-1.5')}>
-                      {t('mobile.bp_diastolic_label', 'Diastolic')} ({selectedConfig.unit})
+                      {t('mobile.bp_diastolic_label', 'Diastolic (mmHg)')}
                     </Text>
                     <TextInput
                       value={secondaryInput}
