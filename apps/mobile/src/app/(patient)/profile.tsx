@@ -539,19 +539,20 @@ export default function PatientProfileScreen() {
               )}
             >
               <View style={tw('flex-row items-center justify-between mb-3')}>
-                <View style={tw('flex-row items-center')}>
+                <View style={tw('flex-row items-center flex-1 mr-2')}>
                   <ClipboardList
                     size={18}
                     color={twInstance.color('text-emerald-600 dark:text-emerald-400')}
+                    style={tw('shrink-0')}
                   />
-                  <Text style={tw('text-base font-bold text-slate-900 dark:text-white ml-2')}>
+                  <Text style={tw('text-base font-bold text-slate-900 dark:text-white ml-2 flex-1')}>
                     {t('mobile.care_program_status')}
                   </Text>
                 </View>
                 {enrollmentDetail ? (
                   <View
                     style={tw(
-                      `px-2.5 py-1 rounded-full ${
+                      `px-2.5 py-1 rounded-full shrink-0 ${
                         enrollmentDetail.status === 'active'
                           ? 'bg-emerald-100 dark:bg-emerald-900/30'
                           : 'bg-amber-100 dark:bg-amber-900/30'

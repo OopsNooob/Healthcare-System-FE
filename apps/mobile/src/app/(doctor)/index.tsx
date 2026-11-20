@@ -140,16 +140,28 @@ export default function DoctorHomeScreen() {
       setUpcomingConsultCount(upcomingList.length);
 
       if (profile.id) {
+        const fallbackAvg = profile.doctorProfile?.averageRating ?? 0;
+        const fallbackCount = profile.doctorProfile?.totalReviews ?? 0;
         try {
           const ratingRes = await mobileApi.reviewsGetDoctorRating({
             params: { doctorId: profile.id },
           });
           const rawRating = ratingRes as unknown as Record<string, unknown>;
-          const avg = Number(rawRating.averageRating ?? rawRating.average ?? 0);
-          const count = Number(rawRating.totalReviews ?? rawRating.count ?? 0);
-          setRatingSummary(count > 0 ? `${avg.toFixed(1)} (${count})` : '—');
+          const ratingData =
+            rawRating?.data && typeof rawRating.data === 'object'
+              ? (rawRating.data as Record<string, unknown>)
+              : rawRating;
+          const avg = Number(ratingData?.averageRating ?? ratingData?.average ?? fallbackAvg);
+          const count = Number(ratingData?.totalReviews ?? ratingData?.count ?? fallbackCount);
+          setRatingSummary(count > 0 ? `${avg.toFixed(1)} (${count})` : avg > 0 ? avg.toFixed(1) : '—');
         } catch {
-          setRatingSummary('—');
+          setRatingSummary(
+            fallbackCount > 0
+              ? `${fallbackAvg.toFixed(1)} (${fallbackCount})`
+              : fallbackAvg > 0
+                ? fallbackAvg.toFixed(1)
+                : '—'
+          );
         }
       }
 

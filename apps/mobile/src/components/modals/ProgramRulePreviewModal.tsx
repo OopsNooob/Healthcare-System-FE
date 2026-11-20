@@ -147,6 +147,26 @@ export const ProgramRulePreviewModal: React.FC<ProgramRulePreviewModalProps> = (
   const testStatus = testSummary?.status ?? 'unavailable';
   const taskTemplates = Array.isArray(program?.taskTemplates) ? program.taskTemplates : [];
 
+  const diseaseLabel = program?.diseaseKey
+    ? t(`mobile.disease_${program.diseaseKey.trim().toLowerCase()}`, formatHumanCode(program.diseaseKey))
+    : '';
+
+  const getTemplateTitle = (tpl: Record<string, unknown>, idx: number): string => {
+    if (typeof tpl.title === 'string' && tpl.title.trim()) return tpl.title;
+    if (typeof tpl.label === 'string' && tpl.label.trim()) return tpl.label;
+    if (typeof tpl.name === 'string' && tpl.name.trim()) return tpl.name;
+    const rawKey = String(tpl.templateKey ?? tpl.key ?? '').trim().toLowerCase();
+    if (rawKey) {
+      return t(`mobile.task_template_${rawKey}`, formatHumanCode(rawKey));
+    }
+    return `${t('mobile.care_task')} ${idx + 1}`;
+  };
+
+  const getTaskTypeLabel = (rawTypeValue: unknown): string => {
+    const rawType = String(rawTypeValue ?? 'check_in').trim().toLowerCase();
+    return t(`mobile.task_type_${rawType}`, formatHumanCode(rawType));
+  };
+
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <View style={tw('flex-1 justify-end bg-black/60')}>
@@ -306,7 +326,7 @@ export const ProgramRulePreviewModal: React.FC<ProgramRulePreviewModalProps> = (
                   <View style={tw('flex-row flex-wrap gap-2 mt-3')}>
                     <View style={tw('bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-3 py-1.5 rounded-xl')}>
                       <Text style={tw('text-[11px] font-semibold text-slate-600 dark:text-slate-300')}>
-                        {t('mobile.condition_focus')}: {formatHumanCode(program.diseaseKey)}
+                        {t('mobile.condition_focus')}: {diseaseLabel}
                       </Text>
                     </View>
                     <View style={tw('bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-3 py-1.5 rounded-xl')}>
@@ -333,10 +353,9 @@ export const ProgramRulePreviewModal: React.FC<ProgramRulePreviewModalProps> = (
 
                     <View style={tw('gap-2.5')}>
                       {taskTemplates.map((tpl, idx) => {
-                        const title = String(
-                          tpl.title ?? tpl.label ?? tpl.name ?? formatHumanCode(String(tpl.templateKey ?? tpl.key ?? `${t('mobile.care_task')} ${idx + 1}`))
-                        );
-                        const taskType = formatHumanCode(String(tpl.taskType ?? tpl.type ?? 'check_in'));
+                        const tplRecord = tpl as unknown as Record<string, unknown>;
+                        const title = getTemplateTitle(tplRecord, idx);
+                        const taskType = getTaskTypeLabel(tplRecord.taskType ?? tplRecord.type);
                         const cadenceDays = tpl.frequencyDays ?? tpl.intervalDays ?? tpl.cadenceDays;
                         return (
                           <View
@@ -459,7 +478,7 @@ export const ProgramRulePreviewModal: React.FC<ProgramRulePreviewModalProps> = (
                                 style={tw('bg-emerald-100 dark:bg-emerald-900/40 px-2.5 py-1 rounded-lg')}
                               >
                                 <Text style={tw('text-[11px] font-semibold text-emerald-800 dark:text-emerald-200')}>
-                                  {formatHumanCode(code)}
+                                  {t(`mobile.reason_code_${code.toLowerCase()}`, formatHumanCode(code))}
                                 </Text>
                               </View>
                             ))}
