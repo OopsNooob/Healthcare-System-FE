@@ -26,6 +26,7 @@ export default function ConfirmOTPScreen() {
   const email = typeof params.email === 'string' ? params.email : '';
 
   const [otp, setOtp] = useState('');
+  const [isFocused, setIsFocused] = useState(false);
   const [isResending, setIsResending] = useState(false);
   const [cooldown, setCooldown] = useState(0);
 
@@ -126,12 +127,42 @@ export default function ConfirmOTPScreen() {
 
           <View style={tw('gap-4')}>
             <View style={tw('gap-1.5')}>
-              <View style={tw('flex-row items-center bg-gray-50 dark:bg-slate-800 rounded-2xl px-4 py-3 border border-gray-200 dark:border-slate-700')}>
+              <View
+                style={tw(
+                  `relative justify-center bg-gray-50 dark:bg-slate-800 rounded-2xl px-4 py-1.5 border ${
+                    isFocused
+                      ? 'border-emerald-500 dark:border-emerald-400'
+                      : 'border-gray-200 dark:border-slate-700'
+                  }`,
+                )}
+              >
+                {otp.length === 0 && !isFocused && (
+                  <Text
+                    pointerEvents="none"
+                    style={tw(
+                      'absolute inset-x-0 text-center text-2xl tracking-widest text-gray-400 dark:text-slate-500',
+                    )}
+                  >
+                    ------
+                  </Text>
+                )}
                 <TextInput
-                  style={tw('flex-1 text-center text-2xl tracking-widest text-gray-900 dark:text-gray-100 bg-transparent')}
-                  placeholder="------"
-                  placeholderTextColor="#9ca3af"
+                  style={[
+                    tw(
+                      'w-full h-12 text-center text-2xl font-semibold text-gray-900 dark:text-gray-100 bg-transparent',
+                    ),
+                    {
+                      textAlignVertical: 'center',
+                      includeFontPadding: false,
+                      letterSpacing: otp.length > 0 ? 8 : 0,
+                    },
+                  ]}
+                  textAlign="center"
+                  cursorColor="#10b981"
+                  selectionColor="#10b981"
                   value={otp}
+                  onFocus={() => setIsFocused(true)}
+                  onBlur={() => setIsFocused(false)}
                   onChangeText={(val) => setOtp(val.replace(/[^\d]/g, ''))}
                   keyboardType="number-pad"
                   maxLength={6}
