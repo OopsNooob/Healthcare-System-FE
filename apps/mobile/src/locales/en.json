@@ -1973,5 +1973,6 @@
   "mobile.wheel_duration_summary": "Duration: {{minutes}} min",
   "mobile.wheel_invalid_range": "End time must be after start time",
   "mobile.minutes_unit": "{{count}}m",
-  "mobile.wheel_past_time_error": "Start time must be in the future"
+  "mobile.wheel_past_time_error": "Start time must be in the future",
+  "mobile.current_medications_label": "Current Medications"
 }

@@ -81,9 +81,16 @@ function parseSchemaFields(
   programDetail: FeTypes.CareProgramRuleGetProgramResponse | null,
   enrollmentDetail: FeTypes.CareEnrollmentDetailResponse
 ): BaselineFieldSchema[] {
-  const rawForm = programDetail?.baselineForm as
-    | { schemaVersion?: string; fields?: Array<Record<string, unknown>> }
-    | undefined;
+  const enrollmentBaselineForm = (
+    enrollmentDetail as unknown as {
+      baselineForm?: { schemaVersion?: string; fields?: Array<Record<string, unknown>> };
+    }
+  )?.baselineForm;
+  const rawForm =
+    enrollmentBaselineForm ??
+    (programDetail?.baselineForm as
+      | { schemaVersion?: string; fields?: Array<Record<string, unknown>> }
+      | undefined);
   if (rawForm && Array.isArray(rawForm.fields) && rawForm.fields.length > 0) {
     return rawForm.fields.map((f) => ({
       key: String(f.key ?? ''),
@@ -231,6 +238,8 @@ export default function BaselineAssessmentScreen() {
         return t('mobile.bp_diastolic_label', 'Usual Diastolic Blood Pressure');
       case 'usual_fasting_glucose':
         return t('mobile.glucose_label', 'Usual Fasting Blood Glucose');
+      case 'current_medications':
+        return t('mobile.current_medications_label', 'Current Medications');
       default:
         return t(`mobile.baseline_field_${key}`, key.replace(/_/g, ' '));
     }
@@ -443,10 +452,13 @@ export default function BaselineAssessmentScreen() {
         </View>
 
         {enrollment && currentStep < 4 && !isLoading && !loadError && (
-          <View style={tw('px-6 pt-5 pb-3')}>
-            <View style={tw('flex-row items-center justify-between mb-2')}>
+          <View style={tw('px-8 pt-5 pb-3 items-center')}>
+            <View style={tw('w-full max-w-[300px] flex-row items-center justify-between mb-2')}>
               {[1, 2, 3].map((step) => (
-                <View key={step} style={tw('flex-1 flex-row items-center')}>
+                <View
+                  key={step}
+                  style={tw(step < 3 ? 'flex-1 flex-row items-center' : 'flex-row items-center')}
+                >
                   <View
                     style={tw(`w-8 h-8 rounded-full items-center justify-center border-2 ${
                       currentStep === step

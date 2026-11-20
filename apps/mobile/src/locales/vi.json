@@ -1973,5 +1973,6 @@
   "mobile.wheel_duration_summary": "Thời lượng: {{minutes}} phút",
   "mobile.wheel_invalid_range": "Giờ kết thúc phải sau giờ bắt đầu",
   "mobile.minutes_unit": "{{count}}p",
-  "mobile.wheel_past_time_error": "Giờ bắt đầu phải lớn hơn thời gian hiện tại"
+  "mobile.wheel_past_time_error": "Giờ bắt đầu phải lớn hơn thời gian hiện tại",
+  "mobile.current_medications_label": "Thuốc đang sử dụng hiện tại"
 }
