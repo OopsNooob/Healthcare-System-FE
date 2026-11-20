@@ -29,6 +29,7 @@ import {
   Edit3,
   FileBarChart2,
   Globe,
+  Lock,
   LogOut,
   Mail,
   MapPin,
@@ -688,6 +689,28 @@ export default function PatientProfileScreen() {
                         'bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 dark:text-white'
                       )}
                     />
+                  </View>
+
+                  <View>
+                    <Text style={tw('text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1')}>
+                      {t('mobile.email')}
+                    </Text>
+                    <View
+                      style={tw(
+                        'flex-row items-center bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5'
+                      )}
+                    >
+                      <TextInput
+                        value={form.email || t('mobile.not_set')}
+                        editable={false}
+                        selectTextOnFocus={false}
+                        style={tw('flex-1 text-sm text-slate-500 dark:text-slate-400')}
+                      />
+                      <Lock size={14} color={twInstance.color('text-slate-400 dark:text-slate-500')} />
+                    </View>
+                    <Text style={tw('text-[11px] text-slate-400 dark:text-slate-500 mt-1')}>
+                      {t('mobile.email_readonly_hint')}
+                    </Text>
                   </View>
 
                   <View>

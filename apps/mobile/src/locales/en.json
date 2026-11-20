@@ -40,7 +40,7 @@
   "mobile.online": "Online",
   "mobile.health_profile": "Health Profile",
   "mobile.birthday_oct_12_1990": "Birthday: Oct 12, 1990",
-  "mobile.gender_male": "Gender: Male",
+  "mobile.gender_male": "Male",
   "mobile.ai_summary": "AI Summary",
   "mobile.current_vitals": "Current Vitals",
   "mobile.heart_rate": "Heart Rate",
@@ -1963,5 +1963,15 @@
   "mobile.ai_my_feedbacks_btn": "My AI Feedback",
   "mobile.ai_my_feedbacks_title": "My AI Feedback",
   "mobile.ai_my_feedbacks_empty": "You have not submitted any AI feedback yet.",
-  "mobile.ai_feedback_conversation_label": "AI Consultation"
+  "mobile.ai_feedback_conversation_label": "AI Consultation",
+  "mobile.email_readonly_hint": "Email is tied to your login identity and cannot be changed.",
+  "mobile.wheel_start_time": "Start Time",
+  "mobile.wheel_end_time": "End Time",
+  "mobile.wheel_hour": "Hour",
+  "mobile.wheel_minute": "Min",
+  "mobile.wheel_quick_duration": "Quick Duration",
+  "mobile.wheel_duration_summary": "Duration: {{minutes}} min",
+  "mobile.wheel_invalid_range": "End time must be after start time",
+  "mobile.minutes_unit": "{{count}}m",
+  "mobile.wheel_past_time_error": "Start time must be in the future"
 }

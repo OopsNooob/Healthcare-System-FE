@@ -49,13 +49,21 @@ type ApiUser = {
   id?: string;
   fullName?: string;
   avatarUrl?: string;
-  email?: string;
+  email?: string | null;
   role?: UserRole;
   accountStatus?: UserStatus;
   isOnline?: boolean;
   createdAt?: string;
   address?: ApiAddress;
   specialty?: string;
+  doctorProfile?: {
+    specialty?: string;
+    workplace?: string;
+    verificationStatus?: VerificationStatus;
+  };
+  adminProfile?: {
+    adminRole?: AdminAssignedRole;
+  };
 };
 
 type ApiAdminRecord = {
@@ -194,21 +202,25 @@ async function fetchAllPendingDoctorApplicationsCount(): Promise<number> {
 
 function mapApiUserToUiUser(user: ApiUser): UserManagementUser | null {
   const id = resolveId(user);
-  if (!id || !user.fullName || !user.email || !user.role) {
+  if (!id || !user.fullName || !user.role) {
     return null;
   }
+
+  const specialty =
+    user.specialty?.trim() || user.doctorProfile?.specialty?.trim() || undefined;
 
   return {
     id,
     fullName: user.fullName,
     avatarUrl: user.avatarUrl,
-    email: user.email,
+    email: user.email?.trim() || "-",
     location: resolveLocation(user.address),
     joined: resolveJoinedDate(user.createdAt),
     role: user.role,
     status: user.accountStatus ?? "active",
     isOnline: Boolean(user.isOnline),
-    specialty: user.specialty,
+    specialty,
+    assigned_role: user.adminProfile?.adminRole,
   };
 }
 
@@ -274,12 +286,21 @@ export async function getUserManagement(): Promise<UserManagement> {
     pagedUsers,
     doctorsDirectory,
     pendingVerificationsCount,
+    doctorApplicationsResponse,
     adminProfilesResponse,
     patientsResponse,
   ] = await Promise.all([
     fetchAllPagedUsers(),
     fetchDoctorsDirectory(),
     fetchAllPendingDoctorApplicationsCount(),
+    webAdminApi
+      .adminGetDoctorApplication({
+        query: {
+          page: 1,
+          limit: 100,
+        } as unknown as AdminGetDoctorApplicationRequest["query"],
+      })
+      .catch(() => null),
     webAdminApi.adminsFindAll({ query: { page: 1, limit: 100 } }).catch(() => null),
     webAdminApi.patientProfileFindAll({ query: { page: 1, limit: 1 } }).catch(() => null),
   ]);
@@ -309,6 +330,41 @@ export async function getUserManagement(): Promise<UserManagement> {
       ...(existing ?? mappedDoctor),
       specialty: mappedDoctor.specialty ?? existing?.specialty,
     });
+  }
+
+  const applicationList = (
+    doctorApplicationsResponse as unknown as {
+      data?: Array<{
+        _id?: string;
+        userId?: ApiUser | string;
+        specialty?: string;
+        doctorProfile?: { specialty?: string };
+      }>;
+    } | null
+  )?.data;
+
+  if (Array.isArray(applicationList)) {
+    for (const app of applicationList) {
+      const appUser =
+        typeof app.userId === "string"
+          ? ({ _id: app.userId, role: "doctor" as UserRole } as ApiUser)
+          : app.userId;
+      const appUserId = appUser ? resolveId(appUser) : resolveId(app);
+      const appSpecialty =
+        app.specialty?.trim() ||
+        app.doctorProfile?.specialty?.trim() ||
+        appUser?.doctorProfile?.specialty?.trim() ||
+        appUser?.specialty?.trim();
+      if (!appUserId || !appSpecialty) continue;
+
+      const existing = mergedUsers.get(appUserId);
+      if (existing) {
+        mergedUsers.set(appUserId, {
+          ...existing,
+          specialty: existing.specialty || appSpecialty,
+        });
+      }
+    }
   }
 
   const adminProfiles = (adminProfilesResponse?.data?.admins ?? []) as unknown as ApiAdminRecord[];

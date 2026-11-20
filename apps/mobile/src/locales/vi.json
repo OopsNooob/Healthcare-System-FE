@@ -40,7 +40,7 @@
   "mobile.online": "Trực tuyến",
   "mobile.health_profile": "Hồ sơ sức khoẻ",
   "mobile.birthday_oct_12_1990": "Ngày sinh: 12 Th10, 1990",
-  "mobile.gender_male": "Giới tính: Nam",
+  "mobile.gender_male": "Nam",
   "mobile.ai_summary": "Tóm tắt từ AI",
   "mobile.current_vitals": "Chỉ số sinh tồn hiện tại",
   "mobile.heart_rate": "Nhịp tim",
@@ -1963,5 +1963,15 @@
   "mobile.ai_my_feedbacks_btn": "Phản hồi AI của tôi",
   "mobile.ai_my_feedbacks_title": "Phản hồi AI của tôi",
   "mobile.ai_my_feedbacks_empty": "Bạn chưa gửi phản hồi nào cho trợ lý AI.",
-  "mobile.ai_feedback_conversation_label": "Phiên tư vấn AI"
+  "mobile.ai_feedback_conversation_label": "Phiên tư vấn AI",
+  "mobile.email_readonly_hint": "Email gắn với phương thức đăng nhập và không thể thay đổi.",
+  "mobile.wheel_start_time": "Giờ bắt đầu",
+  "mobile.wheel_end_time": "Giờ kết thúc",
+  "mobile.wheel_hour": "Giờ",
+  "mobile.wheel_minute": "Phút",
+  "mobile.wheel_quick_duration": "Thời lượng nhanh",
+  "mobile.wheel_duration_summary": "Thời lượng: {{minutes}} phút",
+  "mobile.wheel_invalid_range": "Giờ kết thúc phải sau giờ bắt đầu",
+  "mobile.minutes_unit": "{{count}}p",
+  "mobile.wheel_past_time_error": "Giờ bắt đầu phải lớn hơn thời gian hiện tại"
 }
