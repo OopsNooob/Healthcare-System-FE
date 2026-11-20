@@ -27,7 +27,25 @@ export default function OAuthCallbackScreen() {
   useEffect(() => {
     if (oauthError) {
       setStatus('error');
-      setErrorText(oauthError);
+      if (oauthError === 'local_account_exists') {
+        setErrorText(
+          t(
+            'mobile.oauth_local_account_exists',
+            'This Google email is already registered with a password. Please sign in with your password or choose another Google account.',
+          ),
+        );
+      } else if (oauthError === 'account_ineligible') {
+        setErrorText(
+          t(
+            'mobile.oauth_account_ineligible',
+            'This account is not eligible for Google sign-in.',
+          ),
+        );
+      } else {
+        setErrorText(
+          t('mobile.oauth_failed', 'Unable to complete Google sign-in.'),
+        );
+      }
       return;
     }
 

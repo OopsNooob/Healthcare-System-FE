@@ -1937,6 +1937,8 @@
   "mobile.oauth_exchanging_desc": "Vui lòng chờ trong giây lát để xác thực phiên làm việc.",
   "mobile.oauth_failed_title": "Đăng nhập Google thất bại",
   "mobile.oauth_open_browser_failed": "Không thể mở trình duyệt để đăng nhập Google.",
+  "mobile.oauth_local_account_exists": "Email Google vừa chọn đã được đăng ký bằng mật khẩu. Vui lòng đăng nhập bằng mật khẩu hoặc chọn tài khoản Google khác.",
+  "mobile.oauth_account_ineligible": "Tài khoản này không đủ điều kiện đăng nhập bằng Google.",
   "mobile.sign_in_with_google": "Tiếp tục với Google (Bệnh nhân)",
   "mobile.password_min_12": "Mật khẩu phải có ít nhất 12 ký tự.",
   "mobile.docs_restored_on_server": "Tài liệu xác minh cũ vẫn được giữ trên máy chủ (có thể tải thêm nếu cần)",

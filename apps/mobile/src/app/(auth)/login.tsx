@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
+  AppState,
   View,
   Text,
   TextInput,
@@ -10,19 +11,23 @@ import {
   ScrollView,
   ActivityIndicator,
 } from 'react-native';
+import axios from 'axios';
 import * as Linking from 'expo-linking';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Toast from 'react-native-toast-message';
 import {
   connectNotificationsSocket,
   connectPresenceSocket,
+  getStorage,
+  mobileApi,
   updateSocketAuth,
   useLogin,
+  useSharedAuthStore,
 } from '@repo/shared-hooks';
 import { useThemeContext } from '@/context/ThemeContext';
 import { useSafeRouter as useRouter } from '@/utils/useSafeRouter';
 import { extractApiErrorMessage } from '@/utils/apiError';
-import { resolveMobileApiBaseUrl } from '@/utils/apiUrl';
+import { resolveMobileOAuthBaseUrl } from '@/utils/apiUrl';
 import { Mail, Lock, Cross, Check, Eye, EyeOff } from 'lucide-react-native';
 import { tw } from '@/tw';
 
@@ -41,6 +46,7 @@ export default function LoginScreen() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [needsEmailVerification, setNeedsEmailVerification] = useState(false);
   const [isOpeningGoogle, setIsOpeningGoogle] = useState(false);
+  const pendingOAuthAttemptRef = useRef<string | null>(null);
 
   useEffect(() => {
     AsyncStorage.getItem(REMEMBERED_EMAIL_KEY)
@@ -52,6 +58,102 @@ export default function LoginScreen() {
       })
       .catch(() => {});
   }, []);
+
+  useEffect(() => {
+    let resumeTimer: ReturnType<typeof setTimeout> | null = null;
+    const sub = AppState.addEventListener('change', (nextState) => {
+      if (nextState !== 'active') return;
+      const attemptId = pendingOAuthAttemptRef.current;
+      if (!attemptId || useSharedAuthStore.getState().isAuthenticated) return;
+
+      if (resumeTimer) clearTimeout(resumeTimer);
+      resumeTimer = setTimeout(() => {
+        const currentAttempt = pendingOAuthAttemptRef.current;
+        if (!currentAttempt || useSharedAuthStore.getState().isAuthenticated) return;
+
+        void (async () => {
+          try {
+            const res = await mobileApi.authExchangeGoogleOAuthTicket({
+              ticket: `attempt:${currentAttempt}`,
+            });
+            pendingOAuthAttemptRef.current = null;
+            if (res.user.role === 'admin') {
+              const blockedMsg = t(
+                'mobile.oauth_admin_blocked',
+                'Admin accounts must sign in through the web admin portal.',
+              );
+              setErrorMessage(blockedMsg);
+              Toast.show({
+                type: 'error',
+                text1: t('mobile.oauth_failed_title', 'Google Sign-In Failed'),
+                text2: blockedMsg,
+              });
+              return;
+            }
+            await getStorage().setItem('accessToken', res.accessToken);
+            await getStorage().setItem('refreshToken', res.refreshToken);
+            useSharedAuthStore.getState().setUser(
+              {
+                id: res.user.id,
+                email: res.user.email,
+                name: res.user.fullName,
+                role: res.user.role,
+                avatar: res.user.avatarUrl,
+              },
+              res.accessToken,
+              res.refreshToken,
+            );
+            updateSocketAuth(res.accessToken);
+            void connectNotificationsSocket(res.accessToken);
+            void connectPresenceSocket(res.accessToken);
+            Toast.show({
+              type: 'success',
+              text1: t('mobile.welcome_back', 'Welcome Back!'),
+              text2: t('mobile.oauth_success', 'Signed in with Google successfully.'),
+            });
+            router.replace(res.user.role === 'doctor' ? '/(doctor)' : '/(patient)');
+          } catch (err) {
+            if (axios.isAxiosError(err)) {
+              const code = err.response?.status;
+              if (code === 409) {
+                pendingOAuthAttemptRef.current = null;
+                const conflictMsg = t(
+                  'mobile.oauth_local_account_exists',
+                  'This Google email is already registered with a password. Please sign in with your password or choose another Google account.',
+                );
+                setErrorMessage(conflictMsg);
+                Toast.show({
+                  type: 'error',
+                  text1: t('mobile.oauth_failed_title', 'Google Sign-In Failed'),
+                  text2: conflictMsg,
+                });
+                return;
+              }
+              if (code === 403) {
+                pendingOAuthAttemptRef.current = null;
+                const forbiddenMsg = t(
+                  'mobile.oauth_account_ineligible',
+                  'This account is not eligible for Google sign-in.',
+                );
+                setErrorMessage(forbiddenMsg);
+                Toast.show({
+                  type: 'error',
+                  text1: t('mobile.oauth_failed_title', 'Google Sign-In Failed'),
+                  text2: forbiddenMsg,
+                });
+                return;
+              }
+            }
+          }
+        })();
+      }, 450);
+    });
+
+    return () => {
+      if (resumeTimer) clearTimeout(resumeTimer);
+      sub.remove();
+    };
+  }, [router, t]);
 
   const handleLogin = async () => {
     if (isLoading || isOpeningGoogle) return;
@@ -109,10 +211,17 @@ export default function LoginScreen() {
   const handleGoogleLogin = async () => {
     if (isLoading || isOpeningGoogle) return;
     setIsOpeningGoogle(true);
+    setErrorMessage(null);
+    setNeedsEmailVerification(false);
     try {
-      const base = resolveMobileApiBaseUrl().replace(/\/+$/, '');
-      await Linking.openURL(`${base}/auth/oauth/google`);
+      const attemptId = `mob-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+      pendingOAuthAttemptRef.current = attemptId;
+      const base = resolveMobileOAuthBaseUrl().replace(/\/+$/, '');
+      await Linking.openURL(
+        `${base}/auth/oauth/google?attemptId=${encodeURIComponent(attemptId)}`,
+      );
     } catch (err) {
+      pendingOAuthAttemptRef.current = null;
       Toast.show({
         type: 'error',
         text1: t('mobile.error', 'Error'),

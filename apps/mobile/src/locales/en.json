@@ -1937,6 +1937,8 @@
   "mobile.oauth_exchanging_desc": "Please wait a moment while we verify your session.",
   "mobile.oauth_failed_title": "Google Sign-In Failed",
   "mobile.oauth_open_browser_failed": "Unable to open the browser for Google sign-in.",
+  "mobile.oauth_local_account_exists": "This Google email is already registered with a password. Please sign in with your password or choose another Google account.",
+  "mobile.oauth_account_ineligible": "This account is not eligible for Google sign-in.",
   "mobile.sign_in_with_google": "Continue with Google (Patient)",
   "mobile.password_min_12": "Password must be at least 12 characters.",
   "mobile.docs_restored_on_server": "Existing verification documents preserved on server (optional to add more)",

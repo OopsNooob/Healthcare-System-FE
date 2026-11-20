@@ -21,3 +21,8 @@ export function resolveMobileApiBaseUrl(): string {
 
   return rawUrl;
 }
+
+export function resolveMobileOAuthBaseUrl(): string {
+  const apiUrl = resolveMobileApiBaseUrl();
+  return apiUrl.replace(/^(https?:\/\/)[^/:]+/, '$1localhost');
+}
