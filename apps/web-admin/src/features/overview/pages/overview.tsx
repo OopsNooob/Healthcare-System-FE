@@ -123,25 +123,45 @@ export function Overview() {
     },
   };
 
+  const sharedBarScales: ChartOptions<"bar">["scales"] = {
+    y: {
+      beginAtZero: true,
+      ticks: {
+        precision: 0,
+        color: "rgb(148, 163, 184)",
+        font: { size: 11 },
+      },
+      grid: { color: "rgba(148, 163, 184, 0.18)" },
+      border: { display: false },
+    },
+    x: {
+      ticks: { color: "rgb(148, 163, 184)", font: { size: 11 } },
+      grid: { display: false },
+      border: { display: false },
+    },
+  };
+
   const barOptions: ChartOptions<"bar"> = {
     plugins: { legend: { display: false } },
-    scales: {
-      y: {
-        beginAtZero: true,
-        ticks: {
-          precision: 0,
-          color: "rgb(148, 163, 184)",
+    scales: sharedBarScales,
+  };
+
+  const barOptionsWithLegend: ChartOptions<"bar"> = {
+    plugins: {
+      legend: {
+        align: "end",
+        labels: {
+          usePointStyle: true,
+          pointStyle: "circle",
+          boxHeight: 6,
+          boxWidth: 6,
+          padding: 14,
+          color: isDark ? "rgb(148, 163, 184)" : "rgb(100, 116, 139)",
           font: { size: 11 },
         },
-        grid: { color: "rgba(148, 163, 184, 0.18)" },
-        border: { display: false },
-      },
-      x: {
-        ticks: { color: "rgb(148, 163, 184)", font: { size: 11 } },
-        grid: { display: false },
-        border: { display: false },
       },
     },
+    scales: sharedBarScales,
   };
 
   const overviewStats = [
@@ -282,7 +302,7 @@ export function Overview() {
 
         <div className="mt-8 border-t border-slate-200/70 dark:border-slate-800 pt-6">
           <h2 className="mb-4 text-xl font-semibold text-slate-900 dark:text-slate-100">
-            {t("overview.careProgramKPIs")}
+            {t("overview.operationsAndCatalogTitle")}
           </h2>
 
           {isLoading ? (
@@ -297,43 +317,48 @@ export function Overview() {
           ) : (
             <ul className="m-0 grid w-full list-none grid-cols-1 gap-4 p-0 md:grid-cols-3">
               <OverviewCard
-                title={t("overview.activeEnrollments")}
-                icon={<UsersRound size={18} />}
-                stats={summary.activeEnrollments}
-                subText={t("overview.activeEnrollmentsDesc")}
+                title={t("overview.publishedCarePrograms")}
+                icon={<Activity size={18} />}
+                stats={summary.publishedCarePrograms}
+                subText={t("overview.careProgramsBreakdown", {
+                  draft: summary.draftCarePrograms,
+                  retired: summary.retiredCarePrograms,
+                })}
                 iconClassName="bg-indigo-50 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400"
               />
               <OverviewCard
-                title={t("overview.openCareAlerts")}
+                title={t("overview.pendingViolations")}
                 icon={<ShieldAlert size={18} />}
-                stats={summary.openAlerts}
-                subText={t("overview.acknowledgedAlertsCount", {
-                  count: summary.acknowledgedAlerts,
+                stats={summary.pendingViolationReports}
+                subText={t("overview.violationsBreakdown", {
+                  resolved: summary.resolvedViolationReports,
+                  total: summary.violationReports,
                 })}
                 iconClassName="bg-rose-50 text-rose-600 dark:bg-rose-900/30 dark:text-rose-400"
               />
               <OverviewCard
-                title={t("overview.resolvedCareAlerts")}
-                icon={<Stethoscope size={18} />}
-                stats={summary.resolvedAlerts}
-                subText={t("overview.violationTotalCount", {
-                  count: summary.violationReports,
+                title={t("overview.publishedPlans")}
+                icon={<FileText size={18} />}
+                stats={summary.publishedPlansCount}
+                subText={t("overview.plansBreakdown", {
+                  draft: summary.draftPlansCount,
+                  total: summary.totalPlanVersions,
                 })}
                 iconClassName="bg-teal-50 text-teal-600 dark:bg-teal-900/30 dark:text-teal-400"
               />
             </ul>
           )}
 
-          {summary.tierDistribution.labels.length > 0 && (
+          {summary.planQuotas.labels.length > 0 && (
             <div className="mt-5 grid min-h-[130px] grid-cols-1 gap-4 xl:grid-cols-2">
               <BarChart
-                title={t("overview.tierUsage")}
-                subtitle={t("overview.tierUsageDesc")}
-                labels={summary.tierDistribution.labels}
+                title={t("overview.planAiQuotaTitle")}
+                subtitle={t("overview.planAiQuotaDesc")}
+                labels={summary.planQuotas.labels}
                 datasets={[
                   {
-                    label: t("overview.ordersCount"),
-                    data: summary.tierDistribution.orderCounts,
+                    label: t("overview.planAiQuotaLabel"),
+                    data: summary.planQuotas.aiRequestLimits,
                     backgroundColor: isDark
                       ? "rgb(16, 185, 129)"
                       : "rgb(52, 211, 153)",
@@ -341,10 +366,46 @@ export function Overview() {
                       ? "rgb(16, 185, 129)"
                       : "rgb(52, 211, 153)",
                     borderRadius: 6,
+                    maxBarThickness: 32,
                   },
                 ]}
                 options={barOptions}
-                className="xl:col-span-2"
+                className="xl:col-span-1"
+                height={300}
+              />
+
+              <BarChart
+                title={t("overview.planCareQuotaTitle")}
+                subtitle={t("overview.planCareQuotaDesc")}
+                labels={summary.planQuotas.labels}
+                datasets={[
+                  {
+                    label: t("overview.planConsultLimitLabel"),
+                    data: summary.planQuotas.consultationLimits,
+                    backgroundColor: isDark
+                      ? "rgb(96, 165, 250)"
+                      : "rgb(59, 130, 246)",
+                    borderColor: isDark
+                      ? "rgb(96, 165, 250)"
+                      : "rgb(59, 130, 246)",
+                    borderRadius: 6,
+                    maxBarThickness: 26,
+                  },
+                  {
+                    label: t("overview.planCareProgramLimitLabel"),
+                    data: summary.planQuotas.careProgramLimits,
+                    backgroundColor: isDark
+                      ? "rgb(129, 140, 248)"
+                      : "rgb(99, 102, 241)",
+                    borderColor: isDark
+                      ? "rgb(129, 140, 248)"
+                      : "rgb(99, 102, 241)",
+                    borderRadius: 6,
+                    maxBarThickness: 26,
+                  },
+                ]}
+                options={barOptionsWithLegend}
+                className="xl:col-span-1"
                 height={300}
               />
             </div>

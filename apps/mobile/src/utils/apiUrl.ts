@@ -3,10 +3,13 @@ import Constants from 'expo-constants';
 import { API_BASE_URL } from '@repo/shared-hooks';
 
 export function resolveMobileApiBaseUrl(): string {
-  const rawUrl =
+  const rawUrl = (
     (typeof process !== 'undefined' && process.env?.EXPO_PUBLIC_API_URL) ||
     API_BASE_URL ||
-    'http://10.0.2.2:3000/api/v1';
+    'http://10.0.2.2:3000/api/v1'
+  )
+    .trim()
+    .replace(/\/+$/, '');
 
   if (Platform.OS === 'android' && /\/\/(localhost|127\.0\.0\.1)(:|\/|$)/.test(rawUrl)) {
     const host = Constants.expoConfig?.hostUri?.split(':')[0];
@@ -24,5 +27,8 @@ export function resolveMobileApiBaseUrl(): string {
 
 export function resolveMobileOAuthBaseUrl(): string {
   const apiUrl = resolveMobileApiBaseUrl();
-  return apiUrl.replace(/^(https?:\/\/)[^/:]+/, '$1localhost');
+  if (/^https?:\/\/(10\.0\.2\.2|127\.0\.0\.1)(:\d+)?(\/|$)/.test(apiUrl)) {
+    return apiUrl.replace(/^(https?:\/\/)(10\.0\.2\.2|127\.0\.0\.1)/, '$1localhost');
+  }
+  return apiUrl;
 }

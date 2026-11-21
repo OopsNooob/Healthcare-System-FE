@@ -29,3 +29,4 @@ export { ProgramRulePreviewModal } from './ProgramRulePreviewModal';
 export { BookingSettingsModal } from './BookingSettingsModal';
 export type { DoctorBookingSettingsDto } from './BookingSettingsModal';
 export { DoctorReviewsModal } from './DoctorReviewsModal';
+export { SessionExpiredModal } from './SessionExpiredModal';

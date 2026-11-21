@@ -10,7 +10,7 @@ import {
 } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import Toast from 'react-native-toast-message';
 import { useTranslation } from 'react-i18next';
@@ -24,7 +24,9 @@ import {
   SOCKET_EVENTS,
   connectNotificationsSocket,
   connectPresenceSocket,
+  disconnectAllSockets,
   notificationsSocket,
+  onSessionExpired,
   presenceSocket,
   setApiBaseUrl as setSharedHooksApiBaseUrl,
   setStorageProvider,
@@ -32,6 +34,7 @@ import {
 } from '@repo/shared-hooks';
 import { setApiBaseUrl as setClientApiBaseUrl, setTokenGetter } from '@healthcare/api-client';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { SessionExpiredModal } from '@/components/modals';
 import { resolveMobileApiBaseUrl } from '@/utils/apiUrl';
 
 const resolvedApiBaseUrl = resolveMobileApiBaseUrl();
@@ -71,17 +74,62 @@ const CustomDefaultTheme = {
   },
 };
 
+const PUBLIC_AUTH_PATHS = new Set([
+  '/',
+  '/login',
+  '/register',
+  '/verify-email',
+  '/oauth-callback',
+  '/forgot-password',
+  '/confirm-otp',
+]);
+
+function isPublicAuthPath(path: string | null | undefined): boolean {
+  if (!path) return true;
+  const normalized = path.replace(/^\/\(auth\)(?=\/|$)/, '').replace(/\/+$/, '') || '/';
+  return PUBLIC_AUTH_PATHS.has(normalized);
+}
+
 function RootNavigator() {
   const { isDark } = useThemeContext();
   const { t } = useTranslation();
   const router = useRouter();
   const pathname = usePathname();
+  const pathnameRef = useRef(pathname);
   const incomingUrl = Linking.useURL();
   const handledDeepLinkRef = useRef<string | null>(null);
+  const [sessionExpiredVisible, setSessionExpiredVisible] = useState(false);
   const token = useSharedAuthStore((s) => s.token);
   const user = useSharedAuthStore((s) => s.user);
   const isAuthenticated = useSharedAuthStore((s) => s.isAuthenticated);
   const logout = useSharedAuthStore((s) => s.logout);
+
+  useEffect(() => {
+    pathnameRef.current = pathname;
+    if (isPublicAuthPath(pathname)) {
+      setSessionExpiredVisible(false);
+    }
+  }, [pathname]);
+
+  useEffect(() => {
+    return onSessionExpired(() => {
+      if (!isPublicAuthPath(pathnameRef.current)) {
+        setSessionExpiredVisible(true);
+      }
+    });
+  }, []);
+
+  const handleSessionExpiredConfirm = useCallback(async () => {
+    setSessionExpiredVisible(false);
+    disconnectAllSockets();
+    queryClient.clear();
+    logout();
+    await Promise.all([
+      AsyncStorage.removeItem('accessToken'),
+      AsyncStorage.removeItem('refreshToken'),
+    ]).catch(() => {});
+    router.replace('/(auth)/login');
+  }, [logout, router]);
 
   useEffect(() => {
     if (!incomingUrl || handledDeepLinkRef.current === incomingUrl) return;
@@ -131,6 +179,9 @@ function RootNavigator() {
 
   useEffect(() => {
     const handleAccountBanned = (payload?: { reason?: string }) => {
+      setSessionExpiredVisible(false);
+      disconnectAllSockets();
+      queryClient.clear();
       void Promise.all([
         AsyncStorage.removeItem('accessToken'),
         AsyncStorage.removeItem('refreshToken'),
@@ -166,6 +217,10 @@ function RootNavigator() {
         <Stack.Screen name="(doctor)" options={{ headerShown: false }} />
         <Stack.Screen name="+not-found" />
       </Stack>
+      <SessionExpiredModal
+        visible={sessionExpiredVisible}
+        onConfirm={() => void handleSessionExpiredConfirm()}
+      />
       <StatusBar style={isDark ? 'light' : 'dark'} />
     </NavigationThemeProvider>
   );

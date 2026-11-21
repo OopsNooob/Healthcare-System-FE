@@ -38,6 +38,15 @@ import { useThemeContext } from '@/context/ThemeContext';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { extractApiErrorMessage } from '@/utils/apiError';
 import {
+  findCurrentPlan,
+  formatBillingMoney as formatMoney,
+  getDefaultSelectedPlanId,
+  getPlanActionKind,
+  isSameBillingPlan,
+  type PlanActionKind,
+} from '@/utils/billingPlanSelection';
+import { PlanChangeConfirmModal } from '@/components/patient/PlanChangeConfirmModal';
+import {
   mobileApi,
   normalizePaginatedList,
   generateIdempotencyKey,
@@ -76,11 +85,6 @@ function getOrderId(order: { id?: string; _id?: string } | null | undefined): st
   return String(order?.id ?? order?._id ?? '');
 }
 
-function formatMoney(amount: number, currency = 'VND', freeLabel = 'Miễn phí'): string {
-  if (!amount || amount <= 0) return freeLabel;
-  return `${amount.toLocaleString('vi-VN')} ${currency}`;
-}
-
 export default function PremiumScreen() {
   const { t } = useTranslation();
   useThemeContext();
@@ -111,6 +115,7 @@ export default function PremiumScreen() {
   const [loadingOrderDetail, setLoadingOrderDetail] = useState(false);
   const [cancellingOrderId, setCancellingOrderId] = useState<string | null>(null);
 
+  const [confirmModalVisible, setConfirmModalVisible] = useState(false);
   const [isProcessingOrder, setIsProcessingOrder] = useState(false);
   const [orderModalVisible, setOrderModalVisible] = useState(false);
   const [currentOrder, setCurrentOrder] = useState<ActivePaymentModalState | null>(null);
@@ -119,6 +124,7 @@ export default function PremiumScreen() {
 
   const pollingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const handledReturnUrlRef = useRef<string | null>(null);
+  const lastEffectivePlanIdRef = useRef<string | null>(null);
 
   const dateLocale = t('mobile.date_locale', 'vi-VN');
 
@@ -174,26 +180,41 @@ export default function PremiumScreen() {
       ]);
 
       const coreErrors: unknown[] = [];
+      let nextPlans: PlanDto[] | null = null;
+      let nextEffective: SubscriptionDto | null | undefined = undefined;
 
       if (plansResult.status === 'fulfilled') {
         const normalizedPlans = normalizePaginatedList<PlanDto>(plansResult.value, 1, 50).items;
-        const sortedPlans = [...normalizedPlans].sort((a, b) => a.price - b.price);
-        setPlans(sortedPlans);
-        setSelectedPlanId((prev) => {
-          if (prev && sortedPlans.some((p) => p.id === prev)) return prev;
-          const purchasable = sortedPlans.find((p) => p.purchasable);
-          return purchasable?.id ?? sortedPlans[0]?.id ?? null;
-        });
+        nextPlans = [...normalizedPlans].sort((a, b) => a.price - b.price);
+        setPlans(nextPlans);
       } else {
         coreErrors.push(plansResult.reason);
       }
 
       if (subsResult.status === 'fulfilled') {
         const rawSubs = subsResult.value;
-        setEffectiveSub(rawSubs?.effective ?? null);
+        nextEffective = rawSubs?.effective ?? null;
+        setEffectiveSub(nextEffective);
         setSubscriptions(normalizePaginatedList<SubscriptionDto>(rawSubs, 1, 50).items);
       } else {
         coreErrors.push(subsResult.reason);
+      }
+
+      if (nextPlans) {
+        const effectiveForSelection = nextEffective !== undefined ? nextEffective : null;
+        const nextEffectivePlanId = effectiveForSelection?.plan?.id ?? null;
+        const effectivePlanChanged =
+          nextEffective !== undefined && lastEffectivePlanIdRef.current !== nextEffectivePlanId;
+        if (nextEffective !== undefined) {
+          lastEffectivePlanIdRef.current = nextEffectivePlanId;
+        }
+        const resolvedPlans = nextPlans;
+        setSelectedPlanId((prev) => {
+          if (prev && !effectivePlanChanged && resolvedPlans.some((p) => p.id === prev)) {
+            return prev;
+          }
+          return getDefaultSelectedPlanId(resolvedPlans, effectiveForSelection);
+        });
       }
 
       if (usageResult.status === 'fulfilled') {
@@ -392,7 +413,9 @@ export default function PremiumScreen() {
 
   const handleUpgrade = async () => {
     const selectedPlan = plans.find((p) => p.id === selectedPlanId);
-    if (!selectedPlan || !selectedPlan.purchasable || isProcessingOrder) return;
+    if (!selectedPlan || !selectedPlan.purchasable || effectiveSub?.renewal || isProcessingOrder) {
+      return;
+    }
 
     setIsProcessingOrder(true);
     try {
@@ -441,6 +464,7 @@ export default function PremiumScreen() {
         paymentQrDataUrl: res?.paymentQrDataUrl ?? null,
       };
 
+      setConfirmModalVisible(false);
       setCurrentOrder(activeModal);
       setPollingStatus(activeModal.status);
       setOrderModalVisible(true);
@@ -451,6 +475,7 @@ export default function PremiumScreen() {
         Linking.openURL(res.paymentUrl).catch(() => {});
       }
     } catch (err) {
+      setConfirmModalVisible(false);
       Toast.show({
         type: 'error',
         text1: t('mobile.error', 'Lỗi'),
@@ -547,6 +572,35 @@ export default function PremiumScreen() {
     }
   };
 
+  const getSubscriptionStatusBadge = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'active':
+        return {
+          bg: 'bg-emerald-100 dark:bg-emerald-900/30',
+          text: 'text-emerald-700 dark:text-emerald-400',
+          label: t('mobile.sub_status_active', 'Đang hiệu lực'),
+        };
+      case 'expired':
+        return {
+          bg: 'bg-slate-200 dark:bg-slate-800',
+          text: 'text-slate-600 dark:text-slate-400',
+          label: t('mobile.sub_status_expired', 'Hết hạn'),
+        };
+      case 'cancelled':
+        return {
+          bg: 'bg-red-100 dark:bg-red-900/30',
+          text: 'text-red-700 dark:text-red-400',
+          label: t('mobile.sub_status_cancelled', 'Đã hủy'),
+        };
+      default:
+        return {
+          bg: 'bg-indigo-100 dark:bg-indigo-900/40',
+          text: 'text-indigo-700 dark:text-indigo-300',
+          label: String(status),
+        };
+    }
+  };
+
   const activePlanCode = (effectiveSub?.plan?.code || '').toUpperCase();
   const selectedPlan = plans.find((p) => p.id === selectedPlanId) ?? null;
   const isRefundPending = orders.some((o) => o.status === 'refund_pending');
@@ -584,12 +638,14 @@ export default function PremiumScreen() {
     );
   };
 
+  const currentPlan = findCurrentPlan(plans, effectiveSub);
   const isSelectedCurrentPlan = Boolean(
-    selectedPlan &&
-      effectiveSub?.plan &&
-      (selectedPlan.id === effectiveSub.plan.id ||
-        selectedPlan.code.toUpperCase() === effectiveSub.plan.code.toUpperCase())
+    selectedPlan && isSameBillingPlan(selectedPlan, effectiveSub?.plan)
   );
+  const planActionKind: PlanActionKind | null = selectedPlan
+    ? getPlanActionKind(selectedPlan, currentPlan, effectiveSub)
+    : null;
+  const formattedCurrentExpiry = formatDateTime(effectiveSub?.expiresAt);
 
   return (
     <SafeAreaView style={tw('flex-1 bg-slate-50 dark:bg-slate-950')}>
@@ -835,13 +891,13 @@ export default function PremiumScreen() {
                     </Text>
                   </Text>
                   <Text style={tw('text-[11px] text-slate-500 dark:text-slate-400')}>
-                    {t('mobile.used_label', 'Đã dùng')}:{' '}
+                    {t('mobile.used_label', 'Đã dùng:')}{' '}
                     <Text style={tw('font-bold text-slate-700 dark:text-slate-200')}>
                       {usage?.consultations.counted ?? 0}
                     </Text>
                   </Text>
                   <Text style={tw('text-[11px] text-amber-600 dark:text-amber-400')}>
-                    {t('mobile.reserved_label', 'Đang giữ chỗ')}:{' '}
+                    {t('mobile.reserved_label', 'Đang giữ chỗ:')}{' '}
                     <Text style={tw('font-bold')}>{usage?.consultations.reserved ?? 0}</Text>
                   </Text>
                 </View>
@@ -895,6 +951,9 @@ export default function PremiumScreen() {
                 effectiveSub?.plan &&
                 (plan.id === effectiveSub.plan.id ||
                   plan.code.toUpperCase() === activePlanCode);
+              const isScheduledRenewal = Boolean(
+                effectiveSub?.renewal && isSameBillingPlan(plan, effectiveSub.renewal)
+              );
               const upperCode = plan.code.toUpperCase();
               const borderBgClass = isSelected
                 ? upperCode === 'CARE'
@@ -931,6 +990,21 @@ export default function PremiumScreen() {
                                 )}
                               >
                                 {t('mobile.plan_active_badge', 'ĐANG DÙNG')}
+                              </Text>
+                            </View>
+                          ) : null}
+                          {isScheduledRenewal ? (
+                            <View
+                              style={tw(
+                                'bg-indigo-100 dark:bg-indigo-900/40 px-2 py-0.5 rounded-full'
+                              )}
+                            >
+                              <Text
+                                style={tw(
+                                  'text-[10px] font-bold text-indigo-700 dark:text-indigo-300'
+                                )}
+                              >
+                                {t('mobile.plan_scheduled_badge', 'ĐÃ LÊN LỊCH')}
                               </Text>
                             </View>
                           ) : null}
@@ -1003,42 +1077,184 @@ export default function PremiumScreen() {
             })
           )}
 
-          {/* Upgrade Action Button */}
-          {!loading && selectedPlan ? (
-            selectedPlan.purchasable && !isSelectedCurrentPlan ? (
-              <TouchableOpacity
-                onPress={() => void handleUpgrade()}
-                disabled={isProcessingOrder}
+          {/* Upgrade / Schedule Action Section */}
+          {!loading && selectedPlan && planActionKind ? (
+            planActionKind === 'already_scheduled' ? (
+              <View
                 style={tw(
-                  `bg-slate-900 dark:bg-white py-4 rounded-2xl flex-row items-center justify-center shadow-md mt-2 mb-4 ${
-                    isProcessingOrder ? 'opacity-70' : ''
-                  }`
+                  'bg-indigo-50 dark:bg-indigo-950/40 p-4 rounded-2xl border border-indigo-200 dark:border-indigo-900 flex-row items-center mt-2 mb-4'
                 )}
               >
-                {isProcessingOrder ? (
-                  <ActivityIndicator
-                    color={twInstance.color('text-white dark:text-slate-900')}
-                    size="small"
-                    style={tw('mr-2')}
-                  />
-                ) : null}
-                <Text style={tw('text-white dark:text-slate-900 font-bold text-lg mr-2')}>
-                  {isProcessingOrder
-                    ? t('mobile.creating_order', 'Đang tạo đơn...')
-                    : t('mobile.upgrade_via_vnpay', 'Thanh toán qua VNPAY')}
-                </Text>
-                <ArrowRight color={twInstance.color('text-white dark:text-slate-900')} size={20} />
-              </TouchableOpacity>
-            ) : (
-              <View
-                style={tw('bg-emerald-100 dark:bg-emerald-900/30 py-4 rounded-2xl items-center mt-2 mb-4')}
-              >
-                <Text style={tw('text-emerald-700 dark:text-emerald-400 font-bold text-base')}>
-                  {isSelectedCurrentPlan
-                    ? t('mobile.current_active_plan', 'Đây là gói đang kích hoạt của bạn')
-                    : t('mobile.plan_not_purchasable', 'Gói này không yêu cầu thanh toán')}
+                <Calendar
+                  size={20}
+                  color={twInstance.color('text-indigo-600 dark:text-indigo-400')}
+                />
+                <Text
+                  style={tw(
+                    'text-indigo-800 dark:text-indigo-300 text-xs font-semibold leading-5 ml-3 flex-1'
+                  )}
+                >
+                  {t(
+                    'mobile.already_scheduled_notice',
+                    'Bạn đã lên lịch gói {{name}} cho chu kỳ tiếp theo từ {{date}}. Mỗi chu kỳ chỉ hỗ trợ 1 lịch thay đổi gói.',
+                    {
+                      name: effectiveSub?.renewal?.name ?? '',
+                      date: formatDateTime(effectiveSub?.renewal?.effectiveAt),
+                    }
+                  )}
                 </Text>
               </View>
+            ) : planActionKind === 'not_purchasable' ? (
+              isSelectedCurrentPlan ? (
+                <View
+                  style={tw(
+                    'bg-emerald-100 dark:bg-emerald-900/30 py-4 px-4 rounded-2xl items-center mt-2 mb-4'
+                  )}
+                >
+                  <Text
+                    style={tw(
+                      'text-emerald-700 dark:text-emerald-400 font-bold text-base text-center'
+                    )}
+                  >
+                    {t('mobile.current_active_plan', 'Đây là gói hiện tại của bạn')}
+                  </Text>
+                </View>
+              ) : (
+                <View
+                  style={tw(
+                    'bg-slate-100 dark:bg-slate-800 py-4 px-4 rounded-2xl items-center mt-2 mb-4'
+                  )}
+                >
+                  <Text
+                    style={tw(
+                      'text-slate-600 dark:text-slate-300 font-medium text-xs text-center leading-5'
+                    )}
+                  >
+                    {t(
+                      'mobile.free_plan_auto_after_expiry',
+                      'Gói miễn phí không yêu cầu thanh toán và sẽ tự áp dụng khi gói trả phí hiện tại hết hạn.'
+                    )}
+                  </Text>
+                </View>
+              )
+            ) : (
+              (() => {
+                const isDowngrade = planActionKind === 'schedule_downgrade';
+                const isRenew = planActionKind === 'schedule_renew';
+                const isImmediateUpgrade = planActionKind === 'upgrade_now';
+
+                const ctaBg = isDowngrade
+                  ? 'bg-amber-600 dark:bg-amber-500'
+                  : isRenew
+                    ? 'bg-emerald-600 dark:bg-emerald-500'
+                    : 'bg-slate-900 dark:bg-white';
+                const ctaText =
+                  isDowngrade || isRenew
+                    ? 'text-white dark:text-slate-950'
+                    : 'text-white dark:text-slate-900';
+
+                const ctaLabel =
+                  planActionKind === 'upgrade_now'
+                    ? t('mobile.upgrade_to_plan_vnpay', 'Nâng cấp lên {{name}} qua VNPAY', {
+                        name: selectedPlan.name,
+                      })
+                    : planActionKind === 'schedule_renew'
+                      ? t('mobile.schedule_renew_btn', 'Gia hạn {{name}} cho chu kỳ sau', {
+                          name: selectedPlan.name,
+                        })
+                      : planActionKind === 'schedule_downgrade'
+                        ? t('mobile.schedule_downgrade_btn', 'Đặt lịch chuyển sang {{name}}', {
+                            name: selectedPlan.name,
+                          })
+                        : t('mobile.schedule_upgrade_btn', 'Đặt lịch nâng lên {{name}}', {
+                            name: selectedPlan.name,
+                          });
+
+                return (
+                  <View style={tw('mt-2 mb-4')}>
+                    {isDowngrade ? (
+                      <View
+                        style={tw(
+                          'bg-amber-50 dark:bg-amber-950/30 p-3.5 rounded-2xl border border-amber-200 dark:border-amber-800/60 flex-row items-start mb-3'
+                        )}
+                      >
+                        <AlertCircle
+                          size={18}
+                          color={twInstance.color('text-amber-600 dark:text-amber-400')}
+                          style={tw('mt-0.5')}
+                        />
+                        <Text
+                          style={tw(
+                            'text-amber-800 dark:text-amber-300 text-xs leading-5 ml-2.5 flex-1'
+                          )}
+                        >
+                          {t(
+                            'mobile.downgrade_warning_hint',
+                            'Gói {{target}} có quyền lợi thấp hơn gói {{current}} bạn đang dùng. Nếu đặt lịch, gói mới sẽ bắt đầu từ {{date}}.',
+                            {
+                              target: selectedPlan.name,
+                              current: effectiveSub?.plan?.name || currentPlan?.name || '',
+                              date: formattedCurrentExpiry,
+                            }
+                          )}
+                        </Text>
+                      </View>
+                    ) : !isImmediateUpgrade ? (
+                      <View
+                        style={tw(
+                          'bg-indigo-50/80 dark:bg-indigo-950/30 p-3 rounded-2xl border border-indigo-200/80 dark:border-indigo-900 flex-row items-center mb-3'
+                        )}
+                      >
+                        <Calendar
+                          size={16}
+                          color={twInstance.color('text-indigo-600 dark:text-indigo-400')}
+                        />
+                        <Text
+                          style={tw(
+                            'text-indigo-800 dark:text-indigo-300 text-xs leading-4 ml-2 flex-1'
+                          )}
+                        >
+                          {t(
+                            'mobile.schedule_effective_hint',
+                            'Áp dụng cho chu kỳ tiếp theo từ {{date}}. Gói hiện tại vẫn giữ nguyên đến hết hạn.',
+                            { date: formattedCurrentExpiry }
+                          )}
+                        </Text>
+                      </View>
+                    ) : null}
+
+                    <TouchableOpacity
+                      onPress={() => {
+                        if (isImmediateUpgrade) {
+                          void handleUpgrade();
+                        } else {
+                          setConfirmModalVisible(true);
+                        }
+                      }}
+                      disabled={isProcessingOrder}
+                      style={tw(
+                        `${ctaBg} py-4 px-4 rounded-2xl flex-row items-center justify-center shadow-md ${
+                          isProcessingOrder ? 'opacity-70' : ''
+                        }`
+                      )}
+                    >
+                      {isProcessingOrder ? (
+                        <ActivityIndicator
+                          color={twInstance.color(ctaText)}
+                          size="small"
+                          style={tw('mr-2')}
+                        />
+                      ) : null}
+                      <Text style={tw(`${ctaText} font-bold text-base text-center mr-2 shrink`)}>
+                        {isProcessingOrder
+                          ? t('mobile.creating_order', 'Đang tạo đơn...')
+                          : ctaLabel}
+                      </Text>
+                      <ArrowRight color={twInstance.color(ctaText)} size={20} />
+                    </TouchableOpacity>
+                  </View>
+                );
+              })()
             )
           ) : null}
         </View>
@@ -1287,7 +1503,7 @@ export default function PremiumScreen() {
                         </TouchableOpacity>
                       </View>
                       <Text style={tw('text-xs text-slate-700 dark:text-slate-300')}>
-                        {t('mobile.plan_prefix', 'Gói')}:{' '}
+                        {t('mobile.plan_prefix', 'Gói:')}{' '}
                         {selectedOrderDetail.plan?.name} (v
                         {selectedOrderDetail.plan?.version})
                       </Text>
@@ -1295,10 +1511,16 @@ export default function PremiumScreen() {
                         {t('mobile.status_label', 'Trạng thái')}:{' '}
                         {orderStatusText(selectedOrderDetail.status)}
                       </Text>
-                      <Text style={tw('text-xs text-slate-500 dark:text-slate-400 mt-1')}>
-                        {t('mobile.expires_on', 'Hết hạn đơn')}:{' '}
-                        {formatDateTime(selectedOrderDetail.expiresAt)}
-                      </Text>
+                      {selectedOrderDetail.expiresAt &&
+                      (selectedOrderDetail.status === 'created' ||
+                        selectedOrderDetail.status === 'pending' ||
+                        selectedOrderDetail.status === 'processing' ||
+                        selectedOrderDetail.status === 'expired') ? (
+                        <Text style={tw('text-xs text-slate-500 dark:text-slate-400 mt-1')}>
+                          {t('mobile.order_payment_deadline', 'Hạn thanh toán đơn')}:{' '}
+                          {formatDateTime(selectedOrderDetail.expiresAt)}
+                        </Text>
+                      ) : null}
                       {selectedOrderDetail.paidAt ? (
                         <Text style={tw('text-xs text-emerald-700 dark:text-emerald-400 mt-1')}>
                           {t('mobile.paid_at', 'Thanh toán lúc')}:{' '}
@@ -1385,36 +1607,42 @@ export default function PremiumScreen() {
                   </Text>
                 </View>
               ) : (
-                subscriptions.map((sub) => (
-                  <View
-                    key={sub.subscriptionId}
-                    style={tw(
-                      'bg-slate-50 dark:bg-slate-800/70 p-4 rounded-2xl mb-3 border border-slate-200 dark:border-slate-800'
-                    )}
-                  >
-                    <View style={tw('flex-row justify-between items-center mb-1.5')}>
-                      <Text style={tw('font-bold text-slate-900 dark:text-white text-sm')}>
-                        {sub.plan.name} (v{sub.plan.version})
-                      </Text>
-                      <View style={tw('bg-indigo-100 dark:bg-indigo-900/40 px-2.5 py-0.5 rounded-full')}>
-                        <Text style={tw('text-[10px] font-bold uppercase text-indigo-700 dark:text-indigo-300')}>
-                          {String(sub.status)}
+                subscriptions.map((sub) => {
+                  const subBadge = getSubscriptionStatusBadge(String(sub.status));
+                  return (
+                    <View
+                      key={sub.subscriptionId}
+                      style={tw(
+                        'bg-slate-50 dark:bg-slate-800/70 p-4 rounded-2xl mb-3 border border-slate-200 dark:border-slate-800'
+                      )}
+                    >
+                      <View style={tw('flex-row justify-between items-center mb-1.5')}>
+                        <Text style={tw('font-bold text-slate-900 dark:text-white text-sm')}>
+                          {sub.plan.name} (v{sub.plan.version})
+                        </Text>
+                        <View style={tw(`px-2.5 py-0.5 rounded-full shrink-0 ${subBadge.bg}`)}>
+                          <Text
+                            style={tw(`text-[10px] font-bold ${subBadge.text}`)}
+                            numberOfLines={1}
+                          >
+                            {subBadge.label}
+                          </Text>
+                        </View>
+                      </View>
+                      <View style={tw('flex-row items-center mt-1')}>
+                        <Clock size={12} color={twInstance.color('text-slate-400')} />
+                        <Text style={tw('text-xs text-slate-500 dark:text-slate-400 ml-1.5')}>
+                          {formatDateTime(sub.startedAt)} → {formatDateTime(sub.expiresAt)}
                         </Text>
                       </View>
-                    </View>
-                    <View style={tw('flex-row items-center mt-1')}>
-                      <Clock size={12} color={twInstance.color('text-slate-400')} />
-                      <Text style={tw('text-xs text-slate-500 dark:text-slate-400 ml-1.5')}>
-                        {formatDateTime(sub.startedAt)} → {formatDateTime(sub.expiresAt)}
+                      <Text style={tw('text-[11px] text-slate-500 dark:text-slate-400 mt-1.5')}>
+                        {sub.entitlement.consultationLimitPerCycle}{' '}
+                        {t('mobile.consultations_per_cycle_short', 'lượt tư vấn')} •{' '}
+                        {sub.entitlement.aiRequestLimit} {t('mobile.requests_unit', 'lượt')} AI
                       </Text>
                     </View>
-                    <Text style={tw('text-[11px] text-slate-500 dark:text-slate-400 mt-1.5')}>
-                      {sub.entitlement.consultationLimitPerCycle}{' '}
-                      {t('mobile.consultations_per_cycle_short', 'lượt tư vấn')} •{' '}
-                      {sub.entitlement.aiRequestLimit} {t('mobile.requests_unit', 'lượt')} AI
-                    </Text>
-                  </View>
-                ))
+                  );
+                })
               )}
             </ScrollView>
           </View>
@@ -1472,8 +1700,11 @@ export default function PremiumScreen() {
                     style={{ width: 200, height: 200 }}
                     resizeMode="contain"
                   />
-                  <Text style={tw('text-xs text-slate-500 mt-2 font-medium')}>
-                    {t('mobile.scan_with_banking_app', 'Quét mã bằng ứng dụng ngân hàng')}
+                  <Text style={tw('text-xs text-slate-500 mt-2 font-medium text-center')}>
+                    {t(
+                      'mobile.scan_with_banking_app',
+                      'Quét mã bằng camera điện thoại để mở cổng thanh toán VNPAY'
+                    )}
                   </Text>
                 </View>
               ) : (
@@ -1559,6 +1790,33 @@ export default function PremiumScreen() {
           </View>
         </View>
       </Modal>
+
+      <PlanChangeConfirmModal
+        visible={
+          confirmModalVisible &&
+          (planActionKind === 'schedule_upgrade' ||
+            planActionKind === 'schedule_renew' ||
+            planActionKind === 'schedule_downgrade')
+        }
+        mode={
+          planActionKind === 'schedule_downgrade' || planActionKind === 'schedule_renew'
+            ? planActionKind
+            : 'schedule_upgrade'
+        }
+        currentPlanName={
+          effectiveSub?.plan?.name || currentPlan?.name || t('mobile.free_tier', 'Gói Miễn phí')
+        }
+        currentPrice={currentPlan?.price ?? null}
+        currentCurrency={currentPlan?.currency || 'VND'}
+        currentQuota={effectiveSub?.entitlement ?? currentPlan?.quota ?? null}
+        targetPlan={selectedPlan}
+        effectiveAtFormatted={formattedCurrentExpiry}
+        isProcessing={isProcessingOrder}
+        onClose={() => {
+          if (!isProcessingOrder) setConfirmModalVisible(false);
+        }}
+        onConfirm={() => void handleUpgrade()}
+      />
     </SafeAreaView>
   );
 }

@@ -519,15 +519,31 @@ export default function DoctorProfileScreen() {
               <Text style={tw('text-xs text-slate-500 dark:text-slate-400 text-center mt-1 mb-4')}>
                 {loadError}
               </Text>
-              <TouchableOpacity
-                onPress={() => void loadDoctorProfile(false)}
-                style={tw('bg-brand px-5 py-2.5 rounded-full flex-row items-center')}
-              >
-                <RefreshCw size={15} color="#0f172a" />
-                <Text style={tw('text-slate-900 font-bold text-sm ml-1.5')}>
-                  {t('mobile.retry')}
-                </Text>
-              </TouchableOpacity>
+              <View style={tw('flex-row flex-wrap items-center justify-center gap-3')}>
+                <TouchableOpacity
+                  onPress={() => void loadDoctorProfile(false)}
+                  style={tw('bg-brand px-5 py-2.5 rounded-full flex-row items-center')}
+                >
+                  <RefreshCw size={15} color="#0f172a" />
+                  <Text style={tw('text-slate-900 font-bold text-sm ml-1.5')}>
+                    {t('mobile.retry')}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={handleLogout}
+                  disabled={isLoggingOut}
+                  style={tw(
+                    `bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 px-5 py-2.5 rounded-full flex-row items-center ${
+                      isLoggingOut ? 'opacity-60' : ''
+                    }`
+                  )}
+                >
+                  <LogOut size={15} color={twInstance.color('text-rose-600 dark:text-rose-400')} />
+                  <Text style={tw('text-rose-600 dark:text-rose-400 font-bold text-sm ml-1.5')}>
+                    {t('mobile.logout')}
+                  </Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
         ) : (
