@@ -12,10 +12,20 @@ const initialSummary: OverviewSummary = {
   doctorSessions: 0,
   violationReports: 0,
   bannedAccounts: 0,
-  activeEnrollments: 0,
-  openAlerts: 0,
-  acknowledgedAlerts: 0,
-  resolvedAlerts: 0,
+  publishedCarePrograms: 0,
+  draftCarePrograms: 0,
+  retiredCarePrograms: 0,
+  pendingViolationReports: 0,
+  resolvedViolationReports: 0,
+  publishedPlansCount: 0,
+  draftPlansCount: 0,
+  totalPlanVersions: 0,
+  planQuotas: {
+    labels: [],
+    aiRequestLimits: [],
+    consultationLimits: [],
+    careProgramLimits: [],
+  },
   systemHealth: {
     live: "down",
     ready: "down",
@@ -30,11 +40,6 @@ const initialSummary: OverviewSummary = {
     labels: Array.from({ length: 7 }, () => ""),
     doctorSessions: Array.from({ length: 7 }, () => 0),
     violationReports: Array.from({ length: 7 }, () => 0),
-  },
-  tierDistribution: {
-    labels: [],
-    planPrices: [],
-    orderCounts: [],
   },
 };
 

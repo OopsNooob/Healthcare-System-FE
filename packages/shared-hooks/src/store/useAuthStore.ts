@@ -1,7 +1,10 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { getStorage } from "../storage";
-import { setAuthCallbacks } from "../api";
+import {
+  resetSessionExpiredNotification,
+  setAuthCallbacks,
+} from "../api";
 
 // Define locally if not yet in shared-types to avoid breaking
 export type LocalUser = {
@@ -44,13 +47,15 @@ export const useSharedAuthStore = create<LocalAuthState>()(
       refreshToken: null,
       isAuthenticated: false,
 
-      setUser: (user, token, refreshToken) =>
+      setUser: (user, token, refreshToken) => {
+        resetSessionExpiredNotification();
         set({
           user,
           token,
           refreshToken,
           isAuthenticated: true,
-        }),
+        });
+      },
 
       updateCurrentUser: (payload) =>
         set((state) => ({

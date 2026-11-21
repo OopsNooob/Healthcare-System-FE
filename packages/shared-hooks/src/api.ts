@@ -40,21 +40,44 @@ export function setAuthCallbacks(
 
 // In a real mobile environment, process.env might not be available exactly like Vite
 // We fallback to a hardcoded URL or require the consumer to inject it.
-let API_BASE_URL = typeof process !== 'undefined' && process.env.EXPO_PUBLIC_API_URL
-  ? process.env.EXPO_PUBLIC_API_URL
-  : "http://localhost:3000/api/v1";
+let API_BASE_URL = (
+  typeof process !== 'undefined' && process.env.EXPO_PUBLIC_API_URL
+    ? process.env.EXPO_PUBLIC_API_URL
+    : "http://localhost:3000/api/v1"
+)
+  .trim()
+  .replace(/\/+$/, "");
 
 let SOCKET_BASE_URL = API_BASE_URL.replace(/\/api(\/.*)?$/, "");
 
+type MutableSocketManager = {
+  uri?: string;
+  opts?: {
+    hostname?: string;
+    port?: string | number;
+    secure?: boolean;
+  };
+};
+
 export function setApiBaseUrl(url: string) {
-  API_BASE_URL = url;
-  api.defaults.baseURL = url;
-  refreshApi.defaults.baseURL = url;
-  SOCKET_BASE_URL = url.replace(/\/api(\/.*)?$/, "");
-  (socket.io as unknown as { uri?: string }).uri = `${SOCKET_BASE_URL}${SOCKET_NAMESPACES.chat}`;
-  (consultationsSocket.io as unknown as { uri?: string }).uri = `${SOCKET_BASE_URL}${SOCKET_NAMESPACES.consultations}`;
-  (notificationsSocket.io as unknown as { uri?: string }).uri = `${SOCKET_BASE_URL}${SOCKET_NAMESPACES.notifications}`;
-  (presenceSocket.io as unknown as { uri?: string }).uri = `${SOCKET_BASE_URL}`;
+  const normalizedUrl = url.trim().replace(/\/+$/, "");
+  API_BASE_URL = normalizedUrl;
+  api.defaults.baseURL = normalizedUrl;
+  refreshApi.defaults.baseURL = normalizedUrl;
+  SOCKET_BASE_URL = normalizedUrl.replace(/\/api(\/.*)?$/, "");
+
+  const managers = new Set<MutableSocketManager>();
+  for (const s of [socket, consultationsSocket, notificationsSocket, presenceSocket]) {
+    managers.add(s.io as unknown as MutableSocketManager);
+  }
+  for (const manager of managers) {
+    manager.uri = SOCKET_BASE_URL;
+    if (manager.opts) {
+      delete manager.opts.hostname;
+      delete manager.opts.port;
+      delete manager.opts.secure;
+    }
+  }
 }
 
 async function getAccessToken(): Promise<string> {
@@ -235,7 +258,46 @@ function normalizeAxiosError(error: AxiosError): AxiosError {
   return error;
 }
 
+export type SessionExpiredPayload = {
+  message: string;
+};
+
+export type SessionExpiredListener = (payload: SessionExpiredPayload) => void;
+
+const sessionExpiredListeners = new Set<SessionExpiredListener>();
+let hasNotifiedSessionExpired = false;
+
+export function onSessionExpired(listener: SessionExpiredListener): () => void {
+  sessionExpiredListeners.add(listener);
+  return () => {
+    sessionExpiredListeners.delete(listener);
+  };
+}
+
+export function resetSessionExpiredNotification(): void {
+  hasNotifiedSessionExpired = false;
+}
+
+export function disconnectAllSockets(): void {
+  for (const s of [socket, consultationsSocket, notificationsSocket, presenceSocket]) {
+    s.auth = {};
+    if (s.connected || s.active) {
+      s.disconnect();
+    }
+  }
+}
+
+function normalizeRequestPath(url?: string): string {
+  if (!url) return "";
+  const withoutOrigin = url.trim().replace(/^https?:\/\/[^/]+/i, "");
+  const withoutQuery = withoutOrigin.split("?")[0] ?? "";
+  const withoutApiPrefix = withoutQuery.replace(/^\/api\/v\d+(?=\/|$)/i, "");
+  if (!withoutApiPrefix) return "/";
+  return withoutApiPrefix.startsWith("/") ? withoutApiPrefix : `/${withoutApiPrefix}`;
+}
+
 async function clearAuthStorage() {
+  disconnectAllSockets();
   logoutCallback();
   const storage = getStorage();
   await storage.removeItem("accessToken");
@@ -243,11 +305,30 @@ async function clearAuthStorage() {
 }
 
 function notifySessionExpired() {
-  // Use a generic way to emit events, potentially utilizing a simple EventTarget or callback
-  if (typeof window !== "undefined" && window.dispatchEvent) {
+  if (hasNotifiedSessionExpired) return;
+  hasNotifiedSessionExpired = true;
+
+  const payload: SessionExpiredPayload = {
+    message: "Session expired. Please log in again!",
+  };
+
+  for (const listener of sessionExpiredListeners) {
+    try {
+      listener(payload);
+    } catch {
+      // Isolate listener errors
+    }
+  }
+
+  // Keep DOM CustomEvent dispatch for web clients while supporting native listeners above
+  if (
+    typeof window !== "undefined" &&
+    typeof window.dispatchEvent === "function" &&
+    typeof CustomEvent === "function"
+  ) {
     window.dispatchEvent(
       new CustomEvent("auth:session-expired", {
-        detail: { message: "Session expired. Please log in again!" },
+        detail: payload,
       }),
     );
   }
@@ -283,26 +364,30 @@ api.interceptors.response.use(
 
     if (!originalRequest) return Promise.reject(error);
 
-    const requestPath = originalRequest.url ?? "";
+    const requestPath = normalizeRequestPath(originalRequest.url);
     const isAuthFreeRequest = authFreePaths.has(requestPath);
 
     if (error.response?.status !== 401 || isAuthFreeRequest) {
       return Promise.reject(error);
     }
 
+    const hadAuthHeader = Boolean(originalRequest.headers?.Authorization);
+    const currentUser = getCurrentUser();
+
     if (originalRequest._retry) {
+      const hadSession = Boolean(currentUser || hadAuthHeader);
       await clearAuthStorage();
-      notifySessionExpired();
+      if (hadSession) notifySessionExpired();
       return Promise.reject(error);
     }
 
-    const currentUser = getCurrentUser();
     const storage = getStorage();
     const refreshToken = await storage.getItem("refreshToken");
 
     if (!refreshToken) {
+      const hadSession = Boolean(currentUser || hadAuthHeader);
       await clearAuthStorage();
-      notifySessionExpired();
+      if (hadSession) notifySessionExpired();
       return Promise.reject(error);
     }
 
@@ -343,6 +428,7 @@ api.interceptors.response.use(
       await storage.setItem("accessToken", nextAccessToken);
       await storage.setItem("refreshToken", nextRefreshToken);
 
+      resetSessionExpiredNotification();
       if (nextUser) {
         setUserCallback(nextUser, nextAccessToken, nextRefreshToken);
       }

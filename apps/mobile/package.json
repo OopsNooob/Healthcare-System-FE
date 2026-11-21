@@ -44,8 +44,11 @@
     "xlsx-js-style": "^1.2.0"
   },
   "scripts": {
-    "start": "expo start",
-    "android": "expo run:android",
+    "adb:reverse": "node scripts/setup-android-reverse.mjs",
+    "start": "node scripts/setup-android-reverse.mjs && expo start",
+    "start:local": "node scripts/setup-android-reverse.mjs && expo start -c",
+    "start:azure": "node scripts/run-azure.mjs",
+    "android": "node scripts/setup-android-reverse.mjs && expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
     "typecheck": "tsc --noEmit"

@@ -1,8 +1,4 @@
-import {
-  normalizeCursorList,
-  normalizePaginatedList,
-  webAdminApi,
-} from "@/lib/api";
+import { normalizePaginatedList, webAdminApi } from "@/lib/api";
 import { format, startOfDay, startOfMonth, subDays, subMonths } from "date-fns";
 
 export interface SystemHealthStatus {
@@ -18,10 +14,20 @@ export interface OverviewSummary {
   doctorSessions: number;
   violationReports: number;
   bannedAccounts: number;
-  activeEnrollments: number;
-  openAlerts: number;
-  acknowledgedAlerts: number;
-  resolvedAlerts: number;
+  publishedCarePrograms: number;
+  draftCarePrograms: number;
+  retiredCarePrograms: number;
+  pendingViolationReports: number;
+  resolvedViolationReports: number;
+  publishedPlansCount: number;
+  draftPlansCount: number;
+  totalPlanVersions: number;
+  planQuotas: {
+    labels: string[];
+    aiRequestLimits: number[];
+    consultationLimits: number[];
+    careProgramLimits: number[];
+  };
   systemHealth: SystemHealthStatus;
   monthly: {
     labels: string[];
@@ -34,11 +40,6 @@ export interface OverviewSummary {
     doctorSessions: number[];
     violationReports: number[];
   };
-  tierDistribution: {
-    labels: string[];
-    planPrices: number[];
-    orderCounts: number[];
-  };
 }
 
 type CreatedAtRecord = {
@@ -46,11 +47,39 @@ type CreatedAtRecord = {
   detectedAt?: string;
   status?: string;
   severity?: string;
-  acknowledgedAt?: string;
-  planId?: string;
-  orderSnapshot?: { code?: string; name?: string };
   doctorProfile?: { verificationStatus?: string };
 };
+
+type PlanRecord = {
+  _id?: string;
+  id?: string;
+  code?: string;
+  name?: string;
+  version?: number;
+  status?: string;
+  price?: number;
+  aiRequestLimit?: number;
+  consultationLimitPerCycle?: number;
+  activeCareProgramLimit?: number;
+};
+
+function deduplicatePlansByCode(plans: PlanRecord[]): PlanRecord[] {
+  const byCode = new Map<string, PlanRecord>();
+  for (const plan of plans) {
+    const key = String(plan.code || plan.name || "PLAN").toUpperCase();
+    const existing = byCode.get(key);
+    if (!existing || Number(plan.version ?? 1) >= Number(existing.version ?? 1)) {
+      byCode.set(key, plan);
+    }
+  }
+  return Array.from(byCode.values()).sort((a, b) => {
+    const priceDiff = Number(a.price ?? 0) - Number(b.price ?? 0);
+    if (priceDiff !== 0) return priceDiff;
+    return String(a.name ?? a.code ?? "").localeCompare(
+      String(b.name ?? b.code ?? ""),
+    );
+  });
+}
 
 function getMonthKeysLast8Months() {
   return Array.from({ length: 8 }, (_, index) => {
@@ -132,10 +161,8 @@ export async function getOverviewSummary(): Promise<OverviewSummary> {
     violationsStatsRes,
     violationsListRes,
     aiDocsRes,
-    enrollmentsRes,
-    alertsRes,
+    careProgramsRes,
     plansRes,
-    ordersRes,
   ] = await Promise.allSettled([
     webAdminApi.healthLive(),
     webAdminApi.healthReady(),
@@ -149,10 +176,8 @@ export async function getOverviewSummary(): Promise<OverviewSummary> {
     webAdminApi.violationsGetStats(),
     webAdminApi.violationsFindAll({ query: { page: 1, limit: 100 } }),
     webAdminApi.aiDocumentsGetAllDocuments({ query: { page: 1, limit: 100 } }),
-    webAdminApi.careEnrollmentList({ query: { page: 1, limit: 100 } }),
-    webAdminApi.careAlertInbox({ query: { limit: 100 } }),
+    webAdminApi.careProgramRuleListPrograms({ query: { page: 1, limit: 100 } }),
     webAdminApi.plansList(),
-    webAdminApi.paymentsList({ query: { page: 1, limit: 100 } }),
   ]);
 
   const usersPaged =
@@ -185,25 +210,17 @@ export async function getOverviewSummary(): Promise<OverviewSummary> {
       ? normalizePaginatedList<CreatedAtRecord>(aiDocsRes.value, 1, 100)
       : normalizePaginatedList<CreatedAtRecord>([]);
 
-  const enrollmentsPaged =
-    enrollmentsRes.status === "fulfilled"
-      ? normalizePaginatedList<CreatedAtRecord>(enrollmentsRes.value, 1, 100)
+  const careProgramsPaged =
+    careProgramsRes.status === "fulfilled"
+      ? normalizePaginatedList<CreatedAtRecord>(careProgramsRes.value, 1, 100)
       : normalizePaginatedList<CreatedAtRecord>([]);
-
-  const alertsCursor =
-    alertsRes.status === "fulfilled"
-      ? normalizeCursorList<CreatedAtRecord>(alertsRes.value)
-      : normalizeCursorList<CreatedAtRecord>([]);
 
   const plans =
     plansRes.status === "fulfilled"
-      ? normalizePaginatedList<{ _id?: string; id?: string; code?: string; name?: string; price?: number }>(plansRes.value).items
+      ? Array.isArray(plansRes.value)
+        ? (plansRes.value as unknown as PlanRecord[])
+        : normalizePaginatedList<PlanRecord>(plansRes.value).items
       : [];
-
-  const ordersPaged =
-    ordersRes.status === "fulfilled"
-      ? normalizePaginatedList<CreatedAtRecord>(ordersRes.value, 1, 100)
-      : normalizePaginatedList<CreatedAtRecord>([]);
 
   const dashStats =
     dashboardStatsRes.status === "fulfilled" ? dashboardStatsRes.value : null;
@@ -231,32 +248,35 @@ export async function getOverviewSummary(): Promise<OverviewSummary> {
     (doc) => !doc.createdAt || new Date(doc.createdAt).getTime() >= rangeStart,
   );
 
-  const activeEnrollments = enrollmentsPaged.items.filter(
-    (e) => e.status === "active" || !e.status,
+  const publishedCarePrograms = careProgramsPaged.items.filter(
+    (program) => program.status === "published",
   ).length;
-  const openAlerts = alertsCursor.items.filter((a) => a.status === "open").length;
-  const acknowledgedAlerts = alertsCursor.items.filter(
-    (a) => a.status === "acknowledged",
+  const draftCarePrograms = careProgramsPaged.items.filter(
+    (program) => program.status === "draft",
   ).length;
-  const resolvedAlerts = alertsCursor.items.filter(
-    (a) => a.status === "resolved",
+  const retiredCarePrograms = careProgramsPaged.items.filter(
+    (program) => program.status === "retired",
   ).length;
 
-  const orderCountByCode = new Map<string, number>();
-  for (const ord of ordersPaged.items) {
-    const label = ord.orderSnapshot?.name ?? ord.orderSnapshot?.code ?? "Plan";
-    orderCountByCode.set(label, (orderCountByCode.get(label) ?? 0) + 1);
-  }
+  const totalViolationReports = vStats?.total ?? violationsPaged.total;
+  const pendingViolationReports =
+    vStats?.pending ??
+    violationsPaged.items.filter(
+      (item) => item.status === "pending" || item.status === "processing",
+    ).length;
+  const resolvedViolationReports =
+    vStats?.resolved ??
+    violationsPaged.items.filter((item) => item.status === "resolved").length;
 
-  const tierLabels =
-    plans.length > 0
-      ? plans.map((p) => p.name ?? p.code ?? "Plan")
-      : Array.from(orderCountByCode.keys());
-  const planPrices =
-    plans.length > 0
-      ? plans.map((p) => Number(p.price ?? 0))
-      : tierLabels.map(() => 0);
-  const orderCounts = tierLabels.map((lbl) => orderCountByCode.get(lbl) ?? 0);
+  const totalPlanVersions = plans.length;
+  const draftPlansCount = plans.filter((p) => p.status === "draft").length;
+  const publishedUniquePlans = deduplicatePlansByCode(
+    plans.filter((p) => p.status === "published"),
+  );
+  const displayPlans =
+    publishedUniquePlans.length > 0
+      ? publishedUniquePlans
+      : deduplicatePlansByCode(plans);
 
   return {
     totalUsers: dashStats?.users.total ?? usersPaged.total,
@@ -264,12 +284,26 @@ export async function getOverviewSummary(): Promise<OverviewSummary> {
     aiKnowledgeDocuments: aiDocsPaged.total,
     pendingVerifications: dashStats?.users.pendingDoctors ?? pendingApps.total,
     doctorSessions: dashStats?.consultations.total ?? consultationsPaged.total,
-    violationReports: vStats?.total ?? violationsPaged.total,
+    violationReports: totalViolationReports,
     bannedAccounts: dashStats?.security.bannedAccounts ?? 0,
-    activeEnrollments: activeEnrollments || enrollmentsPaged.total,
-    openAlerts,
-    acknowledgedAlerts,
-    resolvedAlerts,
+    publishedCarePrograms,
+    draftCarePrograms,
+    retiredCarePrograms,
+    pendingViolationReports,
+    resolvedViolationReports,
+    publishedPlansCount: publishedUniquePlans.length,
+    draftPlansCount,
+    totalPlanVersions,
+    planQuotas: {
+      labels: displayPlans.map((p) => p.name || p.code || "Plan"),
+      aiRequestLimits: displayPlans.map((p) => Number(p.aiRequestLimit ?? 0)),
+      consultationLimits: displayPlans.map((p) =>
+        Number(p.consultationLimitPerCycle ?? 0),
+      ),
+      careProgramLimits: displayPlans.map((p) =>
+        Number(p.activeCareProgramLimit ?? 0),
+      ),
+    },
     systemHealth: {
       live: toHealthState(liveRes),
       ready: toHealthState(readyRes),
@@ -293,11 +327,6 @@ export async function getOverviewSummary(): Promise<OverviewSummary> {
       }),
       doctorSessions: buildDailyCounts(recentConsultations, dayKeys),
       violationReports: buildDailyCounts(recentViolations, dayKeys),
-    },
-    tierDistribution: {
-      labels: tierLabels,
-      planPrices,
-      orderCounts,
     },
   };
 }

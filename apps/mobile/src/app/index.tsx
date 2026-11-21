@@ -28,7 +28,14 @@ export default function Index() {
         const storedRefresh = await storage.getItem('refreshToken');
         const currentUser = useAuthStore.getState().user;
 
-        if (storedToken && !currentUser) {
+        if (!storedToken) {
+          if (storedRefresh) {
+            await storage.removeItem('refreshToken');
+          }
+          if (currentUser || useAuthStore.getState().isAuthenticated) {
+            logout();
+          }
+        } else if (!currentUser) {
           const profile = await mobileApi.authGetProfile();
           const profileRecord = profile as unknown as {
             id?: string;
@@ -54,6 +61,8 @@ export default function Index() {
             await storage.removeItem('refreshToken');
             logout();
           }
+        } else if (useAuthStore.getState().token !== storedToken) {
+          setUser(currentUser, storedToken, storedRefresh ?? '');
         }
       } catch {
         const storage = getStorage();

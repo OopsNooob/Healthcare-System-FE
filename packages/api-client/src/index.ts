@@ -3,12 +3,14 @@ import { createFeApiSdk, type ApiExecutor } from './fe-api-sdk';
 
 declare const process: any;
 
+const normalizeBaseUrl = (url: string): string => url.trim().replace(/\/+$/, '');
+
 const getBaseUrl = (): string => {
   try {
     // @ts-ignore
     if (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_BASE_URL) {
       // @ts-ignore
-      return import.meta.env.VITE_API_BASE_URL;
+      return normalizeBaseUrl(import.meta.env.VITE_API_BASE_URL);
     }
   } catch {
     // ignore
@@ -16,7 +18,7 @@ const getBaseUrl = (): string => {
 
   try {
     if (typeof process !== 'undefined' && process.env?.EXPO_PUBLIC_API_URL) {
-      return process.env.EXPO_PUBLIC_API_URL;
+      return normalizeBaseUrl(process.env.EXPO_PUBLIC_API_URL);
     }
   } catch {
     // ignore
@@ -31,7 +33,7 @@ client.setConfig({
 
 export const setApiBaseUrl = (url: string) => {
   client.setConfig({
-    baseURL: url,
+    baseURL: normalizeBaseUrl(url),
   });
 };
 
