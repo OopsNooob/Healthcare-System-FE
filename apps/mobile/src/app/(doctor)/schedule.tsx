@@ -623,7 +623,6 @@ export default function DoctorScheduleScreen() {
                           ) : slot.status === 'blocked' ? (
                             <Text style={tw('text-xs text-amber-600 dark:text-amber-400 font-bold')}>
                               {t('mobile.slot_blocked_notice')}
-                              {slot.blockReason ? ` — ${slot.blockReason}` : ''}
                             </Text>
                           ) : slot.status === 'expired' ? (
                             <Text style={tw('text-xs text-slate-400 font-medium')}>

@@ -34,8 +34,10 @@ import {
   X,
 } from 'lucide-react-native';
 import {
+  connectConsultationsSocket,
   connectPresenceSocket,
   connectSocket,
+  consultationsSocket,
   generateIdempotencyKey,
   mobileApi,
   normalizeCursorList,
@@ -43,6 +45,7 @@ import {
   presenceSocket,
   socket,
   SOCKET_EVENTS,
+  useSharedAuthStore,
   type FeTypes,
 } from '@repo/shared-hooks';
 import { tw } from '@/tw';
@@ -50,6 +53,7 @@ import { AppModalToast } from '@/components/ui/AppToast';
 import { useThemeContext } from '@/context/ThemeContext';
 import { useSafeRouter } from '@/utils/useSafeRouter';
 import { extractApiErrorMessage } from '@/utils/apiError';
+import { evaluateConsultationAccess } from '@/utils/consultationAccess';
 import { downloadMediaFileToDevice, type NativeMediaFile } from '@/services/nativeMedia';
 import { Skeleton } from '@/components/ui/Skeleton';
 import {
@@ -174,6 +178,7 @@ export default function DoctorChatSessionScreen() {
   const { t } = useTranslation();
   const { isDark } = useThemeContext();
   const router = useSafeRouter();
+  const token = useSharedAuthStore((s) => s.token);
   const scrollRef = useRef<ScrollView>(null);
   const dateLocale = t('mobile.date_locale', 'vi-VN');
 
@@ -182,9 +187,12 @@ export default function DoctorChatSessionScreen() {
   const [patientAvatar, setPatientAvatar] = useState<string | undefined>(undefined);
   const [isPatientOnline, setIsPatientOnline] = useState(false);
   const [consultationStatus, setConsultationStatus] = useState<{
+    mode: string;
     requestStatus: string;
     sessionStatus: string;
-  }>({ requestStatus: '', sessionStatus: '' });
+    queueJoinedAt: string | null;
+    calledAt: string | null;
+  }>({ mode: '', requestStatus: '', sessionStatus: '', queueJoinedAt: null, calledAt: null });
 
   const [messages, setMessages] = useState<ChatMessageItem[]>([]);
   const [nextCursor, setNextCursor] = useState<string | undefined>(undefined);
@@ -236,8 +244,12 @@ export default function DoctorChatSessionScreen() {
 
       const consultRaw = (consultRes?.data ?? consultRes) as RawRecord;
       setConsultationStatus({
+        mode: String(consultRaw?.mode ?? ''),
         requestStatus: String(consultRaw?.requestStatus ?? ''),
         sessionStatus: String(consultRaw?.sessionStatus ?? ''),
+        queueJoinedAt:
+          typeof consultRaw?.queueJoinedAt === 'string' ? consultRaw.queueJoinedAt : null,
+        calledAt: typeof consultRaw?.calledAt === 'string' ? consultRaw.calledAt : null,
       });
       const rawPatient = consultRaw?.patientId;
       let resolvedPatientId = '';
@@ -323,8 +335,11 @@ export default function DoctorChatSessionScreen() {
 
   useEffect(() => {
     if (!consultationId) return;
-    connectSocket();
-    connectPresenceSocket();
+    if (token) {
+      void connectSocket(token);
+      void connectPresenceSocket(token);
+      void connectConsultationsSocket(token);
+    }
 
     socket.emit(SOCKET_EVENTS.JOIN_CONSULTATION, { consultationId });
 
@@ -354,15 +369,31 @@ export default function DoctorChatSessionScreen() {
       }
     };
 
+    const onConsultationChanged = (payload: unknown) => {
+      if (!payload || typeof payload !== 'object') {
+        void loadSession();
+        return;
+      }
+      const p = payload as RawRecord;
+      const cid = String(p.consultationId ?? p.id ?? p._id ?? '');
+      if (!cid || cid === consultationId) {
+        void loadSession();
+      }
+    };
+
     socket.on(SOCKET_EVENTS.CONSULTATION_MESSAGE, onNewMessage);
     presenceSocket.on(SOCKET_EVENTS.USER_STATUS_CHANGED, onPresence);
+    consultationsSocket.on(SOCKET_EVENTS.CONSULTATIONS_CHANGED, onConsultationChanged);
+    consultationsSocket.on(SOCKET_EVENTS.QUEUE_CALLED, onConsultationChanged);
 
     return () => {
       socket.emit(SOCKET_EVENTS.LEAVE_CONSULTATION, { consultationId });
       socket.off(SOCKET_EVENTS.CONSULTATION_MESSAGE, onNewMessage);
       presenceSocket.off(SOCKET_EVENTS.USER_STATUS_CHANGED, onPresence);
+      consultationsSocket.off(SOCKET_EVENTS.CONSULTATIONS_CHANGED, onConsultationChanged);
+      consultationsSocket.off(SOCKET_EVENTS.QUEUE_CALLED, onConsultationChanged);
     };
-  }, [consultationId, patientId]);
+  }, [consultationId, loadSession, patientId, token]);
 
   const handleRefresh = useCallback(async () => {
     setIsRefreshing(true);
@@ -428,12 +459,33 @@ export default function DoctorChatSessionScreen() {
   }, [loadingVitals, patientId, showVitalsBanner, vitals.length]);
 
   const isStatusLoaded = Boolean(consultationStatus.requestStatus);
-  const isPendingApproval = consultationStatus.requestStatus === 'pending';
-  const canSendMessage =
-    isStatusLoaded &&
-    consultationStatus.requestStatus === 'accepted' &&
-    consultationStatus.sessionStatus !== 'completed' &&
-    consultationStatus.sessionStatus !== 'no_show';
+  const access = evaluateConsultationAccess(consultationStatus);
+  const canSendMessage = isStatusLoaded && access.canChat;
+  const canVideoCall = isStatusLoaded && access.canVideoCall;
+  const isWaitingLock =
+    access.chatLockReason === 'pending' ||
+    access.chatLockReason === 'scheduled_not_checked_in' ||
+    access.chatLockReason === 'scheduled_waiting_call';
+  const doctorLockBannerMessage =
+    access.chatLockReason === 'pending'
+      ? t(
+          'mobile.chat_locked_pending_doctor',
+          'Accept this consultation request before messaging or video calling the patient.',
+        )
+      : access.chatLockReason === 'scheduled_not_checked_in'
+        ? t(
+            'mobile.chat_locked_scheduled_not_checked_in_doctor',
+            'This scheduled appointment is confirmed, but the patient has not checked in yet. Chat and video unlock after check-in and calling the patient.',
+          )
+        : access.chatLockReason === 'scheduled_waiting_call'
+          ? t(
+              'mobile.chat_locked_scheduled_waiting_call_doctor',
+              'The patient has checked into the waiting queue. Use Call Next in the queue to unlock chat and the video room.',
+            )
+          : t(
+              'mobile.chat_locked_closed',
+              'This consultation has ended or was cancelled. History is read-only.',
+            );
 
   const handleSendText = useCallback(async () => {
     const trimmed = msgText.trim();
@@ -681,7 +733,7 @@ export default function DoctorChatSessionScreen() {
             <Activity size={17} color={showVitalsBanner ? '#ffffff' : isDark ? '#5eead4' : '#0d9488'} />
           </TouchableOpacity>
 
-          {canSendMessage && (
+          {canVideoCall && (
             <TouchableOpacity
               onPress={() => router.push(`/(doctor)/video-call?consultationId=${consultationId}`)}
               style={tw('p-2 rounded-xl bg-teal-50 dark:bg-teal-950/60 border border-teal-200 dark:border-teal-800')}
@@ -932,27 +984,19 @@ export default function DoctorChatSessionScreen() {
         {isStatusLoaded && !canSendMessage ? (
           <View
             style={tw(
-              isPendingApproval
+              isWaitingLock
                 ? 'px-4 py-3.5 bg-amber-50 dark:bg-amber-950/40 border-t border-amber-200 dark:border-amber-900/50 items-center'
                 : 'px-4 py-3.5 bg-slate-100 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 items-center',
             )}
           >
             <Text
               style={tw(
-                isPendingApproval
+                isWaitingLock
                   ? 'text-xs font-medium text-amber-800 dark:text-amber-300 text-center leading-4'
                   : 'text-xs font-medium text-slate-500 dark:text-slate-400 text-center leading-4',
               )}
             >
-              {isPendingApproval
-                ? t(
-                    'mobile.chat_locked_pending_doctor',
-                    'Accept this consultation request before messaging or video calling the patient.',
-                  )
-                : t(
-                    'mobile.chat_locked_closed',
-                    'This consultation has ended or was cancelled. History is read-only.',
-                  )}
+              {doctorLockBannerMessage}
             </Text>
           </View>
         ) : (

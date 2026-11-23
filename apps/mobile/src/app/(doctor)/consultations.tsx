@@ -39,12 +39,14 @@ import {
   mobileApi,
   normalizePaginatedList,
   SOCKET_EVENTS,
+  useSharedAuthStore,
   type FeTypes,
 } from '@repo/shared-hooks';
 import { tw } from '@/tw';
 import { useThemeContext } from '@/context/ThemeContext';
 import { useSafeRouter } from '@/utils/useSafeRouter';
 import { extractApiErrorMessage } from '@/utils/apiError';
+import { evaluateConsultationAccess } from '@/utils/consultationAccess';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { AppModalToast } from '@/components/ui/AppToast';
 import { AiSummaryModal, ClinicalNotesModal } from '@/components/modals';
@@ -65,6 +67,9 @@ interface ConsultationRow {
   reason: string;
   doctorNotes: string;
   checkedInAt?: string;
+  queueJoinedAt?: string;
+  calledAt?: string;
+  noShowAfterMinutes?: number;
 }
 
 interface QueueRow {
@@ -77,6 +82,8 @@ interface QueueRow {
   waitMinutes: number;
   sessionStatus: string;
   mode: string;
+  calledAt?: string;
+  isCurrent: boolean;
 }
 
 const REPORT_TYPES: Array<{ value: FeTypes.ViolationsCreateRequest['report_type']; labelKey: string; defaultLabel: string }> = [
@@ -116,6 +123,7 @@ function resolveIdAndName(field: unknown, fallbackLabel: string): { id: string; 
 
 function mapRawConsultation(raw: RawRecord, fallbackPatient: string): ConsultationRow {
   const patient = resolveIdAndName(raw.patientId, fallbackPatient);
+  const snapshot = raw.bookingSettingsSnapshot as RawRecord | undefined;
   return {
     id: String(raw._id ?? raw.id ?? ''),
     patientId: patient.id,
@@ -127,6 +135,10 @@ function mapRawConsultation(raw: RawRecord, fallbackPatient: string): Consultati
     reason: String(raw.reason ?? raw.patientNotes ?? ''),
     doctorNotes: String(raw.doctorNotes ?? ''),
     checkedInAt: typeof raw.checkedInAt === 'string' ? raw.checkedInAt : undefined,
+    queueJoinedAt: typeof raw.queueJoinedAt === 'string' ? raw.queueJoinedAt : undefined,
+    calledAt: typeof raw.calledAt === 'string' ? raw.calledAt : undefined,
+    noShowAfterMinutes:
+      typeof snapshot?.noShowAfterMinutes === 'number' ? snapshot.noShowAfterMinutes : undefined,
   };
 }
 
@@ -134,6 +146,7 @@ export default function DoctorConsultationsScreen() {
   const { t } = useTranslation();
   const { isDark } = useThemeContext();
   const router = useSafeRouter();
+  const token = useSharedAuthStore((s) => s.token);
 
   const [activeTab, setActiveTab] = useState<TabKey>('queue');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
@@ -285,6 +298,8 @@ export default function DoctorConsultationsScreen() {
               waitMinutes,
               sessionStatus: String(e.sessionStatus ?? 'waiting'),
               mode: String(e.mode ?? 'scheduled'),
+              calledAt: typeof e.calledAt === 'string' ? e.calledAt : undefined,
+              isCurrent: Boolean(e.isCurrent || e.calledAt),
             };
           });
           setQueueEntries(mappedQueue);
@@ -326,7 +341,9 @@ export default function DoctorConsultationsScreen() {
   }, [fetchData]);
 
   useEffect(() => {
-    connectConsultationsSocket();
+    if (token) {
+      void connectConsultationsSocket(token);
+    }
     const onChanged = () => {
       fetchData(1, false);
     };
@@ -338,7 +355,7 @@ export default function DoctorConsultationsScreen() {
       consultationsSocket.off(SOCKET_EVENTS.QUEUE_CHANGED, onChanged);
       consultationsSocket.off(SOCKET_EVENTS.QUEUE_CALLED, onChanged);
     };
-  }, [fetchData]);
+  }, [fetchData, token]);
 
   const handleRefresh = useCallback(async () => {
     setIsRefreshing(true);
@@ -834,22 +851,34 @@ export default function DoctorConsultationsScreen() {
                         </View>
                       </View>
 
-                      <View style={tw('flex-row items-center gap-2')}>
-                        <TouchableOpacity
-                          onPress={() => router.push(`/(doctor)/chat/${entry.consultationId}`)}
-                          style={tw('p-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700')}
+                      {entry.isCurrent || Boolean(entry.calledAt) ? (
+                        <View style={tw('flex-row items-center gap-2')}>
+                          <TouchableOpacity
+                            onPress={() => router.push(`/(doctor)/chat/${entry.consultationId}`)}
+                            style={tw('p-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700')}
+                          >
+                            <MessageCircle size={15} color="#0d9488" />
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            onPress={() => router.push(`/(doctor)/video-call?consultationId=${entry.consultationId}`)}
+                            style={tw('px-3 py-2 rounded-lg bg-teal-600')}
+                          >
+                            <Text style={tw('text-xs font-bold text-white')}>
+                              {t('mobile.join_now', 'Join')}
+                            </Text>
+                          </TouchableOpacity>
+                        </View>
+                      ) : (
+                        <View
+                          style={tw(
+                            'px-2.5 py-1 rounded-full bg-amber-100 dark:bg-amber-900/40 border border-amber-200 dark:border-amber-800',
+                          )}
                         >
-                          <MessageCircle size={15} color="#0d9488" />
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                          onPress={() => router.push(`/(doctor)/video-call?consultationId=${entry.consultationId}`)}
-                          style={tw('px-3 py-2 rounded-lg bg-teal-600')}
-                        >
-                          <Text style={tw('text-xs font-bold text-white')}>
-                            {t('mobile.join_now', 'Join')}
+                          <Text style={tw('text-[11px] font-bold text-amber-700 dark:text-amber-300')}>
+                            {t('mobile.queue_waiting_call_badge', 'Waiting')}
                           </Text>
-                        </TouchableOpacity>
-                      </View>
+                        </View>
+                      )}
                     </View>
                   ))}
                 </View>
@@ -887,20 +916,13 @@ export default function DoctorConsultationsScreen() {
             filteredConsultations.map((row) => {
               const chip = getStatusChip(row);
               const isBusy = Boolean(busyActionKey);
-              const isPending = row.requestStatus === 'pending';
-              const canOperate =
-                row.requestStatus === 'accepted' &&
-                (row.sessionStatus === 'not_started' ||
-                  row.sessionStatus === 'scheduled' ||
-                  row.sessionStatus === 'waiting' ||
-                  row.sessionStatus === 'in_consultation');
-              const isInProgress = row.sessionStatus === 'in_consultation';
-              const isFinished =
-                row.sessionStatus === 'completed' ||
-                row.sessionStatus === 'no_show' ||
-                row.requestStatus === 'cancelled' ||
-                row.requestStatus === 'expired' ||
-                row.requestStatus === 'declined';
+              const access = evaluateConsultationAccess(row);
+              const isPending = access.isPending;
+              const isFinished = access.isClosed;
+              const showScheduledWaitingHint =
+                access.isAccepted &&
+                access.isScheduled &&
+                (access.isNotStarted || (access.isWaiting && !access.isCalled));
 
               return (
                 <View
@@ -949,6 +971,24 @@ export default function DoctorConsultationsScreen() {
                     </View>
                   ) : null}
 
+                  {showScheduledWaitingHint ? (
+                    <View
+                      style={tw(
+                        'mt-2.5 px-3 py-2 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/50 flex-row items-center gap-2',
+                      )}
+                    >
+                      <Clock size={13} color="#d97706" />
+                      <Text style={tw('text-[11px] font-medium text-amber-800 dark:text-amber-300 flex-1')}>
+                        {access.isNotStarted
+                          ? t('mobile.doctor_card_waiting_checkin', 'Waiting for patient check-in')
+                          : t(
+                              'mobile.doctor_card_waiting_call',
+                              'Patient checked in — tap Call Next in queue',
+                            )}
+                      </Text>
+                    </View>
+                  ) : null}
+
                   {/* Primary & Secondary Action Rows */}
                   <View style={tw('flex-row flex-wrap items-center gap-2 mt-3 pt-3 border-t border-slate-100 dark:border-slate-800')}>
                     {isPending && (
@@ -986,99 +1026,101 @@ export default function DoctorConsultationsScreen() {
                       </>
                     )}
 
-                    {canOperate && (
-                      <>
-                        {!isInProgress && (
-                          <TouchableOpacity
-                            disabled={isBusy}
-                            onPress={() =>
-                              runAction(
-                                `start-${row.id}`,
-                                () => mobileApi.consultationsStart({ params: { id: row.id } }),
-                                t('mobile.consultation_started', 'Consultation session started'),
-                              )
-                            }
-                            style={tw('flex-row items-center gap-1.5 px-3 py-2 rounded-xl bg-teal-600')}
-                          >
-                            <Play size={14} color="#ffffff" />
-                            <Text style={tw('text-xs font-bold text-white')}>
-                              {t('mobile.start_session', 'Start')}
-                            </Text>
-                          </TouchableOpacity>
-                        )}
+                    {access.canStart && (
+                      <TouchableOpacity
+                        disabled={isBusy}
+                        onPress={() =>
+                          runAction(
+                            `start-${row.id}`,
+                            () => mobileApi.consultationsStart({ params: { id: row.id } }),
+                            t('mobile.consultation_started', 'Consultation session started'),
+                          )
+                        }
+                        style={tw('flex-row items-center gap-1.5 px-3 py-2 rounded-xl bg-teal-600')}
+                      >
+                        <Play size={14} color="#ffffff" />
+                        <Text style={tw('text-xs font-bold text-white')}>
+                          {t('mobile.start_session', 'Start')}
+                        </Text>
+                      </TouchableOpacity>
+                    )}
 
-                        <TouchableOpacity
-                          onPress={() => router.push(`/(doctor)/video-call?consultationId=${row.id}`)}
-                          style={tw('flex-row items-center gap-1.5 px-3 py-2 rounded-xl bg-blue-600')}
-                        >
-                          <Video size={14} color="#ffffff" />
-                          <Text style={tw('text-xs font-bold text-white')}>
-                            {t('mobile.video_room', 'Video Room')}
-                          </Text>
-                        </TouchableOpacity>
+                    {access.canVideoCall && (
+                      <TouchableOpacity
+                        onPress={() => router.push(`/(doctor)/video-call?consultationId=${row.id}`)}
+                        style={tw('flex-row items-center gap-1.5 px-3 py-2 rounded-xl bg-blue-600')}
+                      >
+                        <Video size={14} color="#ffffff" />
+                        <Text style={tw('text-xs font-bold text-white')}>
+                          {t('mobile.video_room', 'Video Room')}
+                        </Text>
+                      </TouchableOpacity>
+                    )}
 
-                        <TouchableOpacity
-                          disabled={isBusy}
-                          onPress={() => {
-                            setCompleteNotes(row.doctorNotes || '');
-                            setCompleteModalTarget(row);
-                          }}
-                          style={tw('flex-row items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800')}
-                        >
-                          <CheckCircle2 size={14} color="#059669" />
-                          <Text style={tw('text-xs font-bold text-emerald-700 dark:text-emerald-300')}>
-                            {t('mobile.complete', 'Complete')}
-                          </Text>
-                        </TouchableOpacity>
+                    {access.canComplete && (
+                      <TouchableOpacity
+                        disabled={isBusy}
+                        onPress={() => {
+                          setCompleteNotes(row.doctorNotes || '');
+                          setCompleteModalTarget(row);
+                        }}
+                        style={tw('flex-row items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800')}
+                      >
+                        <CheckCircle2 size={14} color="#059669" />
+                        <Text style={tw('text-xs font-bold text-emerald-700 dark:text-emerald-300')}>
+                          {t('mobile.complete', 'Complete')}
+                        </Text>
+                      </TouchableOpacity>
+                    )}
 
-                        <TouchableOpacity
-                          disabled={isBusy}
-                          onPress={() =>
-                            runAction(
-                              `noshow-${row.id}`,
-                              () => mobileApi.consultationsMarkNoShow({ params: { id: row.id }, body: {} }),
-                              t('mobile.marked_no_show', 'Marked as no-show'),
-                            )
-                          }
-                          style={tw('flex-row items-center gap-1.5 px-3 py-2 rounded-xl bg-orange-50 dark:bg-orange-950/60 border border-orange-200 dark:border-orange-800')}
-                        >
-                          <UserX size={14} color="#ea580c" />
-                          <Text style={tw('text-xs font-bold text-orange-700 dark:text-orange-300')}>
-                            {t('mobile.no_show', 'No-Show')}
-                          </Text>
-                        </TouchableOpacity>
-                      </>
+                    {access.canMarkNoShow && (
+                      <TouchableOpacity
+                        disabled={isBusy}
+                        onPress={() =>
+                          runAction(
+                            `noshow-${row.id}`,
+                            () => mobileApi.consultationsMarkNoShow({ params: { id: row.id }, body: {} }),
+                            t('mobile.marked_no_show', 'Marked as no-show'),
+                          )
+                        }
+                        style={tw('flex-row items-center gap-1.5 px-3 py-2 rounded-xl bg-orange-50 dark:bg-orange-950/60 border border-orange-200 dark:border-orange-800')}
+                      >
+                        <UserX size={14} color="#ea580c" />
+                        <Text style={tw('text-xs font-bold text-orange-700 dark:text-orange-300')}>
+                          {t('mobile.no_show', 'No-Show')}
+                        </Text>
+                      </TouchableOpacity>
                     )}
 
                     {/* Common quick tools */}
-                    {row.requestStatus === 'accepted' && (
-                      <>
-                        <TouchableOpacity
-                          onPress={() => router.push(`/(doctor)/chat/${row.id}`)}
-                          style={tw('flex-row items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800')}
-                        >
-                          <MessageCircle size={14} color={isDark ? '#e2e8f0' : '#334155'} />
-                          <Text style={tw('text-xs font-semibold text-slate-700 dark:text-slate-200')}>
-                            {t('mobile.chat', 'Chat')}
-                          </Text>
-                        </TouchableOpacity>
+                    {(access.canChat || access.isClosed) && (
+                      <TouchableOpacity
+                        onPress={() => router.push(`/(doctor)/chat/${row.id}`)}
+                        style={tw('flex-row items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800')}
+                      >
+                        <MessageCircle size={14} color={isDark ? '#e2e8f0' : '#334155'} />
+                        <Text style={tw('text-xs font-semibold text-slate-700 dark:text-slate-200')}>
+                          {t('mobile.chat', 'Chat')}
+                        </Text>
+                      </TouchableOpacity>
+                    )}
 
-                        <TouchableOpacity
-                          onPress={() =>
-                            setNotesModalTarget({
-                              consultationId: row.id,
-                              patientId: row.patientId,
-                              patientName: row.patientName,
-                            })
-                          }
-                          style={tw('flex-row items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800')}
-                        >
-                          <FileText size={14} color={isDark ? '#e2e8f0' : '#334155'} />
-                          <Text style={tw('text-xs font-semibold text-slate-700 dark:text-slate-200')}>
-                            {t('mobile.clinical_notes', 'Notes')}
-                          </Text>
-                        </TouchableOpacity>
-                      </>
+                    {access.isAccepted && (
+                      <TouchableOpacity
+                        onPress={() =>
+                          setNotesModalTarget({
+                            consultationId: row.id,
+                            patientId: row.patientId,
+                            patientName: row.patientName,
+                          })
+                        }
+                        style={tw('flex-row items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800')}
+                      >
+                        <FileText size={14} color={isDark ? '#e2e8f0' : '#334155'} />
+                        <Text style={tw('text-xs font-semibold text-slate-700 dark:text-slate-200')}>
+                          {t('mobile.clinical_notes', 'Notes')}
+                        </Text>
+                      </TouchableOpacity>
                     )}
 
                     <TouchableOpacity

@@ -35,12 +35,15 @@ import { useSafeRouter as useRouter } from '@/utils/useSafeRouter';
 import { useThemeContext } from '@/context/ThemeContext';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { extractApiErrorMessage } from '@/utils/apiError';
+import { evaluateConsultationAccess } from '@/utils/consultationAccess';
 import {
+  connectConsultationsSocket,
   consultationsSocket,
   generateIdempotencyKey,
   mobileApi,
   normalizePaginatedList,
   SOCKET_EVENTS,
+  useSharedAuthStore,
   type FeTypes,
 } from '@repo/shared-hooks';
 
@@ -60,6 +63,8 @@ interface AppointmentViewItem {
   estimatedWaitMinutes: number | null;
   etaReason: string;
   canCheckIn: boolean;
+  canJoinRoom: boolean;
+  canChat: boolean;
   canReschedule: boolean;
   canCancel: boolean;
   patientNotes: string;
@@ -83,6 +88,7 @@ export default function AppointmentsScreen() {
   const dateLocale = t('mobile.date_locale', 'vi-VN');
 
   const router = useRouter();
+  const token = useSharedAuthStore((s) => s.token);
   const [activeTab, setActiveTab] = useState<'upcoming' | 'history'>('upcoming');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -261,6 +267,13 @@ export default function AppointmentsScreen() {
           const existingReview = reviewByConsultation.get(id);
           const mode: 'on_demand' | 'scheduled' =
             item.mode === 'on_demand' ? 'on_demand' : 'scheduled';
+          const access = evaluateConsultationAccess({
+            mode,
+            requestStatus: reqStatus,
+            sessionStatus: sesStatus,
+            queueJoinedAt: typeof item.queueJoinedAt === 'string' ? item.queueJoinedAt : null,
+            calledAt: calledAtRaw || null,
+          });
 
           return {
             id,
@@ -284,6 +297,8 @@ export default function AppointmentsScreen() {
             etaReason: q?.etaReason ?? '',
             canCheckIn:
               mode === 'scheduled' && reqStatus === 'accepted' && sesStatus === 'not_started',
+            canJoinRoom: access.canVideoCall,
+            canChat: access.canChat,
             canReschedule:
               mode === 'scheduled' && reqStatus === 'accepted' && sesStatus === 'not_started',
             canCancel:
@@ -329,6 +344,9 @@ export default function AppointmentsScreen() {
   }, [loadData]);
 
   useEffect(() => {
+    if (token) {
+      void connectConsultationsSocket(token);
+    }
     const onChanged = () => {
       void loadData(true);
     };
@@ -340,7 +358,7 @@ export default function AppointmentsScreen() {
       consultationsSocket.off(SOCKET_EVENTS.QUEUE_CHANGED, onChanged);
       consultationsSocket.off(SOCKET_EVENTS.QUEUE_CALLED, onChanged);
     };
-  }, [loadData]);
+  }, [loadData, token]);
 
   const statusLabel = (status: AppointmentViewItem['status']) => {
     const map: Record<AppointmentViewItem['status'], string> = {
@@ -928,36 +946,40 @@ export default function AppointmentsScreen() {
 
                       {/* Actions */}
                       <View style={tw('gap-2.5')}>
-                        {(apt.status === 'Waiting' || apt.status === 'InConsultation') && (
+                        {(apt.canJoinRoom || apt.canChat) && (
                           <View style={tw('flex-row gap-2.5')}>
-                            <TouchableOpacity
-                              onPress={() =>
-                                router.push(
-                                  `/(patient)/video-call?consultationId=${apt.id}&doctorId=${apt.doctorId}`,
-                                )
-                              }
-                              style={tw('flex-1 bg-brand py-3.5 rounded-xl flex-row justify-center items-center')}
-                            >
-                              <Video color="#0f172a" size={18} style={tw('mr-2')} />
-                              <Text style={tw('text-slate-900 font-bold text-sm')}>
-                                {t('mobile.join_room', 'Join Room')}
-                              </Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                              onPress={() =>
-                                router.push(
-                                  `/(patient)/doctor-chat?consultationId=${apt.id}&doctorId=${apt.doctorId}`,
-                                )
-                              }
-                              style={tw(
-                                'px-4 bg-slate-100 dark:bg-slate-800 rounded-xl justify-center items-center',
-                              )}
-                            >
-                              <MessageCircle
-                                color={twInstance.color('text-slate-700 dark:text-slate-200')}
-                                size={18}
-                              />
-                            </TouchableOpacity>
+                            {apt.canJoinRoom && (
+                              <TouchableOpacity
+                                onPress={() =>
+                                  router.push(
+                                    `/(patient)/video-call?consultationId=${apt.id}&doctorId=${apt.doctorId}`,
+                                  )
+                                }
+                                style={tw('flex-1 bg-brand py-3.5 rounded-xl flex-row justify-center items-center')}
+                              >
+                                <Video color="#0f172a" size={18} style={tw('mr-2')} />
+                                <Text style={tw('text-slate-900 font-bold text-sm')}>
+                                  {t('mobile.join_room', 'Join Room')}
+                                </Text>
+                              </TouchableOpacity>
+                            )}
+                            {apt.canChat && (
+                              <TouchableOpacity
+                                onPress={() =>
+                                  router.push(
+                                    `/(patient)/doctor-chat?consultationId=${apt.id}&doctorId=${apt.doctorId}`,
+                                  )
+                                }
+                                style={tw(
+                                  `${apt.canJoinRoom ? 'px-4' : 'flex-1 py-3.5'} bg-slate-100 dark:bg-slate-800 rounded-xl justify-center items-center`,
+                                )}
+                              >
+                                <MessageCircle
+                                  color={twInstance.color('text-slate-700 dark:text-slate-200')}
+                                  size={18}
+                                />
+                              </TouchableOpacity>
+                            )}
                           </View>
                         )}
 

@@ -91,6 +91,34 @@ const STATIC_CODE_MAP: Record<string, { key: string; fallback: string }> = {
     key: 'mobile.api_err_booking_policy_not_configured',
     fallback: 'Scheduled booking policy is not configured. Please try again later.',
   },
+  CONSULTATION_NOT_READY_FOR_CHAT: {
+    key: 'mobile.api_err_consultation_not_ready_for_chat',
+    fallback: 'Scheduled consultations require patient check-in and doctor call before messaging.',
+  },
+  CONSULTATION_NOT_CALLED_FOR_CHAT: {
+    key: 'mobile.api_err_consultation_not_called_for_chat',
+    fallback: 'Doctor must call the queued consultation before messaging.',
+  },
+  CONSULTATION_NOT_CALLED: {
+    key: 'mobile.api_err_consultation_not_called',
+    fallback: 'Call the queued consultation before starting the session.',
+  },
+  CHECK_IN_TOO_EARLY: {
+    key: 'mobile.api_err_check_in_too_early',
+    fallback: 'Check-in window has not opened yet.',
+  },
+  CHECK_IN_WINDOW_CLOSED: {
+    key: 'mobile.api_err_check_in_window_closed',
+    fallback: 'Check-in window has closed for this appointment.',
+  },
+  DOCTOR_QUEUE_ITEM_ALREADY_CALLED: {
+    key: 'mobile.api_err_queue_already_called',
+    fallback: 'You already have a called consultation awaiting start.',
+  },
+  DOCTOR_ACTIVE_SESSION_CONFLICT: {
+    key: 'mobile.api_err_doctor_active_session',
+    fallback: 'You already have an active consultation in progress.',
+  },
 };
 
 /**
