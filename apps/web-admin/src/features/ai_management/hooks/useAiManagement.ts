@@ -1,17 +1,24 @@
 import { useState, useCallback, useEffect } from "react";
-import type { PaginatedResult } from "@/lib/api";
+import i18n from "@/i18n";
+import { extractApiErrorMessage, type PaginatedResult } from "@/lib/api";
 import {
   getDocumentList,
-  toggleDocumentStatus,
   deleteDocument,
   archiveAiDocument,
-  indexAiDocument,
-  ragIngestAiDocument,
+  approveAiDocument,
+  rejectAiDocument,
+  activateAiDocument,
+  replaceAiDocumentVersion,
   updateAiDocument,
+  getKnowledgeCandidates,
+  proposeKnowledgeCandidate,
+  promoteKnowledgeCandidate,
+  rejectKnowledgeCandidate,
   getAllAiFeedbacks,
   verifyAiFeedback,
   type DocumentItem,
   type DocumentStatus,
+  type KnowledgeCandidateItem,
   type AiFeedbackItem,
 } from "../services/ai-management.service";
 
@@ -33,11 +40,7 @@ export function useGetDocumentList(params: {
       const res = await getDocumentList(params);
       setData(res);
     } catch (loadError) {
-      setError(
-        loadError instanceof Error
-          ? loadError.message
-          : "Failed to load documents",
-      );
+      setError(extractApiErrorMessage(loadError));
     } finally {
       setLoading(false);
     }
@@ -59,27 +62,63 @@ export function useGetDocumentList(params: {
   };
 }
 
-export function useToggleDocumentStatus() {
+export function useDocumentMutations() {
   const [isLoading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const toggleStatus = useCallback(
-    async (id: string, status: DocumentStatus) => {
-      if (!id) {
-        setError("Invalid document ID");
-        return null;
-      }
+  const approveDoc = useCallback(async (id: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      return await approveAiDocument(id);
+    } catch (err) {
+      setError(extractApiErrorMessage(err));
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const rejectDoc = useCallback(async (id: string, reason?: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      return await rejectAiDocument(id, reason);
+    } catch (err) {
+      setError(extractApiErrorMessage(err));
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const activateDoc = useCallback(async (id: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      return await activateAiDocument(id);
+    } catch (err) {
+      setError(extractApiErrorMessage(err));
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const replaceDocVersion = useCallback(
+    async (
+      id: string,
+      file: File,
+      title?: string,
+      validUntil?: string | null,
+    ) => {
       setLoading(true);
       setError(null);
       try {
-        return await toggleDocumentStatus(id, status);
-      } catch (loadError) {
-        setError(
-          loadError instanceof Error
-            ? loadError.message
-            : "Failed to change document status",
-        );
-        return null;
+        return await replaceAiDocumentVersion(id, file, title, validUntil);
+      } catch (err) {
+        setError(extractApiErrorMessage(err));
+        throw err;
       } finally {
         setLoading(false);
       }
@@ -87,50 +126,13 @@ export function useToggleDocumentStatus() {
     [],
   );
 
-  return {
-    toggleStatus,
-    isLoading,
-    error,
-  };
-}
-
-export function useDocumentMutations() {
-  const [isLoading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
   const archiveDoc = useCallback(async (id: string) => {
     setLoading(true);
     setError(null);
     try {
       return await archiveAiDocument(id);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to archive document");
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  const indexDoc = useCallback(async (id: string, totalChunks = 0) => {
-    setLoading(true);
-    setError(null);
-    try {
-      return await indexAiDocument(id, totalChunks);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to index document");
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  const ragIngestDoc = useCallback(async (id: string) => {
-    setLoading(true);
-    setError(null);
-    try {
-      return await ragIngestAiDocument(id);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to trigger ingestion");
+      setError(extractApiErrorMessage(err));
       throw err;
     } finally {
       setLoading(false);
@@ -147,7 +149,7 @@ export function useDocumentMutations() {
       try {
         return await updateAiDocument(id, body);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to update document");
+        setError(extractApiErrorMessage(err));
         throw err;
       } finally {
         setLoading(false);
@@ -157,9 +159,11 @@ export function useDocumentMutations() {
   );
 
   return {
+    approveDoc,
+    rejectDoc,
+    activateDoc,
+    replaceDocVersion,
     archiveDoc,
-    indexDoc,
-    ragIngestDoc,
     updateDoc,
     isLoading,
     error,
@@ -172,7 +176,7 @@ export function useDeleteDocument() {
 
   const deleteDoc = useCallback(async (id: string) => {
     if (!id) {
-      setError("Invalid document ID");
+      setError(i18n.t("apiErrors.INVALID_ID"));
       return null;
     }
     setLoading(true);
@@ -180,11 +184,7 @@ export function useDeleteDocument() {
     try {
       return await deleteDocument(id);
     } catch (loadError) {
-      setError(
-        loadError instanceof Error
-          ? loadError.message
-          : "Failed to delete document",
-      );
+      setError(extractApiErrorMessage(loadError));
       return null;
     } finally {
       setLoading(false);
@@ -216,9 +216,7 @@ export function useAiFeedbackList(params: {
       const res = await getAllAiFeedbacks(params);
       setData(res);
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to load AI feedbacks",
-      );
+      setError(extractApiErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -244,5 +242,102 @@ export function useAiFeedbackList(params: {
     error,
     refresh: loadFeedbacks,
     submitVerify,
+  };
+}
+
+export function useKnowledgeCandidates(params: {
+  locale?: string;
+  enabled?: boolean;
+} = {}) {
+  const [isLoading, setLoading] = useState(false);
+  const [isMutating, setMutating] = useState(false);
+  const [data, setData] = useState<KnowledgeCandidateItem[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const locale = params.locale ?? "vi-VN";
+
+  const loadCandidates = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const items = await getKnowledgeCandidates(locale);
+      setData(items);
+    } catch (err) {
+      setError(extractApiErrorMessage(err));
+    } finally {
+      setLoading(false);
+    }
+  }, [locale]);
+
+  useEffect(() => {
+    if (!params.enabled) return;
+    const timer = window.setTimeout(() => {
+      void loadCandidates();
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [params.enabled, loadCandidates]);
+
+  const propose = useCallback(
+    async (input: { pmid: string; title: string; sourceUrl: string }) => {
+      setMutating(true);
+      setError(null);
+      try {
+        const created = await proposeKnowledgeCandidate(input, locale);
+        await loadCandidates();
+        return created;
+      } catch (err) {
+        setError(extractApiErrorMessage(err));
+        throw err;
+      } finally {
+        setMutating(false);
+      }
+    },
+    [loadCandidates, locale],
+  );
+
+  const promote = useCallback(
+    async (id: string) => {
+      setMutating(true);
+      setError(null);
+      try {
+        const res = await promoteKnowledgeCandidate(id);
+        await loadCandidates();
+        return res;
+      } catch (err) {
+        setError(extractApiErrorMessage(err));
+        throw err;
+      } finally {
+        setMutating(false);
+      }
+    },
+    [loadCandidates],
+  );
+
+  const reject = useCallback(
+    async (id: string, reason?: string) => {
+      setMutating(true);
+      setError(null);
+      try {
+        const res = await rejectKnowledgeCandidate(id, reason);
+        await loadCandidates();
+        return res;
+      } catch (err) {
+        setError(extractApiErrorMessage(err));
+        throw err;
+      } finally {
+        setMutating(false);
+      }
+    },
+    [loadCandidates],
+  );
+
+  return {
+    data,
+    isLoading,
+    isMutating,
+    error,
+    refresh: loadCandidates,
+    propose,
+    promote,
+    reject,
   };
 }

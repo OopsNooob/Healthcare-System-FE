@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { X, Image as ImageIcon, FileText, Send, CheckCircle, Camera, FileCheck, UploadCloud } from 'lucide-react-native';
 import Toast from 'react-native-toast-message';
 import { tw, twInstance } from '@/tw';
+import { AppModalToast } from '@/components/ui/AppToast';
 import { pickNativeImage, pickNativePdfDocument } from '@/services/nativeMedia';
 
 interface AttachmentPickerModalProps {
@@ -307,6 +308,7 @@ export const AttachmentPickerModal: React.FC<AttachmentPickerModalProps> = ({
             </TouchableOpacity>
           </View>
         </View>
+        <AppModalToast visible={visible} />
       </View>
     </Modal>
   );

@@ -35,6 +35,7 @@ import {
 import { setApiBaseUrl as setClientApiBaseUrl, setTokenGetter } from '@healthcare/api-client';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { SessionExpiredModal } from '@/components/modals';
+import { AppToast } from '@/components/ui/AppToast';
 import { resolveMobileApiBaseUrl } from '@/utils/apiUrl';
 
 const resolvedApiBaseUrl = resolveMobileApiBaseUrl();
@@ -247,7 +248,7 @@ export default function RootLayout() {
       <QueryClientProvider client={queryClient}>
         <AppThemeProvider>
           <RootNavigator />
-          <Toast />
+          <AppToast />
         </AppThemeProvider>
       </QueryClientProvider>
     </SafeAreaProvider>

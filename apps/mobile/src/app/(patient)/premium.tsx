@@ -34,6 +34,7 @@ import {
   Calendar,
 } from 'lucide-react-native';
 import { tw, twInstance } from '@/tw';
+import { AppModalToast } from '@/components/ui/AppToast';
 import { useThemeContext } from '@/context/ThemeContext';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { extractApiErrorMessage } from '@/utils/apiError';
@@ -1386,6 +1387,7 @@ export default function PremiumScreen() {
               </ScrollView>
             ) : null}
           </View>
+          <AppModalToast visible={planDetailModalVisible} />
         </View>
       </Modal>
 
@@ -1646,6 +1648,7 @@ export default function PremiumScreen() {
               )}
             </ScrollView>
           </View>
+          <AppModalToast visible={orderHistoryModalVisible} />
         </View>
       </Modal>
 
@@ -1788,6 +1791,7 @@ export default function PremiumScreen() {
               </TouchableOpacity>
             </View>
           </View>
+          <AppModalToast visible={orderModalVisible} />
         </View>
       </Modal>
 

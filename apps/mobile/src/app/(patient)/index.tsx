@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { useFocusEffect } from 'expo-router';
 import {
   RefreshControl,
   ScrollView,
@@ -39,6 +40,7 @@ import {
   generateIdempotencyKey,
   mobileApi,
   normalizePaginatedList,
+  notificationsSocket,
   type FeTypes,
 } from '@repo/shared-hooks';
 import { tw, twInstance } from '@/tw';
@@ -331,9 +333,44 @@ export default function PatientHomeScreen() {
     }
   }, [t]);
 
+  const refreshUnreadCount = useCallback(async () => {
+    try {
+      const res = await mobileApi.notificationsCountUnread();
+      const raw = res as unknown as {
+        data?: { unreadCount?: number; count?: number };
+        unreadCount?: number;
+        count?: number;
+      };
+      const next = Number(
+        raw?.data?.unreadCount ?? raw?.unreadCount ?? raw?.data?.count ?? raw?.count ?? 0
+      );
+      if (Number.isFinite(next)) {
+        setUnreadCount(next);
+      }
+    } catch {
+      // ignore silent badge sync failure
+    }
+  }, []);
+
   useEffect(() => {
     void loadHomeData(false);
   }, [loadHomeData]);
+
+  useFocusEffect(
+    useCallback(() => {
+      void refreshUnreadCount();
+    }, [refreshUnreadCount])
+  );
+
+  useEffect(() => {
+    const onNotificationEvent = () => {
+      void refreshUnreadCount();
+    };
+    notificationsSocket.on('notifications', onNotificationEvent);
+    return () => {
+      notificationsSocket.off('notifications', onNotificationEvent);
+    };
+  }, [refreshUnreadCount]);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);

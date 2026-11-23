@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { X, Camera, Image as ImageIcon, CheckCircle2, User } from 'lucide-react-native';
 import Toast from 'react-native-toast-message';
 import { tw, twInstance } from '@/tw';
+import { AppModalToast } from '@/components/ui/AppToast';
 import { pickNativeImage } from '@/services/nativeMedia';
 
 interface AvatarPickerModalProps {
@@ -186,6 +187,7 @@ export const AvatarPickerModal: React.FC<AvatarPickerModalProps> = ({
             </TouchableOpacity>
           </View>
         </View>
+        <AppModalToast visible={visible} />
       </View>
     </Modal>
   );

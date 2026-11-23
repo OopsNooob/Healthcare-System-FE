@@ -38,6 +38,7 @@ import {
 } from 'lucide-react-native';
 import { tw, twInstance } from '@/tw';
 import { useThemeContext } from '@/context/ThemeContext';
+import { AppModalToast } from '@/components/ui/AppToast';
 import {
   mobileApi,
   generateIdempotencyKey,
@@ -58,13 +59,33 @@ type ConversationType =
   | 'medication_info'
   | 'general_consultation';
 
-type Citation = {
-  source: string;
-  chunkId?: string;
-  documentId?: string;
-  score?: number;
-  excerpt?: string;
-};
+type Citation = FeTypes.AiEvidenceCitation;
+
+function sanitizeCitations(raw: unknown): Citation[] {
+  if (!Array.isArray(raw)) return [];
+  const out: Citation[] = [];
+  for (const item of raw) {
+    if (!item || typeof item !== 'object') continue;
+    const rec = item as Record<string, unknown>;
+    const source = typeof rec.source === 'string' ? rec.source.trim() : '';
+    const excerpt = typeof rec.excerpt === 'string' ? rec.excerpt.trim() : '';
+    if (!source && !excerpt) continue;
+    out.push({
+      source: source || 'internal_guideline',
+      ...(typeof rec.title === 'string' && rec.title.trim() ? { title: rec.title.trim() } : {}),
+      excerpt,
+      ...(typeof rec.documentVersion === 'number' && Number.isFinite(rec.documentVersion)
+        ? { documentVersion: rec.documentVersion }
+        : {}),
+      pageNumber: typeof rec.pageNumber === 'number' ? rec.pageNumber : null,
+      sectionTitle:
+        typeof rec.sectionTitle === 'string' && rec.sectionTitle.trim()
+          ? rec.sectionTitle.trim()
+          : null,
+    });
+  }
+  return out;
+}
 
 type MessageAttachment = {
   publicId?: string;
@@ -80,6 +101,7 @@ type ChatMessage = {
   sender: 'ai' | 'user';
   time: string;
   attachments?: MessageAttachment[];
+  groundedByRag?: boolean;
   citations?: Citation[];
 };
 
@@ -195,19 +217,27 @@ export default function AiChatSessionScreen() {
       );
       return sorted
         .filter((msg, index) => !(index === 0 && msg.role === 'user' && isSyntheticOpener(msg.content)))
-        .map((msg, idx) => ({
-          id: getRecordId(msg as { _id?: unknown; id?: unknown }) || `${msg.timestamp}-${idx}`,
-          text: msg.content,
-          sender: msg.role === 'assistant' ? 'ai' : 'user',
-          time: formatMsgTime(msg.timestamp),
-          attachments: msg.attachments?.map((att) => ({
-            publicId: att.publicId,
-            secureUrl: att.secureUrl,
-            originalName: att.originalName,
-            size: att.size,
-            mimeType: att.mimeType,
-          })),
-        }));
+        .map((msg, idx) => {
+          const extra = msg as unknown as { groundedByRag?: unknown; citations?: unknown };
+          const citations = sanitizeCitations(extra.citations);
+          return {
+            id: getRecordId(msg as { _id?: unknown; id?: unknown }) || `${msg.timestamp}-${idx}`,
+            text: msg.content,
+            sender: msg.role === 'assistant' ? 'ai' : 'user',
+            time: formatMsgTime(msg.timestamp),
+            attachments: msg.attachments?.map((att) => ({
+              publicId: att.publicId,
+              secureUrl: att.secureUrl,
+              originalName: att.originalName,
+              size: att.size,
+              mimeType: att.mimeType,
+            })),
+            ...(typeof extra.groundedByRag === 'boolean'
+              ? { groundedByRag: extra.groundedByRag }
+              : {}),
+            ...(citations.length > 0 ? { citations } : {}),
+          };
+        });
     },
     [formatMsgTime]
   );
@@ -418,7 +448,9 @@ export default function AiChatSessionScreen() {
               text: resData.finalAiResponse,
               sender: 'ai',
               time: formatMsgTime(),
-              citations: resData.citations ?? [],
+              groundedByRag:
+                typeof resData.groundedByRag === 'boolean' ? resData.groundedByRag : undefined,
+              citations: sanitizeCitations(resData.citations),
             },
           ];
         });
@@ -899,19 +931,85 @@ export default function AiChatSessionScreen() {
                   </Text>
                 </View>
 
+                {msg.sender === 'ai' && msg.groundedByRag === false && (
+                  <View
+                    style={tw(
+                      'mt-2 bg-amber-50 dark:bg-amber-950/40 p-3 rounded-xl border border-amber-200 dark:border-amber-900/60',
+                    )}
+                  >
+                    <View style={tw('flex-row items-center gap-1.5 mb-1')}>
+                      <AlertTriangle color="#d97706" size={14} />
+                      <Text style={tw('text-xs font-bold text-amber-800 dark:text-amber-300 flex-1')}>
+                        {t('mobile.ai_no_evidence_banner_title', 'No Verified Internal Evidence')}
+                      </Text>
+                    </View>
+                    <Text style={tw('text-[11px] text-amber-800 dark:text-amber-200 leading-4')}>
+                      {t(
+                        'mobile.ai_no_evidence_banner_desc',
+                        'This response is not backed by a verified internal medical document and must not be treated as a medical diagnosis or conclusion.',
+                      )}
+                    </Text>
+                  </View>
+                )}
+
                 {msg.citations && msg.citations.length > 0 && (
-                  <View style={tw('mt-2 bg-slate-50 dark:bg-slate-800/60 p-3 rounded-xl border border-slate-200 dark:border-slate-700')}>
-                    <View style={tw('flex-row items-center mb-1')}>
+                  <View style={tw('mt-2 bg-slate-50 dark:bg-slate-800/60 p-3 rounded-xl border border-slate-200 dark:border-slate-700 gap-2')}>
+                    <View style={tw('flex-row items-center')}>
                       <BookOpen color={twInstance.color('text-slate-400')} size={14} />
                       <Text style={tw('text-xs text-slate-500 dark:text-slate-400 font-bold ml-1 uppercase')}>
                         {t('mobile.citations', 'References')}
                       </Text>
                     </View>
-                    {msg.citations.map((cite, idx) => (
-                      <Text key={idx} style={tw('text-xs text-indigo-600 dark:text-indigo-400 mt-1')}>
-                        [{idx + 1}] {cite.source}
-                      </Text>
-                    ))}
+                    {msg.citations.map((cite, idx) => {
+                      const metaParts = [
+                        cite.documentVersion != null
+                          ? t('mobile.citation_version_short', {
+                              version: cite.documentVersion,
+                              defaultValue: `v${cite.documentVersion}`,
+                            })
+                          : '',
+                        cite.pageNumber != null
+                          ? t('mobile.citation_page_short', {
+                              page: cite.pageNumber,
+                              defaultValue: `p.${cite.pageNumber}`,
+                            })
+                          : '',
+                        cite.sectionTitle || '',
+                      ].filter(Boolean);
+                      return (
+                        <View
+                          key={`${msg.id}-cite-${idx}`}
+                          style={tw('p-2.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800')}
+                        >
+                          <View style={tw('flex-row items-center justify-between gap-2')}>
+                            <Text
+                              style={tw('text-xs font-bold text-indigo-700 dark:text-indigo-300 flex-1')}
+                              numberOfLines={2}
+                            >
+                              [{idx + 1}] {cite.title || cite.source}
+                            </Text>
+                            {cite.title ? (
+                              <Text style={tw('text-[10px] font-semibold text-slate-500 dark:text-slate-400')}>
+                                {cite.source}
+                              </Text>
+                            ) : null}
+                          </View>
+                          {metaParts.length > 0 ? (
+                            <Text style={tw('text-[11px] text-slate-500 dark:text-slate-400 mt-0.5')}>
+                              {metaParts.join(' • ')}
+                            </Text>
+                          ) : null}
+                          {cite.excerpt ? (
+                            <Text
+                              style={tw('text-xs text-slate-600 dark:text-slate-300 mt-1 leading-4')}
+                              numberOfLines={4}
+                            >
+                              {cite.excerpt}
+                            </Text>
+                          ) : null}
+                        </View>
+                      );
+                    })}
                   </View>
                 )}
 
@@ -1178,6 +1276,7 @@ export default function AiChatSessionScreen() {
               )}
             </ScrollView>
           </View>
+          <AppModalToast visible={reportModalVisible} />
         </KeyboardAvoidingView>
       </Modal>
 
@@ -1223,6 +1322,7 @@ export default function AiChatSessionScreen() {
               </View>
             </View>
           </View>
+          <AppModalToast visible={statsModalVisible} />
         </View>
       </Modal>
 
@@ -1287,6 +1387,7 @@ export default function AiChatSessionScreen() {
               </TouchableOpacity>
             </View>
           </View>
+          <AppModalToast visible={imagePickerModalVisible} />
         </View>
       </Modal>
 

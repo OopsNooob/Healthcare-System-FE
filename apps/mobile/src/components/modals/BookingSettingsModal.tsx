@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { X, Settings2, Globe, Clock, ShieldCheck } from 'lucide-react-native';
 import Toast from 'react-native-toast-message';
 import { tw, twInstance } from '@/tw';
+import { AppModalToast } from '@/components/ui/AppToast';
 
 export interface DoctorBookingSettingsDto {
   timezone: string;
@@ -207,6 +208,30 @@ export const BookingSettingsModal: React.FC<BookingSettingsModalProps> = ({
                   10 {t('mobile.minutes_short')}
                 </Text>
               </View>
+              <View style={tw('flex-row justify-between items-center')}>
+                <Text style={tw('text-xs text-slate-600 dark:text-slate-400')}>
+                  {t('mobile.check_in_early_min', 'Check-in opens before slot')}
+                </Text>
+                <Text style={tw('text-xs font-bold text-slate-900 dark:text-white')}>
+                  {settings.checkInEarlyMinutes} {t('mobile.minutes_short')}
+                </Text>
+              </View>
+              <View style={tw('flex-row justify-between items-center')}>
+                <Text style={tw('text-xs text-slate-600 dark:text-slate-400')}>
+                  {t('mobile.min_notice_label', 'Minimum Notice')}
+                </Text>
+                <Text style={tw('text-xs font-bold text-slate-900 dark:text-white')}>
+                  {settings.minNoticeMinutes} {t('mobile.minutes_short')}
+                </Text>
+              </View>
+              <View style={tw('flex-row justify-between items-center')}>
+                <Text style={tw('text-xs text-slate-600 dark:text-slate-400')}>
+                  {t('mobile.buffer_minutes_label', 'Slot Buffer')}
+                </Text>
+                <Text style={tw('text-xs font-bold text-slate-900 dark:text-white')}>
+                  {settings.bufferMinutes} {t('mobile.minutes_short')}
+                </Text>
+              </View>
             </View>
           </ScrollView>
 
@@ -229,6 +254,7 @@ export const BookingSettingsModal: React.FC<BookingSettingsModalProps> = ({
             </TouchableOpacity>
           </View>
         </View>
+        <AppModalToast visible={visible} />
       </View>
     </Modal>
   );

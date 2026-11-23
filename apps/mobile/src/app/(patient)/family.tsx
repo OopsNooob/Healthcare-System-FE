@@ -29,6 +29,7 @@ import {
   Check,
 } from 'lucide-react-native';
 import { tw, twInstance } from '@/tw';
+import { AppModalToast } from '@/components/ui/AppToast';
 import { useThemeContext } from '@/context/ThemeContext';
 import Toast from 'react-native-toast-message';
 
@@ -772,6 +773,7 @@ export default function FamilyCompanionScreen() {
               </Text>
             </TouchableOpacity>
           </View>
+          <AppModalToast visible={inviteModalVisible} />
         </KeyboardAvoidingView>
       </Modal>
 
@@ -928,6 +930,7 @@ export default function FamilyCompanionScreen() {
               </View>
             )}
           </View>
+          <AppModalToast visible={settingsModalVisible} />
         </View>
       </Modal>
     </SafeAreaView>

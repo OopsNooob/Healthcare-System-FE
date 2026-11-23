@@ -34,6 +34,7 @@ import { tw } from '@/tw';
 import { useThemeContext } from '@/context/ThemeContext';
 import { useSafeRouter } from '@/utils/useSafeRouter';
 import { extractApiErrorMessage } from '@/utils/apiError';
+import { evaluateConsultationAccess } from '@/utils/consultationAccess';
 import { Skeleton } from '@/components/ui/Skeleton';
 
 type RawRecord = Record<string, unknown>;
@@ -44,7 +45,11 @@ interface ChatThreadItem {
   patientId: string;
   patientName: string;
   avatarUrl?: string;
+  mode: string;
+  requestStatus: string;
   sessionStatus: string;
+  queueJoinedAt?: string;
+  calledAt?: string;
   scheduledStartAt: string;
   lastMessage: string;
   lastMessageAt: string;
@@ -150,7 +155,11 @@ export default function DoctorChatListScreen() {
           patientId: patient.id,
           patientName: patient.name,
           avatarUrl: patient.avatarUrl,
+          mode: String(c.mode ?? ''),
+          requestStatus: String(c.requestStatus ?? ''),
           sessionStatus: String(c.sessionStatus ?? 'scheduled'),
+          queueJoinedAt: typeof c.queueJoinedAt === 'string' ? c.queueJoinedAt : undefined,
+          calledAt: typeof c.calledAt === 'string' ? c.calledAt : undefined,
           scheduledStartAt: String(c.scheduledStartAt ?? c.createdAt ?? ''),
           lastMessage:
             latest?.content ||
@@ -290,11 +299,7 @@ export default function DoctorChatListScreen() {
     const q = searchQuery.trim().toLowerCase();
     return threads.filter((item) => {
       if (filter === 'online' && !item.isOnline) return false;
-      if (
-        filter === 'active' &&
-        item.sessionStatus !== 'waiting' &&
-        item.sessionStatus !== 'in_consultation'
-      ) {
+      if (filter === 'active' && !evaluateConsultationAccess(item).canChat) {
         return false;
       }
       if (!q) return true;
@@ -469,7 +474,7 @@ export default function DoctorChatListScreen() {
                   </Text>
                 </View>
 
-                {(item.sessionStatus === 'in_consultation' || item.sessionStatus === 'waiting') && (
+                {evaluateConsultationAccess(item).canVideoCall && (
                   <TouchableOpacity
                     onPress={() => router.push(`/(doctor)/video-call?consultationId=${item.consultationId}`)}
                     style={tw('p-2 rounded-xl bg-teal-50 dark:bg-teal-950/60')}

@@ -5,6 +5,7 @@ import { X, Calendar, Link2, CheckCircle2, Info, ArrowRight, RefreshCw, AlertCir
 import Toast from 'react-native-toast-message';
 import { mobileApi, normalizePaginatedList, type FeTypes } from '@repo/shared-hooks';
 import { tw, twInstance } from '@/tw';
+import { AppModalToast } from '@/components/ui/AppToast';
 import { useThemeContext } from '@/context/ThemeContext';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { extractApiErrorMessage } from '@/utils/apiError';
@@ -359,6 +360,7 @@ export const AppointmentTaskLinkModal: React.FC<AppointmentTaskLinkModalProps> =
             </TouchableOpacity>
           </View>
         </View>
+        <AppModalToast visible={visible} />
       </View>
     </Modal>
   );

@@ -25,6 +25,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import { mobileApi, normalizePaginatedList, useLogout, useSharedAuthStore } from '@repo/shared-hooks';
 import { tw, twInstance } from '@/tw';
+import { AppModalToast } from '@/components/ui/AppToast';
 import { useThemeContext } from '@/context/ThemeContext';
 import { useSafeRouter as useRouter } from '@/utils/useSafeRouter';
 import { Skeleton } from '@/components/ui/Skeleton';
@@ -417,6 +418,7 @@ export const PrivacyDataModal: React.FC<PrivacyDataModalProps> = ({ visible, onC
             </TouchableOpacity>
           </View>
         </View>
+        <AppModalToast visible={visible} />
       </View>
     </Modal>
   );

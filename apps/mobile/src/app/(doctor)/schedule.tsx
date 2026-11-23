@@ -96,10 +96,10 @@ export default function DoctorScheduleScreen() {
     timezone: 'Asia/Ho_Chi_Minh',
     bookingPolicy: 'instant',
     defaultDurationMinutes: 30,
-    bufferMinutes: 10,
+    bufferMinutes: 15,
     minNoticeMinutes: 60,
     cancellationDeadlineMinutes: 60,
-    checkInEarlyMinutes: 15,
+    checkInEarlyMinutes: 5,
     noShowAfterMinutes: 10,
   });
 
@@ -623,7 +623,6 @@ export default function DoctorScheduleScreen() {
                           ) : slot.status === 'blocked' ? (
                             <Text style={tw('text-xs text-amber-600 dark:text-amber-400 font-bold')}>
                               {t('mobile.slot_blocked_notice')}
-                              {slot.blockReason ? ` — ${slot.blockReason}` : ''}
                             </Text>
                           ) : slot.status === 'expired' ? (
                             <Text style={tw('text-xs text-slate-400 font-medium')}>
@@ -720,8 +719,20 @@ export default function DoctorScheduleScreen() {
         selectedDate={selectedDate}
         timezone={bookingSettings.timezone}
         defaultDurationMinutes={bookingSettings.defaultDurationMinutes}
+        minNoticeMinutes={bookingSettings.minNoticeMinutes}
+        onMinNoticeDetected={(minutes) =>
+          setBookingSettings((prev) =>
+            prev.minNoticeMinutes === minutes ? prev : { ...prev, minNoticeMinutes: minutes }
+          )
+        }
         editingSlot={editingSlot}
-        onSaved={() => void loadScheduleData(true)}
+        onSaved={(savedDate) => {
+          if (savedDate && savedDate !== selectedDate) {
+            setSelectedDate(savedDate);
+          } else {
+            void loadScheduleData(true);
+          }
+        }}
       />
 
       <CopyScheduleModal

@@ -33,18 +33,23 @@ import {
   Zap,
 } from 'lucide-react-native';
 import { tw, twInstance } from '@/tw';
+import { AppModalToast } from '@/components/ui/AppToast';
 import { useSafeRouter as useRouter } from '@/utils/useSafeRouter';
 import { useThemeContext } from '@/context/ThemeContext';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { extractApiErrorMessage } from '@/utils/apiError';
 import { bookingPolicyLabel, timezoneLabel } from '@/utils/bookingLabels';
+import { evaluateConsultationAccess } from '@/utils/consultationAccess';
 import { DoctorReviewsModal } from '@/components/modals';
 import {
+  connectConsultationsSocket,
+  consultationsSocket,
   generateIdempotencyKey,
   mobileApi,
   normalizePaginatedList,
   presenceSocket,
   SOCKET_EVENTS,
+  useSharedAuthStore,
   type FeTypes,
 } from '@repo/shared-hooks';
 
@@ -60,6 +65,7 @@ interface DoctorItem {
   avatarUrl: string;
   lastVisit: string;
   status: DoctorRelationStatus;
+  chatConsultationId?: string;
   latestConsultationId?: string;
   experienceYears: number;
   email: string;
@@ -93,6 +99,7 @@ export default function MyDoctorsScreen() {
   const dateLocale = t('mobile.date_locale', 'vi-VN');
 
   const router = useRouter();
+  const token = useSharedAuthStore((s) => s.token);
   const params = useLocalSearchParams<{ search?: string }>();
   const [searchQuery, setSearchQuery] = useState(params.search || '');
   const [loading, setLoading] = useState(true);
@@ -140,7 +147,12 @@ export default function MyDoctorsScreen() {
 
         const consultationMap = new Map<
           string,
-          { status: DoctorRelationStatus; latestConsultationId?: string; lastCompletedAt?: string }
+          {
+            status: DoctorRelationStatus;
+            chatConsultationId?: string;
+            latestConsultationId?: string;
+            lastCompletedAt?: string;
+          }
         >();
         const consultItems = normalizePaginatedList<Record<string, unknown>>(consultationsRes).items;
         for (const c of consultItems) {
@@ -154,6 +166,13 @@ export default function MyDoctorsScreen() {
           const reqStatus = String(c.requestStatus ?? '');
           const sesStatus = String(c.sessionStatus ?? '');
           const cId = String(c._id ?? c.id ?? '');
+          const access = evaluateConsultationAccess({
+            mode: String(c.mode ?? ''),
+            requestStatus: reqStatus,
+            sessionStatus: sesStatus,
+            queueJoinedAt: typeof c.queueJoinedAt === 'string' ? c.queueJoinedAt : null,
+            calledAt: typeof c.calledAt === 'string' ? c.calledAt : null,
+          });
           const prev = consultationMap.get(docId) ?? { status: 'unrequested' as DoctorRelationStatus };
 
           let nextStatus = prev.status;
@@ -170,6 +189,7 @@ export default function MyDoctorsScreen() {
 
           consultationMap.set(docId, {
             status: nextStatus,
+            chatConsultationId: prev.chatConsultationId || (access.canChat && cId ? cId : undefined),
             latestConsultationId: prev.latestConsultationId || cId || undefined,
             lastCompletedAt,
           });
@@ -214,6 +234,7 @@ export default function MyDoctorsScreen() {
             avatarUrl: String(doc.avatarUrl ?? ''),
             lastVisit,
             status: rel?.status ?? 'unrequested',
+            chatConsultationId: rel?.chatConsultationId,
             latestConsultationId: rel?.latestConsultationId,
             experienceYears: Number(dp.experienceYears ?? 0),
             email: String(doc.email ?? ''),
@@ -259,10 +280,20 @@ export default function MyDoctorsScreen() {
     };
 
     presenceSocket.on(SOCKET_EVENTS.USER_STATUS_CHANGED, onStatusChanged);
+    if (token) {
+      void connectConsultationsSocket(token);
+    }
+    const onConsultationUpdate = () => {
+      void loadDoctors(true, searchQuery);
+    };
+    consultationsSocket.on(SOCKET_EVENTS.CONSULTATIONS_CHANGED, onConsultationUpdate);
+    consultationsSocket.on(SOCKET_EVENTS.QUEUE_CALLED, onConsultationUpdate);
     return () => {
       presenceSocket.off(SOCKET_EVENTS.USER_STATUS_CHANGED, onStatusChanged);
+      consultationsSocket.off(SOCKET_EVENTS.CONSULTATIONS_CHANGED, onConsultationUpdate);
+      consultationsSocket.off(SOCKET_EVENTS.QUEUE_CALLED, onConsultationUpdate);
     };
-  }, []);
+  }, [loadDoctors, searchQuery, token]);
 
   const loadDoctorSlots = useCallback(
     async (doctorId: string) => {
@@ -692,18 +723,18 @@ export default function MyDoctorsScreen() {
                   <View style={tw('flex-row gap-2 shrink-0')}>
                     {doc.status === 'accepted' && (
                       <>
-                        <TouchableOpacity
-                          style={tw('w-10 h-10 rounded-full bg-brand/10 items-center justify-center')}
-                          onPress={() =>
-                            router.push(
-                              doc.latestConsultationId
-                                ? `/(patient)/doctor-chat?consultationId=${doc.latestConsultationId}&doctorId=${doc.id}`
-                                : `/(patient)/doctor-chat?doctorId=${doc.id}`,
-                            )
-                          }
-                        >
-                          <MessageCircle color="#a3e635" size={20} />
-                        </TouchableOpacity>
+                        {Boolean(doc.chatConsultationId) && (
+                          <TouchableOpacity
+                            style={tw('w-10 h-10 rounded-full bg-brand/10 items-center justify-center')}
+                            onPress={() =>
+                              router.push(
+                                `/(patient)/doctor-chat?consultationId=${doc.chatConsultationId}&doctorId=${doc.id}`,
+                              )
+                            }
+                          >
+                            <MessageCircle color="#a3e635" size={20} />
+                          </TouchableOpacity>
+                        )}
                         <TouchableOpacity
                           style={tw(
                             'px-3.5 py-2 rounded-full bg-brand items-center justify-center flex-row',
@@ -980,6 +1011,7 @@ export default function MyDoctorsScreen() {
               </View>
             </ScrollView>
           )}
+          <AppModalToast visible={profileModalVisible} />
         </SafeAreaView>
       </Modal>
 
@@ -1255,6 +1287,7 @@ export default function MyDoctorsScreen() {
               </View>
             </View>
           )}
+          <AppModalToast visible={requestModalVisible} />
         </KeyboardAvoidingView>
       </Modal>
 

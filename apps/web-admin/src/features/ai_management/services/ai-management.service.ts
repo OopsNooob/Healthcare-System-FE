@@ -2,32 +2,52 @@ import {
   normalizePaginatedList,
   webAdminApi,
   type AiDocumentChunksUpdateChunkRequest,
-  type AiDocumentsUpdateDocumentRequest,
+  type KnowledgeCandidateStatus,
+  type KnowledgeDocumentReviewStatus,
+  type KnowledgeDocumentStatus,
+  type KnowledgeDocumentUpdateRequest,
   type PaginatedResult,
+  type ProposeKnowledgeCandidateRequest,
 } from "@/lib/api";
 
-export type DocumentStatus = "processing" | "error" | "active" | "inactive";
+export type DocumentStatus = KnowledgeDocumentStatus;
 export type DocumentType = "pdf" | "doc" | "docx" | "txt";
-export type DocumentReviewStatus =
-  | "pending_review"
-  | "approved"
-  | "rejected"
-  | "archived";
+export type DocumentReviewStatus = KnowledgeDocumentReviewStatus;
+export type CandidateStatus = KnowledgeCandidateStatus;
 
 export interface DocumentItem {
   id: string;
   title: string;
-  fileUrl: string;
   fileType: DocumentType;
-  publicId?: string;
   status: DocumentStatus;
   reviewStatus: DocumentReviewStatus;
+  documentVersion: number;
+  parentDocumentId?: string | null;
+  scope: string;
+  knowledgeLanguage: string;
+  source: string;
   uploadedBy: string;
   validUntil?: string;
+  reviewedBy?: string | null;
+  reviewedAt?: string;
+  reviewReason?: string | null;
   approvedBy?: string;
   approvedAt?: string;
   createdAt: string;
+  updatedAt?: string;
   isEnabled: boolean;
+}
+
+export interface KnowledgeCandidateItem {
+  id: string;
+  pmid: string;
+  title: string;
+  sourceUrl: string;
+  status: CandidateStatus;
+  reviewedAt?: string;
+  reviewReason?: string | null;
+  createdAt: string;
+  updatedAt?: string;
 }
 
 export interface DocumentChunkItem {
@@ -74,14 +94,16 @@ function normalizeDocType(value: unknown): DocumentType {
 
 function normalizeDocStatus(value: unknown): DocumentStatus {
   if (
+    value === "pending_ingestion" ||
     value === "processing" ||
-    value === "error" ||
+    value === "ready_for_activation" ||
     value === "active" ||
+    value === "error" ||
     value === "inactive"
   ) {
     return value;
   }
-  return "processing";
+  return "pending_ingestion";
 }
 
 function normalizeReviewStatus(
@@ -96,9 +118,40 @@ function normalizeReviewStatus(
   ) {
     return value;
   }
-  if (docStatus === "active") return "approved";
+  if (docStatus === "active" || docStatus === "ready_for_activation") {
+    return "approved";
+  }
   if (docStatus === "inactive") return "archived";
   return "pending_review";
+}
+
+function normalizeCandidateStatus(value: unknown): CandidateStatus {
+  if (value === "promoted" || value === "rejected" || value === "pending_review") {
+    return value;
+  }
+  return "pending_review";
+}
+
+function extractActorLabel(value: unknown): string {
+  if (typeof value === "string" && value.trim()) return value.trim();
+  if (value && typeof value === "object") {
+    const obj = value as RawRecord;
+    if (typeof obj.fullName === "string" && obj.fullName.trim()) {
+      return obj.fullName.trim();
+    }
+    if (typeof obj.email === "string" && obj.email.trim()) {
+      return obj.email.trim();
+    }
+    if (typeof obj._id === "string" && obj._id.trim()) {
+      return obj._id.trim();
+    }
+  }
+  return "-";
+}
+
+function extractOptionalActorLabel(value: unknown): string | undefined {
+  const label = extractActorLabel(value);
+  return label === "-" ? undefined : label;
 }
 
 function mapDocToUi(raw: RawRecord, locale = "vi-VN"): DocumentItem | null {
@@ -111,16 +164,6 @@ function mapDocToUi(raw: RawRecord, locale = "vi-VN"): DocumentItem | null {
   if (!id) return null;
 
   const status = normalizeDocStatus(raw.status);
-  const uploadedBy =
-    typeof raw.uploadedBy === "string"
-      ? raw.uploadedBy
-      : raw.uploadedBy && typeof raw.uploadedBy === "object"
-        ? String(
-            (raw.uploadedBy as RawRecord).fullName ||
-              (raw.uploadedBy as RawRecord)._id ||
-              "-",
-          )
-        : "-";
 
   return {
     id,
@@ -128,20 +171,92 @@ function mapDocToUi(raw: RawRecord, locale = "vi-VN"): DocumentItem | null {
       typeof raw.title === "string" && raw.title.trim()
         ? raw.title
         : "Untitled document",
-    fileUrl: typeof raw.fileUrl === "string" ? raw.fileUrl : "",
     fileType: normalizeDocType(raw.fileType),
-    publicId: typeof raw.publicId === "string" ? raw.publicId : undefined,
     status,
     reviewStatus: normalizeReviewStatus(raw.reviewStatus, status),
-    uploadedBy,
+    documentVersion:
+      typeof raw.documentVersion === "number" && raw.documentVersion > 0
+        ? raw.documentVersion
+        : 1,
+    parentDocumentId:
+      typeof raw.parentDocumentId === "string"
+        ? raw.parentDocumentId
+        : raw.parentDocumentId === null
+          ? null
+          : undefined,
+    scope:
+      typeof raw.scope === "string" && raw.scope.trim() ? raw.scope : "global",
+    knowledgeLanguage:
+      typeof raw.knowledgeLanguage === "string" && raw.knowledgeLanguage.trim()
+        ? raw.knowledgeLanguage
+        : "vi",
+    source:
+      typeof raw.source === "string" && raw.source.trim()
+        ? raw.source
+        : "upload",
+    uploadedBy: extractActorLabel(raw.uploadedBy),
     validUntil: typeof raw.validUntil === "string" ? raw.validUntil : undefined,
-    approvedBy: typeof raw.approvedBy === "string" ? raw.approvedBy : undefined,
+    reviewedBy: extractOptionalActorLabel(raw.reviewedBy) ?? null,
+    reviewedAt:
+      typeof raw.reviewedAt === "string"
+        ? formatDisplayDate(raw.reviewedAt, locale)
+        : undefined,
+    reviewReason:
+      typeof raw.reviewReason === "string"
+        ? raw.reviewReason
+        : raw.reviewReason === null
+          ? null
+          : undefined,
+    approvedBy: extractOptionalActorLabel(raw.approvedBy),
     approvedAt:
       typeof raw.approvedAt === "string"
         ? formatDisplayDate(raw.approvedAt, locale)
         : undefined,
     createdAt: formatDisplayDate(raw.createdAt, locale),
+    updatedAt:
+      typeof raw.updatedAt === "string"
+        ? formatDisplayDate(raw.updatedAt, locale)
+        : undefined,
     isEnabled: status === "active",
+  };
+}
+
+function mapCandidateToUi(
+  raw: RawRecord,
+  locale = "vi-VN",
+): KnowledgeCandidateItem | null {
+  const id =
+    typeof raw._id === "string"
+      ? raw._id
+      : typeof raw.id === "string"
+        ? raw.id
+        : "";
+  if (!id) return null;
+
+  return {
+    id,
+    pmid: typeof raw.pmid === "string" ? raw.pmid : "",
+    title:
+      typeof raw.title === "string" && raw.title.trim()
+        ? raw.title
+        : "Untitled PubMed candidate",
+    sourceUrl: typeof raw.sourceUrl === "string" ? raw.sourceUrl : "",
+    status: normalizeCandidateStatus(raw.status),
+    reviewedAt:
+      typeof raw.reviewedAt === "string"
+        ? formatDisplayDate(raw.reviewedAt, locale)
+        : undefined,
+    reviewReason:
+      typeof raw.reviewReason === "string"
+        ? raw.reviewReason
+        : raw.reviewReason === null
+          ? null
+          : undefined,
+    createdAt: formatDisplayDate(raw.createdAt, locale),
+    updatedAt:
+      typeof raw.updatedAt === "string"
+        ? formatDisplayDate(raw.updatedAt, locale)
+        : undefined,
   };
 }
 
@@ -254,7 +369,7 @@ export async function createAiDocument(
 
 export async function updateAiDocument(
   id: string,
-  body: AiDocumentsUpdateDocumentRequest["body"],
+  body: KnowledgeDocumentUpdateRequest,
 ) {
   return webAdminApi.aiDocumentsUpdateDocument({
     params: { id },
@@ -262,30 +377,94 @@ export async function updateAiDocument(
   });
 }
 
-export async function toggleDocumentStatus(
-  id: string,
-  status: DocumentStatus,
-) {
-  return updateAiDocument(id, { status });
+export async function approveAiDocument(id: string) {
+  return webAdminApi.aiDocumentsApprove({ params: { id } });
 }
 
-export async function indexAiDocument(id: string, totalChunks = 0) {
-  return webAdminApi.aiDocumentsIndexDocument({
+export async function rejectAiDocument(id: string, reason?: string) {
+  const normalizedReason = reason?.trim();
+  return webAdminApi.aiDocumentsReject({
     params: { id },
-    body: { totalChunks },
-  } as unknown as Parameters<typeof webAdminApi.aiDocumentsIndexDocument>[0]);
+    body: normalizedReason ? { reason: normalizedReason } : {},
+  });
+}
+
+export async function activateAiDocument(id: string) {
+  return webAdminApi.aiDocumentsActivate({ params: { id } });
+}
+
+export async function replaceAiDocumentVersion(
+  id: string,
+  file: File,
+  title?: string,
+  validUntil?: string | null,
+) {
+  const formData = new FormData();
+  formData.append("file", file);
+  const normalizedTitle = title?.trim();
+  if (normalizedTitle) {
+    formData.append("title", normalizedTitle);
+  }
+  if (validUntil) {
+    formData.append("validUntil", validUntil);
+  }
+  return webAdminApi.aiDocumentsReplaceVersion({
+    params: { id },
+    body: formData,
+  });
 }
 
 export async function archiveAiDocument(id: string) {
   return webAdminApi.aiDocumentsArchiveDocument({ params: { id } });
 }
 
-export async function ragIngestAiDocument(id: string) {
-  return webAdminApi.aiDocumentsRagIngesting({ params: { id } });
-}
-
 export async function deleteDocument(id: string) {
   return webAdminApi.aiDocumentsDeleteDocument({ params: { id } });
+}
+
+export async function getKnowledgeCandidates(
+  locale = "vi-VN",
+): Promise<KnowledgeCandidateItem[]> {
+  const raw = await webAdminApi.aiKnowledgeCandidatesList();
+  const list = Array.isArray(raw)
+    ? (raw as unknown as RawRecord[])
+    : raw &&
+        typeof raw === "object" &&
+        "data" in raw &&
+        Array.isArray((raw as RawRecord).data)
+      ? ((raw as RawRecord).data as RawRecord[])
+      : [];
+  return list
+    .map((item) => mapCandidateToUi(item, locale))
+    .filter((item): item is KnowledgeCandidateItem => item !== null);
+}
+
+export async function proposeKnowledgeCandidate(
+  input: ProposeKnowledgeCandidateRequest,
+  locale = "vi-VN",
+): Promise<KnowledgeCandidateItem | null> {
+  const raw: unknown = await webAdminApi.aiKnowledgeCandidatesPropose({
+    pmid: input.pmid.trim(),
+    title: input.title.trim(),
+    sourceUrl: input.sourceUrl.trim(),
+  });
+  const record =
+    raw && typeof raw === "object" && "data" in raw && (raw as RawRecord).data
+      ? ((raw as RawRecord).data as RawRecord)
+      : (raw as RawRecord);
+  return mapCandidateToUi(record, locale);
+}
+
+export async function promoteKnowledgeCandidate(id: string) {
+  return webAdminApi.aiKnowledgeCandidatesPromote({ params: { id } });
+}
+
+export async function rejectKnowledgeCandidate(id: string, reason?: string) {
+  const normalizedReason = reason?.trim();
+  return webAdminApi.aiKnowledgeCandidatesReject({
+    params: { id },
+    body: normalizedReason ? { reason: normalizedReason } : {},
+  });
 }
 
 export async function getDocumentChunks(params: {

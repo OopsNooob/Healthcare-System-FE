@@ -14,6 +14,7 @@ import { ShieldAlert, Trash2 } from 'lucide-react-native';
 import Toast from 'react-native-toast-message';
 import { mobileApi } from '@repo/shared-hooks';
 import { tw, twInstance } from '@/tw';
+import { AppModalToast } from '@/components/ui/AppToast';
 import { useThemeContext } from '@/context/ThemeContext';
 import { extractApiErrorMessage } from '@/utils/apiError';
 
@@ -198,6 +199,7 @@ export const VoidDataModal: React.FC<VoidDataModalProps> = ({
             </TouchableOpacity>
           </View>
         </View>
+        <AppModalToast visible={visible} />
       </KeyboardAvoidingView>
     </Modal>
   );

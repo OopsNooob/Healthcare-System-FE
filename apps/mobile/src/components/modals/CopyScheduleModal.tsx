@@ -5,6 +5,7 @@ import { Calendar, Copy, X } from 'lucide-react-native';
 import Toast from 'react-native-toast-message';
 import { generateIdempotencyKey, mobileApi } from '@repo/shared-hooks';
 import { tw, twInstance } from '@/tw';
+import { AppModalToast } from '@/components/ui/AppToast';
 import { extractApiErrorMessage } from '@/utils/apiError';
 
 export interface CopyableSlotItem {
@@ -186,6 +187,7 @@ export const CopyScheduleModal: React.FC<CopyScheduleModalProps> = ({
             </TouchableOpacity>
           </View>
         </View>
+        <AppModalToast visible={visible} />
       </View>
     </Modal>
   );

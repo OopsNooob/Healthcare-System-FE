@@ -1,15 +1,25 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Image, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams } from 'expo-router';
-import { MessageCircle, Mic, MicOff, PhoneOff, Video, VideoOff } from 'lucide-react-native';
+import {
+  ArrowLeft,
+  Lock,
+  MessageCircle,
+  Mic,
+  MicOff,
+  PhoneOff,
+  Video,
+  VideoOff,
+} from 'lucide-react-native';
 import Toast from 'react-native-toast-message';
 import { tw } from '@/tw';
 import { useThemeContext } from '@/context/ThemeContext';
 import { useSafeRouter as useRouter } from '@/utils/useSafeRouter';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { extractApiErrorMessage } from '@/utils/apiError';
+import { evaluateConsultationAccess } from '@/utils/consultationAccess';
 import {
   connectConsultationsSocket,
   consultationsSocket,
@@ -43,129 +53,229 @@ export default function PatientVideoCallScreen() {
   const [isMuted, setIsMuted] = useState(false);
   const [isCameraOff, setIsCameraOff] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [isLoaded, setIsLoaded] = useState(false);
   const [doctorId, setDoctorId] = useState(params.doctorId || '');
   const [doctorName, setDoctorName] = useState('');
   const [doctorAvatar, setDoctorAvatar] = useState('');
-  const [sessionStatus, setSessionStatus] = useState<string>('waiting');
+  const [mode, setMode] = useState<string>('');
+  const [requestStatus, setRequestStatus] = useState<string>('');
+  const [sessionStatus, setSessionStatus] = useState<string>('');
+  const [queueJoinedAt, setQueueJoinedAt] = useState<string | null>(null);
+  const [calledAt, setCalledAt] = useState<string | null>(null);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
 
-  useEffect(() => {
-    let active = true;
-    const loadSession = async () => {
-      if (!params.consultationId) {
-        setLoading(false);
-        return;
+  const loadSession = useCallback(async () => {
+    if (!params.consultationId) {
+      setLoading(false);
+      return;
+    }
+    try {
+      const res = await mobileApi.consultationsFindOne({
+        params: { id: params.consultationId },
+      });
+      const data = (res?.data ?? {}) as Record<string, unknown>;
+      const resolvedMode = String(data.mode ?? '');
+      const resolvedReq = String(data.requestStatus ?? '');
+      const resolvedSes = String(data.sessionStatus ?? '');
+      const resolvedQueueJoined =
+        typeof data.queueJoinedAt === 'string' ? data.queueJoinedAt : null;
+      const resolvedCalledAt = typeof data.calledAt === 'string' ? data.calledAt : null;
+
+      setMode(resolvedMode);
+      setRequestStatus(resolvedReq);
+      setSessionStatus(resolvedSes);
+      setQueueJoinedAt(resolvedQueueJoined);
+      setCalledAt(resolvedCalledAt);
+      setIsLoaded(true);
+
+      const startedRaw = data.callStartedAt ?? data.sessionStartedAt;
+      if (startedRaw) {
+        const diff = Math.max(
+          0,
+          Math.floor((Date.now() - new Date(String(startedRaw)).getTime()) / 1000),
+        );
+        setElapsedSeconds(Number.isFinite(diff) ? diff : 0);
       }
-      try {
-        const res = await mobileApi.consultationsFindOne({
-          params: { id: params.consultationId },
-        });
-        const data = (res?.data ?? {}) as Record<string, unknown>;
-        if (active) {
-          setSessionStatus(String(data.sessionStatus ?? 'waiting'));
-          const startedRaw = data.callStartedAt ?? data.sessionStartedAt;
-          if (startedRaw) {
-            const diff = Math.max(
-              0,
-              Math.floor((Date.now() - new Date(String(startedRaw)).getTime()) / 1000),
-            );
-            setElapsedSeconds(Number.isFinite(diff) ? diff : 0);
+
+      const docRaw = data.doctorId;
+      let docIdStr = params.doctorId || '';
+      let resolvedName = '';
+      if (docRaw && typeof docRaw === 'object') {
+        const dObj = docRaw as Record<string, unknown>;
+        docIdStr = String(dObj._id ?? dObj.id ?? docIdStr);
+        resolvedName = String(dObj.fullName ?? '');
+        setDoctorName(resolvedName);
+        setDoctorAvatar(String(dObj.avatarUrl ?? ''));
+      } else {
+        docIdStr = String(docRaw ?? docIdStr);
+      }
+
+      if (docIdStr) {
+        setDoctorId(docIdStr);
+        if (!resolvedName) {
+          const docUser = (await mobileApi
+            .usersFindOne({ params: { id: docIdStr } })
+            .catch(() => null)) as unknown as Record<string, unknown> | null;
+          if (docUser) {
+            setDoctorName(String(docUser.fullName ?? ''));
+            setDoctorAvatar(String(docUser.avatarUrl ?? ''));
           }
         }
+      }
 
-        const docRaw = data.doctorId;
-        let docIdStr = params.doctorId || '';
-        if (docRaw && typeof docRaw === 'object') {
-          const dObj = docRaw as Record<string, unknown>;
-          docIdStr = String(dObj._id ?? dObj.id ?? docIdStr);
-          if (active) {
-            setDoctorName(String(dObj.fullName ?? ''));
-            setDoctorAvatar(String(dObj.avatarUrl ?? ''));
-          }
-        } else {
-          docIdStr = String(docRaw ?? docIdStr);
-        }
-
-        if (docIdStr) {
-          if (active) setDoctorId(docIdStr);
-          if (!doctorName) {
-            const docUser = (await mobileApi
-              .usersFindOne({ params: { id: docIdStr } })
-              .catch(() => null)) as unknown as Record<string, unknown> | null;
-            if (docUser && active) {
-              setDoctorName(String(docUser.fullName ?? ''));
-              setDoctorAvatar(String(docUser.avatarUrl ?? ''));
-            }
-          }
-        }
-
+      const accessCheck = evaluateConsultationAccess({
+        mode: resolvedMode,
+        requestStatus: resolvedReq,
+        sessionStatus: resolvedSes,
+        queueJoinedAt: resolvedQueueJoined,
+        calledAt: resolvedCalledAt,
+      });
+      if (accessCheck.canVideoCall && accessCheck.isWaiting) {
         await mobileApi
           .consultationsRecordWaitingRoomPresence({ params: { id: params.consultationId } })
           .catch(() => null);
-      } catch (err) {
-        if (active) {
-          Toast.show({
-            type: 'error',
-            text1: t('mobile.error_generic', 'Unable to join consultation'),
-            text2: extractApiErrorMessage(err),
-          });
-        }
-      } finally {
-        if (active) setLoading(false);
       }
-    };
-    void loadSession();
-    return () => {
-      active = false;
-    };
-  }, [doctorName, params.consultationId, params.doctorId, t]);
+    } catch (err) {
+      Toast.show({
+        type: 'error',
+        text1: t('mobile.error_generic', 'Unable to join consultation'),
+        text2: extractApiErrorMessage(err),
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [params.consultationId, params.doctorId, t]);
 
   useEffect(() => {
+    void loadSession();
+  }, [loadSession]);
+
+  const access = evaluateConsultationAccess({
+    mode,
+    requestStatus,
+    sessionStatus,
+    queueJoinedAt,
+    calledAt,
+  });
+  const isVideoAllowed = isLoaded && access.canVideoCall;
+
+  useEffect(() => {
+    if (loading || !isVideoAllowed) return;
     const interval = setInterval(() => {
       setElapsedSeconds((prev) => prev + 1);
     }, 1000);
     return () => clearInterval(interval);
-  }, []);
+  }, [isVideoAllowed, loading]);
 
   useEffect(() => {
     if (!params.consultationId) return;
     if (token) {
-      connectConsultationsSocket(token);
+      void connectConsultationsSocket(token);
     }
 
     const heartbeatInterval = setInterval(() => {
-      void mobileApi
-        .consultationsRecordWaitingRoomPresence({
-          params: { id: params.consultationId! },
-        })
-        .catch(() => null);
-      consultationsSocket.emit(SOCKET_EVENTS.CONSULTATION_HEARTBEAT, {
-        consultationId: params.consultationId!,
-      });
+      if (loading || !isVideoAllowed) return;
+      if (access.isWaiting) {
+        void mobileApi
+          .consultationsRecordWaitingRoomPresence({
+            params: { id: params.consultationId! },
+          })
+          .catch(() => null);
+      }
+      if (access.isInConsultation) {
+        consultationsSocket.emit(SOCKET_EVENTS.CONSULTATION_HEARTBEAT, {
+          consultationId: params.consultationId!,
+        });
+      }
     }, 25_000);
 
     const onConsultationChanged = (payload: FeTypes.RealtimeConsultationChanged) => {
-      if (payload?.consultationId !== params.consultationId) return;
-      if (payload.action === 'started') {
-        setSessionStatus('in_consultation');
-      } else if (payload.action === 'completed' || payload.action === 'cancelled') {
+      if (payload?.consultationId && payload.consultationId !== params.consultationId) return;
+      if (
+        payload?.action === 'completed' ||
+        payload?.action === 'cancelled' ||
+        payload?.action === 'no_show'
+      ) {
         Toast.show({
           type: 'info',
           text1: t('mobile.consultation_ended', 'Consultation ended'),
         });
         router.back('/(patient)/appointments');
+        return;
       }
+      void loadSession();
+    };
+
+    const onQueueCalled = () => {
+      void loadSession();
     };
 
     consultationsSocket.on(SOCKET_EVENTS.CONSULTATIONS_CHANGED, onConsultationChanged);
+    consultationsSocket.on(SOCKET_EVENTS.QUEUE_CALLED, onQueueCalled);
     return () => {
       clearInterval(heartbeatInterval);
       consultationsSocket.off(SOCKET_EVENTS.CONSULTATIONS_CHANGED, onConsultationChanged);
+      consultationsSocket.off(SOCKET_EVENTS.QUEUE_CALLED, onQueueCalled);
     };
-  }, [params.consultationId, router, t, token]);
+  }, [
+    access.isInConsultation,
+    access.isWaiting,
+    isVideoAllowed,
+    loadSession,
+    loading,
+    params.consultationId,
+    router,
+    t,
+    token,
+  ]);
 
   const displayDoctorName = doctorName || t('mobile.specialist_doctor', 'Specialist Doctor');
   const patientName = authUser?.name || t('mobile.you', 'You');
+  const lockedReasonMessage =
+    access.chatLockReason === 'pending'
+      ? t(
+          'mobile.chat_locked_pending_patient',
+          'Waiting for the doctor to accept your request. Chat and video call unlock once accepted.',
+        )
+      : access.chatLockReason === 'scheduled_not_checked_in'
+        ? t(
+            'mobile.chat_locked_scheduled_not_checked_in_patient',
+            'You have not checked in for this appointment yet. Check in during the window and wait for the doctor to call you to unlock chat and video.',
+          )
+        : access.chatLockReason === 'scheduled_waiting_call'
+          ? t(
+              'mobile.chat_locked_scheduled_waiting_call_patient',
+              'You are in the waiting queue. Chat and video call will unlock once the doctor calls your turn.',
+            )
+          : t(
+              'mobile.consultation_chat_readonly',
+              'This consultation is closed. History is read-only.',
+            );
+
+  if (!loading && (!params.consultationId || (isLoaded && !isVideoAllowed))) {
+    return (
+      <SafeAreaView style={tw('flex-1 bg-slate-950 items-center justify-center px-8')}>
+        <View style={tw('w-16 h-16 rounded-full bg-amber-500/20 border border-amber-500/40 items-center justify-center')}>
+          <Lock size={28} color="#fbbf24" />
+        </View>
+        <Text style={tw('text-lg font-bold text-white mt-4 text-center')}>
+          {t('mobile.video_room_locked_title', 'Video room not ready yet')}
+        </Text>
+        <Text style={tw('text-xs text-slate-300 mt-2 text-center leading-5')}>
+          {!params.consultationId
+            ? t('mobile.missing_consultation_id', 'Missing consultation identifier')
+            : lockedReasonMessage}
+        </Text>
+        <TouchableOpacity
+          onPress={() => router.back('/(patient)/appointments')}
+          style={tw('mt-6 px-5 py-2.5 rounded-xl bg-brand flex-row items-center gap-2')}
+        >
+          <ArrowLeft size={16} color="#0f172a" />
+          <Text style={tw('text-sm font-bold text-slate-900')}>{t('mobile.back', 'Back')}</Text>
+        </TouchableOpacity>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <View style={tw('flex-1 bg-slate-950')}>

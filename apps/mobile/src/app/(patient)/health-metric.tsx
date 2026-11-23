@@ -41,6 +41,7 @@ import {
   type MetricsTypes,
 } from '@repo/shared-hooks';
 import { tw, twInstance } from '@/tw';
+import { AppModalToast } from '@/components/ui/AppToast';
 import { useSafeRouter as useRouter } from '@/utils/useSafeRouter';
 import { useThemeContext } from '@/context/ThemeContext';
 import { Skeleton } from '@/components/ui/Skeleton';
@@ -710,6 +711,7 @@ export default function HealthMetricScreen() {
               </TouchableOpacity>
             </View>
           </View>
+          <AppModalToast visible={modalVisible} />
         </KeyboardAvoidingView>
       </Modal>
 
@@ -780,6 +782,7 @@ export default function HealthMetricScreen() {
               </TouchableOpacity>
             </View>
           </View>
+          <AppModalToast visible={alertVisible} />
         </View>
       </Modal>
     </SafeAreaView>

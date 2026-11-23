@@ -80,6 +80,7 @@ export { client };
 export * from './gen/index';
 export * from './gen/@tanstack/react-query.gen';
 export * from './pagination';
+export * from './api-error-catalog';
 export * from './fe-api-sdk';
 export * from './fe-api-types';
 export * as FeTypes from './fe-api-types';

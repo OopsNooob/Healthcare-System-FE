@@ -1739,7 +1739,7 @@ export interface ConsultationsFindAllResponse {
   expectedDurationMinutes: number;
   estimatedWaitMinutes?: number;
   overtimeStartedAt?: string;
-  bookingSettingsSnapshot?: Record<string, unknown>;
+  bookingSettingsSnapshot?: BookingSettingsSnapshot;
   scheduledBookingKey?: string;
   scheduledBookingRequestHash?: string;
   lastRescheduleKey?: string;
@@ -1831,7 +1831,7 @@ export interface ConsultationsUpcomingResponse {
   expectedDurationMinutes: number;
   estimatedWaitMinutes?: number;
   overtimeStartedAt?: string;
-  bookingSettingsSnapshot?: Record<string, unknown>;
+  bookingSettingsSnapshot?: BookingSettingsSnapshot;
   scheduledBookingKey?: string;
   scheduledBookingRequestHash?: string;
   lastRescheduleKey?: string;
@@ -3328,7 +3328,7 @@ export interface AdminGetAllConsultationsResponse {
   expectedDurationMinutes: number;
   estimatedWaitMinutes?: number;
   overtimeStartedAt?: string;
-  bookingSettingsSnapshot?: Record<string, unknown>;
+  bookingSettingsSnapshot?: BookingSettingsSnapshot;
   scheduledBookingKey?: string;
   scheduledBookingRequestHash?: string;
   lastRescheduleKey?: string;
@@ -3403,7 +3403,7 @@ export interface AdminGetConsultationByIdResponse {
   expectedDurationMinutes: number;
   estimatedWaitMinutes?: number;
   overtimeStartedAt?: string;
-  bookingSettingsSnapshot?: Record<string, unknown>;
+  bookingSettingsSnapshot?: BookingSettingsSnapshot;
   scheduledBookingKey?: string;
   scheduledBookingRequestHash?: string;
   lastRescheduleKey?: string;
@@ -3569,10 +3569,14 @@ export interface AiAssistantSendMessageResponse {
   messageCount: number;
   groundedByRag: boolean;
   citations: Array<{ source: string;
-  chunkId: string;
-  documentId: string;
-  score: number;
+  title?: string;
   excerpt: string;
+  documentVersion?: number;
+  pageNumber?: number | null;
+  sectionTitle?: string | null;
+  chunkId?: string;
+  documentId?: string;
+  score?: number;
   }>;
   confidence: number;
   };
@@ -4034,7 +4038,7 @@ export interface AiDocumentsGetAllDocumentsRequest {
   query: { page?: number;
   limit?: number;
   sortOrder?: -1 | 1;
-  status?: "processing" | "active" | "error" | "inactive";
+  status?: KnowledgeDocumentStatus;
   search?: string;
   sortBy?: string;
   };
@@ -4834,7 +4838,7 @@ export interface CareEnrollmentDetailRequest {
 /** GET /api/v1/care-enrollments/{id} — response thành công theo return type thực tế. */
 export interface CareEnrollmentDetailResponse {
   id: string;
-  revision?: number;
+  revision: number;
   program: { id: string;
   programCode: string;
   version: number;
@@ -5895,7 +5899,7 @@ export interface Da2CareIdentitySummary {
 
 export interface Da2CareEnrollmentSummary {
   id: string;
-  revision?: number;
+  revision: number;
   program: Da2CareProgramSummary;
   status: "pending" | "active" | "paused" | "completed" | "cancelled";
   patient?: Da2CareIdentitySummary;
@@ -6054,4 +6058,128 @@ export interface Da2CareReportExport {
   download?: { url: string; expiresAt: Da2IsoDateTime };
   failureReasonCode?: string;
   replayed?: boolean;
+}
+
+/** AI knowledge-document contract exposed to the frontend. */
+export type KnowledgeDocumentStatus =
+  | 'pending_ingestion'
+  | 'processing'
+  | 'ready_for_activation'
+  | 'active'
+  | 'error'
+  | 'inactive';
+
+export type KnowledgeDocumentReviewStatus =
+  | 'pending_review'
+  | 'approved'
+  | 'rejected'
+  | 'archived';
+
+export interface KnowledgeDocument {
+  _id: string;
+  title: string;
+  fileType: string;
+  status: KnowledgeDocumentStatus;
+  reviewStatus: KnowledgeDocumentReviewStatus;
+  documentVersion: number;
+  parentDocumentId?: string | null;
+  scope: string;
+  knowledgeLanguage: string;
+  source: string;
+  validUntil?: Da2IsoDateTime | null;
+  uploadedBy: string;
+  reviewedBy?: string | null;
+  reviewedAt?: Da2IsoDateTime | null;
+  reviewReason?: string | null;
+  approvedBy?: string;
+  approvedAt?: Da2IsoDateTime;
+  createdAt: Da2IsoDateTime;
+  updatedAt: Da2IsoDateTime;
+}
+
+export interface KnowledgeDocumentUpdateRequest {
+  title?: string;
+  validUntil?: Da2IsoDateTime | null;
+}
+
+export interface KnowledgeDocumentRejectRequest {
+  reason?: string;
+}
+
+export interface KnowledgeDocumentsListRequest {
+  page?: number;
+  limit?: number;
+  status?: KnowledgeDocumentStatus;
+  search?: string;
+  sortBy?: 'createdAt' | 'updatedAt' | 'title';
+  sortOrder?: 1 | -1;
+}
+
+export interface KnowledgeDocumentsListResponse {
+  data: KnowledgeDocument[];
+  total: number;
+}
+
+/** `multipart/form-data`; `file` is the selected PDF, DOC, DOCX, or TXT file. */
+export interface KnowledgeDocumentSubmissionRequest {
+  file: UploadBinary;
+  title?: string;
+  validUntil?: Da2IsoDateTime | null;
+}
+
+export type KnowledgeDocumentReplacementRequest =
+  KnowledgeDocumentSubmissionRequest;
+
+/** Public citation from an AI response; no storage, vector or provider internals. */
+export interface AiEvidenceCitation {
+  source: string;
+  title?: string;
+  excerpt: string;
+  documentVersion?: number;
+  pageNumber?: number | null;
+  sectionTitle?: string | null;
+}
+
+export type KnowledgeCandidateStatus =
+  | 'pending_review'
+  | 'promoted'
+  | 'rejected';
+
+/** Public PubMed metadata only; the API never exposes or accepts an abstract. */
+export interface KnowledgeCandidate {
+  _id: string;
+  pmid: string;
+  title: string;
+  sourceUrl: string;
+  status: KnowledgeCandidateStatus;
+  reviewedAt?: Da2IsoDateTime | null;
+  reviewReason?: string | null;
+  createdAt: Da2IsoDateTime;
+  updatedAt: Da2IsoDateTime;
+}
+
+export interface ProposeKnowledgeCandidateRequest {
+  pmid: string;
+  title: string;
+  sourceUrl: string;
+}
+
+export interface RejectKnowledgeCandidateRequest {
+  reason?: string;
+}
+
+export interface BookingSettingsSnapshot {
+  bookingPolicy?: string;
+  bufferMinutes?: number;
+  minNoticeMinutes?: number;
+  cancellationDeadlineMinutes?: number;
+  noShowAfterMinutes?: number;
+  defaultDurationMinutes?: number;
+  checkInEarlyMinutes?: number;
+  [key: string]: unknown;
+}
+
+export interface PromoteKnowledgeCandidateResponse {
+  candidate: KnowledgeCandidate;
+  document: KnowledgeDocument;
 }

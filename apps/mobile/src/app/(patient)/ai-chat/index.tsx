@@ -32,6 +32,7 @@ import {
   RefreshCw,
 } from 'lucide-react-native';
 import { tw, twInstance } from '@/tw';
+import { AppModalToast } from '@/components/ui/AppToast';
 import { useThemeContext } from '@/context/ThemeContext';
 import {
   mobileApi,
@@ -865,6 +866,7 @@ export default function AiChatHistoryScreen() {
               </TouchableOpacity>
             </View>
           </View>
+          <AppModalToast visible={!!renameTarget} />
         </View>
       </Modal>
 
@@ -920,6 +922,7 @@ export default function AiChatHistoryScreen() {
               )}
             </ScrollView>
           </View>
+          <AppModalToast visible={healthSummaryModalVisible} />
         </View>
       </Modal>
 
@@ -1023,6 +1026,7 @@ export default function AiChatHistoryScreen() {
               )}
             </ScrollView>
           </View>
+          <AppModalToast visible={myFeedbacksModalVisible} />
         </View>
       </Modal>
     </SafeAreaView>

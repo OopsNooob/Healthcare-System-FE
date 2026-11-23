@@ -23,10 +23,13 @@ import {
   Activity,
   AlertCircle,
   AlertTriangle,
+  ArrowLeft,
   BrainCircuit,
+  CheckCircle2,
   ChevronDown,
   FileText,
   LineChart,
+  Lock,
   MessageCircle,
   Mic,
   MicOff,
@@ -43,11 +46,14 @@ import {
   mobileApi,
   normalizePaginatedList,
   SOCKET_EVENTS,
+  useSharedAuthStore,
 } from '@repo/shared-hooks';
 import { tw } from '@/tw';
+import { AppModalToast } from '@/components/ui/AppToast';
 import { useThemeContext } from '@/context/ThemeContext';
 import { useSafeRouter } from '@/utils/useSafeRouter';
 import { extractApiErrorMessage } from '@/utils/apiError';
+import { evaluateConsultationAccess } from '@/utils/consultationAccess';
 import { Skeleton } from '@/components/ui/Skeleton';
 import {
   AiSummaryModal,
@@ -79,15 +85,20 @@ export default function DoctorVideoCallScreen() {
   const { t } = useTranslation();
   const { isDark } = useThemeContext();
   const router = useSafeRouter();
+  const token = useSharedAuthStore((s) => s.token);
 
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [isLoaded, setIsLoaded] = useState(false);
 
   const [patientId, setPatientId] = useState('');
   const [patientName, setPatientName] = useState(() => t('mobile.patient_fallback', 'Patient'));
   const [patientAvatar, setPatientAvatar] = useState<string | undefined>(undefined);
-  const [sessionStatus, setSessionStatus] = useState('scheduled');
-  const [requestStatus, setRequestStatus] = useState('pending');
+  const [mode, setMode] = useState('');
+  const [sessionStatus, setSessionStatus] = useState('');
+  const [requestStatus, setRequestStatus] = useState('');
+  const [queueJoinedAt, setQueueJoinedAt] = useState<string | null>(null);
+  const [calledAt, setCalledAt] = useState<string | null>(null);
   const [latestBpLabel, setLatestBpLabel] = useState<string | null>(null);
   const [latestHrLabel, setLatestHrLabel] = useState<string | null>(null);
 
@@ -108,6 +119,7 @@ export default function DoctorVideoCallScreen() {
   const [isStartingSession, setIsStartingSession] = useState(false);
   const [isSavingNotes, setIsSavingNotes] = useState(false);
   const [isEndingCall, setIsEndingCall] = useState(false);
+  const [isCompleteModalVisible, setIsCompleteModalVisible] = useState(false);
 
   const permissionCheckedRef = useRef(false);
 
@@ -203,8 +215,12 @@ export default function DoctorVideoCallScreen() {
       setPatientId(resolvedPatientId);
       setPatientName(resolvedName);
       setPatientAvatar(resolvedAvatar);
-      setSessionStatus(String(raw.sessionStatus ?? 'scheduled'));
-      setRequestStatus(String(raw.requestStatus ?? 'accepted'));
+      setMode(String(raw.mode ?? ''));
+      setSessionStatus(String(raw.sessionStatus ?? ''));
+      setRequestStatus(String(raw.requestStatus ?? ''));
+      setQueueJoinedAt(typeof raw.queueJoinedAt === 'string' ? raw.queueJoinedAt : null);
+      setCalledAt(typeof raw.calledAt === 'string' ? raw.calledAt : null);
+      setIsLoaded(true);
       if (typeof raw.doctorNotes === 'string') {
         setClinicalNotes(raw.doctorNotes);
       }
@@ -257,9 +273,17 @@ export default function DoctorVideoCallScreen() {
     }
   }, [consultationId, t]);
 
+  const access = evaluateConsultationAccess({
+    mode,
+    requestStatus,
+    sessionStatus,
+    queueJoinedAt,
+    calledAt,
+  });
+  const isVideoAllowed = isLoaded && access.canVideoCall;
+
   useEffect(() => {
     let active = true;
-    ensureMediaPermissions();
     setIsLoading(true);
     loadCallContext().finally(() => {
       if (active) setIsLoading(false);
@@ -267,30 +291,46 @@ export default function DoctorVideoCallScreen() {
     return () => {
       active = false;
     };
-  }, [ensureMediaPermissions, loadCallContext]);
+  }, [loadCallContext]);
+
+  useEffect(() => {
+    if (isVideoAllowed) {
+      void ensureMediaPermissions();
+    }
+  }, [ensureMediaPermissions, isVideoAllowed]);
 
   useEffect(() => {
     if (!consultationId) return;
-    connectConsultationsSocket();
+    if (token) {
+      void connectConsultationsSocket(token);
+    }
 
     const heartbeat = setInterval(() => {
-      consultationsSocket.emit(SOCKET_EVENTS.CONSULTATION_HEARTBEAT, { consultationId });
+      if (isVideoAllowed && access.isInConsultation) {
+        consultationsSocket.emit(SOCKET_EVENTS.CONSULTATION_HEARTBEAT, { consultationId });
+      }
     }, 15000);
 
     const onConsultationChanged = (event: unknown) => {
-      if (!event || typeof event !== 'object') return;
+      if (!event || typeof event !== 'object') {
+        void loadCallContext();
+        return;
+      }
       const e = event as RawRecord;
-      if (String(e.consultationId ?? e._id ?? '') === consultationId) {
-        loadCallContext();
+      const cid = String(e.consultationId ?? e._id ?? e.id ?? '');
+      if (!cid || cid === consultationId) {
+        void loadCallContext();
       }
     };
 
     consultationsSocket.on(SOCKET_EVENTS.CONSULTATIONS_CHANGED, onConsultationChanged);
+    consultationsSocket.on(SOCKET_EVENTS.QUEUE_CALLED, onConsultationChanged);
     return () => {
       clearInterval(heartbeat);
       consultationsSocket.off(SOCKET_EVENTS.CONSULTATIONS_CHANGED, onConsultationChanged);
+      consultationsSocket.off(SOCKET_EVENTS.QUEUE_CALLED, onConsultationChanged);
     };
-  }, [consultationId, loadCallContext]);
+  }, [access.isInConsultation, consultationId, isVideoAllowed, loadCallContext, token]);
 
   useEffect(() => {
     if (sessionStatus !== 'in_consultation') return;
@@ -349,34 +389,53 @@ export default function DoctorVideoCallScreen() {
     }
   }, [clinicalNotes, consultationId, isSavingNotes, sessionStatus, t]);
 
-  const handleCompleteAndExit = useCallback(async () => {
-    if (!consultationId || isEndingCall) return;
-    if (sessionStatus === 'in_consultation') {
-      setIsEndingCall(true);
-      try {
-        await mobileApi.consultationsComplete({
-          params: { id: consultationId },
-          body: clinicalNotes.trim() ? { doctorNotes: clinicalNotes.trim() } : {},
-        });
-        Toast.show({
-          type: 'success',
-          text1: t('mobile.consultation_completed', 'Consultation marked as completed'),
-        });
-        router.back('/(doctor)/consultations');
-      } catch (err) {
-        Toast.show({ type: 'error', text1: extractApiErrorMessage(err) });
-      } finally {
-        setIsEndingCall(false);
-      }
-      return;
-    }
+  const handleLeaveCall = useCallback(() => {
     router.back('/(doctor)/consultations');
+  }, [router]);
+
+  const handleConfirmCompleteSession = useCallback(async () => {
+    if (!consultationId || isEndingCall || sessionStatus !== 'in_consultation') return;
+    setIsEndingCall(true);
+    try {
+      await mobileApi.consultationsComplete({
+        params: { id: consultationId },
+        body: clinicalNotes.trim() ? { doctorNotes: clinicalNotes.trim() } : {},
+      });
+      setIsCompleteModalVisible(false);
+      Toast.show({
+        type: 'success',
+        text1: t('mobile.consultation_completed', 'Consultation marked as completed'),
+      });
+      router.back('/(doctor)/consultations');
+    } catch (err) {
+      Toast.show({ type: 'error', text1: extractApiErrorMessage(err) });
+    } finally {
+      setIsEndingCall(false);
+    }
   }, [clinicalNotes, consultationId, isEndingCall, router, sessionStatus, t]);
 
-  const canStart =
-    requestStatus === 'accepted' && (sessionStatus === 'scheduled' || sessionStatus === 'waiting');
-  const isClosed =
-    sessionStatus === 'completed' || sessionStatus === 'cancelled' || sessionStatus === 'no_show';
+  const canStart = isLoaded && access.canStart;
+  const isClosed = access.isClosed;
+  const lockedReasonMessage =
+    access.chatLockReason === 'pending'
+      ? t(
+          'mobile.chat_locked_pending_doctor',
+          'Accept this consultation request before messaging or video calling the patient.',
+        )
+      : access.chatLockReason === 'scheduled_not_checked_in'
+        ? t(
+            'mobile.chat_locked_scheduled_not_checked_in_doctor',
+            'This scheduled appointment is confirmed, but the patient has not checked in yet. Chat and video unlock after check-in and calling the patient.',
+          )
+        : access.chatLockReason === 'scheduled_waiting_call'
+          ? t(
+              'mobile.chat_locked_scheduled_waiting_call_doctor',
+              'The patient has checked into the waiting queue. Use Call Next in the queue to unlock chat and the video room.',
+            )
+          : t(
+              'mobile.chat_locked_closed',
+              'This consultation has ended or was cancelled. History is read-only.',
+            );
 
   return (
     <SafeAreaView style={tw('flex-1 bg-slate-950')} edges={['top', 'bottom']}>
@@ -417,15 +476,19 @@ export default function DoctorVideoCallScreen() {
           </View>
         </View>
 
-        <TouchableOpacity
-          onPress={() => setIsNotesModalVisible(true)}
-          style={tw('px-3 py-2 rounded-full bg-slate-800/80 border border-slate-700 flex-row items-center gap-1.5')}
-        >
-          <FileText size={15} color="#5eead4" />
-          <Text style={tw('text-xs font-bold text-white')}>
-            {t('mobile.notes', 'Notes')}
-          </Text>
-        </TouchableOpacity>
+        {isVideoAllowed ? (
+          <TouchableOpacity
+            onPress={() => setIsNotesModalVisible(true)}
+            style={tw('px-3 py-2 rounded-full bg-slate-800/80 border border-slate-700 flex-row items-center gap-1.5')}
+          >
+            <FileText size={15} color="#5eead4" />
+            <Text style={tw('text-xs font-bold text-white')}>
+              {t('mobile.notes', 'Notes')}
+            </Text>
+          </TouchableOpacity>
+        ) : (
+          <View style={tw('w-10')} />
+        )}
       </View>
 
       {isLoading ? (
@@ -450,6 +513,25 @@ export default function DoctorVideoCallScreen() {
           >
             <RefreshCw size={15} color="#ffffff" />
             <Text style={tw('text-sm font-bold text-white')}>{t('mobile.retry', 'Retry')}</Text>
+          </TouchableOpacity>
+        </View>
+      ) : isLoaded && !isVideoAllowed ? (
+        <View style={tw('flex-1 items-center justify-center px-8')}>
+          <View style={tw('w-16 h-16 rounded-full bg-amber-500/20 border border-amber-500/40 items-center justify-center')}>
+            <Lock size={28} color="#fbbf24" />
+          </View>
+          <Text style={tw('text-lg font-bold text-white mt-4 text-center')}>
+            {t('mobile.video_room_locked_title', 'Video room not ready yet')}
+          </Text>
+          <Text style={tw('text-xs text-slate-300 mt-2 text-center leading-5')}>
+            {lockedReasonMessage}
+          </Text>
+          <TouchableOpacity
+            onPress={() => router.back('/(doctor)/consultations')}
+            style={tw('mt-6 px-5 py-2.5 rounded-xl bg-teal-600 flex-row items-center gap-2')}
+          >
+            <ArrowLeft size={16} color="#ffffff" />
+            <Text style={tw('text-sm font-bold text-white')}>{t('mobile.back', 'Back')}</Text>
           </TouchableOpacity>
         </View>
       ) : (
@@ -552,6 +634,18 @@ export default function DoctorVideoCallScreen() {
                   {openAlertsCount > 0 ? ` (${openAlertsCount})` : ''}
                 </Text>
               </TouchableOpacity>
+
+              {sessionStatus === 'in_consultation' && (
+                <TouchableOpacity
+                  onPress={() => setIsCompleteModalVisible(true)}
+                  style={tw('flex-row items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-600 border border-emerald-500')}
+                >
+                  <CheckCircle2 size={15} color="#ffffff" />
+                  <Text style={tw('text-xs font-bold text-white')}>
+                    {t('mobile.complete_session_btn', 'Complete Session')}
+                  </Text>
+                </TouchableOpacity>
+              )}
             </View>
           </View>
 
@@ -587,19 +681,12 @@ export default function DoctorVideoCallScreen() {
             </TouchableOpacity>
 
             <TouchableOpacity
-              disabled={isEndingCall}
-              onPress={handleCompleteAndExit}
+              onPress={handleLeaveCall}
               style={tw('px-5 h-12 rounded-full bg-red-600 flex-row items-center justify-center gap-2')}
             >
-              {isEndingCall ? (
-                <ActivityIndicator size="small" color="#ffffff" />
-              ) : (
-                <PhoneOff size={18} color="#ffffff" />
-              )}
+              <PhoneOff size={18} color="#ffffff" />
               <Text style={tw('text-xs font-bold text-white')}>
-                {sessionStatus === 'in_consultation'
-                  ? t('mobile.complete_and_end', 'End Session')
-                  : t('mobile.leave_room', 'Leave')}
+                {t('mobile.leave_call', 'Leave Call')}
               </Text>
             </TouchableOpacity>
           </View>
@@ -676,6 +763,81 @@ export default function DoctorVideoCallScreen() {
               )}
             </View>
           </View>
+          <AppModalToast visible={isNotesModalVisible} />
+        </KeyboardAvoidingView>
+      </Modal>
+
+      {/* Complete Session Confirmation Modal */}
+      <Modal
+        visible={isCompleteModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => {
+          if (!isEndingCall) setIsCompleteModalVisible(false);
+        }}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={tw('flex-1 bg-black/60 justify-center px-5')}
+        >
+          <View style={tw('bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-100 dark:border-slate-800')}>
+            <View style={tw('flex-row items-center gap-2.5 mb-2')}>
+              <View style={tw('w-9 h-9 rounded-full bg-emerald-100 dark:bg-emerald-950/60 items-center justify-center')}>
+                <CheckCircle2 size={18} color="#059669" />
+              </View>
+              <Text style={tw('text-base font-bold text-slate-900 dark:text-white flex-1')}>
+                {t('mobile.complete_session_confirm_title', 'Complete Consultation?')}
+              </Text>
+            </View>
+            <Text style={tw('text-xs text-slate-600 dark:text-slate-300 leading-5 mb-3')}>
+              {t(
+                'mobile.complete_session_confirm_desc',
+                'Once completed, this consultation will close and chat will become read-only. If you only want to hang up video, tap Leave Call instead.',
+              )}
+            </Text>
+
+            <Text style={tw('text-xs font-semibold text-slate-700 dark:text-slate-200 mb-1.5')}>
+              {t('mobile.clinical_notes', 'Clinical Notes')}
+            </Text>
+            <TextInput
+              value={clinicalNotes}
+              onChangeText={setClinicalNotes}
+              multiline
+              placeholder={t('mobile.clinical_notes_placeholder', 'Record symptoms, observations, and plan...')}
+              placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
+              style={tw(
+                'p-3 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm text-slate-900 dark:text-white min-h-[100px]',
+              )}
+              textAlignVertical="top"
+            />
+
+            <View style={tw('flex-row justify-end gap-2 mt-4')}>
+              <TouchableOpacity
+                disabled={isEndingCall}
+                onPress={() => setIsCompleteModalVisible(false)}
+                style={tw('px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800')}
+              >
+                <Text style={tw('text-xs font-bold text-slate-600 dark:text-slate-300')}>
+                  {t('mobile.cancel', 'Cancel')}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                disabled={isEndingCall}
+                onPress={handleConfirmCompleteSession}
+                style={tw('px-4 py-2.5 rounded-xl bg-emerald-600 flex-row items-center gap-1.5')}
+              >
+                {isEndingCall ? (
+                  <ActivityIndicator size="small" color="#ffffff" />
+                ) : (
+                  <CheckCircle2 size={14} color="#ffffff" />
+                )}
+                <Text style={tw('text-xs font-bold text-white')}>
+                  {t('mobile.complete_session_btn', 'Complete Session')}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+          <AppModalToast visible={isCompleteModalVisible} />
         </KeyboardAvoidingView>
       </Modal>
 

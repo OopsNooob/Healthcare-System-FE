@@ -32,14 +32,18 @@ import {
 } from 'lucide-react-native';
 import Toast from 'react-native-toast-message';
 import { tw, twInstance } from '@/tw';
+import { AppModalToast } from '@/components/ui/AppToast';
 import { useSafeRouter as useRouter } from '@/utils/useSafeRouter';
 import { useThemeContext } from '@/context/ThemeContext';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { extractApiErrorMessage } from '@/utils/apiError';
+import { evaluateConsultationAccess } from '@/utils/consultationAccess';
 import { AttachmentPickerModal, DocViewerModal, ImageViewerModal } from '@/components/modals';
 import { downloadMediaFileToDevice, type NativeMediaFile } from '@/services/nativeMedia';
 import {
+  connectConsultationsSocket,
   connectSocket,
+  consultationsSocket,
   generateIdempotencyKey,
   mobileApi,
   normalizeCursorList,
@@ -110,9 +114,18 @@ export default function PatientDoctorChatScreen() {
   const [doctorAvatar, setDoctorAvatar] = useState<string>('');
   const [doctorOnline, setDoctorOnline] = useState<boolean>(false);
   const [consultationStatus, setConsultationStatus] = useState<{
+    mode: string;
     requestStatus: string;
     sessionStatus: string;
-  }>({ requestStatus: '', sessionStatus: '' });
+    queueJoinedAt: string | null;
+    calledAt: string | null;
+  }>({
+    mode: '',
+    requestStatus: '',
+    sessionStatus: '',
+    queueJoinedAt: null,
+    calledAt: null,
+  });
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -225,6 +238,15 @@ export default function PatientDoctorChatScreen() {
           });
           const items = normalizePaginatedList<Record<string, unknown>>(listRes).items;
           const preferred =
+            items.find((c) =>
+              evaluateConsultationAccess({
+                mode: String(c.mode ?? ''),
+                requestStatus: String(c.requestStatus ?? ''),
+                sessionStatus: String(c.sessionStatus ?? ''),
+                queueJoinedAt: typeof c.queueJoinedAt === 'string' ? c.queueJoinedAt : null,
+                calledAt: typeof c.calledAt === 'string' ? c.calledAt : null,
+              }).canChat,
+            ) ??
             items.find((c) => ['accepted', 'pending'].includes(String(c.requestStatus ?? ''))) ??
             items[0];
           if (preferred) {
@@ -235,14 +257,26 @@ export default function PatientDoctorChatScreen() {
 
         if (!activeConsultId || !consultData) {
           setConsultationId('');
+          setConsultationStatus({
+            mode: '',
+            requestStatus: '',
+            sessionStatus: '',
+            queueJoinedAt: null,
+            calledAt: null,
+          });
           setMessages([]);
           return;
         }
 
         setConsultationId(activeConsultId);
+        const resolvedSesStatus = String(consultData.sessionStatus ?? '');
         setConsultationStatus({
+          mode: String(consultData.mode ?? ''),
           requestStatus: String(consultData.requestStatus ?? ''),
-          sessionStatus: String(consultData.sessionStatus ?? ''),
+          sessionStatus: resolvedSesStatus,
+          queueJoinedAt:
+            typeof consultData.queueJoinedAt === 'string' ? consultData.queueJoinedAt : null,
+          calledAt: typeof consultData.calledAt === 'string' ? consultData.calledAt : null,
         });
 
         const docRaw = consultData.doctorId;
@@ -283,9 +317,11 @@ export default function PatientDoctorChatScreen() {
             params: { consultationId: activeConsultId },
             query: { limit: 30, sortOrder: -1, sortBy: 'sentAt' },
           }),
-          mobileApi
-            .reviewsFindByConsultationId({ params: { id: activeConsultId } })
-            .catch(() => null),
+          resolvedSesStatus === 'completed'
+            ? mobileApi
+                .reviewsFindByConsultationId({ params: { id: activeConsultId } })
+                .catch(() => null)
+            : Promise.resolve(null),
         ]);
 
         if (reviewRes?.data) {
@@ -293,6 +329,8 @@ export default function PatientDoctorChatScreen() {
           setExistingReviewId(String(rev._id ?? rev.id ?? ''));
           setReviewRating(Number(rev.rating ?? 5));
           setReviewComment(String(rev.comment ?? ''));
+        } else {
+          setExistingReviewId(undefined);
         }
 
         const cursorPage = normalizeCursorList<Record<string, unknown>>(messagesRes);
@@ -310,6 +348,9 @@ export default function PatientDoctorChatScreen() {
     [consultationId, doctorId, doctorName, mapRawMessage, params.consultationId, params.doctorId, t],
   );
 
+  const loadInitialChatRef = useRef(loadInitialChat);
+  loadInitialChatRef.current = loadInitialChat;
+
   useEffect(() => {
     void loadInitialChat(false);
   }, [loadInitialChat]);
@@ -317,7 +358,8 @@ export default function PatientDoctorChatScreen() {
   useEffect(() => {
     if (!consultationId) return;
     if (token) {
-      connectSocket(token);
+      void connectSocket(token);
+      void connectConsultationsSocket(token);
     }
     socket.emit(SOCKET_EVENTS.JOIN_CONSULTATION, { consultationId });
 
@@ -340,13 +382,26 @@ export default function PatientDoctorChatScreen() {
       }
     };
 
+    const onConsultationChanged = (payload: unknown) => {
+      if (payload && typeof payload === 'object') {
+        const p = payload as Record<string, unknown>;
+        const cid = String(p.consultationId ?? p.id ?? p._id ?? '');
+        if (cid && cid !== consultationId) return;
+      }
+      void loadInitialChatRef.current(true);
+    };
+
     socket.on(SOCKET_EVENTS.CONSULTATION_MESSAGE, onNewMessage);
     presenceSocket.on(SOCKET_EVENTS.USER_STATUS_CHANGED, onPresence);
+    consultationsSocket.on(SOCKET_EVENTS.CONSULTATIONS_CHANGED, onConsultationChanged);
+    consultationsSocket.on(SOCKET_EVENTS.QUEUE_CALLED, onConsultationChanged);
 
     return () => {
       socket.emit(SOCKET_EVENTS.LEAVE_CONSULTATION, { consultationId });
       socket.off(SOCKET_EVENTS.CONSULTATION_MESSAGE, onNewMessage);
       presenceSocket.off(SOCKET_EVENTS.USER_STATUS_CHANGED, onPresence);
+      consultationsSocket.off(SOCKET_EVENTS.CONSULTATIONS_CHANGED, onConsultationChanged);
+      consultationsSocket.off(SOCKET_EVENTS.QUEUE_CALLED, onConsultationChanged);
     };
   }, [consultationId, doctorId, mapRawMessage, token]);
 
@@ -392,9 +447,39 @@ export default function PatientDoctorChatScreen() {
     }
   };
 
+  const access = evaluateConsultationAccess(consultationStatus);
+  const isStatusLoaded = Boolean(consultationStatus.requestStatus);
+  const isChatLocked = !isStatusLoaded || !access.canChat;
+  const canVideoCall = isStatusLoaded && access.canVideoCall;
+  const canReview = isStatusLoaded && access.canReview;
+  const isWaitingLock =
+    access.chatLockReason === 'pending' ||
+    access.chatLockReason === 'scheduled_not_checked_in' ||
+    access.chatLockReason === 'scheduled_waiting_call';
+  const patientLockBannerMessage =
+    access.chatLockReason === 'pending'
+      ? t(
+          'mobile.chat_locked_pending_patient',
+          'Waiting for the doctor to accept your request. Chat and video call unlock once accepted.',
+        )
+      : access.chatLockReason === 'scheduled_not_checked_in'
+        ? t(
+            'mobile.chat_locked_scheduled_not_checked_in_patient',
+            'You have not checked in for this appointment yet. Check in during the window and wait for the doctor to call you to unlock chat and video.',
+          )
+        : access.chatLockReason === 'scheduled_waiting_call'
+          ? t(
+              'mobile.chat_locked_scheduled_waiting_call_patient',
+              'You are in the waiting queue. Chat and video call will unlock once the doctor calls your turn.',
+            )
+          : t(
+              'mobile.consultation_chat_readonly',
+              'This consultation is closed. History is read-only.',
+            );
+
   const handleSend = async () => {
     const trimmed = msgText.trim();
-    if (!trimmed || !consultationId || sending) return;
+    if (!trimmed || !consultationId || sending || isChatLocked) return;
     setSending(true);
     try {
       const check = await mobileApi
@@ -441,7 +526,7 @@ export default function PatientDoctorChatScreen() {
   };
 
   const handleSendAttachment = async (file: NativeMediaFile) => {
-    if (!consultationId || sending) return;
+    if (!consultationId || sending || isChatLocked) return;
     setSending(true);
     try {
       const mime =
@@ -476,7 +561,7 @@ export default function PatientDoctorChatScreen() {
   };
 
   const handleMessageLongPress = (msg: ChatMessage) => {
-    if (msg.sender !== 'me' || msg.id.startsWith('tmp')) return;
+    if (isChatLocked || msg.sender !== 'me' || msg.id.startsWith('tmp')) return;
     Alert.alert(
       t('mobile.message_actions', 'Message Options'),
       undefined,
@@ -609,11 +694,6 @@ export default function PatientDoctorChatScreen() {
     }
   };
 
-  const isClosed =
-    consultationStatus.sessionStatus === 'completed' ||
-    consultationStatus.requestStatus === 'cancelled' ||
-    consultationStatus.requestStatus === 'declined';
-
   return (
     <SafeAreaView style={tw('flex-1 bg-slate-50 dark:bg-slate-950')} edges={['top', 'bottom']}>
       {/* Top Header */}
@@ -661,26 +741,30 @@ export default function PatientDoctorChatScreen() {
         </View>
 
         <View style={tw('flex-row items-center gap-2')}>
-          <TouchableOpacity
-            onPress={() =>
-              router.push(`/(patient)/video-call?consultationId=${consultationId}&doctorId=${doctorId}`)
-            }
-            style={tw(
-              'w-9 h-9 bg-emerald-50 dark:bg-emerald-950/40 rounded-full items-center justify-center',
-            )}
-          >
-            <Video color="#059669" size={18} />
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() =>
-              router.push(`/(patient)/video-call?consultationId=${consultationId}&doctorId=${doctorId}`)
-            }
-            style={tw(
-              'w-9 h-9 bg-blue-50 dark:bg-blue-950/40 rounded-full items-center justify-center',
-            )}
-          >
-            <Phone color="#3b82f6" size={18} />
-          </TouchableOpacity>
+          {canVideoCall && (
+            <>
+              <TouchableOpacity
+                onPress={() =>
+                  router.push(`/(patient)/video-call?consultationId=${consultationId}&doctorId=${doctorId}`)
+                }
+                style={tw(
+                  'w-9 h-9 bg-emerald-50 dark:bg-emerald-950/40 rounded-full items-center justify-center',
+                )}
+              >
+                <Video color="#059669" size={18} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() =>
+                  router.push(`/(patient)/video-call?consultationId=${consultationId}&doctorId=${doctorId}`)
+                }
+                style={tw(
+                  'w-9 h-9 bg-blue-50 dark:bg-blue-950/40 rounded-full items-center justify-center',
+                )}
+              >
+                <Phone color="#3b82f6" size={18} />
+              </TouchableOpacity>
+            </>
+          )}
           <TouchableOpacity
             onPress={() => setReportModalVisible(true)}
             style={tw(
@@ -689,19 +773,21 @@ export default function PatientDoctorChatScreen() {
           >
             <Flag color="#ef4444" size={17} />
           </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => setReviewModalVisible(true)}
-            style={tw(
-              'w-9 h-9 bg-amber-50 dark:bg-amber-950/40 rounded-full items-center justify-center',
-            )}
-          >
-            <Star color="#f59e0b" size={17} />
-          </TouchableOpacity>
+          {canReview && (
+            <TouchableOpacity
+              onPress={() => setReviewModalVisible(true)}
+              style={tw(
+                'w-9 h-9 bg-amber-50 dark:bg-amber-950/40 rounded-full items-center justify-center',
+              )}
+            >
+              <Star color="#f59e0b" size={17} />
+            </TouchableOpacity>
+          )}
         </View>
       </View>
 
       {/* Consultation Call Banner */}
-      {consultationId && !isClosed ? (
+      {consultationId && canVideoCall ? (
         <View
           style={tw(
             'bg-emerald-50 dark:bg-emerald-950/40 px-4 py-2.5 flex-row items-center justify-between border-b border-emerald-100 dark:border-emerald-900',
@@ -953,15 +1039,23 @@ export default function PatientDoctorChatScreen() {
           )}
         </ScrollView>
 
-        {/* Bottom Chat Input or Closed Banner */}
-        {isClosed ? (
+        {/* Bottom Chat Input or Locked/Closed Banner */}
+        {isStatusLoaded && !access.canChat ? (
           <View
             style={tw(
-              'px-4 py-3 bg-slate-100 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 items-center',
+              isWaitingLock
+                ? 'px-4 py-3.5 bg-amber-50 dark:bg-amber-950/40 border-t border-amber-200 dark:border-amber-900/50 items-center'
+                : 'px-4 py-3 bg-slate-100 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 items-center',
             )}
           >
-            <Text style={tw('text-xs font-medium text-slate-500 dark:text-slate-400')}>
-              {t('mobile.consultation_chat_readonly', 'This consultation is closed. History is read-only.')}
+            <Text
+              style={tw(
+                isWaitingLock
+                  ? 'text-xs font-medium text-amber-800 dark:text-amber-300 text-center leading-4'
+                  : 'text-xs font-medium text-slate-500 dark:text-slate-400 text-center',
+              )}
+            >
+              {patientLockBannerMessage}
             </Text>
           </View>
         ) : (
@@ -971,7 +1065,7 @@ export default function PatientDoctorChatScreen() {
             )}
           >
             <TouchableOpacity
-              disabled={sending || !consultationId}
+              disabled={sending || !consultationId || isChatLocked}
               onPress={() => {
                 setAttachmentMode('image');
                 setAttachmentModalVisible(true);
@@ -981,7 +1075,7 @@ export default function PatientDoctorChatScreen() {
               <ImagePlus color="#64748b" size={20} />
             </TouchableOpacity>
             <TouchableOpacity
-              disabled={sending || !consultationId}
+              disabled={sending || !consultationId || isChatLocked}
               onPress={() => {
                 setAttachmentMode('file');
                 setAttachmentModalVisible(true);
@@ -998,10 +1092,11 @@ export default function PatientDoctorChatScreen() {
               placeholderTextColor="#94a3b8"
               value={msgText}
               onChangeText={setMsgText}
+              editable={!isChatLocked}
               multiline
             />
             <TouchableOpacity
-              disabled={sending || !msgText.trim() || !consultationId}
+              disabled={sending || !msgText.trim() || !consultationId || isChatLocked}
               onPress={() => void handleSend()}
               style={tw(
                 `w-10 h-10 rounded-full items-center justify-center ${
@@ -1054,6 +1149,7 @@ export default function PatientDoctorChatScreen() {
               </Text>
             </TouchableOpacity>
           </View>
+          <AppModalToast visible={Boolean(editTarget)} />
         </View>
       </Modal>
 
@@ -1138,6 +1234,7 @@ export default function PatientDoctorChatScreen() {
               </Text>
             </TouchableOpacity>
           </View>
+          <AppModalToast visible={reportModalVisible} />
         </KeyboardAvoidingView>
       </Modal>
 
@@ -1208,6 +1305,7 @@ export default function PatientDoctorChatScreen() {
               </Text>
             </TouchableOpacity>
           </View>
+          <AppModalToast visible={reviewModalVisible} />
         </KeyboardAvoidingView>
       </Modal>
 

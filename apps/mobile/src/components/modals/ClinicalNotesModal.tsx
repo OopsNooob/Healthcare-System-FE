@@ -25,6 +25,7 @@ import {
   normalizePaginatedList,
 } from '@repo/shared-hooks';
 import { tw, twInstance } from '@/tw';
+import { AppModalToast } from '@/components/ui/AppToast';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { extractApiErrorMessage } from '@/utils/apiError';
 
@@ -39,7 +40,7 @@ interface ClinicalNotesModalProps {
 
 interface ConsultationNoteItem {
   id: string;
-  reason: string;
+  requestStatus: string;
   doctorNotes: string;
   patientNotes: string;
   sessionStatus: string;
@@ -62,7 +63,6 @@ export const ClinicalNotesModal: React.FC<ClinicalNotesModalProps> = ({
   const [consultations, setConsultations] = useState<ConsultationNoteItem[]>([]);
   const [selectedConsultationId, setSelectedConsultationId] = useState(consultationId ?? '');
 
-  const [diagnosisTag, setDiagnosisTag] = useState('');
   const [newNote, setNewNote] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -109,7 +109,7 @@ export const ClinicalNotesModal: React.FC<ClinicalNotesModalProps> = ({
           );
           return {
             id,
-            reason: String(item.reason ?? ''),
+            requestStatus: String(item.requestStatus ?? ''),
             doctorNotes: String(item.doctorNotes ?? ''),
             patientNotes: String(item.patientNotes ?? ''),
             sessionStatus: String(item.sessionStatus ?? ''),
@@ -130,10 +130,8 @@ export const ClinicalNotesModal: React.FC<ClinicalNotesModalProps> = ({
       setSelectedConsultationId(targetId);
       const selected = mapped.find((c) => c.id === targetId);
       if (selected) {
-        setDiagnosisTag(selected.reason);
         setNewNote(selected.doctorNotes);
       } else {
-        setDiagnosisTag('');
         setNewNote('');
       }
     } catch (err) {
@@ -151,15 +149,16 @@ export const ClinicalNotesModal: React.FC<ClinicalNotesModalProps> = ({
 
   const handleSelectConsultation = (item: ConsultationNoteItem) => {
     setSelectedConsultationId(item.id);
-    setDiagnosisTag(item.reason);
     setNewNote(item.doctorNotes);
   };
 
   const selectedConsultation = consultations.find((c) => c.id === selectedConsultationId);
   const isReadonlyStatus =
     selectedConsultation?.sessionStatus === 'completed' ||
-    selectedConsultation?.sessionStatus === 'cancelled' ||
-    selectedConsultation?.sessionStatus === 'no_show';
+    selectedConsultation?.sessionStatus === 'no_show' ||
+    selectedConsultation?.requestStatus === 'cancelled' ||
+    selectedConsultation?.requestStatus === 'declined' ||
+    selectedConsultation?.requestStatus === 'expired';
 
   const handleSave = async () => {
     if (isSubmitting || !selectedConsultationId || isReadonlyStatus) return;
@@ -178,7 +177,6 @@ export const ClinicalNotesModal: React.FC<ClinicalNotesModalProps> = ({
         params: { id: selectedConsultationId },
         body: {
           doctorNotes: newNote.trim(),
-          ...(diagnosisTag.trim() ? { reason: diagnosisTag.trim() } : {}),
         },
       });
       Toast.show({
@@ -348,21 +346,20 @@ export const ClinicalNotesModal: React.FC<ClinicalNotesModalProps> = ({
                     {t('mobile.update_clinical_note')}
                   </Text>
 
-                  <View style={tw('mb-3')}>
-                    <Text style={tw('text-xs font-medium text-slate-600 dark:text-slate-400 mb-1')}>
-                      {t('mobile.clinical_diagnosis_status')}
-                    </Text>
-                    <TextInput
+                  {selectedConsultation?.patientNotes ? (
+                    <View
                       style={tw(
-                        'bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white'
+                        'mb-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-3'
                       )}
-                      value={diagnosisTag}
-                      onChangeText={setDiagnosisTag}
-                      placeholder={t('mobile.enter_diagnosis')}
-                      placeholderTextColor={twInstance.color('text-slate-400')}
-                      editable={!isSubmitting && !isReadonlyStatus}
-                    />
-                  </View>
+                    >
+                      <Text style={tw('text-[11px] font-bold uppercase text-slate-500 dark:text-slate-400 mb-1')}>
+                        {t('mobile.patient_submitted_notes', 'Patient Symptom Notes')}
+                      </Text>
+                      <Text style={tw('text-xs text-slate-700 dark:text-slate-200 leading-5')}>
+                        {selectedConsultation.patientNotes}
+                      </Text>
+                    </View>
+                  ) : null}
 
                   <View>
                     <Text style={tw('text-xs font-medium text-slate-600 dark:text-slate-400 mb-1')}>
@@ -432,9 +429,9 @@ export const ClinicalNotesModal: React.FC<ClinicalNotesModalProps> = ({
                           'bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl p-4'
                         )}
                       >
-                        <View style={tw('flex-row flex-wrap justify-between items-start gap-2 mb-2')}>
-                          <Text style={tw('font-bold text-sm text-slate-900 dark:text-white flex-1')}>
-                            {item.reason || t('mobile.clinical_consultation')}
+                        <View style={tw('flex-row flex-wrap justify-between items-center gap-2 mb-2.5')}>
+                          <Text style={tw('font-bold text-xs text-indigo-700 dark:text-indigo-300 uppercase')}>
+                            {t('mobile.doctor_clinical_note_label', 'Doctor Clinical Notes')}
                           </Text>
                           <View
                             style={tw(
@@ -447,9 +444,23 @@ export const ClinicalNotesModal: React.FC<ClinicalNotesModalProps> = ({
                             </Text>
                           </View>
                         </View>
-                        <Text style={tw('text-xs text-slate-600 dark:text-slate-300 leading-5')}>
-                          {item.doctorNotes || item.patientNotes || t('mobile.no_notes_recorded_yet')}
+                        <Text style={tw('text-xs text-slate-700 dark:text-slate-200 leading-5')}>
+                          {item.doctorNotes || t('mobile.no_notes_recorded_yet')}
                         </Text>
+                        {item.patientNotes ? (
+                          <View
+                            style={tw(
+                              'mt-2.5 pt-2.5 border-t border-slate-200 dark:border-slate-800'
+                            )}
+                          >
+                            <Text style={tw('text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-0.5')}>
+                              {t('mobile.patient_submitted_notes', 'Patient Symptom Notes')}
+                            </Text>
+                            <Text style={tw('text-xs text-slate-600 dark:text-slate-300 leading-5')}>
+                              {item.patientNotes}
+                            </Text>
+                          </View>
+                        ) : null}
                       </View>
                     ))}
                   </View>
@@ -469,6 +480,7 @@ export const ClinicalNotesModal: React.FC<ClinicalNotesModalProps> = ({
             </TouchableOpacity>
           </View>
         </View>
+        <AppModalToast visible={visible} />
       </KeyboardAvoidingView>
     </Modal>
   );

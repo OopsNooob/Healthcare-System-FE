@@ -28,18 +28,23 @@ import {
   Star,
   Video,
   X,
+  XCircle,
 } from 'lucide-react-native';
 import { tw, twInstance } from '@/tw';
+import { AppModalToast } from '@/components/ui/AppToast';
 import { useSafeRouter as useRouter } from '@/utils/useSafeRouter';
 import { useThemeContext } from '@/context/ThemeContext';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { extractApiErrorMessage } from '@/utils/apiError';
+import { evaluateConsultationAccess } from '@/utils/consultationAccess';
 import {
+  connectConsultationsSocket,
   consultationsSocket,
   generateIdempotencyKey,
   mobileApi,
   normalizePaginatedList,
   SOCKET_EVENTS,
+  useSharedAuthStore,
   type FeTypes,
 } from '@repo/shared-hooks';
 
@@ -50,6 +55,10 @@ interface AppointmentViewItem {
   specialty: string;
   date: string;
   time: string;
+  scheduledStartAtIso: string | null;
+  checkInEarlyMinutes: number;
+  noShowAfterMinutes: number;
+  cancellationDeadlineMinutes: number;
   mode: 'on_demand' | 'scheduled';
   requestStatus: string;
   sessionStatus: string;
@@ -59,8 +68,11 @@ interface AppointmentViewItem {
   estimatedWaitMinutes: number | null;
   etaReason: string;
   canCheckIn: boolean;
+  canJoinRoom: boolean;
+  canChat: boolean;
   canReschedule: boolean;
   canCancel: boolean;
+  canEditPatientNotes: boolean;
   patientNotes: string;
   doctorNotes: string;
   existingReviewId?: string;
@@ -82,6 +94,7 @@ export default function AppointmentsScreen() {
   const dateLocale = t('mobile.date_locale', 'vi-VN');
 
   const router = useRouter();
+  const token = useSharedAuthStore((s) => s.token);
   const [activeTab, setActiveTab] = useState<'upcoming' | 'history'>('upcoming');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -89,6 +102,12 @@ export default function AppointmentsScreen() {
   const [upcomingList, setUpcomingList] = useState<AppointmentViewItem[]>([]);
   const [historyList, setHistoryList] = useState<AppointmentViewItem[]>([]);
   const [actionBusyId, setActionBusyId] = useState<string | null>(null);
+  const [nowMs, setNowMs] = useState(() => Date.now());
+
+  useEffect(() => {
+    const timer = setInterval(() => setNowMs(Date.now()), 15_000);
+    return () => clearInterval(timer);
+  }, []);
 
   const [rescheduleModalVisible, setRescheduleModalVisible] = useState(false);
   const [selectedAptForReschedule, setSelectedAptForReschedule] = useState<AppointmentViewItem | null>(null);
@@ -260,6 +279,34 @@ export default function AppointmentsScreen() {
           const existingReview = reviewByConsultation.get(id);
           const mode: 'on_demand' | 'scheduled' =
             item.mode === 'on_demand' ? 'on_demand' : 'scheduled';
+          const snapshot =
+            item.bookingSettingsSnapshot && typeof item.bookingSettingsSnapshot === 'object'
+              ? (item.bookingSettingsSnapshot as Record<string, unknown>)
+              : {};
+          const scheduledStartAtIso =
+            typeof item.scheduledStartAt === 'string' ? item.scheduledStartAt : null;
+          const checkInEarlyMinutes =
+            typeof snapshot.checkInEarlyMinutes === 'number' &&
+            Number.isFinite(snapshot.checkInEarlyMinutes)
+              ? snapshot.checkInEarlyMinutes
+              : 5;
+          const noShowAfterMinutes =
+            typeof snapshot.noShowAfterMinutes === 'number' &&
+            Number.isFinite(snapshot.noShowAfterMinutes)
+              ? snapshot.noShowAfterMinutes
+              : 10;
+          const cancellationDeadlineMinutes =
+            typeof snapshot.cancellationDeadlineMinutes === 'number' &&
+            Number.isFinite(snapshot.cancellationDeadlineMinutes)
+              ? snapshot.cancellationDeadlineMinutes
+              : 60;
+          const access = evaluateConsultationAccess({
+            mode,
+            requestStatus: reqStatus,
+            sessionStatus: sesStatus,
+            queueJoinedAt: typeof item.queueJoinedAt === 'string' ? item.queueJoinedAt : null,
+            calledAt: calledAtRaw || null,
+          });
 
           return {
             id,
@@ -273,6 +320,10 @@ export default function AppointmentsScreen() {
               day: 'numeric',
             }),
             time: d.toLocaleTimeString(dateLocale, { hour: '2-digit', minute: '2-digit' }),
+            scheduledStartAtIso,
+            checkInEarlyMinutes,
+            noShowAfterMinutes,
+            cancellationDeadlineMinutes,
             mode,
             requestStatus: reqStatus,
             sessionStatus: sesStatus,
@@ -283,9 +334,14 @@ export default function AppointmentsScreen() {
             etaReason: q?.etaReason ?? '',
             canCheckIn:
               mode === 'scheduled' && reqStatus === 'accepted' && sesStatus === 'not_started',
+            canJoinRoom: access.canVideoCall,
+            canChat: access.canChat,
             canReschedule:
               mode === 'scheduled' && reqStatus === 'accepted' && sesStatus === 'not_started',
             canCancel:
+              ['pending', 'accepted'].includes(reqStatus) &&
+              ['not_started', 'waiting'].includes(sesStatus),
+            canEditPatientNotes:
               ['pending', 'accepted'].includes(reqStatus) &&
               ['not_started', 'waiting'].includes(sesStatus),
             patientNotes: String(item.patientNotes ?? ''),
@@ -328,6 +384,9 @@ export default function AppointmentsScreen() {
   }, [loadData]);
 
   useEffect(() => {
+    if (token) {
+      void connectConsultationsSocket(token);
+    }
     const onChanged = () => {
       void loadData(true);
     };
@@ -339,7 +398,7 @@ export default function AppointmentsScreen() {
       consultationsSocket.off(SOCKET_EVENTS.QUEUE_CHANGED, onChanged);
       consultationsSocket.off(SOCKET_EVENTS.QUEUE_CALLED, onChanged);
     };
-  }, [loadData]);
+  }, [loadData, token]);
 
   const statusLabel = (status: AppointmentViewItem['status']) => {
     const map: Record<AppointmentViewItem['status'], string> = {
@@ -927,107 +986,208 @@ export default function AppointmentsScreen() {
 
                       {/* Actions */}
                       <View style={tw('gap-2.5')}>
-                        {(apt.status === 'Waiting' || apt.status === 'InConsultation') && (
+                        {(apt.canJoinRoom || apt.canChat) && (
                           <View style={tw('flex-row gap-2.5')}>
-                            <TouchableOpacity
-                              onPress={() =>
-                                router.push(
-                                  `/(patient)/video-call?consultationId=${apt.id}&doctorId=${apt.doctorId}`,
-                                )
-                              }
-                              style={tw('flex-1 bg-brand py-3.5 rounded-xl flex-row justify-center items-center')}
-                            >
-                              <Video color="#0f172a" size={18} style={tw('mr-2')} />
-                              <Text style={tw('text-slate-900 font-bold text-sm')}>
-                                {t('mobile.join_room', 'Join Room')}
-                              </Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                              onPress={() =>
-                                router.push(
-                                  `/(patient)/doctor-chat?consultationId=${apt.id}&doctorId=${apt.doctorId}`,
-                                )
-                              }
-                              style={tw(
-                                'px-4 bg-slate-100 dark:bg-slate-800 rounded-xl justify-center items-center',
-                              )}
-                            >
-                              <MessageCircle
-                                color={twInstance.color('text-slate-700 dark:text-slate-200')}
-                                size={18}
-                              />
-                            </TouchableOpacity>
+                            {apt.canJoinRoom && (
+                              <TouchableOpacity
+                                onPress={() =>
+                                  router.push(
+                                    `/(patient)/video-call?consultationId=${apt.id}&doctorId=${apt.doctorId}`,
+                                  )
+                                }
+                                style={tw('flex-1 bg-brand py-3.5 rounded-xl flex-row justify-center items-center')}
+                              >
+                                <Video color="#0f172a" size={18} style={tw('mr-2')} />
+                                <Text style={tw('text-slate-900 font-bold text-sm')}>
+                                  {t('mobile.join_room', 'Join Room')}
+                                </Text>
+                              </TouchableOpacity>
+                            )}
+                            {apt.canChat && (
+                              <TouchableOpacity
+                                onPress={() =>
+                                  router.push(
+                                    `/(patient)/doctor-chat?consultationId=${apt.id}&doctorId=${apt.doctorId}`,
+                                  )
+                                }
+                                style={tw(
+                                  `${apt.canJoinRoom ? 'px-4' : 'flex-1 py-3.5'} bg-slate-100 dark:bg-slate-800 rounded-xl justify-center items-center`,
+                                )}
+                              >
+                                <MessageCircle
+                                  color={twInstance.color('text-slate-700 dark:text-slate-200')}
+                                  size={18}
+                                />
+                              </TouchableOpacity>
+                            )}
                           </View>
                         )}
 
-                        {apt.canCheckIn && (
-                          <TouchableOpacity
-                            disabled={actionBusyId === apt.id}
-                            onPress={() => void handleCheckIn(apt)}
-                            style={tw('bg-indigo-600 py-3.5 rounded-xl flex-row justify-center items-center')}
-                          >
-                            {actionBusyId === apt.id ? (
-                              <ActivityIndicator size="small" color="#ffffff" style={tw('mr-2')} />
-                            ) : (
-                              <LogIn color="#ffffff" size={18} style={tw('mr-2')} />
-                            )}
-                            <Text style={tw('text-white font-bold text-sm')}>
-                              {t('mobile.check_in_waiting_room', 'Check In to Waiting Room')}
-                            </Text>
-                          </TouchableOpacity>
-                        )}
+                        {apt.canCheckIn && (() => {
+                          const startMs = apt.scheduledStartAtIso ? new Date(apt.scheduledStartAtIso).getTime() : NaN;
+                          const opensAtMs = Number.isFinite(startMs)
+                            ? startMs - apt.checkInEarlyMinutes * 60_000
+                            : NaN;
+                          const closesAtMs = Number.isFinite(startMs)
+                            ? startMs + apt.noShowAfterMinutes * 60_000
+                            : NaN;
+                          const isBeforeWindow = Number.isFinite(opensAtMs) && nowMs < opensAtMs;
+                          const isAfterWindow = Number.isFinite(closesAtMs) && nowMs > closesAtMs;
 
-                        <View style={tw('flex-row gap-2.5')}>
-                          <TouchableOpacity
-                            onPress={() => {
-                              setSelectedAptForNote(apt);
-                              setNoteDraft(apt.patientNotes);
-                              setNoteModalVisible(true);
-                            }}
-                            style={tw(
-                              'flex-1 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 py-3 rounded-xl flex-row justify-center items-center',
-                            )}
-                          >
-                            <FileEdit
-                              color={twInstance.color('text-slate-700 dark:text-slate-200')}
-                              size={15}
-                              style={tw('mr-1.5')}
-                            />
-                            <Text style={tw('text-slate-700 dark:text-slate-200 font-bold text-xs')}>
-                              {t('mobile.edit_note_btn', 'Notes')}
-                            </Text>
-                          </TouchableOpacity>
-                          {apt.canReschedule && (
-                            <TouchableOpacity
-                              onPress={() => void handleOpenReschedule(apt)}
-                              style={tw(
-                                'flex-1 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 py-3 rounded-xl flex-row justify-center items-center',
-                              )}
-                            >
-                              <RefreshCw
-                                color={twInstance.color('text-slate-700 dark:text-slate-200')}
-                                size={15}
-                                style={tw('mr-1.5')}
-                              />
-                              <Text style={tw('text-slate-700 dark:text-slate-200 font-bold text-xs')}>
-                                {t('mobile.reschedule_btn', 'Reschedule')}
-                              </Text>
-                            </TouchableOpacity>
-                          )}
-                          {apt.canCancel && (
+                          const formatWindowStamp = (ms: number) => {
+                            const target = new Date(ms);
+                            const current = new Date(nowMs);
+                            const sameDay =
+                              target.getFullYear() === current.getFullYear() &&
+                              target.getMonth() === current.getMonth() &&
+                              target.getDate() === current.getDate();
+                            const timeStr = target.toLocaleTimeString(dateLocale, {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            });
+                            if (sameDay) return timeStr;
+                            const dateStr = target.toLocaleDateString(dateLocale, {
+                              day: '2-digit',
+                              month: '2-digit',
+                            });
+                            return `${timeStr} ${dateStr}`;
+                          };
+
+                          if (isBeforeWindow) {
+                            const opensLabel = formatWindowStamp(opensAtMs);
+                            return (
+                              <View
+                                style={tw(
+                                  'bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 py-3.5 px-3 rounded-xl flex-row justify-center items-center',
+                                )}
+                              >
+                                <Clock
+                                  color={twInstance.color('text-slate-500 dark:text-slate-400')}
+                                  size={16}
+                                  style={tw('mr-2')}
+                                />
+                                <Text style={tw('text-slate-600 dark:text-slate-300 font-semibold text-xs text-center')}>
+                                  {t('mobile.check_in_opens_at', {
+                                    time: opensLabel,
+                                    minutes: apt.checkInEarlyMinutes,
+                                    defaultValue: `Check-in opens at ${opensLabel} (${apt.checkInEarlyMinutes} min early)`,
+                                  })}
+                                </Text>
+                              </View>
+                            );
+                          }
+
+                          if (isAfterWindow) {
+                            return (
+                              <View
+                                style={tw(
+                                  'bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 py-3 px-3 rounded-xl flex-row justify-center items-center',
+                                )}
+                              >
+                                <Clock color="#d97706" size={16} style={tw('mr-2')} />
+                                <Text style={tw('text-amber-700 dark:text-amber-300 font-semibold text-xs text-center')}>
+                                  {t('mobile.check_in_window_closed', 'Check-in window closed')}
+                                </Text>
+                              </View>
+                            );
+                          }
+
+                          const closesTime = Number.isFinite(closesAtMs) ? formatWindowStamp(closesAtMs) : null;
+                          return (
                             <TouchableOpacity
                               disabled={actionBusyId === apt.id}
-                              onPress={() => handleCancel(apt.id)}
-                              style={tw(
-                                'flex-1 bg-red-50 dark:bg-red-950/30 border border-red-100 dark:border-red-900/50 py-3 rounded-xl flex-row justify-center items-center',
-                              )}
+                              onPress={() => void handleCheckIn(apt)}
+                              style={tw('bg-indigo-600 py-3.5 px-3 rounded-xl items-center')}
                             >
-                              <Text style={tw('text-red-500 font-bold text-xs')}>
-                                {t('mobile.cancel', 'Cancel')}
-                              </Text>
+                              <View style={tw('flex-row justify-center items-center')}>
+                                {actionBusyId === apt.id ? (
+                                  <ActivityIndicator size="small" color="#ffffff" style={tw('mr-2')} />
+                                ) : (
+                                  <LogIn color="#ffffff" size={18} style={tw('mr-2')} />
+                                )}
+                                <Text style={tw('text-white font-bold text-sm')}>
+                                  {t('mobile.check_in_waiting_room', 'Check In to Waiting Room')}
+                                </Text>
+                              </View>
+                              {closesTime ? (
+                                <Text style={tw('text-indigo-100 text-[11px] font-medium mt-0.5')}>
+                                  {t('mobile.check_in_closes_at', {
+                                    time: closesTime,
+                                    defaultValue: `Window closes at ${closesTime}`,
+                                  })}
+                                </Text>
+                              ) : null}
                             </TouchableOpacity>
-                          )}
-                        </View>
+                          );
+                        })()}
+
+                        {(apt.canEditPatientNotes || apt.canReschedule || apt.canCancel) && (
+                          <View style={tw('flex-row gap-2')}>
+                            {apt.canEditPatientNotes && (
+                              <TouchableOpacity
+                                onPress={() => {
+                                  setSelectedAptForNote(apt);
+                                  setNoteDraft(apt.patientNotes);
+                                  setNoteModalVisible(true);
+                                }}
+                                style={tw(
+                                  'flex-1 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 py-2.5 px-1.5 rounded-xl flex-col justify-center items-center gap-1',
+                                )}
+                              >
+                                <FileEdit
+                                  color={twInstance.color('text-slate-700 dark:text-slate-200')}
+                                  size={16}
+                                />
+                                <Text
+                                  style={tw(
+                                    'text-slate-700 dark:text-slate-200 font-bold text-xs text-center',
+                                  )}
+                                  numberOfLines={1}
+                                >
+                                  {t('mobile.edit_note_short_btn', 'Notes')}
+                                </Text>
+                              </TouchableOpacity>
+                            )}
+                            {apt.canReschedule && (
+                              <TouchableOpacity
+                                onPress={() => void handleOpenReschedule(apt)}
+                                style={tw(
+                                  'flex-1 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 py-2.5 px-1.5 rounded-xl flex-col justify-center items-center gap-1',
+                                )}
+                              >
+                                <RefreshCw
+                                  color={twInstance.color('text-slate-700 dark:text-slate-200')}
+                                  size={16}
+                                />
+                                <Text
+                                  style={tw(
+                                    'text-slate-700 dark:text-slate-200 font-bold text-xs text-center',
+                                  )}
+                                  numberOfLines={1}
+                                >
+                                  {t('mobile.reschedule_short_btn', 'Reschedule')}
+                                </Text>
+                              </TouchableOpacity>
+                            )}
+                            {apt.canCancel && (
+                              <TouchableOpacity
+                                disabled={actionBusyId === apt.id}
+                                onPress={() => handleCancel(apt.id)}
+                                style={tw(
+                                  'flex-1 bg-red-50 dark:bg-red-950/30 border border-red-100 dark:border-red-900/50 py-2.5 px-1.5 rounded-xl flex-col justify-center items-center gap-1',
+                                )}
+                              >
+                                <XCircle color={twInstance.color('text-red-500')} size={16} />
+                                <Text
+                                  style={tw('text-red-500 font-bold text-xs text-center')}
+                                  numberOfLines={1}
+                                >
+                                  {t('mobile.cancel', 'Cancel')}
+                                </Text>
+                              </TouchableOpacity>
+                            )}
+                          </View>
+                        )}
                       </View>
                     </View>
                   ))
@@ -1197,7 +1357,10 @@ export default function AppointmentsScreen() {
                 </Text>
                 <Text style={tw('text-xs text-slate-500 dark:text-slate-400')}>
                   {selectedAptForReschedule?.doctor} •{' '}
-                  {t('mobile.reschedule_cutoff_desc', 'Cutoff: 60 minutes before appointment')}
+                  {t('mobile.reschedule_cutoff_desc', {
+                    minutes: selectedAptForReschedule?.cancellationDeadlineMinutes ?? 60,
+                    defaultValue: `Cutoff: ${selectedAptForReschedule?.cancellationDeadlineMinutes ?? 60} minutes before appointment`,
+                  })}
                 </Text>
               </View>
               <TouchableOpacity onPress={() => setRescheduleModalVisible(false)}>
@@ -1311,6 +1474,7 @@ export default function AppointmentsScreen() {
               </Text>
             </TouchableOpacity>
           </View>
+          <AppModalToast visible={rescheduleModalVisible} />
         </View>
       </Modal>
 
@@ -1363,6 +1527,7 @@ export default function AppointmentsScreen() {
               </Text>
             </TouchableOpacity>
           </View>
+          <AppModalToast visible={noteModalVisible} />
         </KeyboardAvoidingView>
       </Modal>
 
@@ -1436,6 +1601,7 @@ export default function AppointmentsScreen() {
               </Text>
             </TouchableOpacity>
           </View>
+          <AppModalToast visible={reviewModalVisible} />
         </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
