@@ -16,6 +16,7 @@ import {
 } from 'lucide-react-native';
 import Toast from 'react-native-toast-message';
 import { tw, twInstance } from '@/tw';
+import { AppModalToast } from '@/components/ui/AppToast';
 import { extractApiErrorMessage } from '@/utils/apiError';
 import {
   generateHealthReport,
@@ -817,6 +818,7 @@ export const ReportExportModal: React.FC<ReportExportModalProps> = ({
             </>
           )}
         </View>
+        <AppModalToast visible={visible} />
       </View>
     </Modal>
   );

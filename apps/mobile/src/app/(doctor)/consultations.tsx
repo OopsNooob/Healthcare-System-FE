@@ -46,6 +46,7 @@ import { useThemeContext } from '@/context/ThemeContext';
 import { useSafeRouter } from '@/utils/useSafeRouter';
 import { extractApiErrorMessage } from '@/utils/apiError';
 import { Skeleton } from '@/components/ui/Skeleton';
+import { AppModalToast } from '@/components/ui/AppToast';
 import { AiSummaryModal, ClinicalNotesModal } from '@/components/modals';
 
 type TabKey = 'queue' | 'all';
@@ -189,8 +190,10 @@ export default function DoctorConsultationsScreen() {
         await Promise.all(
           missingIds.slice(0, 10).map(async (pid) => {
             try {
-              const profileRes = await mobileApi.usersFindProfile({ params: { id: pid } });
-              const data = ((profileRes as unknown as { data?: RawRecord })?.data ?? profileRes) as RawRecord;
+              const profileRes = await mobileApi.usersFindOne({ params: { id: pid } });
+              const outer = ((profileRes as unknown as { data?: RawRecord })?.data ?? profileRes) as RawRecord;
+              const data =
+                outer?.user && typeof outer.user === 'object' ? (outer.user as RawRecord) : outer;
               const name =
                 (typeof data?.fullName === 'string' && data.fullName.trim()) ||
                 [data?.firstName, data?.lastName]
@@ -246,8 +249,8 @@ export default function DoctorConsultationsScreen() {
           const rawQueue = Array.isArray(queueRes.data) ? queueRes.data : [];
           const mappedQueue: QueueRow[] = rawQueue.map((entry, idx) => {
             const e = entry as unknown as RawRecord;
-            const pid = String(e.patientId ?? '');
             const rawPatient = e.patient as RawRecord | undefined;
+            const pid = String(rawPatient?.id ?? rawPatient?._id ?? e.patientId ?? '');
             const resolvedName =
               (typeof rawPatient?.fullName === 'string' && rawPatient.fullName.trim()) ||
               [rawPatient?.firstName, rawPatient?.lastName]
@@ -259,21 +262,34 @@ export default function DoctorConsultationsScreen() {
             if (pid && resolvedName !== t('mobile.patient_fallback', 'Patient')) {
               patientNameCacheRef.current.set(pid, resolvedName);
             }
+            const checkedInAt = String(e.queueJoinedAt ?? e.checkedInAt ?? '');
+            const parsedJoined = checkedInAt ? new Date(checkedInAt).getTime() : Number.NaN;
+            const waitMinutes =
+              typeof e.waitMinutes === 'number'
+                ? e.waitMinutes
+                : Number.isFinite(parsedJoined)
+                  ? Math.max(0, Math.round((Date.now() - parsedJoined) / 60_000))
+                  : 0;
             return {
-              consultationId: String(e.consultationId ?? e._id ?? ''),
-              position: typeof e.position === 'number' ? e.position : idx + 1,
+              consultationId: String(e.consultationId ?? e.id ?? e._id ?? ''),
+              position:
+                typeof e.queuePosition === 'number'
+                  ? e.queuePosition
+                  : typeof e.position === 'number'
+                    ? e.position
+                    : idx + 1,
               patientId: pid,
               patientName: resolvedName,
               scheduledStartAt: String(e.scheduledStartAt ?? ''),
-              checkedInAt: String(e.checkedInAt ?? ''),
-              waitMinutes: typeof e.waitMinutes === 'number' ? e.waitMinutes : 0,
+              checkedInAt,
+              waitMinutes,
               sessionStatus: String(e.sessionStatus ?? 'waiting'),
-              mode: String(e.mode ?? 'video'),
+              mode: String(e.mode ?? 'scheduled'),
             };
           });
           setQueueEntries(mappedQueue);
           const cur = queueRes.currentSession as unknown as RawRecord | null | undefined;
-          setCurrentSessionId(cur ? String(cur.consultationId ?? cur._id ?? '') || null : null);
+          setCurrentSessionId(cur ? String(cur.consultationId ?? cur.id ?? cur._id ?? '') || null : null);
         }
 
         const normalized = normalizePaginatedList<RawRecord>(listRes);
@@ -361,14 +377,14 @@ export default function DoctorConsultationsScreen() {
   );
 
   const handleCallNext = useCallback(async () => {
-    if (busyActionKey) return;
+    if (busyActionKey || queueEntries.length === 0) return;
     setBusyActionKey('call-next');
     try {
       const res = await mobileApi.doctorQueueCallNext({
         headers: { 'Idempotency-Key': generateIdempotencyKey('call-next') },
       });
       const called = (res?.data ?? {}) as unknown as RawRecord;
-      const calledId = String(called.consultationId ?? called._id ?? '');
+      const calledId = String(called.id ?? called.consultationId ?? called._id ?? '');
       Toast.show({
         type: 'success',
         text1: t('mobile.called_next_patient', 'Called next patient in queue'),
@@ -386,7 +402,7 @@ export default function DoctorConsultationsScreen() {
     } finally {
       setBusyActionKey(null);
     }
-  }, [busyActionKey, fetchData, router, t]);
+  }, [busyActionKey, fetchData, queueEntries.length, router, t]);
 
   const handleOpenAiSummary = useCallback(
     async (row: ConsultationRow) => {
@@ -401,7 +417,8 @@ export default function DoctorConsultationsScreen() {
         if (!enrollmentId) {
           Toast.show({
             type: 'info',
-            text1: t('mobile.no_active_program_for_ai', 'No active care program for pre-visit summary'),
+            text1: t('mobile.ai_summary_unavailable_title', 'AI Summary Unavailable'),
+            text2: t('mobile.no_active_program_for_ai', 'No active care program for pre-visit summary.'),
           });
           return;
         }
@@ -471,6 +488,24 @@ export default function DoctorConsultationsScreen() {
       t('mobile.report_submitted', 'Violation report submitted'),
     );
   }, [busyActionKey, reportReason, reportTarget, reportType, runAction, t]);
+
+  const liveItemCount = useMemo(() => {
+    const ids = new Set<string>();
+    for (const q of queueEntries) {
+      if (q.consultationId) ids.add(q.consultationId);
+    }
+    for (const c of consultations) {
+      if (
+        c.id &&
+        (c.requestStatus === 'pending' ||
+          c.sessionStatus === 'waiting' ||
+          c.sessionStatus === 'in_consultation')
+      ) {
+        ids.add(c.id);
+      }
+    }
+    return ids.size;
+  }, [consultations, queueEntries]);
 
   const filteredConsultations = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
@@ -582,10 +617,10 @@ export default function DoctorConsultationsScreen() {
           </View>
           <TouchableOpacity
             onPress={handleCallNext}
-            disabled={Boolean(busyActionKey)}
+            disabled={Boolean(busyActionKey) || queueEntries.length === 0}
             style={[
               tw('flex-row items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-teal-600'),
-              busyActionKey === 'call-next' && { opacity: 0.6 },
+              (busyActionKey === 'call-next' || queueEntries.length === 0) && { opacity: 0.5 },
             ]}
           >
             {busyActionKey === 'call-next' ? (
@@ -617,7 +652,7 @@ export default function DoctorConsultationsScreen() {
                   )}
                 >
                   {tab === 'queue'
-                    ? `${t('mobile.live_queue', 'Live Queue')} (${queueEntries.length})`
+                    ? `${t('mobile.live_activity_tab', 'Live & Pending')} (${liveItemCount})`
                     : t('mobile.all_consultations', 'All Consultations')}
                 </Text>
               </TouchableOpacity>
@@ -749,15 +784,23 @@ export default function DoctorConsultationsScreen() {
                 },
               ]}
             >
-              <View style={tw('flex-row items-center justify-between mb-3')}>
-                <View style={tw('flex-row items-center gap-2')}>
-                  <Users size={18} color="#0d9488" />
-                  <Text style={tw('text-sm font-bold text-slate-900 dark:text-white')}>
-                    {t('mobile.waiting_room_queue', 'Checked-in Waiting Queue')}
+              <View style={tw('mb-3')}>
+                <View style={tw('flex-row items-center justify-between')}>
+                  <View style={tw('flex-row items-center gap-2')}>
+                    <Users size={18} color="#0d9488" />
+                    <Text style={tw('text-sm font-bold text-slate-900 dark:text-white')}>
+                      {t('mobile.waiting_room_queue', 'Checked-in Waiting Queue')}
+                    </Text>
+                  </View>
+                  <Text style={tw('text-xs font-semibold text-teal-600 dark:text-teal-400')}>
+                    {queueEntries.length} {t('mobile.patients_unit', 'patients')}
                   </Text>
                 </View>
-                <Text style={tw('text-xs font-semibold text-teal-600 dark:text-teal-400')}>
-                  {queueEntries.length} {t('mobile.patients_unit', 'patients')}
+                <Text style={tw('text-[11px] text-slate-500 dark:text-slate-400 mt-1')}>
+                  {t(
+                    'mobile.checked_in_queue_hint',
+                    'Includes booked scheduled patients who have checked into the waiting room.',
+                  )}
                 </Text>
               </View>
 
@@ -811,6 +854,17 @@ export default function DoctorConsultationsScreen() {
                   ))}
                 </View>
               )}
+            </View>
+          )}
+
+          {activeTab === 'queue' && (
+            <View style={tw('flex-row items-center justify-between pt-1 px-0.5')}>
+              <Text style={tw('flex-1 mr-2 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400')}>
+                {t('mobile.active_and_pending_section_title', 'Pending Requests & Active Sessions')}
+              </Text>
+              <Text style={tw('text-xs font-semibold text-slate-500 dark:text-slate-400')}>
+                {filteredConsultations.length}
+              </Text>
             </View>
           )}
 
@@ -997,31 +1051,35 @@ export default function DoctorConsultationsScreen() {
                     )}
 
                     {/* Common quick tools */}
-                    <TouchableOpacity
-                      onPress={() => router.push(`/(doctor)/chat/${row.id}`)}
-                      style={tw('flex-row items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800')}
-                    >
-                      <MessageCircle size={14} color={isDark ? '#e2e8f0' : '#334155'} />
-                      <Text style={tw('text-xs font-semibold text-slate-700 dark:text-slate-200')}>
-                        {t('mobile.chat', 'Chat')}
-                      </Text>
-                    </TouchableOpacity>
+                    {row.requestStatus === 'accepted' && (
+                      <>
+                        <TouchableOpacity
+                          onPress={() => router.push(`/(doctor)/chat/${row.id}`)}
+                          style={tw('flex-row items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800')}
+                        >
+                          <MessageCircle size={14} color={isDark ? '#e2e8f0' : '#334155'} />
+                          <Text style={tw('text-xs font-semibold text-slate-700 dark:text-slate-200')}>
+                            {t('mobile.chat', 'Chat')}
+                          </Text>
+                        </TouchableOpacity>
 
-                    <TouchableOpacity
-                      onPress={() =>
-                        setNotesModalTarget({
-                          consultationId: row.id,
-                          patientId: row.patientId,
-                          patientName: row.patientName,
-                        })
-                      }
-                      style={tw('flex-row items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800')}
-                    >
-                      <FileText size={14} color={isDark ? '#e2e8f0' : '#334155'} />
-                      <Text style={tw('text-xs font-semibold text-slate-700 dark:text-slate-200')}>
-                        {t('mobile.clinical_notes', 'Notes')}
-                      </Text>
-                    </TouchableOpacity>
+                        <TouchableOpacity
+                          onPress={() =>
+                            setNotesModalTarget({
+                              consultationId: row.id,
+                              patientId: row.patientId,
+                              patientName: row.patientName,
+                            })
+                          }
+                          style={tw('flex-row items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800')}
+                        >
+                          <FileText size={14} color={isDark ? '#e2e8f0' : '#334155'} />
+                          <Text style={tw('text-xs font-semibold text-slate-700 dark:text-slate-200')}>
+                            {t('mobile.clinical_notes', 'Notes')}
+                          </Text>
+                        </TouchableOpacity>
+                      </>
+                    )}
 
                     <TouchableOpacity
                       disabled={loadingAiForId === row.id}
@@ -1142,6 +1200,7 @@ export default function DoctorConsultationsScreen() {
               </TouchableOpacity>
             </View>
           </View>
+          <AppModalToast visible={Boolean(declineModalTarget)} />
         </View>
       </Modal>
 
@@ -1194,6 +1253,7 @@ export default function DoctorConsultationsScreen() {
               </TouchableOpacity>
             </View>
           </View>
+          <AppModalToast visible={Boolean(completeModalTarget)} />
         </View>
       </Modal>
 
@@ -1269,6 +1329,7 @@ export default function DoctorConsultationsScreen() {
               </TouchableOpacity>
             </View>
           </View>
+          <AppModalToast visible={Boolean(reportTarget)} />
         </View>
       </Modal>
     </SafeAreaView>

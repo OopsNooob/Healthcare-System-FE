@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { PauseCircle, AlertTriangle, LogOut } from 'lucide-react-native';
 import Toast from 'react-native-toast-message';
 import { tw, twInstance } from '@/tw';
+import { AppModalToast } from '@/components/ui/AppToast';
 import { useThemeContext } from '@/context/ThemeContext';
 import { extractApiErrorMessage } from '@/utils/apiError';
 
@@ -264,6 +265,7 @@ export const PauseProgramModal: React.FC<PauseProgramModalProps> = ({
             </TouchableOpacity>
           </View>
         </View>
+        <AppModalToast visible={visible} />
       </View>
     </Modal>
   );

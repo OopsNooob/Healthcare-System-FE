@@ -30,6 +30,7 @@ import {
   X,
 } from 'lucide-react-native';
 import { tw, twInstance } from '@/tw';
+import { AppModalToast } from '@/components/ui/AppToast';
 import { useSafeRouter as useRouter } from '@/utils/useSafeRouter';
 import { useThemeContext } from '@/context/ThemeContext';
 import { Skeleton } from '@/components/ui/Skeleton';
@@ -1311,6 +1312,7 @@ export default function AppointmentsScreen() {
               </Text>
             </TouchableOpacity>
           </View>
+          <AppModalToast visible={rescheduleModalVisible} />
         </View>
       </Modal>
 
@@ -1363,6 +1365,7 @@ export default function AppointmentsScreen() {
               </Text>
             </TouchableOpacity>
           </View>
+          <AppModalToast visible={noteModalVisible} />
         </KeyboardAvoidingView>
       </Modal>
 
@@ -1436,6 +1439,7 @@ export default function AppointmentsScreen() {
               </Text>
             </TouchableOpacity>
           </View>
+          <AppModalToast visible={reviewModalVisible} />
         </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>

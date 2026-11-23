@@ -96,7 +96,7 @@ export default function DoctorScheduleScreen() {
     timezone: 'Asia/Ho_Chi_Minh',
     bookingPolicy: 'instant',
     defaultDurationMinutes: 30,
-    bufferMinutes: 10,
+    bufferMinutes: 15,
     minNoticeMinutes: 60,
     cancellationDeadlineMinutes: 60,
     checkInEarlyMinutes: 15,
@@ -720,8 +720,20 @@ export default function DoctorScheduleScreen() {
         selectedDate={selectedDate}
         timezone={bookingSettings.timezone}
         defaultDurationMinutes={bookingSettings.defaultDurationMinutes}
+        minNoticeMinutes={bookingSettings.minNoticeMinutes}
+        onMinNoticeDetected={(minutes) =>
+          setBookingSettings((prev) =>
+            prev.minNoticeMinutes === minutes ? prev : { ...prev, minNoticeMinutes: minutes }
+          )
+        }
         editingSlot={editingSlot}
-        onSaved={() => void loadScheduleData(true)}
+        onSaved={(savedDate) => {
+          if (savedDate && savedDate !== selectedDate) {
+            setSelectedDate(savedDate);
+          } else {
+            void loadScheduleData(true);
+          }
+        }}
       />
 
       <CopyScheduleModal

@@ -5,6 +5,7 @@ import { X, FileCheck, CheckCircle2, Clock, Trash2, ShieldCheck, Camera, FileTex
 import Toast from 'react-native-toast-message';
 import { mobileApi } from '@repo/shared-hooks';
 import { tw, twInstance } from '@/tw';
+import { AppModalToast } from '@/components/ui/AppToast';
 import { pickNativePdfDocument, pickNativeImage } from '@/services/nativeMedia';
 import { extractApiErrorMessage } from '@/utils/apiError';
 
@@ -279,6 +280,7 @@ export const DocUploadModal: React.FC<DocUploadModalProps> = ({
             </TouchableOpacity>
           </View>
         </View>
+        <AppModalToast visible={visible} />
       </View>
     </Modal>
   );

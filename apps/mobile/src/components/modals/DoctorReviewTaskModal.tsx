@@ -26,6 +26,7 @@ import {
   generateIdempotencyKey,
 } from '@repo/shared-hooks';
 import { tw, twInstance } from '@/tw';
+import { AppModalToast } from '@/components/ui/AppToast';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { extractApiErrorMessage } from '@/utils/apiError';
 
@@ -456,6 +457,7 @@ export const DoctorReviewTaskModal: React.FC<DoctorReviewTaskModalProps> = ({
             </TouchableOpacity>
           </View>
         </View>
+        <AppModalToast visible={visible} />
       </KeyboardAvoidingView>
     </Modal>
   );

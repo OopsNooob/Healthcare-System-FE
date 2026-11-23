@@ -22,6 +22,7 @@ import {
 } from 'lucide-react-native';
 import Toast from 'react-native-toast-message';
 import { tw, twInstance } from '@/tw';
+import { AppModalToast } from '@/components/ui/AppToast';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { extractApiErrorMessage } from '@/utils/apiError';
 import { downloadMediaFileToDevice } from '@/services/nativeMedia';
@@ -687,6 +688,7 @@ export const AiSummaryModal: React.FC<AiSummaryModalProps> = ({
             </TouchableOpacity>
           </View>
         </View>
+        <AppModalToast visible={visible} />
       </View>
     </Modal>
   );

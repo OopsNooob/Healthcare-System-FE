@@ -31,6 +31,7 @@ import {
   useSharedAuthStore,
 } from '@repo/shared-hooks';
 import { tw, twInstance } from '@/tw';
+import { AppModalToast } from '@/components/ui/AppToast';
 import { useThemeContext } from '@/context/ThemeContext';
 import { useSafeRouter as useRouter } from '@/utils/useSafeRouter';
 import { Skeleton } from '@/components/ui/Skeleton';
@@ -475,6 +476,7 @@ export const SecuritySessionsModal: React.FC<SecuritySessionsModalProps> = ({
             </TouchableOpacity>
           </View>
         </View>
+        <AppModalToast visible={visible} />
       </View>
     </Modal>
   );

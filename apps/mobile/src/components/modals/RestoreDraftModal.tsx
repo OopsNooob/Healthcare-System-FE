@@ -27,6 +27,7 @@ import {
 import Toast from 'react-native-toast-message';
 import { useRestoreDoctorReapplication } from '@repo/shared-hooks';
 import { tw, twInstance } from '@/tw';
+import { AppModalToast } from '@/components/ui/AppToast';
 import { useThemeContext } from '@/context/ThemeContext';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { extractApiErrorMessage } from '@/utils/apiError';
@@ -328,6 +329,7 @@ export const RestoreDraftModal: React.FC<RestoreDraftModalProps> = ({
             </View>
           </View>
         </View>
+        <AppModalToast visible={visible} />
       </View>
     </Modal>
   );

@@ -32,6 +32,7 @@ import {
 } from 'lucide-react-native';
 import Toast from 'react-native-toast-message';
 import { tw, twInstance } from '@/tw';
+import { AppModalToast } from '@/components/ui/AppToast';
 import { useSafeRouter as useRouter } from '@/utils/useSafeRouter';
 import { useThemeContext } from '@/context/ThemeContext';
 import { Skeleton } from '@/components/ui/Skeleton';
@@ -392,9 +393,19 @@ export default function PatientDoctorChatScreen() {
     }
   };
 
+  const isPendingApproval = consultationStatus.requestStatus === 'pending';
+  const isClosed =
+    consultationStatus.sessionStatus === 'completed' ||
+    consultationStatus.sessionStatus === 'no_show' ||
+    consultationStatus.requestStatus === 'cancelled' ||
+    consultationStatus.requestStatus === 'declined' ||
+    consultationStatus.requestStatus === 'expired';
+  const isStatusLoaded = Boolean(consultationStatus.requestStatus);
+  const isChatLocked = isStatusLoaded && (isPendingApproval || isClosed);
+
   const handleSend = async () => {
     const trimmed = msgText.trim();
-    if (!trimmed || !consultationId || sending) return;
+    if (!trimmed || !consultationId || sending || isChatLocked) return;
     setSending(true);
     try {
       const check = await mobileApi
@@ -441,7 +452,7 @@ export default function PatientDoctorChatScreen() {
   };
 
   const handleSendAttachment = async (file: NativeMediaFile) => {
-    if (!consultationId || sending) return;
+    if (!consultationId || sending || isChatLocked) return;
     setSending(true);
     try {
       const mime =
@@ -476,7 +487,7 @@ export default function PatientDoctorChatScreen() {
   };
 
   const handleMessageLongPress = (msg: ChatMessage) => {
-    if (msg.sender !== 'me' || msg.id.startsWith('tmp')) return;
+    if (isChatLocked || msg.sender !== 'me' || msg.id.startsWith('tmp')) return;
     Alert.alert(
       t('mobile.message_actions', 'Message Options'),
       undefined,
@@ -609,11 +620,6 @@ export default function PatientDoctorChatScreen() {
     }
   };
 
-  const isClosed =
-    consultationStatus.sessionStatus === 'completed' ||
-    consultationStatus.requestStatus === 'cancelled' ||
-    consultationStatus.requestStatus === 'declined';
-
   return (
     <SafeAreaView style={tw('flex-1 bg-slate-50 dark:bg-slate-950')} edges={['top', 'bottom']}>
       {/* Top Header */}
@@ -661,26 +667,30 @@ export default function PatientDoctorChatScreen() {
         </View>
 
         <View style={tw('flex-row items-center gap-2')}>
-          <TouchableOpacity
-            onPress={() =>
-              router.push(`/(patient)/video-call?consultationId=${consultationId}&doctorId=${doctorId}`)
-            }
-            style={tw(
-              'w-9 h-9 bg-emerald-50 dark:bg-emerald-950/40 rounded-full items-center justify-center',
-            )}
-          >
-            <Video color="#059669" size={18} />
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() =>
-              router.push(`/(patient)/video-call?consultationId=${consultationId}&doctorId=${doctorId}`)
-            }
-            style={tw(
-              'w-9 h-9 bg-blue-50 dark:bg-blue-950/40 rounded-full items-center justify-center',
-            )}
-          >
-            <Phone color="#3b82f6" size={18} />
-          </TouchableOpacity>
+          {isStatusLoaded && !isChatLocked && (
+            <>
+              <TouchableOpacity
+                onPress={() =>
+                  router.push(`/(patient)/video-call?consultationId=${consultationId}&doctorId=${doctorId}`)
+                }
+                style={tw(
+                  'w-9 h-9 bg-emerald-50 dark:bg-emerald-950/40 rounded-full items-center justify-center',
+                )}
+              >
+                <Video color="#059669" size={18} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() =>
+                  router.push(`/(patient)/video-call?consultationId=${consultationId}&doctorId=${doctorId}`)
+                }
+                style={tw(
+                  'w-9 h-9 bg-blue-50 dark:bg-blue-950/40 rounded-full items-center justify-center',
+                )}
+              >
+                <Phone color="#3b82f6" size={18} />
+              </TouchableOpacity>
+            </>
+          )}
           <TouchableOpacity
             onPress={() => setReportModalVisible(true)}
             style={tw(
@@ -953,15 +963,31 @@ export default function PatientDoctorChatScreen() {
           )}
         </ScrollView>
 
-        {/* Bottom Chat Input or Closed Banner */}
-        {isClosed ? (
+        {/* Bottom Chat Input or Locked/Closed Banner */}
+        {isChatLocked ? (
           <View
             style={tw(
-              'px-4 py-3 bg-slate-100 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 items-center',
+              isPendingApproval
+                ? 'px-4 py-3.5 bg-amber-50 dark:bg-amber-950/40 border-t border-amber-200 dark:border-amber-900/50 items-center'
+                : 'px-4 py-3 bg-slate-100 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 items-center',
             )}
           >
-            <Text style={tw('text-xs font-medium text-slate-500 dark:text-slate-400')}>
-              {t('mobile.consultation_chat_readonly', 'This consultation is closed. History is read-only.')}
+            <Text
+              style={tw(
+                isPendingApproval
+                  ? 'text-xs font-medium text-amber-800 dark:text-amber-300 text-center leading-4'
+                  : 'text-xs font-medium text-slate-500 dark:text-slate-400 text-center',
+              )}
+            >
+              {isPendingApproval
+                ? t(
+                    'mobile.chat_locked_pending_patient',
+                    'Waiting for the doctor to accept your request. Chat unlocks once accepted.',
+                  )
+                : t(
+                    'mobile.consultation_chat_readonly',
+                    'This consultation is closed. History is read-only.',
+                  )}
             </Text>
           </View>
         ) : (
@@ -1054,6 +1080,7 @@ export default function PatientDoctorChatScreen() {
               </Text>
             </TouchableOpacity>
           </View>
+          <AppModalToast visible={Boolean(editTarget)} />
         </View>
       </Modal>
 
@@ -1138,6 +1165,7 @@ export default function PatientDoctorChatScreen() {
               </Text>
             </TouchableOpacity>
           </View>
+          <AppModalToast visible={reportModalVisible} />
         </KeyboardAvoidingView>
       </Modal>
 
@@ -1208,6 +1236,7 @@ export default function PatientDoctorChatScreen() {
               </Text>
             </TouchableOpacity>
           </View>
+          <AppModalToast visible={reviewModalVisible} />
         </KeyboardAvoidingView>
       </Modal>
 

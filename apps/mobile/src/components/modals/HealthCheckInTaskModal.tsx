@@ -5,6 +5,7 @@ import { X, ClipboardCheck, CheckCircle2, AlertCircle, ShieldCheck, RefreshCw } 
 import Toast from 'react-native-toast-message';
 import { mobileApi, type FeTypes } from '@repo/shared-hooks';
 import { tw, twInstance } from '@/tw';
+import { AppModalToast } from '@/components/ui/AppToast';
 import { useThemeContext } from '@/context/ThemeContext';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { extractApiErrorMessage } from '@/utils/apiError';
@@ -468,6 +469,7 @@ export const HealthCheckInTaskModal: React.FC<HealthCheckInTaskModalProps> = ({
             </TouchableOpacity>
           </View>
         </View>
+        <AppModalToast visible={visible} />
       </View>
     </Modal>
   );

@@ -33,6 +33,7 @@ import { tw, twInstance } from '@/tw';
 import { useThemeContext } from '@/context/ThemeContext';
 import { useSafeRouter as useRouter } from '@/utils/useSafeRouter';
 import { extractApiErrorMessage } from '@/utils/apiError';
+import { localizeNotificationContent } from '@/utils/notificationI18n';
 import { Skeleton } from '@/components/ui/Skeleton';
 
 interface NotificationViewItem {
@@ -400,6 +401,7 @@ export function NotificationsScreen({ role }: NotificationsScreenProps) {
 
   const renderItem = ({ item }: { item: NotificationViewItem }) => {
     const isBusy = busyItemId === item.id;
+    const localized = localizeNotificationContent(item.title, item.message, t);
     return (
       <TouchableOpacity
         activeOpacity={0.8}
@@ -424,7 +426,7 @@ export function NotificationsScreen({ role }: NotificationsScreenProps) {
                   style={tw('text-slate-900 dark:text-white font-bold text-sm flex-1')}
                   numberOfLines={2}
                 >
-                  {item.title}
+                  {localized.title}
                 </Text>
               </View>
               <Text style={tw('text-slate-400 dark:text-slate-500 text-xs')}>
@@ -433,7 +435,7 @@ export function NotificationsScreen({ role }: NotificationsScreenProps) {
             </View>
 
             <Text style={tw('text-slate-600 dark:text-slate-300 text-sm mt-1.5 leading-5')}>
-              {item.message}
+              {localized.message}
             </Text>
 
             <View style={tw('flex-row items-center justify-end gap-2 mt-3')}>

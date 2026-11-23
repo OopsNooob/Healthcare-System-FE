@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
@@ -34,11 +35,13 @@ import {
   generateIdempotencyKey,
   mobileApi,
   normalizePaginatedList,
+  notificationsSocket,
 } from '@repo/shared-hooks';
 import { tw, twInstance } from '@/tw';
 import { useThemeContext } from '@/context/ThemeContext';
 import { useSafeRouter as useRouter } from '@/utils/useSafeRouter';
 import { Skeleton } from '@/components/ui/Skeleton';
+import { AppModalToast } from '@/components/ui/AppToast';
 import { extractApiErrorMessage } from '@/utils/apiError';
 import { extractUserProfileData } from '@/utils/userProfile';
 import { CareAlertsModal } from '@/components/modals/CareAlertsModal';
@@ -86,6 +89,7 @@ export default function DoctorHomeScreen() {
 
   const [totalEnrolledCount, setTotalEnrolledCount] = useState(0);
   const [upcomingConsultCount, setUpcomingConsultCount] = useState(0);
+  const [pendingRequestCount, setPendingRequestCount] = useState(0);
   const [ratingSummary, setRatingSummary] = useState<string>('—');
 
   const [queueEntries, setQueueEntries] = useState<DoctorQueueEntry[]>([]);
@@ -116,7 +120,7 @@ export default function DoctorHomeScreen() {
   const loadDashboard = useCallback(async () => {
     setErrorMsg(null);
     try {
-      const [meRes, unreadRes, enrollRes, upcomingRes, queueRes, alertsRes] =
+      const [meRes, unreadRes, enrollRes, upcomingRes, queueRes, alertsRes, pendingRes] =
         await Promise.all([
           mobileApi.usersGetMe(),
           mobileApi.notificationsCountUnread(),
@@ -124,20 +128,42 @@ export default function DoctorHomeScreen() {
           mobileApi.consultationsUpcoming({ query: { days: 7 } }),
           mobileApi.doctorQueueList({ query: { page: 1, limit: 10 } }),
           mobileApi.careAlertInbox({ query: { limit: 25 } }),
+          mobileApi
+            .consultationsFindAll({ query: { requestStatus: 'pending', page: 1, limit: 1 } })
+            .catch(() => null),
         ]);
 
       const profile = extractUserProfileData(meRes);
       setDoctorName(profile.fullName);
       setIsOnline(profile.isOnline);
 
-      const rawUnread = unreadRes as unknown as { data?: { count?: number }; count?: number };
-      setUnreadNotifications(Number(rawUnread?.data?.count ?? rawUnread?.count ?? 0));
+      const rawUnread = unreadRes as unknown as {
+        data?: { unreadCount?: number; count?: number };
+        unreadCount?: number;
+        count?: number;
+      };
+      setUnreadNotifications(
+        Number(
+          rawUnread?.data?.unreadCount ??
+            rawUnread?.unreadCount ??
+            rawUnread?.data?.count ??
+            rawUnread?.count ??
+            0
+        )
+      );
 
       const enrollPage = normalizePaginatedList<Record<string, unknown>>(enrollRes);
       setTotalEnrolledCount(Number(enrollPage.total ?? enrollPage.items.length));
 
       const upcomingList = normalizePaginatedList<Record<string, unknown>>(upcomingRes).items;
       setUpcomingConsultCount(upcomingList.length);
+
+      if (pendingRes) {
+        const pendingPage = normalizePaginatedList<Record<string, unknown>>(pendingRes);
+        setPendingRequestCount(Number(pendingPage.total ?? pendingPage.items.length));
+      } else {
+        setPendingRequestCount(0);
+      }
 
       if (profile.id) {
         const fallbackAvg = profile.doctorProfile?.averageRating ?? 0;
@@ -229,9 +255,44 @@ export default function DoctorHomeScreen() {
     }
   }, [t]);
 
+  const refreshUnreadCount = useCallback(async () => {
+    try {
+      const res = await mobileApi.notificationsCountUnread();
+      const raw = res as unknown as {
+        data?: { unreadCount?: number; count?: number };
+        unreadCount?: number;
+        count?: number;
+      };
+      const next = Number(
+        raw?.data?.unreadCount ?? raw?.unreadCount ?? raw?.data?.count ?? raw?.count ?? 0
+      );
+      if (Number.isFinite(next)) {
+        setUnreadNotifications(next);
+      }
+    } catch {
+      // ignore silent badge sync failure
+    }
+  }, []);
+
   useEffect(() => {
     void loadDashboard();
   }, [loadDashboard]);
+
+  useFocusEffect(
+    useCallback(() => {
+      void refreshUnreadCount();
+    }, [refreshUnreadCount])
+  );
+
+  useEffect(() => {
+    const onNotificationEvent = () => {
+      void refreshUnreadCount();
+    };
+    notificationsSocket.on('notifications', onNotificationEvent);
+    return () => {
+      notificationsSocket.off('notifications', onNotificationEvent);
+    };
+  }, [refreshUnreadCount]);
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -264,8 +325,12 @@ export default function DoctorHomeScreen() {
       const res = await mobileApi.doctorQueueCallNext({
         headers: { 'Idempotency-Key': generateIdempotencyKey() },
       });
-      const raw = res as unknown as { data?: { id?: string; _id?: string } };
-      const consultationId = String(raw?.data?.id ?? raw?.data?._id ?? '');
+      const raw = res as unknown as {
+        data?: { id?: string; consultationId?: string; _id?: string };
+      };
+      const consultationId = String(
+        raw?.data?.id ?? raw?.data?.consultationId ?? raw?.data?._id ?? ''
+      );
       Toast.show({
         type: 'success',
         text1: t('mobile.next_patient_called'),
@@ -588,9 +653,29 @@ export default function DoctorHomeScreen() {
             {/* Consultation Check-In Queue */}
             <View style={tw('px-6 mt-5')}>
               <View style={tw('flex-row items-center justify-between mb-3')}>
-                <Text style={tw('text-lg font-bold text-slate-900 dark:text-white')}>
-                  {t('mobile.consultation_queue_title')}
-                </Text>
+                <View style={tw('flex-row items-center flex-wrap gap-2 flex-1 mr-2')}>
+                  <Text style={tw('text-lg font-bold text-slate-900 dark:text-white')}>
+                    {t('mobile.consultation_queue_title')}
+                  </Text>
+                  {pendingRequestCount > 0 ? (
+                    <View
+                      style={tw(
+                        'bg-amber-100 dark:bg-amber-900/40 px-2.5 py-0.5 rounded-full'
+                      )}
+                    >
+                      <Text
+                        style={tw(
+                          'text-[11px] font-bold text-amber-800 dark:text-amber-300'
+                        )}
+                      >
+                        {t('mobile.pending_badge_short', {
+                          count: pendingRequestCount,
+                          defaultValue: `${pendingRequestCount} chờ duyệt`,
+                        })}
+                      </Text>
+                    </View>
+                  ) : null}
+                </View>
                 <TouchableOpacity
                   disabled={callingNext || queueEntries.length === 0}
                   onPress={() => void handleCallNext()}
@@ -611,7 +696,33 @@ export default function DoctorHomeScreen() {
                 </TouchableOpacity>
               </View>
 
-              {queueEntries.length === 0 ? (
+              {queueEntries.length === 0 && pendingRequestCount > 0 ? (
+                <View
+                  style={tw(
+                    'bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/50 rounded-2xl p-4 flex-row items-center justify-between gap-3'
+                  )}
+                >
+                  <View style={tw('flex-row items-center flex-1')}>
+                    <Clock color="#d97706" size={18} style={tw('mr-2.5 shrink-0')} />
+                    <Text
+                      style={tw('flex-1 text-xs font-medium text-amber-900 dark:text-amber-200 leading-4')}
+                    >
+                      {t('mobile.pending_requests_waiting_banner', {
+                        count: pendingRequestCount,
+                        defaultValue: `Có ${pendingRequestCount} yêu cầu tư vấn đang chờ bạn xác nhận`,
+                      })}
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    onPress={() => router.push('/(doctor)/consultations')}
+                    style={tw('bg-amber-500 px-3.5 py-2 rounded-xl shrink-0')}
+                  >
+                    <Text style={tw('text-xs font-bold text-slate-950')}>
+                      {t('mobile.review_requests_cta', 'Xem yêu cầu')}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              ) : queueEntries.length === 0 ? (
                 <View
                   style={tw(
                     'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 flex-row items-center justify-between gap-3'
@@ -1007,6 +1118,7 @@ export default function DoctorHomeScreen() {
               <Text style={tw('font-bold text-slate-900')}>{t('mobile.resolve')}</Text>
             </TouchableOpacity>
           </View>
+          <AppModalToast visible={resolveModalVisible} />
         </KeyboardAvoidingView>
       </Modal>
 
@@ -1078,6 +1190,7 @@ export default function DoctorHomeScreen() {
               </Text>
             </TouchableOpacity>
           </View>
+          <AppModalToast visible={dismissModalVisible} />
         </KeyboardAvoidingView>
       </Modal>
 

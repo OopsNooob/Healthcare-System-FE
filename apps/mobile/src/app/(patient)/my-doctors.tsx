@@ -33,6 +33,7 @@ import {
   Zap,
 } from 'lucide-react-native';
 import { tw, twInstance } from '@/tw';
+import { AppModalToast } from '@/components/ui/AppToast';
 import { useSafeRouter as useRouter } from '@/utils/useSafeRouter';
 import { useThemeContext } from '@/context/ThemeContext';
 import { Skeleton } from '@/components/ui/Skeleton';
@@ -980,6 +981,7 @@ export default function MyDoctorsScreen() {
               </View>
             </ScrollView>
           )}
+          <AppModalToast visible={profileModalVisible} />
         </SafeAreaView>
       </Modal>
 
@@ -1255,6 +1257,7 @@ export default function MyDoctorsScreen() {
               </View>
             </View>
           )}
+          <AppModalToast visible={requestModalVisible} />
         </KeyboardAvoidingView>
       </Modal>
 

@@ -33,6 +33,7 @@ import {
   normalizePaginatedList,
 } from '@repo/shared-hooks';
 import { tw, twInstance } from '@/tw';
+import { AppModalToast } from '@/components/ui/AppToast';
 import { useThemeContext } from '@/context/ThemeContext';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { extractApiErrorMessage } from '@/utils/apiError';
@@ -1157,6 +1158,7 @@ export default function DoctorPatientsScreen() {
               </TouchableOpacity>
             </View>
           </View>
+          <AppModalToast visible={enrollModalVisible} />
         </View>
       </Modal>
 
@@ -1294,6 +1296,7 @@ export default function DoctorPatientsScreen() {
               </Text>
             </TouchableOpacity>
           </View>
+          <AppModalToast visible={lifecycleModalVisible} />
         </KeyboardAvoidingView>
       </Modal>
 

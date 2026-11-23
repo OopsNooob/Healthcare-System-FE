@@ -15,7 +15,17 @@ import Toast from 'react-native-toast-message';
 import { generateIdempotencyKey, mobileApi } from '@repo/shared-hooks';
 import { tw, twInstance } from '@/tw';
 import { useThemeContext } from '@/context/ThemeContext';
-import { extractApiErrorMessage } from '@/utils/apiError';
+import { AppModalToast } from '@/components/ui/AppToast';
+import { extractApiErrorInfo, extractApiErrorMessage } from '@/utils/apiError';
+import {
+  buildIsoFromDateAndHHMM,
+  computeEarliestValidSlot,
+  formatHHMM,
+  formatIsoTimeInZone,
+  getDateYyyyMmDdInZone,
+  MAX_WHEEL_MINUTES,
+  splitMinutes,
+} from '@/utils/slotTimeWindow';
 
 export interface EditableSlotTarget {
   id: string;
@@ -30,8 +40,10 @@ interface AddSlotModalProps {
   selectedDate: string;
   timezone?: string;
   defaultDurationMinutes?: number;
+  minNoticeMinutes?: number;
+  onMinNoticeDetected?: (minutes: number) => void;
   editingSlot?: EditableSlotTarget | null;
-  onSaved: () => void;
+  onSaved: (savedDate?: string) => void;
 }
 
 const ITEM_HEIGHT = 40;
@@ -39,107 +51,12 @@ const WHEEL_HEIGHT = ITEM_HEIGHT * 3;
 const QUICK_DURATIONS = [15, 30, 45, 60] as const;
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
 const BASE_MINUTES = Array.from({ length: 12 }, (_, i) => i * 5);
-const MAX_WHEEL_MINUTES = 23 * 60 + 55;
-
-const TIMEZONE_OFFSETS: Record<string, string> = {
-  'Asia/Ho_Chi_Minh': '+07:00',
-  'Asia/Bangkok': '+07:00',
-  'Asia/Singapore': '+08:00',
-  UTC: 'Z',
-};
-
-function splitMinutes(totalMinutes: number): { hour: number; minute: number } {
-  const clamped = Math.max(0, Math.min(MAX_WHEEL_MINUTES, totalMinutes));
-  return {
-    hour: Math.floor(clamped / 60),
-    minute: clamped % 60,
-  };
-}
-
-function formatHHMM(hour: number, minute: number): string {
-  return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
-}
 
 function buildMinuteOptions(extraMinute?: number): number[] {
   if (typeof extraMinute === 'number' && !BASE_MINUTES.includes(extraMinute)) {
     return [...BASE_MINUTES, extraMinute].sort((a, b) => a - b);
   }
   return BASE_MINUTES;
-}
-
-function getDateYyyyMmDdInZone(iso: string, timezone: string): string {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return '';
-  try {
-    return d.toLocaleDateString('en-CA', { timeZone: timezone || 'Asia/Ho_Chi_Minh' });
-  } catch {
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${y}-${m}-${day}`;
-  }
-}
-
-function formatIsoTimeInZone(iso: string, timezone: string): { hour: number; minute: number } {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return { hour: 9, minute: 0 };
-  try {
-    const formatted = d.toLocaleTimeString('en-GB', {
-      timeZone: timezone || 'Asia/Ho_Chi_Minh',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false,
-    });
-    const [hStr, mStr] = formatted.split(':');
-    const hour = Number(hStr);
-    const minute = Number(mStr);
-    if (Number.isFinite(hour) && Number.isFinite(minute)) {
-      return { hour, minute };
-    }
-  } catch {
-    // fallback below
-  }
-  return { hour: d.getHours(), minute: d.getMinutes() };
-}
-
-function computeDefaultSlotWindow(
-  selectedDate: string,
-  timezone: string,
-  durationMinutes: number
-): { startHour: number; startMinute: number; endHour: number; endMinute: number } {
-  const safeDuration = Math.max(5, Math.min(240, durationMinutes));
-  const nowIso = new Date().toISOString();
-  const todayInZone = getDateYyyyMmDdInZone(nowIso, timezone);
-
-  let startTotal = 9 * 60;
-  if (selectedDate === todayInZone) {
-    const nowParts = formatIsoTimeInZone(nowIso, timezone);
-    const nowTotal = nowParts.hour * 60 + nowParts.minute;
-    // Advance at least 15 minutes into the future and round up to a clean 15-min mark
-    const futureRounded = Math.ceil((nowTotal + 15) / 15) * 15;
-    startTotal = Math.min(23 * 60 + 45, futureRounded);
-  }
-
-  const endTotal = Math.min(MAX_WHEEL_MINUTES, startTotal + safeDuration);
-  const startParts = splitMinutes(startTotal);
-  const endParts = splitMinutes(endTotal);
-  return {
-    startHour: startParts.hour,
-    startMinute: startParts.minute,
-    endHour: endParts.hour,
-    endMinute: endParts.minute,
-  };
-}
-
-function buildIsoFromDateAndHHMM(dateStr: string, hhmm: string, timezone: string): string | null {
-  const trimmed = hhmm.trim();
-  if (!/^\d{2}:\d{2}$/.test(trimmed)) return null;
-  const [hh, mm] = trimmed.split(':').map(Number);
-  if (hh < 0 || hh > 23 || mm < 0 || mm > 59) return null;
-  const offset = TIMEZONE_OFFSETS[timezone] ?? '+07:00';
-  const d = new Date(`${dateStr}T${trimmed}:00${offset}`);
-  if (Number.isNaN(d.getTime())) return null;
-  return d.toISOString();
 }
 
 interface TimeWheelColumnProps {
@@ -268,12 +185,17 @@ export const AddSlotModal: React.FC<AddSlotModalProps> = ({
   selectedDate,
   timezone = 'Asia/Ho_Chi_Minh',
   defaultDurationMinutes = 30,
+  minNoticeMinutes = 60,
+  onMinNoticeDetected,
   editingSlot = null,
   onSaved,
 }) => {
   const { t } = useTranslation();
   useThemeContext();
 
+  const [effectiveMinNotice, setEffectiveMinNotice] = useState(minNoticeMinutes);
+  const [targetDate, setTargetDate] = useState(selectedDate);
+  const [autoAdjustedNotice, setAutoAdjustedNotice] = useState(false);
   const [startHour, setStartHour] = useState(9);
   const [startMinute, setStartMinute] = useState(0);
   const [endHour, setEndHour] = useState(9);
@@ -282,9 +204,14 @@ export const AddSlotModal: React.FC<AddSlotModalProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
+    setEffectiveMinNotice(minNoticeMinutes);
+  }, [minNoticeMinutes]);
+
+  useEffect(() => {
     if (!visible) return;
     setIsSubmitting(false);
-    setNowMs(Date.now());
+    const currentNow = Date.now();
+    setNowMs(currentNow);
     const interval = setInterval(() => {
       setNowMs(Date.now());
     }, 15_000);
@@ -293,25 +220,35 @@ export const AddSlotModal: React.FC<AddSlotModalProps> = ({
     if (editingSlot) {
       const startParts = formatIsoTimeInZone(editingSlot.startAt, activeTz);
       const endParts = formatIsoTimeInZone(editingSlot.endAt, activeTz);
+      setTargetDate(getDateYyyyMmDdInZone(editingSlot.startAt, activeTz) || selectedDate);
       setStartHour(startParts.hour);
       setStartMinute(startParts.minute);
       setEndHour(endParts.hour);
       setEndMinute(endParts.minute);
+      setAutoAdjustedNotice(false);
     } else {
-      const defaults = computeDefaultSlotWindow(selectedDate, activeTz, defaultDurationMinutes);
+      const defaults = computeEarliestValidSlot(
+        selectedDate,
+        activeTz,
+        defaultDurationMinutes,
+        effectiveMinNotice,
+        currentNow
+      );
+      setTargetDate(defaults.date);
       setStartHour(defaults.startHour);
       setStartMinute(defaults.startMinute);
       setEndHour(defaults.endHour);
       setEndMinute(defaults.endMinute);
+      setAutoAdjustedNotice(defaults.autoAdjustedDate || defaults.autoAdjustedTime);
     }
 
     return () => clearInterval(interval);
-  }, [visible, editingSlot, selectedDate, defaultDurationMinutes, timezone]);
+  }, [visible, editingSlot, selectedDate, defaultDurationMinutes, timezone, effectiveMinNotice]);
 
   const activeTz = editingSlot?.timezone || timezone || 'Asia/Ho_Chi_Minh';
   const baseDate = editingSlot
     ? getDateYyyyMmDdInZone(editingSlot.startAt, activeTz) || selectedDate
-    : selectedDate;
+    : targetDate;
 
   const startMinuteOptions = useMemo(() => buildMinuteOptions(startMinute), [startMinute]);
   const endMinuteOptions = useMemo(() => buildMinuteOptions(endMinute), [endMinute]);
@@ -327,9 +264,62 @@ export const AddSlotModal: React.FC<AddSlotModalProps> = ({
     return new Date(startAt).getTime() <= nowMs;
   }, [baseDate, startHour, startMinute, activeTz, nowMs]);
 
+  const isTooSoonForNotice = useMemo(() => {
+    if (isPastStart || !isValidRange) return false;
+    const startAt = buildIsoFromDateAndHHMM(baseDate, formatHHMM(startHour, startMinute), activeTz);
+    if (!startAt) return false;
+    return new Date(startAt).getTime() < nowMs + effectiveMinNotice * 60_000;
+  }, [baseDate, startHour, startMinute, activeTz, nowMs, effectiveMinNotice, isPastStart, isValidRange]);
+
+  const earliestWindow = useMemo(
+    () =>
+      computeEarliestValidSlot(
+        baseDate,
+        activeTz,
+        Math.max(15, durationMinutes > 0 ? durationMinutes : defaultDurationMinutes),
+        effectiveMinNotice,
+        nowMs
+      ),
+    [baseDate, activeTz, durationMinutes, defaultDurationMinutes, effectiveMinNotice, nowMs]
+  );
+
+  const earliestDisplayLabel =
+    earliestWindow.earliestDate !== baseDate
+      ? `${earliestWindow.earliestDate} ${formatHHMM(
+          earliestWindow.earliestHour,
+          earliestWindow.earliestMinute
+        )}`
+      : formatHHMM(earliestWindow.earliestHour, earliestWindow.earliestMinute);
+
+  const jumpToEarliestValid = useCallback(
+    (noticeMins = effectiveMinNotice, preserveDuration = durationMinutes) => {
+      const currentNow = Date.now();
+      setNowMs(currentNow);
+      const nextDuration =
+        preserveDuration > 0 ? preserveDuration : Math.max(15, defaultDurationMinutes);
+      const nextWin = computeEarliestValidSlot(
+        editingSlot ? baseDate : selectedDate,
+        activeTz,
+        nextDuration,
+        noticeMins,
+        currentNow
+      );
+      if (!editingSlot) {
+        setTargetDate(nextWin.date);
+      }
+      setStartHour(nextWin.startHour);
+      setStartMinute(nextWin.startMinute);
+      setEndHour(nextWin.endHour);
+      setEndMinute(nextWin.endMinute);
+      setAutoAdjustedNotice(true);
+    },
+    [effectiveMinNotice, durationMinutes, defaultDurationMinutes, editingSlot, baseDate, selectedDate, activeTz]
+  );
+
   const updateStartAndAutoAdvanceEnd = (nextHour: number, nextMinute: number) => {
     setStartHour(nextHour);
     setStartMinute(nextMinute);
+    setAutoAdjustedNotice(false);
     const nextStartMins = nextHour * 60 + nextMinute;
     if (nextStartMins >= endTotalMinutes) {
       const nextEnd = splitMinutes(
@@ -369,12 +359,29 @@ export const AddSlotModal: React.FC<AddSlotModalProps> = ({
       return;
     }
 
-    if (new Date(startAt).getTime() <= Date.now()) {
-      setNowMs(Date.now());
+    const nowCheck = Date.now();
+    const startMs = new Date(startAt).getTime();
+    if (startMs <= nowCheck) {
+      setNowMs(nowCheck);
+      jumpToEarliestValid(effectiveMinNotice);
       Toast.show({
         type: 'error',
         text1: t('mobile.error', 'Error'),
         text2: t('mobile.wheel_past_time_error'),
+      });
+      return;
+    }
+
+    if (startMs < nowCheck + effectiveMinNotice * 60_000) {
+      setNowMs(nowCheck);
+      jumpToEarliestValid(effectiveMinNotice);
+      Toast.show({
+        type: 'error',
+        text1: t('mobile.error', 'Error'),
+        text2: t('mobile.api_err_min_notice_not_met', {
+          minutes: effectiveMinNotice,
+          defaultValue: `The slot must be scheduled at least ${effectiveMinNotice} minutes in advance.`,
+        }),
       });
       return;
     }
@@ -402,9 +409,22 @@ export const AddSlotModal: React.FC<AddSlotModalProps> = ({
           text2: t('mobile.slot_added_success'),
         });
       }
-      onSaved();
+      onSaved(baseDate);
       onClose();
     } catch (err) {
+      const info = extractApiErrorInfo(err);
+      if (info.code === 'MIN_NOTICE_NOT_MET') {
+        const serverNotice =
+          typeof info.details?.minNoticeMinutes === 'number' &&
+          Number.isFinite(info.details.minNoticeMinutes)
+            ? info.details.minNoticeMinutes
+            : effectiveMinNotice;
+        if (serverNotice !== effectiveMinNotice) {
+          setEffectiveMinNotice(serverNotice);
+          onMinNoticeDetected?.(serverNotice);
+        }
+        jumpToEarliestValid(serverNotice);
+      }
       Toast.show({
         type: 'error',
         text1: t('mobile.error', 'Error'),
@@ -415,7 +435,7 @@ export const AddSlotModal: React.FC<AddSlotModalProps> = ({
     }
   };
 
-  const canSubmit = isValidRange && !isPastStart && !isSubmitting;
+  const canSubmit = isValidRange && !isPastStart && !isTooSoonForNotice && !isSubmitting;
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
@@ -461,40 +481,75 @@ export const AddSlotModal: React.FC<AddSlotModalProps> = ({
             {/* Live Preview Summary */}
             <View
               style={tw(
-                `rounded-2xl p-3.5 border flex-row items-center justify-between ${
-                  isValidRange && !isPastStart
-                    ? 'bg-emerald-50/70 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-900/50'
-                    : 'bg-rose-50 dark:bg-rose-950/30 border-rose-200 dark:border-rose-900/50'
+                `rounded-2xl p-3.5 border ${
+                  !isValidRange || isPastStart
+                    ? 'bg-rose-50 dark:bg-rose-950/30 border-rose-200 dark:border-rose-900/50'
+                    : isTooSoonForNotice
+                      ? 'bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800/50'
+                      : 'bg-emerald-50/70 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-900/50'
                 }`
               )}
             >
-              <View style={tw('flex-row items-center gap-2')}>
-                <Text style={tw('text-lg font-extrabold text-slate-900 dark:text-white')}>
-                  {formatHHMM(startHour, startMinute)}
-                </Text>
-                <ArrowRight
-                  size={16}
-                  color={twInstance.color('text-slate-500 dark:text-slate-400')}
-                />
-                <Text style={tw('text-lg font-extrabold text-slate-900 dark:text-white')}>
-                  {formatHHMM(endHour, endMinute)}
+              <View style={tw('flex-row items-center justify-between')}>
+                <View style={tw('flex-row items-center gap-2')}>
+                  <Text style={tw('text-lg font-extrabold text-slate-900 dark:text-white')}>
+                    {formatHHMM(startHour, startMinute)}
+                  </Text>
+                  <ArrowRight
+                    size={16}
+                    color={twInstance.color('text-slate-500 dark:text-slate-400')}
+                  />
+                  <Text style={tw('text-lg font-extrabold text-slate-900 dark:text-white')}>
+                    {formatHHMM(endHour, endMinute)}
+                  </Text>
+                </View>
+                <Text
+                  style={tw(
+                    `text-xs font-bold flex-1 text-right ml-3 ${
+                      !isValidRange || isPastStart
+                        ? 'text-rose-600 dark:text-rose-300'
+                        : isTooSoonForNotice
+                          ? 'text-amber-700 dark:text-amber-300'
+                          : 'text-emerald-700 dark:text-emerald-300'
+                    }`
+                  )}
+                >
+                  {!isValidRange
+                    ? t('mobile.wheel_invalid_range')
+                    : isPastStart
+                      ? t('mobile.wheel_past_time_error')
+                      : isTooSoonForNotice
+                        ? t('mobile.wheel_min_notice_error', {
+                            minutes: effectiveMinNotice,
+                            time: earliestDisplayLabel,
+                            defaultValue: `Must be at least ${effectiveMinNotice} min from now (earliest: ${earliestDisplayLabel})`,
+                          })
+                        : t('mobile.wheel_duration_summary', { minutes: durationMinutes })}
                 </Text>
               </View>
-              <Text
-                style={tw(
-                  `text-xs font-bold flex-1 text-right ml-3 ${
-                    isValidRange && !isPastStart
-                      ? 'text-emerald-700 dark:text-emerald-300'
-                      : 'text-rose-600 dark:text-rose-300'
-                  }`
-                )}
-              >
-                {!isValidRange
-                  ? t('mobile.wheel_invalid_range')
-                  : isPastStart
-                    ? t('mobile.wheel_past_time_error')
-                    : t('mobile.wheel_duration_summary', { minutes: durationMinutes })}
-              </Text>
+
+              {(isPastStart || isTooSoonForNotice) && !editingSlot ? (
+                <TouchableOpacity
+                  onPress={() => jumpToEarliestValid()}
+                  style={tw(
+                    'mt-2.5 self-start px-3 py-1.5 rounded-xl bg-slate-900 dark:bg-brand'
+                  )}
+                >
+                  <Text style={tw('text-xs font-bold text-white dark:text-slate-900')}>
+                    {t('mobile.wheel_jump_earliest', {
+                      time: earliestDisplayLabel,
+                      defaultValue: `Use earliest (${earliestDisplayLabel})`,
+                    })}
+                  </Text>
+                </TouchableOpacity>
+              ) : autoAdjustedNotice && !editingSlot && isValidRange ? (
+                <Text style={tw('text-[11px] text-emerald-700 dark:text-emerald-300 mt-1.5')}>
+                  {t('mobile.wheel_auto_adjusted_notice', {
+                    minutes: effectiveMinNotice,
+                    defaultValue: `Auto-adjusted to the earliest bookable time (minimum ${effectiveMinNotice}-minute notice).`,
+                  })}
+                </Text>
+              ) : null}
             </View>
 
             {/* Dual Clock Wheel Pickers */}
@@ -648,6 +703,7 @@ export const AddSlotModal: React.FC<AddSlotModalProps> = ({
             </TouchableOpacity>
           </View>
         </View>
+        <AppModalToast visible={visible} />
       </View>
     </Modal>
   );

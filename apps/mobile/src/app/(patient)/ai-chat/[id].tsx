@@ -38,6 +38,7 @@ import {
 } from 'lucide-react-native';
 import { tw, twInstance } from '@/tw';
 import { useThemeContext } from '@/context/ThemeContext';
+import { AppModalToast } from '@/components/ui/AppToast';
 import {
   mobileApi,
   generateIdempotencyKey,
@@ -1178,6 +1179,7 @@ export default function AiChatSessionScreen() {
               )}
             </ScrollView>
           </View>
+          <AppModalToast visible={reportModalVisible} />
         </KeyboardAvoidingView>
       </Modal>
 
@@ -1223,6 +1225,7 @@ export default function AiChatSessionScreen() {
               </View>
             </View>
           </View>
+          <AppModalToast visible={statsModalVisible} />
         </View>
       </Modal>
 
@@ -1287,6 +1290,7 @@ export default function AiChatSessionScreen() {
               </TouchableOpacity>
             </View>
           </View>
+          <AppModalToast visible={imagePickerModalVisible} />
         </View>
       </Modal>
 

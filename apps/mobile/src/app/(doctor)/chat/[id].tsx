@@ -46,6 +46,7 @@ import {
   type FeTypes,
 } from '@repo/shared-hooks';
 import { tw } from '@/tw';
+import { AppModalToast } from '@/components/ui/AppToast';
 import { useThemeContext } from '@/context/ThemeContext';
 import { useSafeRouter } from '@/utils/useSafeRouter';
 import { extractApiErrorMessage } from '@/utils/apiError';
@@ -180,6 +181,10 @@ export default function DoctorChatSessionScreen() {
   const [patientName, setPatientName] = useState(() => t('mobile.patient_fallback', 'Patient'));
   const [patientAvatar, setPatientAvatar] = useState<string | undefined>(undefined);
   const [isPatientOnline, setIsPatientOnline] = useState(false);
+  const [consultationStatus, setConsultationStatus] = useState<{
+    requestStatus: string;
+    sessionStatus: string;
+  }>({ requestStatus: '', sessionStatus: '' });
 
   const [messages, setMessages] = useState<ChatMessageItem[]>([]);
   const [nextCursor, setNextCursor] = useState<string | undefined>(undefined);
@@ -230,6 +235,10 @@ export default function DoctorChatSessionScreen() {
       ]);
 
       const consultRaw = (consultRes?.data ?? consultRes) as RawRecord;
+      setConsultationStatus({
+        requestStatus: String(consultRaw?.requestStatus ?? ''),
+        sessionStatus: String(consultRaw?.sessionStatus ?? ''),
+      });
       const rawPatient = consultRaw?.patientId;
       let resolvedPatientId = '';
       let resolvedName = t('mobile.patient_fallback', 'Patient');
@@ -238,8 +247,10 @@ export default function DoctorChatSessionScreen() {
       if (typeof rawPatient === 'string') {
         resolvedPatientId = rawPatient;
         try {
-          const profRes = await mobileApi.usersFindProfile({ params: { id: rawPatient } });
-          const prof = ((profRes as unknown as { data?: RawRecord })?.data ?? profRes) as RawRecord;
+          const profRes = await mobileApi.usersFindOne({ params: { id: rawPatient } });
+          const outer = ((profRes as unknown as { data?: RawRecord })?.data ?? profRes) as RawRecord;
+          const prof =
+            outer?.user && typeof outer.user === 'object' ? (outer.user as RawRecord) : outer;
           const full =
             (typeof prof?.fullName === 'string' && prof.fullName.trim()) ||
             [prof?.firstName, prof?.lastName]
@@ -416,9 +427,17 @@ export default function DoctorChatSessionScreen() {
     }
   }, [loadingVitals, patientId, showVitalsBanner, vitals.length]);
 
+  const isStatusLoaded = Boolean(consultationStatus.requestStatus);
+  const isPendingApproval = consultationStatus.requestStatus === 'pending';
+  const canSendMessage =
+    isStatusLoaded &&
+    consultationStatus.requestStatus === 'accepted' &&
+    consultationStatus.sessionStatus !== 'completed' &&
+    consultationStatus.sessionStatus !== 'no_show';
+
   const handleSendText = useCallback(async () => {
     const trimmed = msgText.trim();
-    if (!trimmed || !consultationId || isSending) return;
+    if (!trimmed || !consultationId || isSending || !canSendMessage) return;
 
     setIsSending(true);
     try {
@@ -465,11 +484,11 @@ export default function DoctorChatSessionScreen() {
     } finally {
       setIsSending(false);
     }
-  }, [consultationId, isSending, msgText, t]);
+  }, [canSendMessage, consultationId, isSending, msgText, t]);
 
   const handleSendAttachment = useCallback(
     async (file: NativeMediaFile) => {
-      if (!consultationId || isSending) return;
+      if (!consultationId || isSending || !canSendMessage) return;
       setPickerVisible(false);
       setIsSending(true);
       try {
@@ -518,7 +537,7 @@ export default function DoctorChatSessionScreen() {
         setIsSending(false);
       }
     },
-    [consultationId, isSending, t],
+    [canSendMessage, consultationId, isSending, t],
   );
 
   const handleDownloadAttachment = useCallback(
@@ -662,12 +681,14 @@ export default function DoctorChatSessionScreen() {
             <Activity size={17} color={showVitalsBanner ? '#ffffff' : isDark ? '#5eead4' : '#0d9488'} />
           </TouchableOpacity>
 
-          <TouchableOpacity
-            onPress={() => router.push(`/(doctor)/video-call?consultationId=${consultationId}`)}
-            style={tw('p-2 rounded-xl bg-teal-50 dark:bg-teal-950/60 border border-teal-200 dark:border-teal-800')}
-          >
-            <Video size={17} color="#0d9488" />
-          </TouchableOpacity>
+          {canSendMessage && (
+            <TouchableOpacity
+              onPress={() => router.push(`/(doctor)/video-call?consultationId=${consultationId}`)}
+              style={tw('p-2 rounded-xl bg-teal-50 dark:bg-teal-950/60 border border-teal-200 dark:border-teal-800')}
+            >
+              <Video size={17} color="#0d9488" />
+            </TouchableOpacity>
+          )}
 
           {Boolean(patientId) && (
             <TouchableOpacity
@@ -783,9 +804,9 @@ export default function DoctorChatSessionScreen() {
                 return (
                   <TouchableOpacity
                     key={msg.id}
-                    activeOpacity={isDoctor ? 0.85 : 1}
+                    activeOpacity={isDoctor && canSendMessage ? 0.85 : 1}
                     onLongPress={() => {
-                      if (!isDoctor || msg.attachment) return;
+                      if (!isDoctor || msg.attachment || !canSendMessage) return;
                       setEditingMsg(msg);
                       setEditText(msg.content);
                     }}
@@ -907,60 +928,89 @@ export default function DoctorChatSessionScreen() {
           </ScrollView>
         )}
 
-        {/* Composer */}
-        <View
-          style={tw(
-            'px-3 py-2.5 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 flex-row items-end gap-2',
-          )}
-        >
-          <TouchableOpacity
-            disabled={isSending}
-            onPress={() => {
-              setPickerMode('image');
-              setPickerVisible(true);
-            }}
-            style={tw('p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800')}
-          >
-            <ImageIcon size={18} color={isDark ? '#94a3b8' : '#475569'} />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            disabled={isSending}
-            onPress={() => {
-              setPickerMode('file');
-              setPickerVisible(true);
-            }}
-            style={tw('p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800')}
-          >
-            <Paperclip size={18} color={isDark ? '#94a3b8' : '#475569'} />
-          </TouchableOpacity>
-
-          <TextInput
-            value={msgText}
-            onChangeText={setMsgText}
-            multiline
-            placeholder={t('mobile.type_message_placeholder', 'Write a message...')}
-            placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
+        {/* Composer or Locked/Closed Banner */}
+        {isStatusLoaded && !canSendMessage ? (
+          <View
             style={tw(
-              'flex-1 max-h-24 px-3.5 py-2 rounded-2xl bg-slate-100 dark:bg-slate-800 text-sm text-slate-900 dark:text-white',
+              isPendingApproval
+                ? 'px-4 py-3.5 bg-amber-50 dark:bg-amber-950/40 border-t border-amber-200 dark:border-amber-900/50 items-center'
+                : 'px-4 py-3.5 bg-slate-100 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 items-center',
             )}
-          />
-
-          <TouchableOpacity
-            disabled={isSending || !msgText.trim()}
-            onPress={handleSendText}
-            style={[
-              tw('p-2.5 rounded-xl bg-teal-600'),
-              (!msgText.trim() || isSending) && { opacity: 0.5 },
-            ]}
           >
-            {isSending ? (
-              <ActivityIndicator size="small" color="#ffffff" />
-            ) : (
-              <Send size={18} color="#ffffff" />
+            <Text
+              style={tw(
+                isPendingApproval
+                  ? 'text-xs font-medium text-amber-800 dark:text-amber-300 text-center leading-4'
+                  : 'text-xs font-medium text-slate-500 dark:text-slate-400 text-center leading-4',
+              )}
+            >
+              {isPendingApproval
+                ? t(
+                    'mobile.chat_locked_pending_doctor',
+                    'Accept this consultation request before messaging or video calling the patient.',
+                  )
+                : t(
+                    'mobile.chat_locked_closed',
+                    'This consultation has ended or was cancelled. History is read-only.',
+                  )}
+            </Text>
+          </View>
+        ) : (
+          <View
+            style={tw(
+              'px-3 py-2.5 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 flex-row items-end gap-2',
             )}
-          </TouchableOpacity>
-        </View>
+          >
+            <TouchableOpacity
+              disabled={isSending || !canSendMessage}
+              onPress={() => {
+                setPickerMode('image');
+                setPickerVisible(true);
+              }}
+              style={tw('p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800')}
+            >
+              <ImageIcon size={18} color={isDark ? '#94a3b8' : '#475569'} />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              disabled={isSending || !canSendMessage}
+              onPress={() => {
+                setPickerMode('file');
+                setPickerVisible(true);
+              }}
+              style={tw('p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800')}
+            >
+              <Paperclip size={18} color={isDark ? '#94a3b8' : '#475569'} />
+            </TouchableOpacity>
+
+            <TextInput
+              value={msgText}
+              onChangeText={setMsgText}
+              editable={canSendMessage}
+              multiline
+              placeholder={t('mobile.type_message_placeholder', 'Write a message...')}
+              placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
+              style={tw(
+                'flex-1 max-h-24 px-3.5 py-2 rounded-2xl bg-slate-100 dark:bg-slate-800 text-sm text-slate-900 dark:text-white',
+              )}
+            />
+
+            <TouchableOpacity
+              disabled={isSending || !canSendMessage || !msgText.trim()}
+              onPress={handleSendText}
+              style={[
+                tw('p-2.5 rounded-xl bg-teal-600'),
+                (!msgText.trim() || isSending || !canSendMessage) && { opacity: 0.5 },
+              ]}
+            >
+              {isSending ? (
+                <ActivityIndicator size="small" color="#ffffff" />
+              ) : (
+                <Send size={18} color="#ffffff" />
+              )}
+            </TouchableOpacity>
+          </View>
+        )}
       </KeyboardAvoidingView>
 
       {/* Modals */}
@@ -1047,6 +1097,7 @@ export default function DoctorChatSessionScreen() {
               </View>
             </View>
           </View>
+          <AppModalToast visible={Boolean(editingMsg)} />
         </View>
       </Modal>
 
@@ -1119,6 +1170,7 @@ export default function DoctorChatSessionScreen() {
               </TouchableOpacity>
             </View>
           </View>
+          <AppModalToast visible={reportModalOpen} />
         </View>
       </Modal>
     </SafeAreaView>

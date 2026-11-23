@@ -45,6 +45,7 @@ import {
   SOCKET_EVENTS,
 } from '@repo/shared-hooks';
 import { tw } from '@/tw';
+import { AppModalToast } from '@/components/ui/AppToast';
 import { useThemeContext } from '@/context/ThemeContext';
 import { useSafeRouter } from '@/utils/useSafeRouter';
 import { extractApiErrorMessage } from '@/utils/apiError';
@@ -676,6 +677,7 @@ export default function DoctorVideoCallScreen() {
               )}
             </View>
           </View>
+          <AppModalToast visible={isNotesModalVisible} />
         </KeyboardAvoidingView>
       </Modal>
 
