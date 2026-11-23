@@ -580,7 +580,10 @@ export default function DoctorConsultationsScreen() {
         };
       case 'waiting':
         return {
-          label: t('mobile.status_waiting_room', 'In Waiting Room'),
+          label:
+            row.mode === 'on_demand'
+              ? t('mobile.status_ready_for_session', 'Ready to Start')
+              : t('mobile.status_waiting_room', 'In Waiting Room'),
           bg: 'bg-blue-50 dark:bg-blue-950/50 border-blue-200 dark:border-blue-800',
           text: 'text-blue-700 dark:text-blue-300',
         };
@@ -949,11 +952,34 @@ export default function DoctorConsultationsScreen() {
                         <Text style={tw('text-base font-bold text-slate-900 dark:text-white')} numberOfLines={1}>
                           {row.patientName}
                         </Text>
-                        <View style={tw('flex-row items-center gap-1.5 mt-0.5')}>
+                        <View style={tw('flex-row items-center gap-1.5 mt-0.5 flex-wrap')}>
                           <Clock size={12} color="#64748b" />
                           <Text style={tw('text-xs text-slate-500 dark:text-slate-400')}>
                             {formatDateTime(row.scheduledStartAt)}
                           </Text>
+                          <View
+                            style={tw(
+                              `px-2 py-0.5 rounded-full ${
+                                row.mode === 'on_demand'
+                                  ? 'bg-violet-50 dark:bg-violet-950/50'
+                                  : 'bg-slate-100 dark:bg-slate-800'
+                              }`,
+                            )}
+                          >
+                            <Text
+                              style={tw(
+                                `text-[10px] font-semibold ${
+                                  row.mode === 'on_demand'
+                                    ? 'text-violet-700 dark:text-violet-300'
+                                    : 'text-slate-600 dark:text-slate-300'
+                                }`,
+                              )}
+                            >
+                              {row.mode === 'on_demand'
+                                ? t('mobile.mode_on_demand', 'On-demand')
+                                : t('mobile.mode_scheduled', 'Scheduled')}
+                            </Text>
+                          </View>
                         </View>
                       </View>
                     </View>

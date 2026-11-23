@@ -30,14 +30,17 @@ import {
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
-  CircleSlash,
-  Download,
+  Clock,
   Edit3,
   Ellipsis,
+  ExternalLink,
   Eye,
   FileText,
-  Layers,
+  GitBranch,
   MessageSquareHeart,
+  Microscope,
+  Plus,
+  Power,
   RefreshCw,
   Search,
   ShieldAlert,
@@ -46,20 +49,23 @@ import {
   TriangleAlert,
   Upload,
   X,
+  XCircle,
 } from "lucide-react";
 import {
   useAiFeedbackList,
   useDeleteDocument,
   useDocumentMutations,
   useGetDocumentList,
-  useToggleDocumentStatus,
+  useKnowledgeCandidates,
 } from "../hooks/useAiManagement";
 import {
   createAiDocument,
   markAiFeedbackHelpful,
+  type CandidateStatus,
   type DocumentItem,
   type DocumentStatus,
   type DocumentType,
+  type KnowledgeCandidateItem,
 } from "../services/ai-management.service";
 import {
   useAddKeyword,
@@ -68,31 +74,59 @@ import {
   useGetKeywords,
   useUpdateKeyword,
 } from "../hooks/useBlacklistKeywords";
+import { useAuthStore } from "@repo/ui/store/useAuthStore";
+import { normalizeAdminRole } from "@repo/ui/types/auth";
 import { showToast } from "@repo/ui/components/ui/toasts";
 import { Spinner } from "@repo/ui/components/ui/spinner";
 import { useTranslation } from "react-i18next";
 import { DocumentPreviewModal } from "../components/document-preview-modal";
-import { DocumentChunksModal } from "../components/document-chunks-modal";
 
-type TabSwitch = "doc" | "words" | "feedbacks";
+type TabSwitch = "doc" | "candidates" | "words" | "feedbacks";
 const PAGE_LIMIT = 15;
+
+function isSafeHttpUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === "https:" || parsed.protocol === "http:";
+  } catch {
+    return false;
+  }
+}
 
 function getStatusClassName(status: DocumentStatus) {
   if (status === "active") {
     return "border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300";
   }
+  if (status === "ready_for_activation") {
+    return "border-cyan-200 dark:border-cyan-800 bg-cyan-50 dark:bg-cyan-950/40 text-cyan-700 dark:text-cyan-300";
+  }
   if (status === "inactive") {
     return "border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300";
   }
-  if (status === "processing") {
+  if (status === "processing" || status === "pending_ingestion") {
     return "border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300";
   }
   return "border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-300";
 }
 
+function getCandidateStatusClassName(status: CandidateStatus) {
+  if (status === "promoted") {
+    return "border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300";
+  }
+  if (status === "rejected") {
+    return "border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-300";
+  }
+  return "border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300";
+}
+
 export function AIManagement() {
   const { t } = useTranslation();
   const locale = t("common.dateLocale", "vi-VN");
+  const currentUser = useAuthStore((s) => s.user);
+  const adminRole = normalizeAdminRole(currentUser?.adminRole);
+  const isSuperAdmin = adminRole === "super_admin";
+  const canManageKnowledge =
+    adminRole === "super_admin" || adminRole === "ai_admin";
 
   const [tab, setTab] = useState<TabSwitch>("doc");
   const [searchDoc, setSearchDoc] = useState("");
@@ -106,15 +140,39 @@ export function AIManagement() {
   const [openActionRect, setOpenActionRect] = useState<DOMRect | null>(null);
   const [previewDoc, setPreviewDoc] = useState<DocumentItem | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
-  const [chunksDoc, setChunksDoc] = useState<DocumentItem | null>(null);
-  const [isChunksModalOpen, setIsChunksModalOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
 
-  // Edit / Archive metadata modal
+  // Edit metadata modal (title & validUntil only)
   const [editModalDoc, setEditModalDoc] = useState<DocumentItem | null>(null);
   const [editTitleInput, setEditTitleInput] = useState("");
   const [editValidUntilInput, setEditValidUntilInput] = useState("");
-  const [editStatusInput, setEditStatusInput] = useState<DocumentStatus>("active");
+
+  // Reject document modal
+  const [rejectModalDoc, setRejectModalDoc] = useState<DocumentItem | null>(
+    null,
+  );
+  const [rejectReasonInput, setRejectReasonInput] = useState("");
+
+  // Replace document version modal
+  const [replaceModalDoc, setReplaceModalDoc] = useState<DocumentItem | null>(
+    null,
+  );
+  const [replaceTitleInput, setReplaceTitleInput] = useState("");
+  const [replaceValidUntilInput, setReplaceValidUntilInput] = useState("");
+  const [replaceFile, setReplaceFile] = useState<File | null>(null);
+
+  // PubMed Knowledge Candidates state
+  const [searchCandidate, setSearchCandidate] = useState("");
+  const [candidateStatusFilter, setCandidateStatusFilter] = useState<
+    "all" | CandidateStatus
+  >("all");
+  const [isProposeModalOpen, setIsProposeModalOpen] = useState(false);
+  const [proposePmid, setProposePmid] = useState("");
+  const [proposeTitle, setProposeTitle] = useState("");
+  const [proposeUrl, setProposeUrl] = useState("");
+  const [rejectCandidateTarget, setRejectCandidateTarget] =
+    useState<KnowledgeCandidateItem | null>(null);
+  const [rejectCandidateReason, setRejectCandidateReason] = useState("");
 
   // Blacklist keywords state
   const [searchWord, setSearchWord] = useState("");
@@ -154,15 +212,30 @@ export function AIManagement() {
     locale,
   });
 
-  const { toggleStatus, isLoading: isToggling } = useToggleDocumentStatus();
   const { deleteDoc, isLoading: isDeleting } = useDeleteDocument();
   const {
+    approveDoc,
+    rejectDoc,
+    activateDoc,
+    replaceDocVersion,
     archiveDoc,
-    indexDoc,
-    ragIngestDoc,
     updateDoc,
     isLoading: isMutatingDoc,
   } = useDocumentMutations();
+
+  const {
+    data: candidateList,
+    isLoading: isCandidatesLoading,
+    isMutating: isMutatingCandidate,
+    error: candidateLoadError,
+    refresh: refreshCandidates,
+    propose: proposeCandidate,
+    promote: promoteCandidate,
+    reject: rejectCandidate,
+  } = useKnowledgeCandidates({
+    locale,
+    enabled: tab === "candidates",
+  });
 
   const {
     data: keywordData,
@@ -195,10 +268,10 @@ export function AIManagement() {
   });
 
   const isProcessing =
-    isToggling ||
     isDeleting ||
     isUploading ||
     isMutatingDoc ||
+    isMutatingCandidate ||
     isAdding ||
     isUpdatingKeyword ||
     isDeletingKeyword;
@@ -219,6 +292,10 @@ export function AIManagement() {
   useEffect(() => {
     if (loadError) showToast.error(loadError);
   }, [loadError]);
+
+  useEffect(() => {
+    if (candidateLoadError) showToast.error(candidateLoadError);
+  }, [candidateLoadError]);
 
   useEffect(() => {
     if (openActionFor) return;
@@ -243,6 +320,23 @@ export function AIManagement() {
     });
   }, [docList, selectedType]);
 
+  const filteredCandidates = useMemo(() => {
+    const q = searchCandidate.trim().toLowerCase();
+    return candidateList.filter((cand) => {
+      if (
+        candidateStatusFilter !== "all" &&
+        cand.status !== candidateStatusFilter
+      ) {
+        return false;
+      }
+      if (!q) return true;
+      return (
+        cand.pmid.toLowerCase().includes(q) ||
+        cand.title.toLowerCase().includes(q)
+      );
+    });
+  }, [candidateList, searchCandidate, candidateStatusFilter]);
+
   const filteredWords = useMemo(() => {
     const q = searchWord.trim().toLowerCase();
     if (!q) return keywordList;
@@ -250,25 +344,18 @@ export function AIManagement() {
   }, [keywordList, searchWord]);
 
   const activeDocuments = docList.filter((x) => x.status === "active").length;
-  const inactiveDocuments = docList.filter(
-    (x) => x.status === "inactive",
+  const pendingDocuments = docList.filter(
+    (x) =>
+      x.status === "pending_ingestion" ||
+      x.status === "processing" ||
+      x.status === "ready_for_activation" ||
+      x.reviewStatus === "pending_review",
   ).length;
   const errorDocuments = docList.filter((x) => x.status === "error").length;
 
   const openPreview = (doc: DocumentItem) => {
     setPreviewDoc(doc);
     setIsPreviewOpen(true);
-    setOpenActionFor(null);
-  };
-
-  const handleDownload = (doc: DocumentItem) => {
-    if (!doc.fileUrl) return;
-    const link = document.createElement("a");
-    link.href = doc.fileUrl;
-    link.download = doc.title;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
     setOpenActionFor(null);
   };
 
@@ -291,21 +378,59 @@ export function AIManagement() {
     }
   };
 
-  const handleToggleEnable = async (id: string) => {
+  const handleApproveDoc = async (doc: DocumentItem) => {
     if (isProcessing) return;
+    setOpenActionFor(null);
     try {
-      const targetDoc = docList.find((doc) => doc.id === id);
-      if (!targetDoc) return;
-      const nextEnabled = !targetDoc.isEnabled;
-      const res = nextEnabled
-        ? await indexDoc(id, 0)
-        : await toggleStatus(id, "inactive");
-      if (!res) return;
-      setOpenActionFor(null);
+      await approveDoc(doc.id);
       showToast.success(
-        nextEnabled
-          ? t("aiManagement.toasts.activated", "Đã kích hoạt tài liệu")
-          : t("aiManagement.toasts.deactivated", "Đã tạm ngưng tài liệu"),
+        t(
+          "aiManagement.toasts.approved",
+          "Đã phê duyệt tài liệu và bắt đầu xử lý RAG",
+        ),
+      );
+      void refresh();
+    } catch (error) {
+      showToast.error(
+        error instanceof Error
+          ? error.message
+          : t("common.failed", "Thao tác thất bại"),
+      );
+    }
+  };
+
+  const openRejectDocModal = (doc: DocumentItem) => {
+    setRejectModalDoc(doc);
+    setRejectReasonInput("");
+    setOpenActionFor(null);
+  };
+
+  const handleConfirmRejectDoc = async () => {
+    if (!rejectModalDoc || isProcessing) return;
+    try {
+      await rejectDoc(rejectModalDoc.id, rejectReasonInput);
+      showToast.success(
+        t("aiManagement.toasts.rejected", "Đã từ chối tài liệu"),
+      );
+      setRejectModalDoc(null);
+      setRejectReasonInput("");
+      void refresh();
+    } catch (error) {
+      showToast.error(
+        error instanceof Error
+          ? error.message
+          : t("common.failed", "Thao tác thất bại"),
+      );
+    }
+  };
+
+  const handleActivateDoc = async (doc: DocumentItem) => {
+    if (isProcessing) return;
+    setOpenActionFor(null);
+    try {
+      await activateDoc(doc.id);
+      showToast.success(
+        t("aiManagement.toasts.activated", "Đã kích hoạt tài liệu"),
       );
       void refresh();
     } catch (error) {
@@ -317,18 +442,48 @@ export function AIManagement() {
     }
   };
 
-  const handleReingest = async (doc: DocumentItem) => {
-    if (isProcessing) return;
+  const openReplaceModal = (doc: DocumentItem) => {
+    setReplaceModalDoc(doc);
+    setReplaceTitleInput(doc.title);
+    setReplaceValidUntilInput(doc.validUntil ? doc.validUntil.slice(0, 10) : "");
+    setReplaceFile(null);
     setOpenActionFor(null);
+  };
+
+  const handleConfirmReplaceVersion = async () => {
+    if (!replaceModalDoc || isProcessing) return;
+    if (!replaceFile) {
+      showToast.error(
+        t(
+          "aiManagement.replaceModal.fileRequired",
+          "Vui lòng chọn tệp phiên bản mới",
+        ),
+      );
+      return;
+    }
     try {
-      await ragIngestDoc(doc.id);
-      showToast.success(t("aiManagement.actions.reindexSuccess"));
+      await replaceDocVersion(
+        replaceModalDoc.id,
+        replaceFile,
+        replaceTitleInput.trim() || undefined,
+        replaceValidUntilInput
+          ? new Date(replaceValidUntilInput).toISOString()
+          : null,
+      );
+      showToast.success(
+        t(
+          "aiManagement.toasts.replaced",
+          "Đã nộp phiên bản tài liệu mới chờ duyệt",
+        ),
+      );
+      setReplaceModalDoc(null);
+      setReplaceFile(null);
       void refresh();
     } catch (error) {
       showToast.error(
         error instanceof Error
           ? error.message
-          : t("aiManagement.actions.reindexFailed", "Không thể lập chỉ mục lại tài liệu"),
+          : t("common.failed", "Thao tác thất bại"),
       );
     }
   };
@@ -353,7 +508,6 @@ export function AIManagement() {
     setEditModalDoc(doc);
     setEditTitleInput(doc.title);
     setEditValidUntilInput(doc.validUntil ? doc.validUntil.slice(0, 10) : "");
-    setEditStatusInput(doc.status);
     setOpenActionFor(null);
   };
 
@@ -368,7 +522,6 @@ export function AIManagement() {
     try {
       await updateDoc(editModalDoc.id, {
         title: editTitleInput.trim(),
-        status: editStatusInput,
         validUntil: editValidUntilInput
           ? new Date(editValidUntilInput).toISOString()
           : null,
@@ -383,75 +536,167 @@ export function AIManagement() {
     }
   };
 
-  const getActionItems = (
-    doc: DocumentItem,
-    isDocAvailable: boolean,
-  ): ActionCardItem[] => {
-    const canMutate = !isProcessing && isDocAvailable;
-    const canDelete = !isProcessing;
+  const handleProposeCandidate = async () => {
+    if (isProcessing) return;
+    const pmid = proposePmid.trim();
+    const title = proposeTitle.trim();
+    const sourceUrl = proposeUrl.trim();
+    if (!pmid) {
+      showToast.error(
+        t("aiManagement.candidates.pmidRequired", "Vui lòng nhập PubMed ID (PMID)"),
+      );
+      return;
+    }
+    if (!title) {
+      showToast.error(
+        t("aiManagement.candidates.titleRequired", "Vui lòng nhập tiêu đề bài báo"),
+      );
+      return;
+    }
+    if (!isSafeHttpUrl(sourceUrl)) {
+      showToast.error(
+        t("aiManagement.candidates.invalidUrl", "URL nguồn phải hợp lệ (http/https)"),
+      );
+      return;
+    }
+    try {
+      await proposeCandidate({ pmid, title, sourceUrl });
+      showToast.success(
+        t("aiManagement.toasts.candidateProposed", "Đã đề xuất ứng viên PubMed mới"),
+      );
+      setIsProposeModalOpen(false);
+      setProposePmid("");
+      setProposeTitle("");
+      setProposeUrl("");
+    } catch (error) {
+      showToast.error(
+        error instanceof Error ? error.message : t("common.failed", "Thao tác thất bại"),
+      );
+    }
+  };
 
-    return [
+  const handlePromoteCandidate = async (cand: KnowledgeCandidateItem) => {
+    if (isProcessing) return;
+    try {
+      await promoteCandidate(cand.id);
+      showToast.success(
+        t(
+          "aiManagement.toasts.candidatePromoted",
+          "Đã thăng cấp ứng viên thành tài liệu tri thức",
+        ),
+      );
+      void refresh();
+    } catch (error) {
+      showToast.error(
+        error instanceof Error ? error.message : t("common.failed", "Thao tác thất bại"),
+      );
+    }
+  };
+
+  const handleConfirmRejectCandidate = async () => {
+    if (!rejectCandidateTarget || isProcessing) return;
+    try {
+      await rejectCandidate(rejectCandidateTarget.id, rejectCandidateReason);
+      showToast.success(
+        t("aiManagement.toasts.candidateRejected", "Đã từ chối ứng viên PubMed"),
+      );
+      setRejectCandidateTarget(null);
+      setRejectCandidateReason("");
+    } catch (error) {
+      showToast.error(
+        error instanceof Error ? error.message : t("common.failed", "Thao tác thất bại"),
+      );
+    }
+  };
+
+  const getActionItems = (doc: DocumentItem): ActionCardItem[] => {
+    const items: ActionCardItem[] = [
       {
         id: `view-${doc.id}`,
         title: t("aiManagement.actions.view"),
         icon: <Eye className="h-4 w-4" />,
         onHandle: () => openPreview(doc),
       },
-      {
-        id: `download-${doc.id}`,
-        title: t("aiManagement.actions.download"),
-        icon: <Download className="h-4 w-4" />,
-        onHandle: () => handleDownload(doc),
-      },
-      {
-        id: `chunks-${doc.id}`,
-        title: t("aiManagement.actions.manageChunks"),
-        icon: <Layers className="h-4 w-4" />,
-        onHandle: () => {
-          setChunksDoc(doc);
-          setIsChunksModalOpen(true);
-          setOpenActionFor(null);
-        },
-      },
-      {
-        id: `edit-${doc.id}`,
-        title: t("aiManagement.actions.editMeta", "Chỉnh sửa thông tin"),
-        icon: <Edit3 className="h-4 w-4" />,
-        disabled: isProcessing,
-        onHandle: () => openEditModal(doc),
-      },
-      {
-        id: `toggle-${doc.id}`,
-        title: doc.isEnabled
-          ? t("aiManagement.actions.deactivate")
-          : t("aiManagement.actions.activate"),
-        icon: <CircleSlash className="h-4 w-4" />,
-        disabled: !canMutate,
-        onHandle: () => void handleToggleEnable(doc.id),
-      },
-      {
-        id: `reingest-${doc.id}`,
-        title: t("aiManagement.actions.reindex"),
-        icon: <Upload className="h-4 w-4" />,
-        disabled: isProcessing,
-        onHandle: () => void handleReingest(doc),
-      },
-      {
-        id: `archive-${doc.id}`,
-        title: t("aiManagement.actions.archive"),
-        icon: <Ban className="h-4 w-4" />,
-        disabled: isProcessing || doc.status === "inactive",
-        onHandle: () => void handleArchiveDoc(doc),
-      },
-      {
-        id: `delete-${doc.id}`,
-        title: t("aiManagement.actions.delete"),
-        icon: <Trash2 className="h-4 w-4" />,
-        iconColor: "text-red-600",
-        disabled: !canDelete,
-        onHandle: () => void handleDelete(doc.id),
-      },
     ];
+
+    if (canManageKnowledge) {
+      items.push(
+        {
+          id: `edit-${doc.id}`,
+          title: t("aiManagement.actions.editMeta", "Chỉnh sửa thông tin"),
+          icon: <Edit3 className="h-4 w-4" />,
+          disabled: isProcessing,
+          onHandle: () => openEditModal(doc),
+        },
+        {
+          id: `replace-${doc.id}`,
+          title: t("aiManagement.actions.replaceVersion", "Nộp phiên bản mới"),
+          icon: <GitBranch className="h-4 w-4" />,
+          disabled: isProcessing,
+          onHandle: () => openReplaceModal(doc),
+        },
+      );
+    }
+
+    if (isSuperAdmin) {
+      if (doc.reviewStatus === "pending_review") {
+        items.push(
+          {
+            id: `approve-${doc.id}`,
+            title: t("aiManagement.actions.approve", "Phê duyệt & Nạp RAG"),
+            icon: <CheckCircle2 className="h-4 w-4" />,
+            iconColor: "text-emerald-600",
+            disabled: isProcessing,
+            onHandle: () => void handleApproveDoc(doc),
+          },
+          {
+            id: `reject-${doc.id}`,
+            title: t("aiManagement.actions.reject", "Từ chối"),
+            icon: <XCircle className="h-4 w-4" />,
+            iconColor: "text-amber-600",
+            disabled: isProcessing,
+            onHandle: () => openRejectDocModal(doc),
+          },
+        );
+      }
+
+      if (
+        doc.reviewStatus === "approved" &&
+        doc.status === "ready_for_activation"
+      ) {
+        items.push({
+          id: `activate-${doc.id}`,
+          title: t("aiManagement.actions.activate", "Kích hoạt sử dụng"),
+          icon: <Power className="h-4 w-4" />,
+          iconColor: "text-emerald-600",
+          disabled: isProcessing,
+          onHandle: () => void handleActivateDoc(doc),
+        });
+      }
+
+      items.push(
+        {
+          id: `archive-${doc.id}`,
+          title: t("aiManagement.actions.archive"),
+          icon: <Ban className="h-4 w-4" />,
+          disabled:
+            isProcessing ||
+            doc.status === "inactive" ||
+            doc.reviewStatus === "archived",
+          onHandle: () => void handleArchiveDoc(doc),
+        },
+        {
+          id: `delete-${doc.id}`,
+          title: t("aiManagement.actions.delete"),
+          icon: <Trash2 className="h-4 w-4" />,
+          iconColor: "text-red-600",
+          disabled: isProcessing,
+          onHandle: () => void handleDelete(doc.id),
+        },
+      );
+    }
+
+    return items;
   };
 
   const handleUploadFiles = (files: FileList | null) => {
@@ -608,16 +853,29 @@ export function AIManagement() {
             type="button"
             variant="outline"
             size="sm"
-            disabled={isDocsLoading || isKeywordsLoading || isFeedbacksLoading}
+            disabled={
+              isDocsLoading ||
+              isCandidatesLoading ||
+              isKeywordsLoading ||
+              isFeedbacksLoading
+            }
             onClick={() => {
               if (tab === "doc") void refresh();
+              else if (tab === "candidates") void refreshCandidates();
               else if (tab === "words") void refreshKeyword();
               else void refreshFeedbacks();
             }}
             className="rounded-xl dark:border-slate-700 dark:text-slate-200 cursor-pointer"
           >
             <RefreshCw
-              className={`mr-1.5 h-3.5 w-3.5 ${isDocsLoading || isKeywordsLoading || isFeedbacksLoading ? "animate-spin" : ""}`}
+              className={`mr-1.5 h-3.5 w-3.5 ${
+                isDocsLoading ||
+                isCandidatesLoading ||
+                isKeywordsLoading ||
+                isFeedbacksLoading
+                  ? "animate-spin"
+                  : ""
+              }`}
             />
             {t("common.refresh", "Làm mới")}
           </Button>
@@ -639,6 +897,22 @@ export function AIManagement() {
               {t("aiManagement.tabs.documents")}
               <span className="ml-1 text-xs text-slate-400 dark:text-gray-500">
                 {totalDocs}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              className={`flex items-center gap-2 border-b-2 px-1 py-3 text-sm font-semibold transition cursor-pointer ${
+                tab === "candidates"
+                  ? "border-teal-500 text-teal-600 dark:text-teal-400"
+                  : "border-transparent text-slate-500 hover:text-slate-700 dark:text-gray-400 dark:hover:text-gray-200"
+              }`}
+              onClick={() => setTab("candidates")}
+            >
+              <Microscope className="h-4 w-4" />
+              {t("aiManagement.tabs.candidates", "Ứng viên PubMed")}
+              <span className="ml-1 text-xs text-slate-400 dark:text-gray-500">
+                {candidateList.length || ""}
               </span>
             </button>
 
@@ -704,13 +978,13 @@ export function AIManagement() {
               </li>
               <li className="rounded-2xl border border-amber-100 dark:border-amber-900/50 bg-white dark:bg-slate-900 p-4 shadow-sm">
                 <div className="mb-3 inline-flex h-9 w-9 items-center justify-center rounded-lg bg-amber-50 dark:bg-amber-900/20 text-amber-600">
-                  <CircleSlash className="h-5 w-5" />
+                  <Clock className="h-5 w-5" />
                 </div>
                 <p className="text-2xl font-bold text-slate-900 dark:text-gray-100">
-                  {inactiveDocuments}
+                  {pendingDocuments}
                 </p>
                 <p className="text-sm text-slate-600 dark:text-gray-400">
-                  {t("aiManagement.stats.inactive")}
+                  {t("aiManagement.stats.pending", "Đang chờ xử lý / duyệt")}
                 </p>
               </li>
               <li className="rounded-2xl border border-red-100 dark:border-red-900/50 bg-white dark:bg-slate-900 p-4 shadow-sm">
@@ -781,37 +1055,41 @@ export function AIManagement() {
                       <ComboboxEmpty>{t("aiManagement.combobox.noStatus")}</ComboboxEmpty>
                       <ComboboxList>
                         <ComboboxItem value="all">{t("aiManagement.filters.allStatus")}</ComboboxItem>
-                        <ComboboxItem value="active">{t("aiManagement.status.active", "Hoạt động")}</ComboboxItem>
-                        <ComboboxItem value="inactive">{t("aiManagement.status.inactive", "Tạm ngưng")}</ComboboxItem>
+                        <ComboboxItem value="pending_ingestion">{t("aiManagement.status.pending_ingestion", "Chờ xử lý")}</ComboboxItem>
                         <ComboboxItem value="processing">{t("aiManagement.status.processing", "Đang xử lý")}</ComboboxItem>
+                        <ComboboxItem value="ready_for_activation">{t("aiManagement.status.ready_for_activation", "Sẵn sàng kích hoạt")}</ComboboxItem>
+                        <ComboboxItem value="active">{t("aiManagement.status.active", "Hoạt động")}</ComboboxItem>
+                        <ComboboxItem value="inactive">{t("aiManagement.status.inactive", "Ngừng hoạt động")}</ComboboxItem>
                         <ComboboxItem value="error">{t("aiManagement.status.error", "Lỗi")}</ComboboxItem>
                       </ComboboxList>
                     </ComboboxContent>
                   </Combobox>
                 </div>
 
-                <div>
-                  <input
-                    ref={inputFileRef}
-                    type="file"
-                    className="hidden"
-                    multiple
-                    accept=".pdf,.doc,.docx,.txt"
-                    onChange={(e) => {
-                      handleUploadFiles(e.target.files);
-                      e.target.value = "";
-                    }}
-                  />
-                  <Button
-                    type="button"
-                    className="h-9 rounded-full bg-lime-500 px-4 text-white hover:bg-lime-600 cursor-pointer"
-                    onClick={() => inputFileRef.current?.click()}
-                    disabled={isProcessing}
-                  >
-                    <Upload className="mr-1 h-4 w-4" />
-                    {t("aiManagement.actions.upload")}
-                  </Button>
-                </div>
+                {canManageKnowledge && (
+                  <div>
+                    <input
+                      ref={inputFileRef}
+                      type="file"
+                      className="hidden"
+                      multiple
+                      accept=".pdf,.doc,.docx,.txt"
+                      onChange={(e) => {
+                        handleUploadFiles(e.target.files);
+                        e.target.value = "";
+                      }}
+                    />
+                    <Button
+                      type="button"
+                      className="h-9 rounded-full bg-lime-500 px-4 text-white hover:bg-lime-600 cursor-pointer"
+                      onClick={() => inputFileRef.current?.click()}
+                      disabled={isProcessing}
+                    >
+                      <Upload className="mr-1 h-4 w-4" />
+                      {t("aiManagement.actions.upload")}
+                    </Button>
+                  </div>
+                )}
               </div>
 
               <Table>
@@ -847,9 +1125,7 @@ export function AIManagement() {
                     ))
                   ) : filteredDocs.length > 0 ? (
                     filteredDocs.map((doc) => {
-                      const availableDoc =
-                        doc.status === "active" || doc.status === "inactive";
-                      const actions = getActionItems(doc, availableDoc);
+                      const actions = getActionItems(doc);
                       return (
                         <TableRow key={doc.id}>
                           <TableCell className="px-3 py-3">
@@ -858,11 +1134,20 @@ export function AIManagement() {
                                 <FileText className="h-4 w-4" />
                               </span>
                               <div>
-                                <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">
-                                  {doc.title}
-                                </p>
+                                <div className="flex flex-wrap items-center gap-1.5">
+                                  <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">
+                                    {doc.title}
+                                  </p>
+                                  <Badge
+                                    variant="outline"
+                                    className="h-4 px-1.5 py-0 text-[10px] font-semibold dark:border-slate-700"
+                                  >
+                                    v{doc.documentVersion}
+                                  </Badge>
+                                </div>
                                 <p className="text-xs uppercase tracking-wide text-slate-400">
-                                  {doc.fileType}
+                                  {doc.fileType} • {doc.scope} •{" "}
+                                  {doc.knowledgeLanguage}
                                 </p>
                               </div>
                             </div>
@@ -879,13 +1164,10 @@ export function AIManagement() {
                                 variant="outline"
                                 className={`h-5 w-fit rounded-full border px-2 text-[10px] font-medium ${getStatusClassName(doc.status)}`}
                               >
-                                {doc.status === "active"
-                                  ? t("aiManagement.ingestionStatus.indexed")
-                                  : doc.status === "processing"
-                                    ? t("aiManagement.ingestionStatus.processing")
-                                    : doc.status === "error"
-                                      ? t("aiManagement.status.error", "Lỗi")
-                                      : t("aiManagement.status.inactive", "Lưu trữ")}
+                                {t(
+                                  `aiManagement.status.${doc.status}`,
+                                  doc.status,
+                                )}
                               </Badge>
                               <span className="text-[10px] font-medium text-indigo-600 dark:text-indigo-400">
                                 {doc.reviewStatus === "approved"
@@ -969,6 +1251,234 @@ export function AIManagement() {
                   </button>
                 </div>
               </div>
+            </div>
+          </div>
+        ) : tab === "candidates" ? (
+          <div className="space-y-4">
+            <div className="flex items-start gap-3 rounded-2xl border border-teal-200 dark:border-teal-900/60 bg-teal-50/80 dark:bg-teal-950/30 p-4 text-xs text-teal-900 dark:text-teal-200">
+              <Microscope className="h-4 w-4 shrink-0 mt-0.5 text-teal-600 dark:text-teal-400" />
+              <div className="space-y-1">
+                <p className="font-semibold">
+                  {t(
+                    "aiManagement.candidates.title",
+                    "Hàng đợi cách ly Ứng viên PubMed",
+                  )}
+                </p>
+                <p className="text-teal-800/90 dark:text-teal-300/90">
+                  {t(
+                    "aiManagement.candidates.quarantineNotice",
+                    "Ứng viên PubMed chỉ lưu metadata công khai (PMID, tiêu đề, URL nguồn — không lưu abstract) và nằm ở trạng thái chờ duyệt. Chỉ super_admin mới được thăng cấp ứng viên thành tài liệu tri thức chính thức.",
+                  )}
+                </p>
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm">
+              <div className="flex flex-col gap-3 border-b border-slate-200 dark:border-slate-800 p-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                  <div className="relative">
+                    <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+                    <input
+                      type="text"
+                      value={searchCandidate}
+                      onChange={(e) => setSearchCandidate(e.target.value)}
+                      placeholder={t(
+                        "aiManagement.candidates.searchPlaceholder",
+                        "Tìm theo PMID hoặc tiêu đề...",
+                      )}
+                      className="h-9 w-full sm:w-64 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 pl-9 pr-3 text-xs text-slate-700 dark:text-slate-200 outline-none"
+                    />
+                  </div>
+                  <select
+                    value={candidateStatusFilter}
+                    onChange={(e) =>
+                      setCandidateStatusFilter(
+                        e.target.value as "all" | CandidateStatus,
+                      )
+                    }
+                    className="h-9 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 text-xs text-slate-700 dark:text-slate-200 outline-none"
+                  >
+                    <option value="all">
+                      {t("aiManagement.candidates.allStatus", "Tất cả trạng thái")}
+                    </option>
+                    <option value="pending_review">
+                      {t("aiManagement.candidates.statusPending", "Chờ duyệt")}
+                    </option>
+                    <option value="promoted">
+                      {t("aiManagement.candidates.statusPromoted", "Đã thăng cấp")}
+                    </option>
+                    <option value="rejected">
+                      {t("aiManagement.candidates.statusRejected", "Đã từ chối")}
+                    </option>
+                  </select>
+                </div>
+
+                {canManageKnowledge && (
+                  <Button
+                    type="button"
+                    className="h-9 rounded-full bg-teal-600 px-4 text-white hover:bg-teal-700 cursor-pointer"
+                    onClick={() => setIsProposeModalOpen(true)}
+                    disabled={isProcessing}
+                  >
+                    <Plus className="mr-1 h-4 w-4" />
+                    {t("aiManagement.candidates.proposeBtn", "Đề xuất ứng viên")}
+                  </Button>
+                )}
+              </div>
+
+              <Table>
+                <TableHeader>
+                  <TableRow className="hover:bg-transparent">
+                    <TableHead className="px-3 text-xs text-slate-400">
+                      {t("aiManagement.candidates.pmidCol", "PMID")}
+                    </TableHead>
+                    <TableHead className="px-3 text-xs text-slate-400">
+                      {t("aiManagement.candidates.titleCol", "TIÊU ĐỀ BÀI BÁO")}
+                    </TableHead>
+                    <TableHead className="px-3 text-xs text-slate-400">
+                      {t("aiManagement.candidates.sourceCol", "NGUỒN")}
+                    </TableHead>
+                    <TableHead className="px-3 text-xs text-slate-400">
+                      {t("aiManagement.candidates.statusCol", "TRẠNG THÁI")}
+                    </TableHead>
+                    <TableHead className="px-3 text-xs text-slate-400">
+                      {t("aiManagement.candidates.dateCol", "NGÀY TẠO")}
+                    </TableHead>
+                    <TableHead className="px-3 text-xs text-slate-400 text-right">
+                      {t("aiManagement.table.actions")}
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {isCandidatesLoading ? (
+                    Array.from({ length: 4 }).map((_, idx) => (
+                      <TableRow key={`cand-skel-${idx}`}>
+                        <TableCell className="px-3 py-3">
+                          <Skeleton className="h-5 w-20" />
+                        </TableCell>
+                        <TableCell className="px-3">
+                          <Skeleton className="h-5 w-60" />
+                        </TableCell>
+                        <TableCell className="px-3">
+                          <Skeleton className="h-5 w-24" />
+                        </TableCell>
+                        <TableCell className="px-3">
+                          <Skeleton className="h-5 w-24 rounded-full" />
+                        </TableCell>
+                        <TableCell className="px-3">
+                          <Skeleton className="h-5 w-24" />
+                        </TableCell>
+                        <TableCell className="px-3 text-right">
+                          <Skeleton className="h-7 w-24 ml-auto" />
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : filteredCandidates.length > 0 ? (
+                    filteredCandidates.map((cand) => (
+                      <TableRow key={cand.id}>
+                        <TableCell className="px-3 py-3 font-mono text-xs font-semibold text-slate-700 dark:text-slate-200">
+                          {cand.pmid}
+                        </TableCell>
+                        <TableCell className="px-3 py-3 max-w-md">
+                          <p className="text-sm font-medium text-slate-800 dark:text-slate-100">
+                            {cand.title}
+                          </p>
+                          {cand.reviewReason && (
+                            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                              {cand.reviewReason}
+                            </p>
+                          )}
+                        </TableCell>
+                        <TableCell className="px-3 py-3 text-xs">
+                          {isSafeHttpUrl(cand.sourceUrl) ? (
+                            <a
+                              href={cand.sourceUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center gap-1 text-teal-600 dark:text-teal-400 hover:underline"
+                            >
+                              PubMed
+                              <ExternalLink className="h-3 w-3" />
+                            </a>
+                          ) : (
+                            <span className="text-slate-400">-</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="px-3 py-3">
+                          <Badge
+                            variant="outline"
+                            className={`h-5 w-fit rounded-full border px-2 text-[10px] font-medium ${getCandidateStatusClassName(cand.status)}`}
+                          >
+                            {cand.status === "promoted"
+                              ? t("aiManagement.candidates.statusPromoted", "Đã thăng cấp")
+                              : cand.status === "rejected"
+                                ? t("aiManagement.candidates.statusRejected", "Đã từ chối")
+                                : t("aiManagement.candidates.statusPending", "Chờ duyệt")}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="px-3 py-3 text-xs text-slate-500 dark:text-slate-400">
+                          {cand.createdAt}
+                          {cand.reviewedAt ? ` · ${cand.reviewedAt}` : ""}
+                        </TableCell>
+                        <TableCell className="px-3 py-3 text-right">
+                          {cand.status === "pending_review" ? (
+                            isSuperAdmin ? (
+                              <div className="inline-flex items-center justify-end gap-1.5">
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="outline"
+                                  disabled={isProcessing}
+                                  onClick={() => void handlePromoteCandidate(cand)}
+                                  className="h-7 rounded-lg px-2.5 text-xs text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 cursor-pointer"
+                                >
+                                  <CheckCircle2 className="mr-1 h-3.5 w-3.5" />
+                                  {t("aiManagement.candidates.promoteBtn", "Thăng cấp")}
+                                </Button>
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="outline"
+                                  disabled={isProcessing}
+                                  onClick={() => {
+                                    setRejectCandidateTarget(cand);
+                                    setRejectCandidateReason("");
+                                  }}
+                                  className="h-7 rounded-lg px-2.5 text-xs text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800 hover:bg-rose-50 dark:hover:bg-rose-950/40 cursor-pointer"
+                                >
+                                  <XCircle className="mr-1 h-3.5 w-3.5" />
+                                  {t("aiManagement.candidates.rejectBtn", "Từ chối")}
+                                </Button>
+                              </div>
+                            ) : (
+                              <span className="text-[11px] text-slate-400 dark:text-slate-500">
+                                {t(
+                                  "aiManagement.candidates.superAdminOnlyNote",
+                                  "Cần Super Admin duyệt",
+                                )}
+                              </span>
+                            )
+                          ) : (
+                            <span className="text-xs text-slate-400">-</span>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell
+                        colSpan={6}
+                        className="px-4 py-12 text-center text-sm text-slate-500"
+                      >
+                        {t(
+                          "aiManagement.candidates.empty",
+                          "Chưa có ứng viên PubMed nào.",
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
             </div>
           </div>
         ) : tab === "words" ? (
@@ -1330,16 +1840,6 @@ export function AIManagement() {
           }}
         />
 
-        <DocumentChunksModal
-          key={chunksDoc?.id || "chunks-modal"}
-          document={chunksDoc}
-          isOpen={isChunksModalOpen}
-          onClose={() => {
-            setIsChunksModalOpen(false);
-            setChunksDoc(null);
-          }}
-        />
-
         {/* Edit Document Metadata Modal */}
         {editModalDoc && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
@@ -1371,24 +1871,6 @@ export function AIManagement() {
 
               <div>
                 <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
-                  {t("aiManagement.table.status")}
-                </label>
-                <select
-                  value={editStatusInput}
-                  onChange={(e) =>
-                    setEditStatusInput(e.target.value as DocumentStatus)
-                  }
-                  className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-xs text-slate-900 dark:text-white"
-                >
-                  <option value="active">{t("aiManagement.status.active", "Hoạt động")}</option>
-                  <option value="inactive">{t("aiManagement.status.inactive", "Tạm ngưng")}</option>
-                  <option value="processing">{t("aiManagement.status.processing", "Đang xử lý")}</option>
-                  <option value="error">{t("aiManagement.status.error", "Lỗi")}</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
                   {t("aiManagement.previewModal.validUntil", "Hiệu lực đến")}
                 </label>
                 <input
@@ -1414,6 +1896,333 @@ export function AIManagement() {
                   className="px-4 py-2 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-xs font-bold disabled:opacity-50 cursor-pointer"
                 >
                   {t("common.confirm", "Lưu")}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Reject Document Modal */}
+        {rejectModalDoc && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+            <div className="w-full max-w-md rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-xl space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                  {t("aiManagement.rejectModal.title", "Từ chối tài liệu tri thức")}
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setRejectModalDoc(null)}
+                  className="p-1 text-slate-400 hover:text-slate-600 cursor-pointer"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                {t(
+                  "aiManagement.rejectModal.desc",
+                  "Tài liệu bị từ chối sẽ không được xử lý hay kích hoạt vào kho tri thức RAG.",
+                )}{" "}
+                <span className="font-semibold text-slate-700 dark:text-slate-200">
+                  ({rejectModalDoc.title})
+                </span>
+              </p>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
+                  {t("aiManagement.rejectModal.reasonLabel", "Lý do từ chối")}
+                </label>
+                <textarea
+                  rows={3}
+                  value={rejectReasonInput}
+                  onChange={(e) => setRejectReasonInput(e.target.value)}
+                  placeholder={t(
+                    "aiManagement.rejectModal.reasonPlaceholder",
+                    "Nhập lý do kiểm duyệt không đạt...",
+                  )}
+                  className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-xs text-slate-900 dark:text-white outline-none"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setRejectModalDoc(null)}
+                  className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer"
+                >
+                  {t("common.cancel", "Hủy")}
+                </button>
+                <button
+                  type="button"
+                  disabled={isProcessing}
+                  onClick={() => void handleConfirmRejectDoc()}
+                  className="px-4 py-2 rounded-xl bg-rose-600 text-white text-xs font-bold hover:bg-rose-700 disabled:opacity-50 cursor-pointer"
+                >
+                  {t("aiManagement.rejectModal.confirmBtn", "Xác nhận từ chối")}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Replace Document Version Modal */}
+        {replaceModalDoc && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+            <div className="w-full max-w-md rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-xl space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+                <div className="flex items-center gap-2">
+                  <GitBranch className="h-4 w-4 text-indigo-500" />
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                    {t(
+                      "aiManagement.replaceModal.title",
+                      "Nộp phiên bản tài liệu mới",
+                    )}
+                  </h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setReplaceModalDoc(null)}
+                  className="p-1 text-slate-400 hover:text-slate-600 cursor-pointer"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                {t("aiManagement.replaceModal.parentLabel", "Bản gốc hiện tại")}:{" "}
+                <span className="font-semibold text-slate-700 dark:text-slate-200">
+                  {replaceModalDoc.title} (v{replaceModalDoc.documentVersion})
+                </span>
+              </p>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
+                  {t("aiManagement.replaceModal.fileLabel", "Tệp phiên bản mới")} *
+                </label>
+                <label className="flex items-center justify-between gap-2 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 px-3 py-2.5 text-xs text-slate-600 dark:text-slate-300 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+                  <span className="truncate">
+                    {replaceFile
+                      ? replaceFile.name
+                      : t(
+                          "aiManagement.replaceModal.chooseFile",
+                          "Chọn PDF, DOC, DOCX hoặc TXT...",
+                        )}
+                  </span>
+                  <Upload className="h-4 w-4 shrink-0 text-slate-400" />
+                  <input
+                    type="file"
+                    accept=".pdf,.doc,.docx,.txt"
+                    className="hidden"
+                    onChange={(e) =>
+                      setReplaceFile(e.target.files?.[0] ?? null)
+                    }
+                  />
+                </label>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
+                  {t("aiManagement.replaceModal.titleLabel", "Tiêu đề phiên bản mới")}
+                </label>
+                <input
+                  type="text"
+                  value={replaceTitleInput}
+                  onChange={(e) => setReplaceTitleInput(e.target.value)}
+                  className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-xs text-slate-900 dark:text-white outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
+                  {t("aiManagement.previewModal.validUntil", "Hiệu lực đến")}
+                </label>
+                <input
+                  type="date"
+                  value={replaceValidUntilInput}
+                  onChange={(e) => setReplaceValidUntilInput(e.target.value)}
+                  className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-xs text-slate-900 dark:text-white"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setReplaceModalDoc(null)}
+                  className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer"
+                >
+                  {t("common.cancel", "Hủy")}
+                </button>
+                <button
+                  type="button"
+                  disabled={isProcessing || !replaceFile}
+                  onClick={() => void handleConfirmReplaceVersion()}
+                  className="px-4 py-2 rounded-xl bg-indigo-600 text-white text-xs font-bold hover:bg-indigo-700 disabled:opacity-50 cursor-pointer"
+                >
+                  {t("aiManagement.replaceModal.submitBtn", "Nộp phiên bản mới")}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Propose PubMed Candidate Modal */}
+        {isProposeModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+            <div className="w-full max-w-md rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-xl space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                  {t(
+                    "aiManagement.candidates.proposeModalTitle",
+                    "Đề xuất ứng viên tri thức PubMed",
+                  )}
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setIsProposeModalOpen(false)}
+                  className="p-1 text-slate-400 hover:text-slate-600 cursor-pointer"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              <div className="rounded-xl border border-amber-200 dark:border-amber-800/60 bg-amber-50 dark:bg-amber-950/30 px-3 py-2 text-xs text-amber-800 dark:text-amber-200">
+                {t(
+                  "aiManagement.candidates.noAbstractWarning",
+                  "Chỉ nhập metadata PubMed công khai (PMID, tiêu đề, link). API không nhận hoặc lưu tóm tắt abstract.",
+                )}
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
+                  {t("aiManagement.candidates.pmidLabel", "PubMed ID (PMID)")} *
+                </label>
+                <input
+                  type="text"
+                  value={proposePmid}
+                  onChange={(e) => setProposePmid(e.target.value)}
+                  placeholder={t(
+                    "aiManagement.candidates.pmidPlaceholder",
+                    "Ví dụ: 38291042",
+                  )}
+                  className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-xs text-slate-900 dark:text-white outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
+                  {t("aiManagement.candidates.titleLabel", "Tiêu đề bài báo")} *
+                </label>
+                <input
+                  type="text"
+                  value={proposeTitle}
+                  onChange={(e) => setProposeTitle(e.target.value)}
+                  placeholder={t(
+                    "aiManagement.candidates.titlePlaceholder",
+                    "Nhập tiêu đề gốc bài báo PubMed...",
+                  )}
+                  className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-xs text-slate-900 dark:text-white outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
+                  {t("aiManagement.candidates.urlLabel", "URL nguồn PubMed")} *
+                </label>
+                <input
+                  type="url"
+                  value={proposeUrl}
+                  onChange={(e) => setProposeUrl(e.target.value)}
+                  placeholder={t(
+                    "aiManagement.candidates.urlPlaceholder",
+                    "https://pubmed.ncbi.nlm.nih.gov/...",
+                  )}
+                  className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-xs text-slate-900 dark:text-white outline-none"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsProposeModalOpen(false)}
+                  className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer"
+                >
+                  {t("common.cancel", "Hủy")}
+                </button>
+                <button
+                  type="button"
+                  disabled={isProcessing}
+                  onClick={() => void handleProposeCandidate()}
+                  className="px-4 py-2 rounded-xl bg-teal-600 text-white text-xs font-bold hover:bg-teal-700 disabled:opacity-50 cursor-pointer"
+                >
+                  {t("aiManagement.candidates.proposeBtn", "Đề xuất ứng viên")}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Reject PubMed Candidate Modal */}
+        {rejectCandidateTarget && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+            <div className="w-full max-w-md rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-xl space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                  {t(
+                    "aiManagement.candidates.rejectModalTitle",
+                    "Từ chối ứng viên PubMed",
+                  )}
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setRejectCandidateTarget(null)}
+                  className="p-1 text-slate-400 hover:text-slate-600 cursor-pointer"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                {t(
+                  "aiManagement.candidates.rejectModalDesc",
+                  "Ứng viên sẽ không được thăng cấp thành tài liệu tri thức.",
+                )}{" "}
+                <span className="font-mono font-semibold text-slate-700 dark:text-slate-200">
+                  PMID {rejectCandidateTarget.pmid}
+                </span>
+              </p>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
+                  {t("aiManagement.rejectModal.reasonLabel", "Lý do từ chối")}
+                </label>
+                <textarea
+                  rows={3}
+                  value={rejectCandidateReason}
+                  onChange={(e) => setRejectCandidateReason(e.target.value)}
+                  placeholder={t(
+                    "aiManagement.rejectModal.reasonPlaceholder",
+                    "Nhập lý do kiểm duyệt không đạt...",
+                  )}
+                  className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-xs text-slate-900 dark:text-white outline-none"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setRejectCandidateTarget(null)}
+                  className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer"
+                >
+                  {t("common.cancel", "Hủy")}
+                </button>
+                <button
+                  type="button"
+                  disabled={isProcessing}
+                  onClick={() => void handleConfirmRejectCandidate()}
+                  className="px-4 py-2 rounded-xl bg-rose-600 text-white text-xs font-bold hover:bg-rose-700 disabled:opacity-50 cursor-pointer"
+                >
+                  {t("aiManagement.rejectModal.confirmBtn", "Xác nhận từ chối")}
                 </button>
               </div>
             </div>

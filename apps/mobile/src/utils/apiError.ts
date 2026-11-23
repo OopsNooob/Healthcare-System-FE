@@ -1,4 +1,8 @@
-import axios from 'axios';
+import {
+  extractApiErrorContext,
+  resolveApiError,
+  resolveApiErrorByCode,
+} from '@healthcare/api-client';
 import i18n from '@/i18n';
 
 export interface ApiErrorInfo {
@@ -9,117 +13,22 @@ export interface ApiErrorInfo {
 
 type TranslateFn = (key: string, opts?: Record<string, unknown>) => string;
 
-interface ApiErrorPayload {
-  code?: unknown;
-  details?: unknown;
-  message?: unknown;
-  error?: unknown;
+function isVietnameseLocale(): boolean {
+  const lng = (i18n.language || 'vi').toLowerCase();
+  return lng.startsWith('vi');
 }
 
 /**
  * Extracts structured backend error code, details, and raw message from an HTTP/Error object.
  */
 export function extractApiErrorInfo(err: unknown): ApiErrorInfo {
-  if (axios.isAxiosError(err)) {
-    const data = err.response?.data as ApiErrorPayload | undefined;
-    const rawMessage = Array.isArray(data?.message)
-      ? data.message.map(String).join(', ')
-      : typeof data?.message === 'string'
-        ? data.message
-        : typeof data?.error === 'string'
-          ? data.error
-          : err.message || undefined;
-
-    return {
-      code: typeof data?.code === 'string' ? data.code : undefined,
-      details:
-        data?.details && typeof data.details === 'object' && !Array.isArray(data.details)
-          ? (data.details as Record<string, unknown>)
-          : undefined,
-      rawMessage,
-    };
-  }
-
-  if (err && typeof err === 'object') {
-    const maybe = err as ApiErrorPayload;
-    const rawMessage = Array.isArray(maybe.message)
-      ? maybe.message.map(String).join(', ')
-      : typeof maybe.message === 'string'
-        ? maybe.message
-        : typeof maybe.error === 'string'
-          ? maybe.error
-          : undefined;
-    return {
-      code: typeof maybe.code === 'string' ? maybe.code : undefined,
-      details:
-        maybe.details && typeof maybe.details === 'object' && !Array.isArray(maybe.details)
-          ? (maybe.details as Record<string, unknown>)
-          : undefined,
-      rawMessage,
-    };
-  }
-
-  return {};
+  const ctx = extractApiErrorContext(err);
+  return {
+    code: ctx.code,
+    details: ctx.details,
+    rawMessage: ctx.rawMessage,
+  };
 }
-
-const STATIC_CODE_MAP: Record<string, { key: string; fallback: string }> = {
-  SLOT_IN_PAST: {
-    key: 'mobile.api_err_slot_in_past',
-    fallback: 'Slot start time must be in the future.',
-  },
-  SLOT_OVERLAP: {
-    key: 'mobile.api_err_slot_overlap',
-    fallback: 'This slot overlaps another active slot or violates the buffer interval.',
-  },
-  SLOT_NOT_MUTABLE: {
-    key: 'mobile.api_err_slot_not_mutable',
-    fallback: 'This slot cannot be modified in its current status.',
-  },
-  INVALID_SLOT_RANGE: {
-    key: 'mobile.api_err_invalid_slot_range',
-    fallback: 'End time must be after start time.',
-  },
-  INVALID_TIMEZONE: {
-    key: 'mobile.api_err_invalid_timezone',
-    fallback: 'Invalid IANA timezone.',
-  },
-  DOCTOR_NOT_APPROVED: {
-    key: 'mobile.api_err_doctor_not_approved',
-    fallback: 'Only an active approved doctor can manage availability slots.',
-  },
-  BOOKING_POLICY_NOT_CONFIGURED: {
-    key: 'mobile.api_err_booking_policy_not_configured',
-    fallback: 'Scheduled booking policy is not configured. Please try again later.',
-  },
-  CONSULTATION_NOT_READY_FOR_CHAT: {
-    key: 'mobile.api_err_consultation_not_ready_for_chat',
-    fallback: 'Scheduled consultations require patient check-in and doctor call before messaging.',
-  },
-  CONSULTATION_NOT_CALLED_FOR_CHAT: {
-    key: 'mobile.api_err_consultation_not_called_for_chat',
-    fallback: 'Doctor must call the queued consultation before messaging.',
-  },
-  CONSULTATION_NOT_CALLED: {
-    key: 'mobile.api_err_consultation_not_called',
-    fallback: 'Call the queued consultation before starting the session.',
-  },
-  CHECK_IN_TOO_EARLY: {
-    key: 'mobile.api_err_check_in_too_early',
-    fallback: 'Check-in window has not opened yet.',
-  },
-  CHECK_IN_WINDOW_CLOSED: {
-    key: 'mobile.api_err_check_in_window_closed',
-    fallback: 'Check-in window has closed for this appointment.',
-  },
-  DOCTOR_QUEUE_ITEM_ALREADY_CALLED: {
-    key: 'mobile.api_err_queue_already_called',
-    fallback: 'You already have a called consultation awaiting start.',
-  },
-  DOCTOR_ACTIVE_SESSION_CONFLICT: {
-    key: 'mobile.api_err_doctor_active_session',
-    fallback: 'You already have an active consultation in progress.',
-  },
-};
 
 /**
  * Translates known backend error codes (with optional structured details) to the active locale.
@@ -127,47 +36,34 @@ const STATIC_CODE_MAP: Record<string, { key: string; fallback: string }> = {
 export function translateApiErrorCode(
   code: string | undefined,
   details: Record<string, unknown> | undefined,
-  tFn: TranslateFn = (key, opts) => i18n.t(key, opts)
+  tFn: TranslateFn = (key, opts) => i18n.t(key, opts),
 ): string | null {
-  if (!code) return null;
+  const resolved = resolveApiErrorByCode(code, details);
+  if (!resolved) return null;
 
-  if (code === 'MIN_NOTICE_NOT_MET') {
-    const minutes =
-      typeof details?.minNoticeMinutes === 'number' && Number.isFinite(details.minNoticeMinutes)
-        ? details.minNoticeMinutes
-        : 60;
-    return tFn('mobile.api_err_min_notice_not_met', {
-      minutes,
-      defaultValue: `The slot must be scheduled at least ${minutes} minutes in advance.`,
-    });
-  }
-
-  const mapped = STATIC_CODE_MAP[code];
-  if (!mapped) return null;
-  return tFn(mapped.key, { defaultValue: mapped.fallback });
+  const fallback = isVietnameseLocale() ? resolved.fallbackVi : resolved.fallbackEn;
+  return tFn(`apiErrors.${resolved.key}`, {
+    ...resolved.params,
+    defaultValue: fallback,
+  });
 }
 
+/**
+ * Resolves any Axios/API/runtime error into a localized user-facing error message.
+ */
 export function extractApiErrorMessage(err: unknown, fallbackKey = 'mobile.error_generic'): string {
-  const info = extractApiErrorInfo(err);
-  const translated = translateApiErrorCode(info.code, info.details);
-  if (translated) {
-    return translated;
-  }
-
-  if (info.rawMessage?.toLowerCase().includes('minimum notice')) {
-    const minutes =
-      typeof info.details?.minNoticeMinutes === 'number' &&
-      Number.isFinite(info.details.minNoticeMinutes)
-        ? info.details.minNoticeMinutes
-        : 60;
-    return i18n.t('mobile.api_err_min_notice_not_met', {
-      minutes,
-      defaultValue: `The slot must be scheduled at least ${minutes} minutes in advance.`,
+  const resolved = resolveApiError(err);
+  if (resolved) {
+    const fallback = isVietnameseLocale() ? resolved.fallbackVi : resolved.fallbackEn;
+    return i18n.t(`apiErrors.${resolved.key}`, {
+      ...resolved.params,
+      defaultValue: fallback,
     });
   }
 
-  if (info.rawMessage) {
-    return info.rawMessage;
+  const ctx = extractApiErrorContext(err);
+  if (ctx.rawMessage) {
+    return ctx.rawMessage;
   }
 
   return i18n.t(fallbackKey, 'Something went wrong. Please try again.');

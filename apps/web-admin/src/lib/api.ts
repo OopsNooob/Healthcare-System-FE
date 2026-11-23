@@ -1,11 +1,15 @@
 import axios, { type AxiosError, type InternalAxiosRequestConfig } from "axios";
 import { useAuthStore } from "@repo/ui/store/useAuthStore";
+import i18n from "@/i18n";
 import {
+  client,
   createFeApiSdk,
+  extractApiErrorContext,
   normalizePaginatedList,
   normalizeCursorList,
   buildPaginationParams,
   generateIdempotencyKey,
+  resolveApiError,
   SOCKET_NAMESPACES,
   SOCKET_EVENTS,
   type ApiExecutor,
@@ -99,11 +103,14 @@ function connectNotificationsSocket(token?: string): boolean {
 
 // Listen for account_banned event and dispatch browser event
 if (typeof window !== "undefined") {
-  notificationsSocket.on("account_banned", () => {
+  notificationsSocket.on("account_banned", (payload?: { message?: string }) => {
     window.dispatchEvent(
       new CustomEvent("auth:account-banned", {
         detail: {
-          message: "Your account is banned",
+          message:
+            (payload?.message
+              ? extractApiErrorMessage({ message: payload.message })
+              : "") || i18n.t("auth.accountBannedMsg"),
         },
       }),
     );
@@ -154,59 +161,53 @@ const authFreePaths = new Set([
   "/auth/verify-email",
 ]);
 
-type ApiErrorPayload = {
-  message?: string | string[];
-  error?: string;
-  detail?: string;
-  details?: string;
-  errors?: Array<{ message?: string; msg?: string } | string>;
-};
+function isVietnameseLocale(): boolean {
+  const lng = (i18n.language || "vi").toLowerCase();
+  return lng.startsWith("vi");
+}
+
+function extractApiErrorMessage(
+  error: unknown,
+  fallbackKey = "apiErrors.GENERIC_ERROR",
+): string {
+  const resolved = resolveApiError(error);
+  if (resolved) {
+    const fallback = isVietnameseLocale()
+      ? resolved.fallbackVi
+      : resolved.fallbackEn;
+    return i18n.t(`apiErrors.${resolved.key}`, {
+      ...resolved.params,
+      defaultValue: fallback,
+    });
+  }
+
+  const ctx = extractApiErrorContext(error);
+  if (ctx.rawMessage) {
+    return ctx.rawMessage;
+  }
+
+  return i18n.t(
+    fallbackKey,
+    isVietnameseLocale()
+      ? "Đã xảy ra lỗi. Vui lòng thử lại."
+      : "Something went wrong. Please try again.",
+  );
+}
 
 function getApiErrorMessage(error: AxiosError): string | undefined {
-  const data = error.response?.data as ApiErrorPayload | string | unknown;
-
-  if (!data) {
-    return undefined;
+  const resolved = resolveApiError(error);
+  if (resolved) {
+    const fallback = isVietnameseLocale()
+      ? resolved.fallbackVi
+      : resolved.fallbackEn;
+    return i18n.t(`apiErrors.${resolved.key}`, {
+      ...resolved.params,
+      defaultValue: fallback,
+    });
   }
 
-  if (typeof data === "string") {
-    return data;
-  }
-
-  if (Array.isArray(data)) {
-    return data.join(", ");
-  }
-
-  if (typeof data === "object") {
-    const message =
-      (data as ApiErrorPayload).message ??
-      (data as ApiErrorPayload).error ??
-      (data as ApiErrorPayload).detail ??
-      (data as ApiErrorPayload).details;
-
-    if (Array.isArray(message)) {
-      return message.join(", ");
-    }
-
-    if (typeof message === "string") {
-      return message;
-    }
-
-    const errors = (data as ApiErrorPayload).errors;
-    if (Array.isArray(errors)) {
-      const parts = errors
-        .map((item) =>
-          typeof item === "string" ? item : (item?.message ?? item?.msg),
-        )
-        .filter((item): item is string => Boolean(item));
-
-      if (parts.length > 0) {
-        return parts.join(", ");
-      }
-    }
-  }
-
-  return undefined;
+  const ctx = extractApiErrorContext(error);
+  return ctx.rawMessage;
 }
 
 function normalizeAxiosError(error: AxiosError): AxiosError {
@@ -214,6 +215,10 @@ function normalizeAxiosError(error: AxiosError): AxiosError {
 
   if (message) {
     error.message = message;
+    const data = error.response?.data;
+    if (data && typeof data === "object" && !Array.isArray(data)) {
+      (data as Record<string, unknown>).message = message;
+    }
   }
 
   return error;
@@ -229,7 +234,7 @@ function notifySessionExpired() {
   window.dispatchEvent(
     new CustomEvent("auth:session-expired", {
       detail: {
-        message: "Session expired. Please log in again!",
+        message: i18n.t("auth.sessionExpiredMsg"),
       },
     }),
   );
@@ -362,6 +367,16 @@ api.interceptors.response.use(
   },
 );
 
+client.instance.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (axios.isAxiosError(error)) {
+      normalizeAxiosError(error);
+    }
+    return Promise.reject(error);
+  },
+);
+
 const webAdminApi = createFeApiSdk(api as unknown as ApiExecutor);
 
 function connectConsultationsSocket(token?: string): boolean {
@@ -379,6 +394,7 @@ export {
   API_BASE_URL,
   api,
   webAdminApi,
+  extractApiErrorMessage,
   socket,
   consultationsSocket,
   sessionSocket,

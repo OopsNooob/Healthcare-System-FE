@@ -37,10 +37,10 @@ export type UploadSingleInput = FeTypes.UploadUploadSingleRequest & {
 type WithNativeMultipart<T> = T extends FeTypes.UploadBinary
   ? MultipartFileInput
   : T extends Array<infer U>
-    ? Array<WithNativeMultipart<U>>
-    : T extends Record<string, unknown>
-      ? { [K in keyof T]: WithNativeMultipart<T[K]> }
-      : T;
+  ? Array<WithNativeMultipart<U>>
+  : T extends Record<string, unknown>
+  ? { [K in keyof T]: WithNativeMultipart<T[K]> }
+  : T;
 
 export type FlexibleIdempotencyHeaders = {
   'Idempotency-Key'?: string;
@@ -224,11 +224,15 @@ async function runEndpoint<TReq, TRes>(
       | undefined;
 
     if (spec.isMultipart) {
-      const mergedBody: Record<string, unknown> = {
-        ...((record.body as Record<string, unknown> | undefined) ?? {}),
-        ...(record.images !== undefined ? { images: record.images } : {}),
-      };
-      data = buildMultipartFormData(mergedBody);
+      if (typeof FormData !== 'undefined' && record.body instanceof FormData) {
+        data = record.body;
+      } else {
+        const mergedBody: Record<string, unknown> = {
+          ...((record.body as Record<string, unknown> | undefined) ?? {}),
+          ...(record.images !== undefined ? { images: record.images } : {}),
+        };
+        data = buildMultipartFormData(mergedBody);
+      }
     } else if ('body' in record) {
       data = record.body;
     }
@@ -2907,6 +2911,170 @@ export function createFeApiSdk(executor: ApiExecutor) {
         {
           method: 'PATCH',
           path: '/ai-documents/{id}/archive',
+          isWrapper: true,
+          isMultipart: false,
+          requiresIdempotency: false,
+        },
+        input,
+        options,
+      );
+    },
+    /** POST /api/v1/ai-documents/{id}/approve */
+    aiDocumentsApprove(
+      input: { params: { id: string } },
+      options?: RequestRuntimeOptions,
+    ): Promise<FeTypes.KnowledgeDocument> {
+      return runEndpoint<{ params: { id: string } }, FeTypes.KnowledgeDocument>(
+        executor,
+        {
+          method: 'POST',
+          path: '/ai-documents/{id}/approve',
+          isWrapper: true,
+          isMultipart: false,
+          requiresIdempotency: false,
+        },
+        input,
+        options,
+      );
+    },
+    /** POST /api/v1/ai-documents/{id}/reject */
+    aiDocumentsReject(
+      input: { params: { id: string }; body: FeTypes.KnowledgeDocumentRejectRequest },
+      options?: RequestRuntimeOptions,
+    ): Promise<FeTypes.KnowledgeDocument> {
+      return runEndpoint<
+        { params: { id: string }; body: FeTypes.KnowledgeDocumentRejectRequest },
+        FeTypes.KnowledgeDocument
+      >(
+        executor,
+        {
+          method: 'POST',
+          path: '/ai-documents/{id}/reject',
+          isWrapper: true,
+          isMultipart: false,
+          requiresIdempotency: false,
+        },
+        input,
+        options,
+      );
+    },
+    /** POST /api/v1/ai-documents/{id}/activate */
+    aiDocumentsActivate(
+      input: { params: { id: string } },
+      options?: RequestRuntimeOptions,
+    ): Promise<FeTypes.KnowledgeDocument> {
+      return runEndpoint<{ params: { id: string } }, FeTypes.KnowledgeDocument>(
+        executor,
+        {
+          method: 'POST',
+          path: '/ai-documents/{id}/activate',
+          isWrapper: true,
+          isMultipart: false,
+          requiresIdempotency: false,
+        },
+        input,
+        options,
+      );
+    },
+    /** POST /api/v1/ai-documents/{id}/replacements */
+    aiDocumentsReplaceVersion(
+      input: {
+        params: { id: string };
+        body: FormData | WithNativeMultipart<FeTypes.KnowledgeDocumentReplacementRequest>;
+      },
+      options?: RequestRuntimeOptions,
+    ): Promise<FeTypes.KnowledgeDocument> {
+      return runEndpoint<
+        {
+          params: { id: string };
+          body: FormData | WithNativeMultipart<FeTypes.KnowledgeDocumentReplacementRequest>;
+        },
+        FeTypes.KnowledgeDocument
+      >(
+        executor,
+        {
+          method: 'POST',
+          path: '/ai-documents/{id}/replacements',
+          isWrapper: true,
+          isMultipart: true,
+          requiresIdempotency: false,
+        },
+        input,
+        options,
+      );
+    },
+    /** GET /api/v1/ai-knowledge-candidates */
+    aiKnowledgeCandidatesList(
+      options?: RequestRuntimeOptions,
+    ): Promise<FeTypes.KnowledgeCandidate[]> {
+      return runEndpoint<undefined, FeTypes.KnowledgeCandidate[]>(
+        executor,
+        {
+          method: 'GET',
+          path: '/ai-knowledge-candidates',
+          isWrapper: false,
+          isMultipart: false,
+          requiresIdempotency: false,
+        },
+        undefined,
+        options,
+      );
+    },
+    /** POST /api/v1/ai-knowledge-candidates */
+    aiKnowledgeCandidatesPropose(
+      input: FeTypes.ProposeKnowledgeCandidateRequest,
+      options?: RequestRuntimeOptions,
+    ): Promise<FeTypes.KnowledgeCandidate> {
+      return runEndpoint<
+        FeTypes.ProposeKnowledgeCandidateRequest,
+        FeTypes.KnowledgeCandidate
+      >(
+        executor,
+        {
+          method: 'POST',
+          path: '/ai-knowledge-candidates',
+          isWrapper: false,
+          isMultipart: false,
+          requiresIdempotency: false,
+        },
+        input,
+        options,
+      );
+    },
+    /** POST /api/v1/ai-knowledge-candidates/{id}/promote */
+    aiKnowledgeCandidatesPromote(
+      input: { params: { id: string } },
+      options?: RequestRuntimeOptions,
+    ): Promise<FeTypes.PromoteKnowledgeCandidateResponse> {
+      return runEndpoint<
+        { params: { id: string } },
+        FeTypes.PromoteKnowledgeCandidateResponse
+      >(
+        executor,
+        {
+          method: 'POST',
+          path: '/ai-knowledge-candidates/{id}/promote',
+          isWrapper: true,
+          isMultipart: false,
+          requiresIdempotency: false,
+        },
+        input,
+        options,
+      );
+    },
+    /** POST /api/v1/ai-knowledge-candidates/{id}/reject */
+    aiKnowledgeCandidatesReject(
+      input: { params: { id: string }; body: FeTypes.RejectKnowledgeCandidateRequest },
+      options?: RequestRuntimeOptions,
+    ): Promise<FeTypes.KnowledgeCandidate> {
+      return runEndpoint<
+        { params: { id: string }; body: FeTypes.RejectKnowledgeCandidateRequest },
+        FeTypes.KnowledgeCandidate
+      >(
+        executor,
+        {
+          method: 'POST',
+          path: '/ai-knowledge-candidates/{id}/reject',
           isWrapper: true,
           isMultipart: false,
           requiresIdempotency: false,

@@ -99,7 +99,7 @@ export default function DoctorScheduleScreen() {
     bufferMinutes: 15,
     minNoticeMinutes: 60,
     cancellationDeadlineMinutes: 60,
-    checkInEarlyMinutes: 15,
+    checkInEarlyMinutes: 5,
     noShowAfterMinutes: 10,
   });
 
