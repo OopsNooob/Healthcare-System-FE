@@ -1,6 +1,7 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useFocusEffect } from 'expo-router';
 import {
+  ActivityIndicator,
   RefreshControl,
   ScrollView,
   Text,
@@ -103,6 +104,9 @@ export default function PatientHomeScreen() {
   const [enrollment, setEnrollment] = useState<FeTypes.CareEnrollmentDetailResponse | null>(null);
   const [completionRate, setCompletionRate] = useState<FeTypes.CareTaskCompletionRateResponse | null>(null);
   const [tasks, setTasks] = useState<TaskRow[]>([]);
+  const [isSyncingTasks, setIsSyncingTasks] = useState(false);
+  const outboxRefetchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const outboxRetriedEnrollmentRef = useRef<string | null>(null);
   const [upcomingConsult, setUpcomingConsult] = useState<UpcomingConsultationItem | null>(null);
   const [healthAlertsCount, setHealthAlertsCount] = useState<number>(0);
 
@@ -260,6 +264,7 @@ export default function PatientHomeScreen() {
           setEnrollment(null);
           setCompletionRate(null);
           setTasks([]);
+          setIsSyncingTasks(false);
         } else {
           const [detailRes, rateRes, tasksRes] = await Promise.allSettled([
             mobileApi.careEnrollmentDetail({ params: { id: enrollmentId } }),
@@ -269,6 +274,12 @@ export default function PatientHomeScreen() {
               query: { limit: 20, sortBy: 'scheduledFor', sortOrder: 1 },
             }),
           ]);
+          const resolvedStatus =
+            detailRes.status === 'fulfilled'
+              ? detailRes.value.status
+              : typeof target?.status === 'string'
+                ? target.status
+                : '';
           if (detailRes.status === 'fulfilled') {
             setEnrollment(detailRes.value);
           }
@@ -322,6 +333,27 @@ export default function PatientHomeScreen() {
             }
 
             setTasks(displayTasks);
+
+            // CareTasks are materialized via transactional Outbox shortly after activation/resume.
+            // Schedule one silent background retry if active enrollment has 0 tasks initially.
+            if (
+              resolvedStatus === 'active' &&
+              displayTasks.length === 0 &&
+              outboxRetriedEnrollmentRef.current !== enrollmentId
+            ) {
+              outboxRetriedEnrollmentRef.current = enrollmentId;
+              setIsSyncingTasks(true);
+              if (outboxRefetchTimerRef.current) {
+                clearTimeout(outboxRefetchTimerRef.current);
+              }
+              outboxRefetchTimerRef.current = setTimeout(() => {
+                outboxRefetchTimerRef.current = null;
+                setIsSyncingTasks(false);
+                void loadHomeData(true);
+              }, 2500);
+            } else {
+              setIsSyncingTasks(false);
+            }
           }
         }
       }
@@ -354,6 +386,11 @@ export default function PatientHomeScreen() {
 
   useEffect(() => {
     void loadHomeData(false);
+    return () => {
+      if (outboxRefetchTimerRef.current) {
+        clearTimeout(outboxRefetchTimerRef.current);
+      }
+    };
   }, [loadHomeData]);
 
   useFocusEffect(
@@ -411,6 +448,14 @@ export default function PatientHomeScreen() {
   };
 
   const handleTaskPress = (task: TaskRow) => {
+    if (enrollment && enrollment.status !== 'active') {
+      Toast.show({
+        type: 'info',
+        text1: t('mobile.care_enrollment_inactive_locked_title'),
+        text2: t('mobile.care_enrollment_inactive_locked'),
+      });
+      return;
+    }
     setActiveTask(task);
     if (task.taskType === 'metric') {
       router.push('/(patient)/health-metric');
@@ -784,13 +829,32 @@ export default function PatientHomeScreen() {
                 </View>
               </View>
 
+              {enrollment && enrollment.status !== 'active' ? (
+                <View
+                  style={tw(
+                    'mb-3 px-3.5 py-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 flex-row items-center',
+                  )}
+                >
+                  <PauseCircle size={15} color="#d97706" style={tw('mr-2 shrink-0')} />
+                  <Text style={tw('text-xs text-amber-800 dark:text-amber-200 flex-1')}>
+                    {t('mobile.care_enrollment_inactive_locked')}
+                  </Text>
+                </View>
+              ) : null}
+
               {tasks.length === 0 ? (
                 <View style={tw('bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-sm items-center')}>
                   <View style={tw('w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-900/30 items-center justify-center mb-3')}>
-                    <ClipboardCheck color={twInstance.color('text-indigo-500 dark:text-indigo-400')} size={24} />
+                    {isSyncingTasks ? (
+                      <ActivityIndicator size="small" color="#6366f1" />
+                    ) : (
+                      <ClipboardCheck color={twInstance.color('text-indigo-500 dark:text-indigo-400')} size={24} />
+                    )}
                   </View>
                   <Text style={tw('text-xs text-slate-500 dark:text-slate-400 text-center leading-5')}>
-                    {t('mobile.no_care_tasks_scheduled', 'No tasks scheduled for this period yet.')}
+                    {isSyncingTasks
+                      ? t('mobile.care_tasks_syncing_hint')
+                      : t('mobile.no_care_tasks_scheduled', 'No tasks scheduled for this period yet.')}
                   </Text>
                   {!enrollment && (
                     <TouchableOpacity

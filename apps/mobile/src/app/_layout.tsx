@@ -81,6 +81,7 @@ const PUBLIC_AUTH_PATHS = new Set([
   '/register',
   '/verify-email',
   '/oauth-callback',
+  '/oauth/callback',
   '/forgot-password',
   '/confirm-otp',
 ]);
@@ -135,13 +136,20 @@ function RootNavigator() {
   useEffect(() => {
     if (!incomingUrl || handledDeepLinkRef.current === incomingUrl) return;
     const parsed = Linking.parse(incomingUrl);
-    const routeTarget = (parsed.path || parsed.hostname || '').replace(/^\/+/, '').toLowerCase();
+    const normalizedHost = (parsed.hostname || '').replace(/^\/+/, '').toLowerCase();
+    const normalizedPath = (parsed.path || '').replace(/^\/+/, '').toLowerCase();
+    const routeTarget = normalizedPath || normalizedHost;
 
-    if (routeTarget === 'oauth-callback' || incomingUrl.toLowerCase().includes('oauth-callback')) {
+    const isOAuthCallback =
+      (normalizedHost === 'oauth' && normalizedPath === 'callback') ||
+      routeTarget === 'oauth/callback' ||
+      routeTarget === 'oauth-callback';
+
+    if (isOAuthCallback) {
       handledDeepLinkRef.current = incomingUrl;
-      if (pathname !== '/oauth-callback') {
-        const ticket = typeof parsed.queryParams?.ticket === 'string' ? parsed.queryParams.ticket : '';
-        const error = typeof parsed.queryParams?.error === 'string' ? parsed.queryParams.error : '';
+      if (pathname !== '/oauth-callback' && pathname !== '/oauth/callback') {
+        const ticket = typeof parsed.queryParams?.ticket === 'string' ? parsed.queryParams.ticket.trim() : '';
+        const error = typeof parsed.queryParams?.error === 'string' ? parsed.queryParams.error.trim() : '';
         router.replace({
           pathname: '/(auth)/oauth-callback',
           params: {
@@ -150,6 +158,31 @@ function RootNavigator() {
           },
         });
       }
+      return;
+    }
+
+    const isFamilyRedeem =
+      (normalizedHost === 'family-links' && normalizedPath.startsWith('redeem')) ||
+      routeTarget === 'family-links/redeem' ||
+      routeTarget.startsWith('family-links/redeem');
+
+    if (isFamilyRedeem && isAuthenticated && user?.role === 'patient') {
+      handledDeepLinkRef.current = incomingUrl;
+      const inviteToken =
+        typeof parsed.queryParams?.token === 'string' ? parsed.queryParams.token.trim() : '';
+      const inviteCode =
+        typeof parsed.queryParams?.code === 'string'
+          ? parsed.queryParams.code.trim()
+          : typeof parsed.queryParams?.shortCode === 'string'
+            ? parsed.queryParams.shortCode.trim()
+            : '';
+      router.replace({
+        pathname: '/(patient)/family',
+        params: {
+          ...(inviteToken ? { inviteToken } : {}),
+          ...(inviteCode ? { inviteCode } : {}),
+        },
+      });
       return;
     }
 

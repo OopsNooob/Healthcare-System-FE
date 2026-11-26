@@ -864,6 +864,9 @@ export default function BaselineAssessmentScreen() {
                   <Text style={tw('text-sm text-slate-500 dark:text-slate-400 text-center max-w-[300px] leading-relaxed')}>
                     {t('mobile.activation_success_desc', 'Your chronic care program is now active. You can now start completing your scheduled daily health tasks.')}
                   </Text>
+                  <Text style={tw('text-xs text-indigo-600 dark:text-indigo-400 text-center max-w-[300px] mt-2 font-medium')}>
+                    {t('mobile.activation_tasks_syncing_note')}
+                  </Text>
                 </View>
 
                 <View style={tw('w-full bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm gap-3.5')}>

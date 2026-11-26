@@ -36,6 +36,7 @@ export default function PatientLayout() {
       <Tabs.Screen name="chat-hub" options={{ title: t('mobile.messages', "Chat"), tabBarIcon: ({ color }) => <MessageCircle color={color} size={24} /> }} />
       {/* Hidden from tab bar */}
       <Tabs.Screen name="family" options={{ href: null, headerShown: false }} />
+      <Tabs.Screen name="family-metrics" options={{ href: null, headerShown: false }} />
       <Tabs.Screen name="facilities" options={{ href: null, headerShown: false }} />
       <Tabs.Screen name="profile" options={{ title: t('mobile.profile', "Profile"), tabBarIcon: ({ color }) => <User color={color} size={24} /> }} />
       

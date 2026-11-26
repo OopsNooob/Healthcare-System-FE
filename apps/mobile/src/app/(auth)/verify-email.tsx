@@ -13,7 +13,7 @@ import { useLocalSearchParams } from 'expo-router';
 import { ArrowLeft, MailCheck, RefreshCw, ShieldCheck } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import Toast from 'react-native-toast-message';
-import { useVerifyEmail } from '@repo/shared-hooks';
+import { useVerifyEmail, useSharedAuthStore } from '@repo/shared-hooks';
 import { tw, twInstance } from '@/tw';
 import { useThemeContext } from '@/context/ThemeContext';
 import { useSafeRouter as useRouter } from '@/utils/useSafeRouter';
@@ -23,8 +23,10 @@ export default function VerifyEmailScreen() {
   const { t } = useTranslation();
   const { isDark } = useThemeContext();
   const router = useRouter();
-  const params = useLocalSearchParams<{ email?: string; role?: string }>();
+  const params = useLocalSearchParams<{ email?: string; role?: string; from?: string }>();
   const { verifyEmail, resendVerification, isVerifying, isResending } = useVerifyEmail();
+  const isAuthenticated = useSharedAuthStore((s) => s.isAuthenticated);
+  const updateCurrentUser = useSharedAuthStore((s) => s.updateCurrentUser);
 
   const [email, setEmail] = useState(
     typeof params.email === 'string' ? params.email : '',
@@ -88,6 +90,13 @@ export default function VerifyEmailScreen() {
         text1: t('mobile.success', 'Success'),
         text2: successText,
       });
+      if (isAuthenticated) {
+        updateCurrentUser({ emailVerified: true });
+        if (params.from === 'profile') {
+          router.back('/(patient)/profile');
+          return;
+        }
+      }
       router.replace('/(auth)/login');
     } catch (err) {
       const msg = extractApiErrorMessage(err, 'mobile.verify_email_failed');

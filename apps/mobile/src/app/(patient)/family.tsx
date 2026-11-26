@@ -1,936 +1,1812 @@
-import { useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import {
-  View,
-  Text,
-  TouchableOpacity,
-  ScrollView,
-  Modal,
-  TextInput,
-  Switch,
-  Image,
+  ActivityIndicator,
+  Alert,
   KeyboardAvoidingView,
+  Modal,
+  Platform,
   RefreshControl,
+  ScrollView,
+  Share,
+  Switch,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useSafeRouter as useRouter } from '@/utils/useSafeRouter';
+import QRCode from 'react-native-qrcode-svg';
+import Toast from 'react-native-toast-message';
 import {
+  Activity,
+  AlertCircle,
   ArrowLeft,
-  Users,
-  Plus,
-  Settings,
-  X,
+  Check,
   CheckCircle2,
-  UserX,
+  HeartHandshake,
+  KeyRound,
+  MailOpen,
   PauseCircle,
   PlayCircle,
-  MailOpen,
+  Plus,
+  QrCode,
+  RefreshCw,
+  Search,
+  Settings,
+  Share2,
   ShieldCheck,
-  Check,
+  Trash2,
+  UserPlus,
+  Users,
+  UserX,
+  X,
 } from 'lucide-react-native';
+import { resolveApiError } from '@healthcare/api-client';
+import {
+  generateIdempotencyKey,
+  mobileApi,
+  type FeTypes,
+} from '@repo/shared-hooks';
 import { tw, twInstance } from '@/tw';
 import { AppModalToast } from '@/components/ui/AppToast';
+import { Skeleton } from '@/components/ui/Skeleton';
 import { useThemeContext } from '@/context/ThemeContext';
-import Toast from 'react-native-toast-message';
+import { extractApiErrorMessage } from '@/utils/apiError';
+import { useSafeRouter as useRouter } from '@/utils/useSafeRouter';
 
-interface ReceivedInvitation {
-  id: string;
-  inviterName: string;
-  inviterEmail: string;
-  inviterAvatar: string;
-  relationship: string;
-  consentVersion: string;
-  expiresAt: string;
-  status: 'pending' | 'accepted' | 'declined' | 'expired';
-  permissions: {
-    receiveReminders: boolean;
-    viewProgress: boolean;
-    viewAlertSummary: boolean;
-  };
+const RELATIONSHIPS = ['parent', 'child', 'spouse', 'sibling', 'caregiver'] as const;
+
+const METRIC_TYPES: ReadonlyArray<{
+  type: FeTypes.FamilySharedMetricType;
+  labelKey: string;
+}> = [
+  { type: 'blood_pressure', labelKey: 'mobile.metric_blood_pressure' },
+  { type: 'heart_rate', labelKey: 'mobile.metric_heart_rate' },
+  { type: 'blood_glucose', labelKey: 'mobile.metric_blood_glucose' },
+  { type: 'oxygen_saturation', labelKey: 'mobile.metric_oxygen_saturation' },
+  { type: 'body_temperature', labelKey: 'mobile.metric_body_temperature' },
+  { type: 'respiratory_rate', labelKey: 'mobile.metric_respiratory_rate' },
+  { type: 'bmi', labelKey: 'mobile.metric_bmi' },
+  { type: 'weight', labelKey: 'mobile.metric_weight' },
+  { type: 'height', labelKey: 'mobile.metric_height' },
+  { type: 'water_intake', labelKey: 'mobile.metric_water_intake' },
+  { type: 'kcal_intake', labelKey: 'mobile.metric_kcal_intake' },
+];
+
+function extractInvitationTokenFromInput(rawInput: string): {
+  invitationToken?: string;
+  shortCode?: string;
+} {
+  const trimmed = rawInput.trim();
+  if (!trimmed) return {};
+  if (/^\d{6}$/.test(trimmed)) {
+    return { shortCode: trimmed };
+  }
+  const tokenMatch = trimmed.match(/[?&]token=([^&#\s]+)/i);
+  if (tokenMatch && tokenMatch[1]) {
+    try {
+      return { invitationToken: decodeURIComponent(tokenMatch[1]) };
+    } catch {
+      return { invitationToken: tokenMatch[1] };
+    }
+  }
+  return { invitationToken: trimmed };
+}
+
+function normalizeContactsResponse(
+  res: FeTypes.SearchFamilyCompanionContactsResponse | undefined,
+): FeTypes.FamilyCompanionContactRecord[] {
+  if (!res) return [];
+  if (Array.isArray(res.data?.items)) return res.data.items;
+  if (Array.isArray(res.items)) return res.items;
+  return [];
+}
+
+function getStatusBadgeClasses(status: FeTypes.FamilyLinkStatus): {
+  container: string;
+  text: string;
+} {
+  switch (status) {
+    case 'active':
+      return {
+        container: 'bg-emerald-100 dark:bg-emerald-950/60',
+        text: 'text-emerald-700 dark:text-emerald-300',
+      };
+    case 'paused':
+      return {
+        container: 'bg-amber-100 dark:bg-amber-950/60',
+        text: 'text-amber-700 dark:text-amber-300',
+      };
+    case 'pending':
+      return {
+        container: 'bg-sky-100 dark:bg-sky-950/60',
+        text: 'text-sky-700 dark:text-sky-300',
+      };
+    default:
+      return {
+        container: 'bg-slate-200 dark:bg-slate-800',
+        text: 'text-slate-600 dark:text-slate-400',
+      };
+  }
 }
 
 export default function FamilyCompanionScreen() {
   const { t } = useTranslation();
-
-  const relationshipLabel = (rel: string) => {
-    const map: Record<string, string> = {
-      parent: t('mobile.rel_parent', 'Cha/Mẹ'),
-      child: t('mobile.rel_child', 'Con'),
-      spouse: t('mobile.rel_spouse', 'Vợ/Chồng'),
-      sibling: t('mobile.rel_sibling', 'Anh/Chị/Em'),
-      caregiver: t('mobile.rel_caregiver', 'Người chăm sóc'),
-    };
-    return map[rel] || rel;
-  };
-
-  const yesNo = (v: boolean) => (v ? t('mobile.common_yes', 'Có') : t('mobile.common_no', 'Không'));
-  useThemeContext();
+  const { isDark } = useThemeContext();
   const router = useRouter();
+  const params = useLocalSearchParams<{ inviteToken?: string; inviteCode?: string }>();
+  const dateLocale = t('mobile.date_locale', 'vi-VN');
 
-  const [activeTab, setActiveTab] = useState<'linked' | 'received'>('linked');
-  const [inviteModalVisible, setInviteModalVisible] = useState(false);
-  const [emailToInvite, setEmailToInvite] = useState('');
-  const [relationship, setRelationship] = useState<string>('child');
-  const [consentConfirmed, setConsentConfirmed] = useState(true);
-
-  const [settingsModalVisible, setSettingsModalVisible] = useState(false);
-  const [selectedMember, setSelectedMember] = useState<any>(null);
-
-  const [members, setMembers] = useState([
-    {
-      id: 1,
-      name: 'Emily Watson',
-      email: 'emily@example.com',
-      relationship: 'child',
-      consentVersion: 'family-consent.v1',
-      avatar: 'https://i.pravatar.cc/150?img=5',
-      permissions: {
-        receiveReminders: true,
-        viewProgress: true,
-        viewAlertSummary: true,
-      },
-      status: 'active',
-    },
-    {
-      id: 2,
-      name: 'John Doe',
-      email: 'john@example.com',
-      relationship: 'child',
-      consentVersion: 'family-consent.v1',
-      avatar: 'https://i.pravatar.cc/150?img=11',
-      permissions: {
-        receiveReminders: true,
-        viewProgress: false,
-        viewAlertSummary: true,
-      },
-      status: 'pending',
-    },
-  ]);
-
-  // Received Invitations (FAM-03, FAM-04)
-  const [receivedInvitations, setReceivedInvitations] = useState<ReceivedInvitation[]>([
-    {
-      id: 'inv_201',
-      inviterName: 'Robert Johnson',
-      inviterEmail: 'robert.johnson@example.com',
-      inviterAvatar: 'https://i.pravatar.cc/150?img=68',
-      relationship: 'parent',
-      consentVersion: 'family-consent.v1',
-      expiresAt: '2026-11-12 23:59',
-      status: 'pending',
-      permissions: {
-        receiveReminders: true,
-        viewProgress: true,
-        viewAlertSummary: true,
-      },
-    },
-    {
-      id: 'inv_202',
-      inviterName: 'Mary Johnson',
-      inviterEmail: 'mary.johnson@example.com',
-      inviterAvatar: 'https://i.pravatar.cc/150?img=47',
-      relationship: 'parent',
-      consentVersion: 'family-consent.v1',
-      expiresAt: '2026-10-25 23:59',
-      status: 'accepted',
-      permissions: {
-        receiveReminders: true,
-        viewProgress: true,
-        viewAlertSummary: false,
-      },
-    },
-  ]);
-
-  const [acceptConsentChecked, setAcceptConsentChecked] = useState<Record<string, boolean>>({
-    inv_201: true,
-  });
-
+  const [activeTab, setActiveTab] = useState<'sent' | 'received'>('sent');
+  const [links, setLinks] = useState<FeTypes.FamilyLink[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [featureDisabled, setFeatureDisabled] = useState(false);
+  const [busyLinkId, setBusyLinkId] = useState<string | null>(null);
 
+  // Ephemeral session-only display labels when creator selected a searched contact
+  const [sessionContactLabels, setSessionContactLabels] = useState<Record<string, string>>({});
+
+  // Create Invitation Modal
+  const [createModalVisible, setCreateModalVisible] = useState(false);
+  const [inviteMode, setInviteMode] = useState<'contact' | 'share'>('contact');
+  const [contactQuery, setContactQuery] = useState('');
+  const [contactResults, setContactResults] = useState<FeTypes.FamilyCompanionContactRecord[]>([]);
+  const [searchingContacts, setSearchingContacts] = useState(false);
+  const [selectedContact, setSelectedContact] =
+    useState<FeTypes.FamilyCompanionContactRecord | null>(null);
+  const [relationship, setRelationship] = useState<string>('child');
+  const [isCreating, setIsCreating] = useState(false);
+
+  // Reveal-Once Invitation Artifacts Modal
+  const [artifactsModalData, setArtifactsModalData] =
+    useState<FeTypes.FamilyInvitationArtifacts | null>(null);
+
+  // Redeem Modal
+  const [redeemModalVisible, setRedeemModalVisible] = useState(false);
+  const [redeemInput, setRedeemInput] = useState('');
+  const [isRedeeming, setIsRedeeming] = useState(false);
+  const handledDeepLinkKeyRef = useRef<string | null>(null);
+
+  // Accept Pending Invitation Modal
+  const [acceptTarget, setAcceptTarget] = useState<FeTypes.FamilyLink | null>(null);
+  const [acceptConsent, setAcceptConsent] = useState(false);
+  const [acceptPermissions, setAcceptPermissions] = useState<FeTypes.FamilyReminderPermission[]>([
+    'missed_task_reminder',
+    'weekly_progress',
+  ]);
+  const [isAccepting, setIsAccepting] = useState(false);
+
+  // Manage Active/Paused Link Modal (Permissions & Health Metric Sharing for Owner)
+  const [manageTarget, setManageTarget] = useState<FeTypes.FamilyLink | null>(null);
+  const [managePerms, setManagePerms] = useState<FeTypes.FamilyReminderPermission[]>([]);
+  const [savingPerms, setSavingPerms] = useState(false);
+  const [sharingLoading, setSharingLoading] = useState(false);
+  const [sharingSaving, setSharingSaving] = useState(false);
+  const [sharingScope, setSharingScope] = useState<'all' | 'selected'>('selected');
+  const [sharingTypes, setSharingTypes] = useState<FeTypes.FamilySharedMetricType[]>([
+    'blood_pressure',
+    'heart_rate',
+    'blood_glucose',
+  ]);
+  const [sharingConsentChecked, setSharingConsentChecked] = useState(false);
+  const [activeSharingInfo, setActiveSharingInfo] =
+    useState<FeTypes.FamilyHealthMetricSharingResponse['data']['sharing']>(null);
+
+  const actionLockRef = useRef(false);
+
+  const relationshipLabel = (rel?: string) => {
+    if (!rel) return t('mobile.rel_caregiver');
+    return t(`mobile.rel_${rel}`, rel);
+  };
+
+  const statusLabel = (status: FeTypes.FamilyLinkStatus) => {
+    return t(`mobile.family_status_${status}`, status);
+  };
+
+  const formatDateTime = (iso?: string) => {
+    if (!iso) return '—';
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return '—';
+    return d.toLocaleDateString(dateLocale, {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    });
+  };
+
+  const loadLinks = useCallback(
+    async (silent = false) => {
+      if (!silent) setLoading(true);
+      setLoadError(null);
+      try {
+        const res = await mobileApi.familyLinksList({
+          query: { direction: activeTab, page: 1, limit: 50 },
+        });
+        setFeatureDisabled(false);
+        setLinks(Array.isArray(res?.data?.items) ? res.data.items : []);
+      } catch (err) {
+        const resolved = resolveApiError(err);
+        if (resolved?.key === 'FAMILY_COMPANION_DISABLED') {
+          setFeatureDisabled(true);
+          setLinks([]);
+          setLoadError(extractApiErrorMessage(err));
+        } else {
+          setLoadError(extractApiErrorMessage(err, 'mobile.family_load_failed'));
+        }
+      } finally {
+        setLoading(false);
+        setRefreshing(false);
+      }
+    },
+    [activeTab],
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      void loadLinks(false);
+    }, [loadLinks]),
+  );
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    void loadLinks(true);
+  }, [loadLinks]);
+
+  // Contact search debounce when creating direct invitation
   useEffect(() => {
-    const timer = setTimeout(() => setLoading(false), 700);
-    return () => clearTimeout(timer);
+    if (!createModalVisible || inviteMode !== 'contact') return;
+    const trimmed = contactQuery.trim();
+    if (trimmed.length < 2) {
+      setContactResults([]);
+      setSearchingContacts(false);
+      return;
+    }
+
+    let cancelled = false;
+    setSearchingContacts(true);
+    const timer = setTimeout(() => {
+      void (async () => {
+        try {
+          const res = await mobileApi.usersSearchFamilyCompanionContacts({
+            query: { search: trimmed, page: 1, limit: 10 },
+          });
+          if (!cancelled) {
+            setContactResults(normalizeContactsResponse(res));
+          }
+        } catch {
+          if (!cancelled) {
+            setContactResults([]);
+          }
+        } finally {
+          if (!cancelled) {
+            setSearchingContacts(false);
+          }
+        }
+      })();
+    }, 350);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [contactQuery, createModalVisible, inviteMode]);
+
+  const handleRedeemSubmit = useCallback(
+    async (overrideInput?: { invitationToken?: string; shortCode?: string }) => {
+      if (isRedeeming || actionLockRef.current) return;
+      const body = overrideInput ?? extractInvitationTokenFromInput(redeemInput);
+      if (!body.invitationToken && !body.shortCode) {
+        Toast.show({
+          type: 'error',
+          text1: t('mobile.error'),
+          text2: t('mobile.family_redeem_input_required'),
+        });
+        return;
+      }
+
+      actionLockRef.current = true;
+      setIsRedeeming(true);
+      try {
+        const res = await mobileApi.familyLinksRedeem({
+          headers: { 'Idempotency-Key': generateIdempotencyKey('family-redeem') },
+          body,
+        });
+        const redeemedLink = res?.data;
+        setRedeemModalVisible(false);
+        setRedeemInput('');
+        setActiveTab('received');
+        Toast.show({
+          type: 'success',
+          text1: t('mobile.success'),
+          text2: t('mobile.family_redeemed_review_consent'),
+        });
+        if (redeemedLink && redeemedLink.status === 'pending') {
+          setAcceptTarget(redeemedLink);
+          setAcceptConsent(false);
+          setAcceptPermissions(
+            redeemedLink.permissions?.length
+              ? redeemedLink.permissions
+              : ['missed_task_reminder', 'weekly_progress'],
+          );
+        }
+        await loadLinks(true);
+      } catch (err) {
+        Toast.show({
+          type: 'error',
+          text1: t('mobile.error'),
+          text2: extractApiErrorMessage(err, 'mobile.family_redeem_failed'),
+        });
+      } finally {
+        actionLockRef.current = false;
+        setIsRedeeming(false);
+      }
+    },
+    [isRedeeming, loadLinks, redeemInput, t],
+  );
+
+  // Deep-link prefill & redeem trigger (`healthcare://family-links/redeem?token=...`)
+  useEffect(() => {
+    const tokenParam =
+      typeof params.inviteToken === 'string' ? params.inviteToken.trim() : '';
+    const codeParam =
+      typeof params.inviteCode === 'string' ? params.inviteCode.trim() : '';
+    if (!tokenParam && !codeParam) return;
+    const key = `${tokenParam}|${codeParam}`;
+    if (handledDeepLinkKeyRef.current === key) return;
+    handledDeepLinkKeyRef.current = key;
+
+    setRedeemInput(codeParam || tokenParam);
+    setRedeemModalVisible(true);
+    void handleRedeemSubmit(
+      tokenParam ? { invitationToken: tokenParam } : { shortCode: codeParam },
+    );
+  }, [params.inviteToken, params.inviteCode, handleRedeemSubmit]);
+
+  const handleCreateInvitation = async () => {
+    if (isCreating || actionLockRef.current) return;
+    if (inviteMode === 'contact' && !selectedContact) {
+      Toast.show({
+        type: 'error',
+        text1: t('mobile.error'),
+        text2: t('mobile.family_select_contact_required'),
+      });
+      return;
+    }
+
+    actionLockRef.current = true;
+    setIsCreating(true);
+    try {
+      const res = await mobileApi.familyLinksCreate({
+        headers: { 'Idempotency-Key': generateIdempotencyKey('family-create') },
+        body:
+          inviteMode === 'contact' && selectedContact
+            ? { contactUserId: selectedContact.id, relationship }
+            : { share: true, relationship },
+      });
+
+      const createdLink = res?.data?.link;
+      if (createdLink && inviteMode === 'contact' && selectedContact) {
+        setSessionContactLabels((prev) => ({
+          ...prev,
+          [createdLink.id]: selectedContact.fullName,
+        }));
+      }
+
+      setCreateModalVisible(false);
+      setContactQuery('');
+      setSelectedContact(null);
+      setActiveTab('sent');
+
+      const artifacts = res?.data?.artifacts;
+      if (artifacts && 'shareLink' in artifacts) {
+        setArtifactsModalData(artifacts);
+      } else {
+        Toast.show({
+          type: 'success',
+          text1: t('mobile.success'),
+          text2: t('mobile.family_invite_created'),
+        });
+      }
+
+      await loadLinks(true);
+    } catch (err) {
+      Toast.show({
+        type: 'error',
+        text1: t('mobile.error'),
+        text2: extractApiErrorMessage(err, 'mobile.family_invite_failed'),
+      });
+    } finally {
+      actionLockRef.current = false;
+      setIsCreating(false);
+    }
+  };
+
+  const handleRegenerateArtifacts = async (link: FeTypes.FamilyLink) => {
+    if (busyLinkId || actionLockRef.current) return;
+    actionLockRef.current = true;
+    setBusyLinkId(link.id);
+    try {
+      const res = await mobileApi.familyLinksRegenerateArtifacts({
+        params: { id: link.id },
+        headers: { 'Idempotency-Key': generateIdempotencyKey('family-regen') },
+      });
+      const artifacts = res?.data?.artifacts;
+      if (artifacts && 'shareLink' in artifacts) {
+        setArtifactsModalData(artifacts);
+      } else {
+        Toast.show({
+          type: 'info',
+          text1: t('mobile.family_artifacts_replay_title'),
+          text2: t('mobile.family_artifacts_replay_desc'),
+        });
+      }
+      await loadLinks(true);
+    } catch (err) {
+      Toast.show({
+        type: 'error',
+        text1: t('mobile.error'),
+        text2: extractApiErrorMessage(err, 'mobile.family_regenerate_failed'),
+      });
+    } finally {
+      actionLockRef.current = false;
+      setBusyLinkId(null);
+    }
+  };
+
+  const handleShareInvite = async () => {
+    if (!artifactsModalData) return;
+    try {
+      await Share.share({
+        message: t('mobile.family_share_message', {
+          shortCode: artifactsModalData.shortCode,
+          shareLink: artifactsModalData.shareLink,
+        }),
+      });
+    } catch {
+      // User dismissed share sheet
+    }
+  };
+
+  const handleAcceptSubmit = async () => {
+    if (!acceptTarget || isAccepting || actionLockRef.current) return;
+    if (!acceptConsent) {
+      Toast.show({
+        type: 'error',
+        text1: t('mobile.error'),
+        text2: t('mobile.family_consent_required'),
+      });
+      return;
+    }
+
+    actionLockRef.current = true;
+    setIsAccepting(true);
+    try {
+      await mobileApi.familyLinksAccept({
+        params: { id: acceptTarget.id },
+        headers: { 'Idempotency-Key': generateIdempotencyKey('family-accept') },
+        body: {
+          consentVersion: 'family-consent.v1',
+          permissions: acceptPermissions,
+        },
+      });
+      setAcceptTarget(null);
+      Toast.show({
+        type: 'success',
+        text1: t('mobile.success'),
+        text2: t('mobile.family_invite_accepted'),
+      });
+      await loadLinks(true);
+    } catch (err) {
+      Toast.show({
+        type: 'error',
+        text1: t('mobile.error'),
+        text2: extractApiErrorMessage(err, 'mobile.family_accept_failed'),
+      });
+    } finally {
+      actionLockRef.current = false;
+      setIsAccepting(false);
+    }
+  };
+
+  const performLinkAction = async (
+    link: FeTypes.FamilyLink,
+    action: 'decline' | 'pause' | 'resume' | 'revoke',
+  ) => {
+    if (busyLinkId || actionLockRef.current) return;
+    actionLockRef.current = true;
+    setBusyLinkId(link.id);
+    try {
+      await mobileApi.familyLinksAction({
+        params: { id: link.id, action },
+        headers: { 'Idempotency-Key': generateIdempotencyKey(`family-${action}`) },
+        body: {},
+      });
+      if (manageTarget?.id === link.id) {
+        setManageTarget(null);
+      }
+      Toast.show({
+        type: 'success',
+        text1: t('mobile.success'),
+        text2: t(`mobile.family_action_${action}_done`),
+      });
+      await loadLinks(true);
+    } catch (err) {
+      Toast.show({
+        type: 'error',
+        text1: t('mobile.error'),
+        text2: extractApiErrorMessage(err),
+      });
+    } finally {
+      actionLockRef.current = false;
+      setBusyLinkId(null);
+    }
+  };
+
+  const confirmLinkAction = (
+    link: FeTypes.FamilyLink,
+    action: 'decline' | 'revoke',
+  ) => {
+    Alert.alert(
+      t(`mobile.family_confirm_${action}_title`),
+      t(`mobile.family_confirm_${action}_desc`),
+      [
+        { text: t('mobile.cancel'), style: 'cancel' },
+        {
+          text: t('mobile.confirm'),
+          style: 'destructive',
+          onPress: () => void performLinkAction(link, action),
+        },
+      ],
+    );
+  };
+
+  const loadSharingConfig = useCallback(async (linkId: string) => {
+    setSharingLoading(true);
+    try {
+      const res = await mobileApi.familyLinksGetHealthMetricSharing({
+        params: { id: linkId },
+      });
+      const sharing = res?.data?.sharing ?? null;
+      setActiveSharingInfo(sharing);
+      if (sharing) {
+        setSharingScope(sharing.scope);
+        setSharingTypes(
+          sharing.scope === 'selected' && sharing.metricTypes.length > 0
+            ? sharing.metricTypes
+            : ['blood_pressure', 'heart_rate', 'blood_glucose'],
+        );
+        setSharingConsentChecked(true);
+      } else {
+        setSharingConsentChecked(false);
+      }
+    } catch {
+      setActiveSharingInfo(null);
+    } finally {
+      setSharingLoading(false);
+    }
   }, []);
 
-  const onRefresh = () => {
-    setRefreshing(true);
-    setTimeout(() => setRefreshing(false), 800);
+  const openManageModal = (link: FeTypes.FamilyLink) => {
+    setManageTarget(link);
+    setManagePerms(link.permissions ?? []);
+    setActiveSharingInfo(null);
+    if (link.status === 'active') {
+      void loadSharingConfig(link.id);
+    }
   };
 
-  const renderSkeleton = () => (
-    <View
-      style={tw(
-        'bg-white dark:bg-slate-900 rounded-2xl p-4 mb-3 border border-slate-100 dark:border-slate-800 flex-row items-center shadow-sm'
-      )}
-    >
-      <View style={tw('w-12 h-12 rounded-full mr-3 bg-slate-200 dark:bg-slate-700')} />
-      <View style={tw('flex-1 justify-center')}>
-        <View style={tw('w-3/4 h-4 bg-slate-200 dark:bg-slate-700 rounded mb-2')} />
-        <View style={tw('w-1/2 h-3 bg-slate-200 dark:bg-slate-700 rounded')} />
-      </View>
-      <View style={tw('w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700')} />
-    </View>
-  );
-
-  const renderEmptyState = () => (
-    <View style={tw('items-center justify-center py-10 px-6')}>
-      <View
-        style={tw(
-          'w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full items-center justify-center mb-4'
-        )}
-      >
-        <Users color={twInstance.color('text-slate-400')} size={24} />
-      </View>
-      <Text style={tw('text-base font-bold text-slate-900 dark:text-white mb-1')}>
-        {t('mobile.no_members_found', 'Chưa có thành viên liên kết')}
-      </Text>
-      <Text style={tw('text-sm text-slate-500 text-center')}>
-        {t(
-          'mobile.invite_family_empty_state',
-          'Mời người thân để nhận nhắc nhở nhiệm vụ và theo dõi tiến độ sức khỏe.'
-        )}
-      </Text>
-    </View>
-  );
-
-  const handleInvite = () => {
-    if (!emailToInvite.trim()) return;
-    if (!consentConfirmed) {
+  const handleSaveReminderPermissions = async () => {
+    if (!manageTarget || savingPerms || actionLockRef.current) return;
+    actionLockRef.current = true;
+    setSavingPerms(true);
+    try {
+      const res = await mobileApi.familyLinksUpdatePermissions({
+        params: { id: manageTarget.id },
+        headers: { 'Idempotency-Key': generateIdempotencyKey('family-perms') },
+        body: {
+          permissions: managePerms,
+          policyVersion: 'family-reminders.v1',
+        },
+      });
+      if (res?.data) {
+        setManageTarget(res.data);
+      }
+      Toast.show({
+        type: 'success',
+        text1: t('mobile.success'),
+        text2: t('mobile.family_permissions_saved'),
+      });
+      await loadLinks(true);
+    } catch (err) {
       Toast.show({
         type: 'error',
-        text1: t('mobile.consent_required', 'Yêu cầu xác nhận đồng thuận'),
-        text2: t('mobile.consent_required_desc', 'Vui lòng tích chọn đồng ý chia sẻ dữ liệu.'
-        ),
+        text1: t('mobile.error'),
+        text2: extractApiErrorMessage(err),
+      });
+    } finally {
+      actionLockRef.current = false;
+      setSavingPerms(false);
+    }
+  };
+
+  const handleSaveHealthMetricSharing = async () => {
+    if (!manageTarget || sharingSaving || actionLockRef.current) return;
+    if (!sharingConsentChecked) {
+      Toast.show({
+        type: 'error',
+        text1: t('mobile.error'),
+        text2: t('mobile.family_sharing_consent_required'),
+      });
+      return;
+    }
+    if (sharingScope === 'selected' && sharingTypes.length === 0) {
+      Toast.show({
+        type: 'error',
+        text1: t('mobile.error'),
+        text2: t('mobile.family_sharing_select_metric_required'),
       });
       return;
     }
 
-    const newMember = {
-      id: Date.now(),
-      name: `${emailToInvite.split('@')[0]} (${relationshipLabel(relationship)})`,
-      email: emailToInvite.trim(),
-      relationship,
-      consentVersion: 'family-consent.v1',
-      avatar: 'https://i.pravatar.cc/150?img=32',
-      permissions: {
-        receiveReminders: true,
-        viewProgress: true,
-        viewAlertSummary: true,
-      },
-      status: 'pending',
-    };
-    setMembers((prev) => [newMember, ...prev]);
-
-    Toast.show({
-      type: 'success',
-      text1: t('mobile.success', 'Thành công'),
-      text2: t('mobile.invite_sent', 'Đã gửi lời mời kèm xác nhận đồng thuận'),
-    });
-    setInviteModalVisible(false);
-    setEmailToInvite('');
-  };
-
-  const handleAcceptInvitation = (invId: string) => {
-    if (!acceptConsentChecked[invId]) {
+    actionLockRef.current = true;
+    setSharingSaving(true);
+    try {
+      const body: FeTypes.FamilyHealthMetricSharingRequest =
+        sharingScope === 'all'
+          ? { scope: 'all', consentVersion: 'family-health-metric-sharing.v1' }
+          : {
+              scope: 'selected',
+              metricTypes: sharingTypes,
+              consentVersion: 'family-health-metric-sharing.v1',
+            };
+      await mobileApi.familyLinksUpsertHealthMetricSharing({
+        params: { id: manageTarget.id },
+        headers: { 'Idempotency-Key': generateIdempotencyKey('family-share-save') },
+        body,
+      });
+      await loadSharingConfig(manageTarget.id);
+      Toast.show({
+        type: 'success',
+        text1: t('mobile.success'),
+        text2: t('mobile.family_sharing_saved'),
+      });
+    } catch (err) {
       Toast.show({
         type: 'error',
-        text1: t('mobile.consent_required', 'Cần xác nhận đồng thuận'),
-        text2: t('mobile.accept_consent_desc', 'Vui lòng xác nhận đồng ý nhận thông báo đồng hành.'),
+        text1: t('mobile.error'),
+        text2: extractApiErrorMessage(err),
       });
-      return;
+    } finally {
+      actionLockRef.current = false;
+      setSharingSaving(false);
     }
-    setReceivedInvitations((prev) =>
-      prev.map((inv) => (inv.id === invId ? { ...inv, status: 'accepted' } : inv))
-    );
-    Toast.show({
-      type: 'success',
-      text1: t('mobile.invitation_accepted', 'Đã chấp nhận lời mời'),
-      text2: t('mobile.invitation_accepted_desc', 'Liên kết người thân đã được kích hoạt.'
-      ),
-    });
   };
 
-  const handleDeclineInvitation = (invId: string) => {
-    setReceivedInvitations((prev) =>
-      prev.map((inv) => (inv.id === invId ? { ...inv, status: 'declined' } : inv))
-    );
-    Toast.show({
-      type: 'info',
-      text1: t('mobile.invitation_declined', 'Đã từ chối lời mời'),
-      text2: t('mobile.invitation_declined_desc', 'Lời mời liên kết đã được từ chối.'),
-    });
+  const handleRevokeHealthMetricSharing = async () => {
+    if (!manageTarget || sharingSaving || actionLockRef.current) return;
+    actionLockRef.current = true;
+    setSharingSaving(true);
+    try {
+      await mobileApi.familyLinksRevokeHealthMetricSharing({
+        params: { id: manageTarget.id },
+        headers: { 'Idempotency-Key': generateIdempotencyKey('family-share-revoke') },
+      });
+      await loadSharingConfig(manageTarget.id);
+      Toast.show({
+        type: 'success',
+        text1: t('mobile.success'),
+        text2: t('mobile.family_sharing_revoked'),
+      });
+    } catch (err) {
+      Toast.show({
+        type: 'error',
+        text1: t('mobile.error'),
+        text2: extractApiErrorMessage(err),
+      });
+    } finally {
+      actionLockRef.current = false;
+      setSharingSaving(false);
+    }
   };
 
-  const handleRevoke = () => {
-    setMembers((prev) => prev.filter((m) => m.id !== selectedMember.id));
-    setSettingsModalVisible(false);
-    Toast.show({
-      type: 'info',
-      text1: t('mobile.access_revoked', 'Đã thu hồi quyền'),
-      text2: t('mobile.member_removed', 'Liên kết thành viên gia đình đã chuyển sang revoked.'),
-    });
-  };
+  const togglePermission = (
+    list: FeTypes.FamilyReminderPermission[],
+    perm: FeTypes.FamilyReminderPermission,
+  ): FeTypes.FamilyReminderPermission[] =>
+    list.includes(perm) ? list.filter((p) => p !== perm) : [...list, perm];
 
-  const handlePauseResume = () => {
-    const isPausing = selectedMember.status === 'active';
-    const newStatus = isPausing ? 'paused' : 'active';
-
-    setSelectedMember((prev: any) => ({ ...prev, status: newStatus }));
-    setMembers((prev) =>
-      prev.map((m) => (m.id === selectedMember.id ? { ...m, status: newStatus } : m))
-    );
-
-    Toast.show({
-      type: 'success',
-      text1: t('mobile.success', 'Đã cập nhật trạng thái'),
-      text2: isPausing
-        ? t('mobile.access_paused', 'Đã tạm dừng chia sẻ dữ liệu với người thân.')
-        : t('mobile.access_resumed', 'Đã kích hoạt lại chia sẻ dữ liệu.'),
-    });
-  };
-
-  const togglePermission = (key: 'receiveReminders' | 'viewProgress' | 'viewAlertSummary') => {
-    setSelectedMember((prev: any) => ({
-      ...prev,
-      permissions: {
-        ...prev.permissions,
-        [key]: !prev.permissions[key],
-      },
-    }));
-
-    setMembers((prev) =>
-      prev.map((m) => {
-        if (m.id === selectedMember.id) {
-          return {
-            ...m,
-            permissions: {
-              ...m.permissions,
-              [key]: !m.permissions[key],
-            },
-          };
-        }
-        return m;
-      })
+  const toggleMetricType = (metric: FeTypes.FamilySharedMetricType) => {
+    setSharingTypes((prev) =>
+      prev.includes(metric) ? prev.filter((m) => m !== metric) : [...prev, metric],
     );
   };
 
-  const pendingReceivedCount = receivedInvitations.filter((i) => i.status === 'pending').length;
+  const displayedLinks = useMemo(() => links, [links]);
 
   return (
-    <SafeAreaView style={tw('flex-1 bg-slate-50 dark:bg-slate-950')}>
+    <SafeAreaView style={tw('flex-1 bg-slate-50 dark:bg-slate-950')} edges={['top']}>
       {/* Header */}
       <View
         style={tw(
-          'px-6 pt-6 pb-4 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800'
+          'px-5 pt-4 pb-4 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800',
         )}
       >
-        <View style={tw('flex-row justify-between items-center')}>
-          <View style={tw('flex-row items-center')}>
+        <View style={tw('flex-row items-center justify-between')}>
+          <View style={tw('flex-row items-center flex-1 mr-3')}>
             <TouchableOpacity
               onPress={() => router.back('/(patient)/profile')}
-              style={tw('p-2 -ml-2 mr-2')}
+              style={tw(
+                'w-10 h-10 bg-slate-100 dark:bg-slate-800 rounded-full items-center justify-center mr-3',
+              )}
             >
-              <ArrowLeft color={twInstance.color('text-slate-900 dark:text-white')} size={24} />
+              <ArrowLeft color={twInstance.color('text-slate-700 dark:text-slate-200')} size={20} />
             </TouchableOpacity>
-            <View>
+            <View style={tw('flex-1')}>
               <Text style={tw('text-xl font-bold text-slate-900 dark:text-white')}>
-                {t('mobile.family_companion', 'Family Companion')}
+                {t('mobile.family_companion_title')}
               </Text>
-              <Text style={tw('text-sm text-slate-500 dark:text-slate-400')}>
-                {t('mobile.share_health_updates', 'Chia sẻ tiến độ & nhận lời mời đồng hành')}
+              <Text style={tw('text-xs text-slate-500 dark:text-slate-400')}>
+                {t('mobile.family_companion_subtitle')}
               </Text>
             </View>
           </View>
+
+          {!featureDisabled ? (
+            <View style={tw('flex-row items-center gap-2')}>
+              <TouchableOpacity
+                onPress={() => {
+                  setRedeemInput('');
+                  setRedeemModalVisible(true);
+                }}
+                style={tw(
+                  'w-10 h-10 bg-slate-100 dark:bg-slate-800 rounded-full items-center justify-center',
+                )}
+              >
+                <KeyRound color={twInstance.color('text-slate-700 dark:text-slate-200')} size={18} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => setCreateModalVisible(true)}
+                style={tw('w-10 h-10 bg-brand rounded-full items-center justify-center shadow-sm')}
+              >
+                <Plus color="#0f172a" size={20} />
+              </TouchableOpacity>
+            </View>
+          ) : null}
         </View>
 
-        {/* Tabs: Linked Members vs Received Invitations (FAM-03/04) */}
+        {/* Direction Tabs */}
         <View style={tw('flex-row bg-slate-100 dark:bg-slate-800 p-1 rounded-2xl mt-4')}>
-          <TouchableOpacity
-            onPress={() => setActiveTab('linked')}
-            style={tw(
-              `flex-1 py-2.5 rounded-xl items-center ${
-                activeTab === 'linked' ? 'bg-white dark:bg-slate-900 shadow-sm' : ''
-              }`
-            )}
-          >
-            <Text
-              style={tw(
-                `text-xs font-bold ${
-                  activeTab === 'linked'
-                    ? 'text-slate-900 dark:text-white'
-                    : 'text-slate-500 dark:text-slate-400'
-                }`
-              )}
-            >
-              {t('mobile.linked_members', 'Đã liên kết')} ({members.length})
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            onPress={() => setActiveTab('received')}
-            style={tw(
-              `flex-1 py-2.5 rounded-xl flex-row items-center justify-center ${
-                activeTab === 'received' ? 'bg-white dark:bg-slate-900 shadow-sm' : ''
-              }`
-            )}
-          >
-            <Text
-              style={tw(
-                `text-xs font-bold ${
-                  activeTab === 'received'
-                    ? 'text-slate-900 dark:text-white'
-                    : 'text-slate-500 dark:text-slate-400'
-                }`
-              )}
-            >
-              {t('mobile.received_invitations', 'Lời mời đã nhận')}
-            </Text>
-            {pendingReceivedCount > 0 && (
-              <View style={tw('ml-1.5 bg-rose-500 px-1.5 py-0.5 rounded-full')}>
-                <Text style={tw('text-[10px] font-bold text-white')}>{pendingReceivedCount}</Text>
-              </View>
-            )}
-          </TouchableOpacity>
+          {(['sent', 'received'] as const).map((tabKey) => {
+            const active = activeTab === tabKey;
+            return (
+              <TouchableOpacity
+                key={tabKey}
+                onPress={() => setActiveTab(tabKey)}
+                style={tw(
+                  `flex-1 py-2.5 rounded-xl items-center ${
+                    active ? 'bg-white dark:bg-slate-900 shadow-sm' : ''
+                  }`,
+                )}
+              >
+                <Text
+                  style={tw(
+                    `text-xs font-bold ${
+                      active
+                        ? 'text-slate-900 dark:text-white'
+                        : 'text-slate-500 dark:text-slate-400'
+                    }`,
+                  )}
+                >
+                  {tabKey === 'sent'
+                    ? t('mobile.family_tab_sent')
+                    : t('mobile.family_tab_received')}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
         </View>
       </View>
 
       <ScrollView
-        contentContainerStyle={tw('p-6 pb-20')}
+        contentContainerStyle={tw('p-5 pb-24 gap-4')}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={twInstance.color('text-slate-900 dark:text-white')}
-          />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#10b981" />
         }
       >
-        {/* Banner */}
-        <View
-          style={tw(
-            'bg-indigo-50 dark:bg-indigo-900/20 p-5 rounded-3xl mb-6 border border-indigo-100 dark:border-indigo-800/50 flex-row items-center'
-          )}
-        >
-          <View
-            style={tw(
-              'w-12 h-12 bg-indigo-100 dark:bg-indigo-900/50 rounded-full items-center justify-center mr-4'
-            )}
-          >
-            <Users color={twInstance.color('text-indigo-600 dark:text-indigo-400')} size={24} />
-          </View>
-          <View style={tw('flex-1')}>
-            <Text style={tw('font-bold text-indigo-900 dark:text-indigo-100 mb-1')}>
-              {t('mobile.family_plan', 'Hạn mức gói PLUS: 2/3 Thành viên')}
-            </Text>
-            <Text style={tw('text-xs text-indigo-700 dark:text-indigo-300 leading-4')}>
-              {t(
-                'mobile.family_plan_desc',
-                'Quy tắc quyền riêng tư: Người thân chỉ xem tiến độ & cảnh báo tổng quan, tuyệt đối không xem đoạn chat bác sĩ hay ghi chú lâm sàng.'
-              )}
-            </Text>
-          </View>
-        </View>
-
-        {activeTab === 'linked' ? (
-          <>
-            {/* Add Button */}
-            <TouchableOpacity
-              onPress={() => setInviteModalVisible(true)}
-              style={tw(
-                'flex-row items-center justify-center bg-white dark:bg-slate-900 border-2 border-dashed border-slate-300 dark:border-slate-700 p-4 rounded-2xl mb-6'
-              )}
-            >
-              <Plus color={twInstance.color('text-slate-500')} size={20} />
-              <Text style={tw('font-bold text-slate-600 dark:text-slate-400 ml-2')}>
-                {t('mobile.invite_member', 'Mời thành viên gia đình')}
-              </Text>
-            </TouchableOpacity>
-
-            <Text style={tw('font-bold text-lg text-slate-900 dark:text-white mb-4')}>
-              {t('mobile.linked_members', 'Thành viên đã liên kết')}
-            </Text>
-
-            {loading ? (
-              <>
-                {renderSkeleton()}
-                {renderSkeleton()}
-              </>
-            ) : members.length > 0 ? (
-              members.map((member) => (
-                <View
-                  key={member.id}
-                  style={tw(
-                    'bg-white dark:bg-slate-900 rounded-2xl p-4 mb-3 border border-slate-100 dark:border-slate-800 flex-row items-center shadow-sm'
-                  )}
-                >
-                  <Image
-                    source={{ uri: member.avatar }}
-                    style={tw('w-12 h-12 rounded-full mr-3 bg-slate-200 dark:bg-slate-800')}
-                  />
-                  <View style={tw('flex-1')}>
-                    <Text
-                      style={tw('font-bold text-slate-900 dark:text-white text-base')}
-                      numberOfLines={1}
-                    >
-                      {member.name}
-                    </Text>
-                    <Text style={tw('text-xs text-slate-500 dark:text-slate-400 mt-0.5')}>
-                      {member.email} • {relationshipLabel(member.relationship)}
-                    </Text>
-                    <View style={tw('flex-row items-center mt-1.5')}>
-                      {member.status === 'active' ? (
-                        <View style={tw('flex-row items-center')}>
-                          <CheckCircle2 color="#10b981" size={14} />
-                          <Text
-                            style={tw(
-                              'text-emerald-600 dark:text-emerald-400 text-xs font-semibold ml-1'
-                            )}
-                          >
-                            {t('mobile.active', 'Đang hoạt động')}
-                          </Text>
-                        </View>
-                      ) : member.status === 'paused' ? (
-                        <View style={tw('flex-row items-center')}>
-                          <PauseCircle color="#f59e0b" size={14} />
-                          <Text
-                            style={tw(
-                              'text-amber-500 dark:text-amber-400 text-xs font-semibold ml-1'
-                            )}
-                          >
-                            {t('mobile.paused', 'Tạm dừng')}
-                          </Text>
-                        </View>
-                      ) : (
-                        <View style={tw('flex-row items-center')}>
-                          <Text
-                            style={tw('text-amber-500 dark:text-amber-400 text-xs font-semibold')}
-                          >
-                            {t('mobile.pending_invite', 'Chờ người thân xác nhận')}
-                          </Text>
-                        </View>
-                      )}
-                    </View>
-                  </View>
-                  <TouchableOpacity
-                    onPress={() => {
-                      setSelectedMember(member);
-                      setSettingsModalVisible(true);
-                    }}
-                    style={tw('p-2.5 bg-slate-50 dark:bg-slate-800 rounded-full')}
-                  >
-                    <Settings
-                      color={twInstance.color('text-slate-500 dark:text-slate-400')}
-                      size={20}
-                    />
-                  </TouchableOpacity>
-                </View>
-              ))
-            ) : (
-              renderEmptyState()
-            )}
-          </>
-        ) : (
-          /* Received Invitations Tab (FAM-03, FAM-04) */
-          <View>
-            <Text style={tw('font-bold text-lg text-slate-900 dark:text-white mb-4')}>
-              {t('mobile.received_invitations', 'Lời mời đồng hành gửi đến bạn')}
-            </Text>
-
-            {receivedInvitations.map((inv) => (
+        {loading ? (
+          <View style={tw('gap-3')}>
+            {[1, 2, 3].map((i) => (
               <View
-                key={inv.id}
+                key={i}
                 style={tw(
-                  'bg-white dark:bg-slate-900 rounded-3xl p-5 mb-4 border border-slate-200 dark:border-slate-800 shadow-sm'
+                  'bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200 dark:border-slate-800 gap-3',
                 )}
               >
-                <View style={tw('flex-row items-center mb-3')}>
-                  <Image
-                    source={{ uri: inv.inviterAvatar }}
-                    style={tw('w-12 h-12 rounded-full mr-3 bg-slate-200 dark:bg-slate-800')}
-                  />
-                  <View style={tw('flex-1')}>
-                    <Text style={tw('font-bold text-slate-900 dark:text-white text-base')}>
-                      {inv.inviterName}
-                    </Text>
-                    <Text style={tw('text-xs text-slate-500 dark:text-slate-400')}>
-                      {inv.inviterEmail} • {t('mobile.relationship_label', 'Quan hệ')}: {relationshipLabel(inv.relationship)}
-                    </Text>
-                  </View>
-                  <View
-                    style={tw(
-                      `px-2.5 py-1 rounded-full ${
-                        inv.status === 'pending'
-                          ? 'bg-amber-100 dark:bg-amber-900/30'
-                          : inv.status === 'accepted'
-                            ? 'bg-emerald-100 dark:bg-emerald-900/30'
-                            : 'bg-slate-200 dark:bg-slate-800'
-                      }`
-                    )}
-                  >
-                    <Text
-                      style={tw(
-                        `text-[10px] font-bold uppercase ${
-                          inv.status === 'pending'
-                            ? 'text-amber-700 dark:text-amber-400'
-                            : inv.status === 'accepted'
-                              ? 'text-emerald-700 dark:text-emerald-400'
-                              : 'text-slate-600 dark:text-slate-400'
-                        }`
-                      )}
-                    >
-                      {inv.status}
-                    </Text>
-                  </View>
+                <View style={tw('flex-row justify-between items-center')}>
+                  <Skeleton className="h-5 w-36 rounded-lg" />
+                  <Skeleton className="h-5 w-20 rounded-full" />
                 </View>
-
-                <View
-                  style={tw(
-                    'bg-slate-50 dark:bg-slate-800/60 p-3.5 rounded-2xl mb-3 border border-slate-100 dark:border-slate-800'
-                  )}
-                >
-                  <Text
-                    style={tw(
-                      'text-xs font-bold text-slate-700 dark:text-slate-300 mb-2'
-                    )}
-                  >
-                    {t('mobile.permissions_granted_title', 'Quyền hạn được cấp cho bạn:')}
-                  </Text>
-                  <View style={tw('gap-1.5')}>
-                    <Text style={tw('text-xs text-slate-600 dark:text-slate-400')}>
-                      • {t('mobile.perm_receive_reminders', 'Nhận thông báo nhắc nhở')}:{' '}
-                      {yesNo(inv.permissions.receiveReminders)}
-                    </Text>
-                    <Text style={tw('text-xs text-slate-600 dark:text-slate-400')}>
-                      • {t('mobile.perm_view_care_progress', 'Xem tiến độ nhiệm vụ chăm sóc')}:{' '}
-                      {yesNo(inv.permissions.viewProgress)}
-                    </Text>
-                    <Text style={tw('text-xs text-slate-600 dark:text-slate-400')}>
-                      • {t('mobile.perm_view_alert_summary', 'Xem tóm tắt cảnh báo sức khỏe')}:{' '}
-                      {yesNo(inv.permissions.viewAlertSummary)}
-                    </Text>
-                  </View>
-                </View>
-
-                {inv.status === 'pending' && (
-                  <>
-                    <TouchableOpacity
-                      onPress={() =>
-                        setAcceptConsentChecked((prev) => ({
-                          ...prev,
-                          [inv.id]: !prev[inv.id],
-                        }))
-                      }
-                      style={tw('flex-row items-center mb-4')}
-                    >
-                      <View
-                        style={tw(
-                          `w-5 h-5 rounded-md border items-center justify-center mr-2.5 ${
-                            acceptConsentChecked[inv.id]
-                              ? 'bg-emerald-500 border-emerald-500'
-                              : 'border-slate-400 dark:border-slate-600'
-                          }`
-                        )}
-                      >
-                        {acceptConsentChecked[inv.id] && <Check size={14} color="#fff" />}
-                      </View>
-                      <Text style={tw('text-xs text-slate-600 dark:text-slate-300 flex-1')}>
-                        {t(
-                          'mobile.family_companion_consent_check',
-                          'Tôi xác nhận đồng thuận nhận thông tin đồng hành từ người thân.'
-                        )}
-                      </Text>
-                    </TouchableOpacity>
-
-                    <View style={tw('flex-row gap-3')}>
-                      <TouchableOpacity
-                        onPress={() => handleDeclineInvitation(inv.id)}
-                        style={tw(
-                          'flex-1 py-3 rounded-xl bg-slate-100 dark:bg-slate-800 items-center'
-                        )}
-                      >
-                        <Text style={tw('font-bold text-slate-700 dark:text-slate-300 text-xs')}>
-                          {t('mobile.decline_invitation', 'Từ chối')}
-                        </Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        onPress={() => handleAcceptInvitation(inv.id)}
-                        style={tw('flex-1 py-3 rounded-xl bg-emerald-600 items-center')}
-                      >
-                        <Text style={tw('font-bold text-white text-xs')}>
-                          {t('mobile.accept_invitation', 'Chấp nhận')}
-                        </Text>
-                      </TouchableOpacity>
-                    </View>
-                  </>
-                )}
+                <Skeleton className="h-3.5 w-48 rounded-lg" />
+                <Skeleton className="h-10 w-full rounded-xl" />
               </View>
             ))}
           </View>
+        ) : loadError ? (
+          <View
+            style={tw(
+              'bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 items-center',
+            )}
+          >
+            <AlertCircle color="#ef4444" size={34} />
+            <Text style={tw('text-base font-bold text-slate-900 dark:text-white mt-3 text-center')}>
+              {featureDisabled
+                ? t('mobile.family_disabled_title')
+                : t('mobile.family_load_failed')}
+            </Text>
+            <Text style={tw('text-xs text-slate-500 dark:text-slate-400 mt-1 text-center leading-5')}>
+              {loadError}
+            </Text>
+            {!featureDisabled ? (
+              <TouchableOpacity
+                onPress={() => void loadLinks(false)}
+                style={tw('mt-4 bg-brand px-5 py-2.5 rounded-full flex-row items-center')}
+              >
+                <RefreshCw size={14} color="#0f172a" />
+                <Text style={tw('text-slate-900 font-bold text-xs ml-1.5')}>
+                  {t('mobile.retry')}
+                </Text>
+              </TouchableOpacity>
+            ) : null}
+          </View>
+        ) : displayedLinks.length === 0 ? (
+          <View
+            style={tw(
+              'bg-white dark:bg-slate-900 rounded-3xl p-7 border border-slate-200 dark:border-slate-800 items-center',
+            )}
+          >
+            <View
+              style={tw(
+                'w-14 h-14 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 items-center justify-center mb-3',
+              )}
+            >
+              <Users color={isDark ? '#34d399' : '#10b981'} size={28} />
+            </View>
+            <Text style={tw('text-base font-bold text-slate-900 dark:text-white text-center')}>
+              {activeTab === 'sent'
+                ? t('mobile.family_empty_sent_title')
+                : t('mobile.family_empty_received_title')}
+            </Text>
+            <Text style={tw('text-xs text-slate-500 dark:text-slate-400 mt-1.5 text-center leading-5')}>
+              {activeTab === 'sent'
+                ? t('mobile.family_empty_sent_desc')
+                : t('mobile.family_empty_received_desc')}
+            </Text>
+            <TouchableOpacity
+              onPress={() =>
+                activeTab === 'sent' ? setCreateModalVisible(true) : setRedeemModalVisible(true)
+              }
+              style={tw('mt-5 bg-brand px-5 py-3 rounded-2xl flex-row items-center')}
+            >
+              {activeTab === 'sent' ? (
+                <UserPlus size={16} color="#0f172a" />
+              ) : (
+                <KeyRound size={16} color="#0f172a" />
+              )}
+              <Text style={tw('text-slate-900 font-bold text-xs ml-2')}>
+                {activeTab === 'sent'
+                  ? t('mobile.family_invite_cta')
+                  : t('mobile.family_redeem_cta')}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          displayedLinks.map((link) => {
+            const badge = getStatusBadgeClasses(link.status);
+            const isBusy = busyLinkId === link.id;
+            const label =
+              sessionContactLabels[link.id] ||
+              `${relationshipLabel(link.relationship)} • #${link.id.slice(-6)}`;
+
+            return (
+              <View
+                key={link.id}
+                style={tw(
+                  'bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200 dark:border-slate-800 shadow-sm gap-3',
+                )}
+              >
+                <View style={tw('flex-row items-start justify-between gap-2')}>
+                  <View style={tw('flex-row items-center flex-1')}>
+                    <View
+                      style={tw(
+                        'w-11 h-11 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 items-center justify-center mr-3',
+                      )}
+                    >
+                      <HeartHandshake color={isDark ? '#818cf8' : '#4f46e5'} size={20} />
+                    </View>
+                    <View style={tw('flex-1')}>
+                      <Text
+                        numberOfLines={1}
+                        style={tw('text-sm font-bold text-slate-900 dark:text-white')}
+                      >
+                        {label}
+                      </Text>
+                      <Text style={tw('text-xs text-slate-500 dark:text-slate-400 mt-0.5')}>
+                        {relationshipLabel(link.relationship)} •{' '}
+                        {link.invitationDelivery === 'shared_link'
+                          ? t('mobile.family_delivery_shared_link')
+                          : t('mobile.family_delivery_selected_contact')}
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={tw(`px-2.5 py-1 rounded-full ${badge.container}`)}>
+                    <Text style={tw(`text-[11px] font-bold ${badge.text}`)}>
+                      {statusLabel(link.status)}
+                    </Text>
+                  </View>
+                </View>
+
+                <View style={tw('flex-row flex-wrap gap-2')}>
+                  {(link.permissions ?? []).map((perm) => (
+                    <View
+                      key={perm}
+                      style={tw(
+                        'px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200/70 dark:border-slate-700',
+                      )}
+                    >
+                      <Text style={tw('text-[11px] font-medium text-slate-700 dark:text-slate-300')}>
+                        {t(`mobile.family_perm_${perm}`, perm)}
+                      </Text>
+                    </View>
+                  ))}
+                  {link.status === 'pending' && (
+                    <Text style={tw('text-[11px] text-slate-400 dark:text-slate-500 self-center')}>
+                      {t('mobile.family_expires_on')}: {formatDateTime(link.invitationExpiresAt)}
+                    </Text>
+                  )}
+                </View>
+
+                {/* Action buttons per direction & status */}
+                <View style={tw('flex-row flex-wrap gap-2 pt-1 border-t border-slate-100 dark:border-slate-800')}>
+                  {activeTab === 'sent' && link.status === 'pending' ? (
+                    <>
+                      <TouchableOpacity
+                        disabled={isBusy}
+                        onPress={() => void handleRegenerateArtifacts(link)}
+                        style={tw(
+                          'flex-1 py-2.5 px-3 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 flex-row items-center justify-center',
+                        )}
+                      >
+                        {isBusy ? (
+                          <ActivityIndicator size="small" color="#6366f1" />
+                        ) : (
+                          <>
+                            <QrCode size={15} color={isDark ? '#a5b4fc' : '#4f46e5'} />
+                            <Text style={tw('text-xs font-bold text-indigo-700 dark:text-indigo-300 ml-1.5')}>
+                              {t('mobile.family_regenerate_qr')}
+                            </Text>
+                          </>
+                        )}
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        disabled={isBusy}
+                        onPress={() => confirmLinkAction(link, 'revoke')}
+                        style={tw(
+                          'py-2.5 px-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 flex-row items-center justify-center',
+                        )}
+                      >
+                        <UserX size={15} color="#ef4444" />
+                        <Text style={tw('text-xs font-bold text-rose-600 dark:text-rose-400 ml-1.5')}>
+                          {t('mobile.family_revoke_btn')}
+                        </Text>
+                      </TouchableOpacity>
+                    </>
+                  ) : null}
+
+                  {activeTab === 'sent' && (link.status === 'active' || link.status === 'paused') ? (
+                    <TouchableOpacity
+                      disabled={isBusy}
+                      onPress={() => openManageModal(link)}
+                      style={tw(
+                        'flex-1 py-2.5 px-3 rounded-xl bg-slate-100 dark:bg-slate-800 flex-row items-center justify-center',
+                      )}
+                    >
+                      <Settings size={15} color={twInstance.color('text-slate-700 dark:text-slate-200')} />
+                      <Text style={tw('text-xs font-bold text-slate-800 dark:text-slate-100 ml-1.5')}>
+                        {t('mobile.family_manage_connection')}
+                      </Text>
+                    </TouchableOpacity>
+                  ) : null}
+
+                  {activeTab === 'received' && link.status === 'pending' ? (
+                    <>
+                      <TouchableOpacity
+                        disabled={isBusy}
+                        onPress={() => {
+                          setAcceptTarget(link);
+                          setAcceptConsent(false);
+                          setAcceptPermissions(
+                            link.permissions?.length
+                              ? link.permissions
+                              : ['missed_task_reminder', 'weekly_progress'],
+                          );
+                        }}
+                        style={tw('flex-1 py-2.5 px-3 rounded-xl bg-brand flex-row items-center justify-center')}
+                      >
+                        <CheckCircle2 size={15} color="#0f172a" />
+                        <Text style={tw('text-xs font-bold text-slate-900 ml-1.5')}>
+                          {t('mobile.family_accept_btn')}
+                        </Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        disabled={isBusy}
+                        onPress={() => confirmLinkAction(link, 'decline')}
+                        style={tw(
+                          'py-2.5 px-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 flex-row items-center justify-center',
+                        )}
+                      >
+                        <UserX size={15} color="#ef4444" />
+                        <Text style={tw('text-xs font-bold text-rose-600 dark:text-rose-400 ml-1.5')}>
+                          {t('mobile.family_decline_btn')}
+                        </Text>
+                      </TouchableOpacity>
+                    </>
+                  ) : null}
+
+                  {activeTab === 'received' && (link.status === 'active' || link.status === 'paused') ? (
+                    <>
+                      <TouchableOpacity
+                        disabled={isBusy}
+                        onPress={() =>
+                          router.push({
+                            pathname: '/(patient)/family-metrics',
+                            params: {
+                              linkId: link.id,
+                              relationship: link.relationship ?? '',
+                              patientId: link.patientId,
+                            },
+                          })
+                        }
+                        style={tw(
+                          'flex-1 py-2.5 px-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/70 dark:border-emerald-800/50 flex-row items-center justify-center',
+                        )}
+                      >
+                        <Activity size={15} color={isDark ? '#34d399' : '#059669'} />
+                        <Text style={tw('text-xs font-bold text-emerald-700 dark:text-emerald-300 ml-1.5')}>
+                          {t('mobile.family_view_shared_metrics')}
+                        </Text>
+                      </TouchableOpacity>
+
+                      {link.allowedActions.includes('pause') ? (
+                        <TouchableOpacity
+                          disabled={isBusy}
+                          onPress={() => void performLinkAction(link, 'pause')}
+                          style={tw('py-2.5 px-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 items-center justify-center')}
+                        >
+                          <PauseCircle size={16} color="#d97706" />
+                        </TouchableOpacity>
+                      ) : null}
+                      {link.allowedActions.includes('resume') ? (
+                        <TouchableOpacity
+                          disabled={isBusy}
+                          onPress={() => void performLinkAction(link, 'resume')}
+                          style={tw('py-2.5 px-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 items-center justify-center')}
+                        >
+                          <PlayCircle size={16} color="#10b981" />
+                        </TouchableOpacity>
+                      ) : null}
+                      {link.allowedActions.includes('revoke') ? (
+                        <TouchableOpacity
+                          disabled={isBusy}
+                          onPress={() => confirmLinkAction(link, 'revoke')}
+                          style={tw('py-2.5 px-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 items-center justify-center')}
+                        >
+                          <Trash2 size={16} color="#ef4444" />
+                        </TouchableOpacity>
+                      ) : null}
+                    </>
+                  ) : null}
+                </View>
+              </View>
+            );
+          })
         )}
       </ScrollView>
 
-      {/* Invite Modal (FAM-01) */}
-      <Modal visible={inviteModalVisible} animationType="slide" transparent={true}>
-        <KeyboardAvoidingView style={tw('flex-1 justify-end bg-black/60')}>
-          <View style={tw('bg-white dark:bg-slate-900 rounded-t-3xl p-6')}>
-            <View style={tw('flex-row justify-between items-center mb-5')}>
-              <Text style={tw('text-xl font-bold text-slate-900 dark:text-white')}>
-                {t('mobile.invite_member', 'Mời thành viên')}
+      {/* Create Invitation Modal */}
+      <Modal
+        visible={createModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => !isCreating && setCreateModalVisible(false)}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={tw('flex-1 justify-end bg-black/60')}
+        >
+          <View
+            style={tw(
+              'bg-white dark:bg-slate-900 rounded-t-3xl max-h-[88%] border-t border-slate-200 dark:border-slate-800 p-5',
+            )}
+          >
+            <View style={tw('flex-row items-center justify-between mb-4')}>
+              <Text style={tw('text-lg font-bold text-slate-900 dark:text-white')}>
+                {t('mobile.family_invite_modal_title')}
               </Text>
-              <TouchableOpacity onPress={() => setInviteModalVisible(false)}>
-                <X color={twInstance.color('text-slate-500')} size={24} />
+              <TouchableOpacity
+                disabled={isCreating}
+                onPress={() => setCreateModalVisible(false)}
+                style={tw('p-2 rounded-full bg-slate-100 dark:bg-slate-800')}
+              >
+                <X color={twInstance.color('text-slate-600 dark:text-slate-300')} size={18} />
               </TouchableOpacity>
             </View>
 
-            <View style={tw('mb-4')}>
-              <Text style={tw('text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-2')}>
-                {t('mobile.email_address', 'Email tài khoản Bệnh nhân của người thân')}
-              </Text>
-              <TextInput
-                value={emailToInvite}
-                onChangeText={setEmailToInvite}
-                placeholder="family@example.com"
-                placeholderTextColor="#94a3b8"
-                style={tw(
-                  'bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-slate-900 dark:text-white font-medium'
-                )}
-                keyboardType="email-address"
-                autoCapitalize="none"
-              />
-            </View>
-
-            <View style={tw('mb-4')}>
-              <Text style={tw('text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-2')}>
-                {t('mobile.relationship', 'Mối quan hệ')}
-              </Text>
-              <View style={tw('flex-row flex-wrap gap-2')}>
-                {(['parent', 'child', 'spouse', 'sibling', 'caregiver'] as const).map((rel) => (
-                  <TouchableOpacity
-                    key={rel}
-                    onPress={() => setRelationship(rel)}
-                    style={tw(
-                      `px-3 py-1.5 rounded-xl border ${
-                        relationship === rel
-                          ? 'bg-indigo-50 dark:bg-indigo-900/40 border-indigo-500'
-                          : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700'
-                      }`
-                    )}
-                  >
-                    <Text
+            <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+              <View style={tw('flex-row bg-slate-100 dark:bg-slate-800 p-1 rounded-xl mb-4')}>
+                {(['contact', 'share'] as const).map((m) => {
+                  const active = inviteMode === m;
+                  return (
+                    <TouchableOpacity
+                      key={m}
+                      disabled={isCreating}
+                      onPress={() => setInviteMode(m)}
                       style={tw(
-                        `text-xs font-bold uppercase ${
-                          relationship === rel
-                            ? 'text-indigo-700 dark:text-indigo-300'
-                            : 'text-slate-600 dark:text-slate-400'
-                        }`
+                        `flex-1 py-2 rounded-lg items-center ${
+                          active ? 'bg-white dark:bg-slate-900 shadow-sm' : ''
+                        }`,
                       )}
                     >
-                      {relationshipLabel(rel)}
+                      <Text
+                        style={tw(
+                          `text-xs font-bold ${
+                            active ? 'text-slate-900 dark:text-white' : 'text-slate-500 dark:text-slate-400'
+                          }`,
+                        )}
+                      >
+                        {m === 'contact'
+                          ? t('mobile.family_mode_search_contact')
+                          : t('mobile.family_mode_share_qr')}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              {inviteMode === 'contact' ? (
+                <View style={tw('mb-4')}>
+                  <Text style={tw('text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5')}>
+                    {t('mobile.family_search_contact_label')}
+                  </Text>
+                  <View
+                    style={tw(
+                      'flex-row items-center bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5',
+                    )}
+                  >
+                    <Search size={16} color="#94a3b8" />
+                    <TextInput
+                      value={contactQuery}
+                      onChangeText={(txt) => {
+                        setContactQuery(txt);
+                        if (selectedContact && txt !== selectedContact.fullName) {
+                          setSelectedContact(null);
+                        }
+                      }}
+                      placeholder={t('mobile.family_search_contact_placeholder')}
+                      placeholderTextColor="#94a3b8"
+                      style={tw('flex-1 ml-2.5 text-sm text-slate-900 dark:text-white')}
+                    />
+                  </View>
+
+                  {searchingContacts ? (
+                    <View style={tw('gap-2 mt-2.5')}>
+                      <Skeleton className="h-12 w-full rounded-xl" />
+                      <Skeleton className="h-12 w-full rounded-xl" />
+                    </View>
+                  ) : contactResults.length > 0 ? (
+                    <View style={tw('gap-2 mt-2.5')}>
+                      {contactResults.map((c) => {
+                        const isSelected = selectedContact?.id === c.id;
+                        return (
+                          <TouchableOpacity
+                            key={c.id}
+                            onPress={() => setSelectedContact(c)}
+                            style={tw(
+                              `p-3 rounded-xl border flex-row items-center justify-between ${
+                                isSelected
+                                  ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-500'
+                                  : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800'
+                              }`,
+                            )}
+                          >
+                            <View style={tw('flex-1 mr-2')}>
+                              <Text style={tw('text-sm font-bold text-slate-900 dark:text-white')}>
+                                {c.fullName}
+                              </Text>
+                              <Text style={tw('text-xs text-slate-500 dark:text-slate-400')}>
+                                {c.email || c.phoneNumber || `#${c.id.slice(-6)}`}
+                              </Text>
+                            </View>
+                            {isSelected ? <Check size={16} color="#10b981" /> : null}
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  ) : contactQuery.trim().length >= 2 ? (
+                    <Text style={tw('text-xs text-slate-400 dark:text-slate-500 mt-2')}>
+                      {t('mobile.family_no_contacts_found')}
+                    </Text>
+                  ) : null}
+                </View>
+              ) : (
+                <View
+                  style={tw(
+                    'mb-4 p-3.5 rounded-2xl bg-indigo-50/70 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-800/50',
+                  )}
+                >
+                  <Text style={tw('text-xs text-indigo-800 dark:text-indigo-200 leading-5')}>
+                    {t('mobile.family_share_mode_hint')}
+                  </Text>
+                </View>
+              )}
+
+              <Text style={tw('text-xs font-semibold text-slate-600 dark:text-slate-300 mb-2')}>
+                {t('mobile.family_relationship_label')}
+              </Text>
+              <View style={tw('flex-row flex-wrap gap-2 mb-5')}>
+                {RELATIONSHIPS.map((rel) => {
+                  const active = relationship === rel;
+                  return (
+                    <TouchableOpacity
+                      key={rel}
+                      onPress={() => setRelationship(rel)}
+                      style={tw(
+                        `px-3.5 py-2 rounded-xl border ${
+                          active
+                            ? 'bg-slate-900 dark:bg-brand border-slate-900 dark:border-brand'
+                            : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800'
+                        }`,
+                      )}
+                    >
+                      <Text
+                        style={tw(
+                          `text-xs font-bold ${
+                            active ? 'text-white dark:text-slate-900' : 'text-slate-600 dark:text-slate-300'
+                          }`,
+                        )}
+                      >
+                        {relationshipLabel(rel)}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              <TouchableOpacity
+                disabled={isCreating}
+                onPress={() => void handleCreateInvitation()}
+                style={tw(
+                  `h-12 rounded-2xl bg-brand items-center justify-center flex-row ${
+                    isCreating ? 'opacity-60' : ''
+                  }`,
+                )}
+              >
+                {isCreating ? (
+                  <ActivityIndicator size="small" color="#0f172a" />
+                ) : (
+                  <Text style={tw('font-bold text-slate-900 text-sm')}>
+                    {inviteMode === 'contact'
+                      ? t('mobile.family_send_invite_btn')
+                      : t('mobile.family_generate_qr_btn')}
+                  </Text>
+                )}
+              </TouchableOpacity>
+            </ScrollView>
+            <AppModalToast visible={createModalVisible} />
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      {/* Reveal-Once QR & Short Code Modal */}
+      <Modal
+        visible={Boolean(artifactsModalData)}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setArtifactsModalData(null)}
+      >
+        <View style={tw('flex-1 justify-center items-center bg-black/65 px-5')}>
+          <View
+            style={tw(
+              'w-full max-w-sm bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 items-center',
+            )}
+          >
+            <Text style={tw('text-lg font-bold text-slate-900 dark:text-white text-center')}>
+              {t('mobile.family_artifacts_title')}
+            </Text>
+            <Text style={tw('text-xs text-amber-600 dark:text-amber-400 mt-1 text-center leading-4')}>
+              {t('mobile.family_artifacts_reveal_once_warn')}
+            </Text>
+
+            {artifactsModalData ? (
+              <>
+                <View style={tw('bg-white p-4 rounded-2xl border border-slate-200 my-5')}>
+                  <QRCode value={artifactsModalData.qrPayload} size={180} />
+                </View>
+
+                <View
+                  style={tw(
+                    'w-full bg-slate-50 dark:bg-slate-950 rounded-2xl p-3.5 border border-slate-200 dark:border-slate-800 items-center mb-4',
+                  )}
+                >
+                  <Text style={tw('text-[11px] uppercase tracking-wider text-slate-400 font-bold')}>
+                    {t('mobile.family_short_code_label')}
+                  </Text>
+                  <Text style={tw('text-2xl font-black tracking-widest text-slate-900 dark:text-white mt-1')}>
+                    {artifactsModalData.shortCode}
+                  </Text>
+                  <Text style={tw('text-[11px] text-slate-500 dark:text-slate-400 mt-1')}>
+                    {t('mobile.family_expires_on')}:{' '}
+                    {formatDateTime(artifactsModalData.shortCodeExpiresAt)}
+                  </Text>
+                </View>
+
+                <View style={tw('flex-row gap-3 w-full')}>
+                  <TouchableOpacity
+                    onPress={() => setArtifactsModalData(null)}
+                    style={tw('flex-1 py-3 rounded-xl bg-slate-100 dark:bg-slate-800 items-center')}
+                  >
+                    <Text style={tw('font-bold text-slate-700 dark:text-slate-300 text-xs')}>
+                      {t('mobile.close')}
                     </Text>
                   </TouchableOpacity>
-                ))}
+                  <TouchableOpacity
+                    onPress={() => void handleShareInvite()}
+                    style={tw('flex-1 py-3 rounded-xl bg-brand flex-row items-center justify-center')}
+                  >
+                    <Share2 size={15} color="#0f172a" />
+                    <Text style={tw('font-bold text-slate-900 text-xs ml-1.5')}>
+                      {t('mobile.family_share_btn')}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+            ) : null}
+          </View>
+        </View>
+      </Modal>
+
+      {/* Redeem Invitation Modal */}
+      <Modal
+        visible={redeemModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => !isRedeeming && setRedeemModalVisible(false)}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={tw('flex-1 justify-end bg-black/60')}
+        >
+          <View
+            style={tw(
+              'bg-white dark:bg-slate-900 rounded-t-3xl border-t border-slate-200 dark:border-slate-800 p-5',
+            )}
+          >
+            <View style={tw('flex-row items-center justify-between mb-3')}>
+              <Text style={tw('text-lg font-bold text-slate-900 dark:text-white')}>
+                {t('mobile.family_redeem_modal_title')}
+              </Text>
+              <TouchableOpacity
+                disabled={isRedeeming}
+                onPress={() => setRedeemModalVisible(false)}
+                style={tw('p-2 rounded-full bg-slate-100 dark:bg-slate-800')}
+              >
+                <X color={twInstance.color('text-slate-600 dark:text-slate-300')} size={18} />
+              </TouchableOpacity>
+            </View>
+            <Text style={tw('text-xs text-slate-500 dark:text-slate-400 mb-3')}>
+              {t('mobile.family_redeem_modal_desc')}
+            </Text>
+            <TextInput
+              value={redeemInput}
+              onChangeText={setRedeemInput}
+              editable={!isRedeeming}
+              autoCapitalize="none"
+              placeholder={t('mobile.family_redeem_placeholder')}
+              placeholderTextColor="#94a3b8"
+              style={tw(
+                'bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl px-4 py-3.5 text-sm text-slate-900 dark:text-white mb-4',
+              )}
+            />
+            <TouchableOpacity
+              disabled={isRedeeming}
+              onPress={() => void handleRedeemSubmit()}
+              style={tw(
+                `h-12 rounded-2xl bg-brand items-center justify-center ${
+                  isRedeeming ? 'opacity-60' : ''
+                }`,
+              )}
+            >
+              {isRedeeming ? (
+                <ActivityIndicator size="small" color="#0f172a" />
+              ) : (
+                <Text style={tw('font-bold text-slate-900 text-sm')}>
+                  {t('mobile.family_redeem_submit_btn')}
+                </Text>
+              )}
+            </TouchableOpacity>
+            <AppModalToast visible={redeemModalVisible} />
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      {/* Accept Invitation & Consent Modal */}
+      <Modal
+        visible={Boolean(acceptTarget)}
+        transparent
+        animationType="slide"
+        onRequestClose={() => !isAccepting && setAcceptTarget(null)}
+      >
+        <View style={tw('flex-1 justify-end bg-black/60')}>
+          <View
+            style={tw(
+              'bg-white dark:bg-slate-900 rounded-t-3xl border-t border-slate-200 dark:border-slate-800 p-5 gap-4',
+            )}
+          >
+            <View style={tw('flex-row items-center justify-between')}>
+              <View style={tw('flex-row items-center')}>
+                <MailOpen size={20} color={isDark ? '#34d399' : '#10b981'} />
+                <Text style={tw('text-lg font-bold text-slate-900 dark:text-white ml-2')}>
+                  {t('mobile.family_accept_modal_title')}
+                </Text>
               </View>
+              <TouchableOpacity
+                disabled={isAccepting}
+                onPress={() => setAcceptTarget(null)}
+                style={tw('p-2 rounded-full bg-slate-100 dark:bg-slate-800')}
+              >
+                <X color={twInstance.color('text-slate-600 dark:text-slate-300')} size={18} />
+              </TouchableOpacity>
             </View>
 
-            {/* Explicit Consent Checkbox (FAM-01) */}
+            <View style={tw('gap-2.5')}>
+              {(['missed_task_reminder', 'weekly_progress'] as const).map((perm) => (
+                <View
+                  key={perm}
+                  style={tw(
+                    'flex-row items-center justify-between p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800',
+                  )}
+                >
+                  <Text style={tw('text-xs font-semibold text-slate-800 dark:text-slate-200 flex-1 mr-3')}>
+                    {t(`mobile.family_perm_${perm}`, perm)}
+                  </Text>
+                  <Switch
+                    value={acceptPermissions.includes(perm)}
+                    disabled={isAccepting}
+                    onValueChange={() =>
+                      setAcceptPermissions((prev) => togglePermission(prev, perm))
+                    }
+                    trackColor={{ false: '#cbd5e1', true: '#34d399' }}
+                    thumbColor="#ffffff"
+                  />
+                </View>
+              ))}
+            </View>
+
             <TouchableOpacity
-              onPress={() => setConsentConfirmed(!consentConfirmed)}
+              disabled={isAccepting}
+              onPress={() => setAcceptConsent((v) => !v)}
               style={tw(
-                'flex-row items-start bg-emerald-50 dark:bg-emerald-950/30 p-3.5 rounded-2xl border border-emerald-200 dark:border-emerald-800/50 mb-4'
+                'flex-row items-start p-3.5 rounded-2xl bg-emerald-50/60 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/50',
               )}
             >
               <View
                 style={tw(
-                  `w-5 h-5 rounded-md border items-center justify-center mr-2.5 mt-0.5 ${
-                    consentConfirmed
-                      ? 'bg-emerald-600 border-emerald-600'
-                      : 'border-slate-400 dark:border-slate-600'
-                  }`
+                  `w-5 h-5 rounded border items-center justify-center mt-0.5 mr-3 ${
+                    acceptConsent
+                      ? 'bg-emerald-500 border-emerald-500'
+                      : 'border-slate-300 dark:border-slate-600'
+                  }`,
                 )}
               >
-                {consentConfirmed && <Check size={14} color="#fff" />}
+                {acceptConsent ? <Check size={12} color="#ffffff" /> : null}
               </View>
-              <View style={tw('flex-1')}>
-                <Text style={tw('text-xs font-bold text-emerald-900 dark:text-emerald-200')}>
-                  {t('mobile.confirm_data_sharing_consent', 'Xác nhận đồng thuận chia sẻ dữ liệu')}
-                </Text>
-                <Text style={tw('text-[11px] text-emerald-700 dark:text-emerald-400 mt-0.5')}>
-                  {t(
-                    'mobile.confirm_data_sharing_consent_desc',
-                    'Tôi đồng ý cho người thân xem tiến độ nhiệm vụ và cảnh báo sức khỏe đã chọn. Không chia sẻ tin nhắn tư vấn bác sĩ.'
-                  )}
-                </Text>
-              </View>
+              <Text style={tw('text-xs text-slate-700 dark:text-slate-200 flex-1 leading-5')}>
+                {t('mobile.family_consent_checkbox')}
+              </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              onPress={handleInvite}
-              style={tw('bg-brand py-4 rounded-xl items-center mt-1')}
+              disabled={isAccepting}
+              onPress={() => void handleAcceptSubmit()}
+              style={tw(
+                `h-12 rounded-2xl bg-brand items-center justify-center ${
+                  isAccepting ? 'opacity-60' : ''
+                }`,
+              )}
             >
-              <Text style={tw('text-slate-900 font-bold text-base')}>
-                {t('mobile.send_invite', 'Gửi lời mời liên kết')}
-              </Text>
+              {isAccepting ? (
+                <ActivityIndicator size="small" color="#0f172a" />
+              ) : (
+                <Text style={tw('font-bold text-slate-900 text-sm')}>
+                  {t('mobile.family_confirm_accept_btn')}
+                </Text>
+              )}
             </TouchableOpacity>
+            <AppModalToast visible={Boolean(acceptTarget)} />
           </View>
-          <AppModalToast visible={inviteModalVisible} />
-        </KeyboardAvoidingView>
+        </View>
       </Modal>
 
-      {/* Settings/Permissions Modal */}
-      <Modal visible={settingsModalVisible} animationType="slide" transparent={true}>
+      {/* Manage Sent Connection Modal (Permissions + Metric Sharing + Lifecycle) */}
+      <Modal
+        visible={Boolean(manageTarget)}
+        transparent
+        animationType="slide"
+        onRequestClose={() => !savingPerms && !sharingSaving && setManageTarget(null)}
+      >
         <View style={tw('flex-1 justify-end bg-black/60')}>
-          <View style={tw('bg-white dark:bg-slate-900 rounded-t-3xl p-6')}>
-            <View style={tw('flex-row justify-between items-center mb-6')}>
-              <Text style={tw('text-xl font-bold text-slate-900 dark:text-white')}>
-                {t('mobile.member_permissions', 'Quyền hạn thành viên')}
-              </Text>
-              <TouchableOpacity onPress={() => setSettingsModalVisible(false)}>
-                <X color={twInstance.color('text-slate-500')} size={24} />
+          <View
+            style={tw(
+              'bg-white dark:bg-slate-900 rounded-t-3xl max-h-[90%] border-t border-slate-200 dark:border-slate-800 p-5',
+            )}
+          >
+            <View style={tw('flex-row items-center justify-between mb-4')}>
+              <View style={tw('flex-row items-center')}>
+                <ShieldCheck size={20} color="#10b981" />
+                <Text style={tw('text-lg font-bold text-slate-900 dark:text-white ml-2')}>
+                  {t('mobile.family_manage_connection')}
+                </Text>
+              </View>
+              <TouchableOpacity
+                disabled={savingPerms || sharingSaving}
+                onPress={() => setManageTarget(null)}
+                style={tw('p-2 rounded-full bg-slate-100 dark:bg-slate-800')}
+              >
+                <X color={twInstance.color('text-slate-600 dark:text-slate-300')} size={18} />
               </TouchableOpacity>
             </View>
 
-            {selectedMember && (
-              <View>
-                <View style={tw('flex-row items-center mb-6')}>
-                  <Image
-                    source={{ uri: selectedMember.avatar }}
-                    style={tw('w-10 h-10 rounded-full mr-3 bg-slate-200 dark:bg-slate-800')}
-                  />
-                  <View>
-                    <Text
-                      style={tw('font-bold text-slate-900 dark:text-white text-base')}
-                      numberOfLines={1}
-                    >
-                      {selectedMember.name}
-                    </Text>
-                    <Text style={tw('text-xs text-slate-500 dark:text-slate-400')}>
-                      {relationshipLabel(selectedMember.relationship)}
-                    </Text>
-                  </View>
-                </View>
-
-                {/* Toggles */}
-                <View
-                  style={tw(
-                    'bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-2xl p-4 mb-6'
-                  )}
-                >
-                  <View style={tw('flex-row justify-between items-center mb-4')}>
-                    <View style={tw('flex-1 pr-4')}>
-                      <Text style={tw('font-bold text-slate-900 dark:text-white')}>
-                        {t('mobile.receive_reminders', 'Nhận thông báo nhắc nhở')}
-                      </Text>
-                      <Text style={tw('text-xs text-slate-500 dark:text-slate-400 mt-1')}>
-                        {t(
-                          'mobile.receive_reminders_desc',
-                          'Gửi thông báo đẩy nếu bạn bỏ lỡ nhiệm vụ đo chỉ số / uống thuốc'
-                        )}
-                      </Text>
-                    </View>
-                    <Switch
-                      value={selectedMember.permissions.receiveReminders}
-                      onValueChange={() => togglePermission('receiveReminders')}
-                      trackColor={{
-                        false: twInstance.color('slate-300'),
-                        true: twInstance.color('emerald-500'),
-                      }}
-                    />
-                  </View>
-
-                  <View style={tw('w-full h-[1px] bg-slate-200 dark:bg-slate-800 mb-4')} />
-
-                  <View style={tw('flex-row justify-between items-center mb-4')}>
-                    <View style={tw('flex-1 pr-4')}>
-                      <Text style={tw('font-bold text-slate-900 dark:text-white')}>
-                        {t('mobile.view_progress', 'Xem tiến độ chăm sóc')}
-                      </Text>
-                      <Text style={tw('text-xs text-slate-500 dark:text-slate-400 mt-1')}>
-                        {t(
-                          'mobile.view_progress_desc',
-                          'Cho phép xem tỷ lệ tuân thủ và chỉ số sức khỏe tổng quát'
-                        )}
-                      </Text>
-                    </View>
-                    <Switch
-                      value={selectedMember.permissions.viewProgress}
-                      onValueChange={() => togglePermission('viewProgress')}
-                      trackColor={{
-                        false: twInstance.color('slate-300'),
-                        true: twInstance.color('emerald-500'),
-                      }}
-                    />
-                  </View>
-
-                  <View style={tw('w-full h-[1px] bg-slate-200 dark:bg-slate-800 mb-4')} />
-
-                  <View style={tw('flex-row justify-between items-center')}>
-                    <View style={tw('flex-1 pr-4')}>
-                      <Text style={tw('font-bold text-slate-900 dark:text-white')}>
-                        {t('mobile.view_alert_summary', 'Xem tóm tắt cảnh báo')}
-                      </Text>
-                      <Text style={tw('text-xs text-slate-500 dark:text-slate-400 mt-1')}>
-                        {t('mobile.view_alert_summary_desc', 'Cho phép xem thông báo khi chỉ số vượt ngưỡng an toàn'
-                        )}
-                      </Text>
-                    </View>
-                    <Switch
-                      value={Boolean(selectedMember.permissions.viewAlertSummary)}
-                      onValueChange={() => togglePermission('viewAlertSummary')}
-                      trackColor={{
-                        false: twInstance.color('slate-300'),
-                        true: twInstance.color('emerald-500'),
-                      }}
-                    />
-                  </View>
-                </View>
-
-                {/* Action Buttons */}
-                <View style={tw('flex-row gap-3')}>
-                  {selectedMember.status !== 'pending' && (
-                    <TouchableOpacity
-                      onPress={handlePauseResume}
+            {manageTarget ? (
+              <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={tw('gap-4 pb-4')}>
+                {/* Reminder Permissions */}
+                <View style={tw('gap-2.5')}>
+                  <Text style={tw('text-xs font-bold uppercase text-slate-400')}>
+                    {t('mobile.family_reminder_permissions_title')}
+                  </Text>
+                  {(['missed_task_reminder', 'weekly_progress'] as const).map((perm) => (
+                    <View
+                      key={perm}
                       style={tw(
-                        `flex-1 flex-row items-center justify-center py-4 rounded-xl ${
-                          selectedMember.status === 'active'
-                            ? 'bg-amber-50 dark:bg-amber-900/20'
-                            : 'bg-emerald-50 dark:bg-emerald-900/20'
-                        }`
+                        'flex-row items-center justify-between p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800',
                       )}
                     >
-                      {selectedMember.status === 'active' ? (
-                        <>
-                          <PauseCircle color={twInstance.color('text-amber-600')} size={20} />
-                          <Text style={tw('text-amber-700 dark:text-amber-500 font-bold ml-2')}>
-                            {t('mobile.pause_access', 'Tạm dừng')}
-                          </Text>
-                        </>
-                      ) : (
-                        <>
-                          <PlayCircle color={twInstance.color('text-emerald-600')} size={20} />
-                          <Text style={tw('text-emerald-700 dark:text-emerald-500 font-bold ml-2')}>
-                            {t('mobile.resume_access', 'Tiếp tục')}
-                          </Text>
-                        </>
-                      )}
-                    </TouchableOpacity>
-                  )}
+                      <Text style={tw('text-xs font-semibold text-slate-800 dark:text-slate-200 flex-1 mr-3')}>
+                        {t(`mobile.family_perm_${perm}`, perm)}
+                      </Text>
+                      <Switch
+                        value={managePerms.includes(perm)}
+                        disabled={savingPerms}
+                        onValueChange={() => setManagePerms((prev) => togglePermission(prev, perm))}
+                        trackColor={{ false: '#cbd5e1', true: '#34d399' }}
+                        thumbColor="#ffffff"
+                      />
+                    </View>
+                  ))}
                   <TouchableOpacity
-                    onPress={handleRevoke}
-                    style={tw(
-                      'flex-1 flex-row items-center justify-center py-4 bg-red-50 dark:bg-red-900/20 rounded-xl'
-                    )}
+                    disabled={savingPerms}
+                    onPress={() => void handleSaveReminderPermissions()}
+                    style={tw('h-11 rounded-xl bg-slate-900 dark:bg-brand items-center justify-center')}
                   >
-                    <UserX color={twInstance.color('text-red-500')} size={20} />
-                    <Text style={tw('text-red-600 dark:text-red-400 font-bold ml-2')}>
-                      {t('mobile.revoke_access', 'Thu hồi')}
-                    </Text>
+                    {savingPerms ? (
+                      <ActivityIndicator size="small" color="#ffffff" />
+                    ) : (
+                      <Text style={tw('text-xs font-bold text-white dark:text-slate-900')}>
+                        {t('mobile.family_save_permissions')}
+                      </Text>
+                    )}
                   </TouchableOpacity>
                 </View>
-              </View>
-            )}
+
+                {/* Health Metric Sharing Management (active links) */}
+                {manageTarget.status === 'active' ? (
+                  <View
+                    style={tw(
+                      'gap-3 p-4 rounded-2xl bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200/70 dark:border-emerald-800/50',
+                    )}
+                  >
+                    <View style={tw('flex-row items-center justify-between')}>
+                      <Text style={tw('text-xs font-bold uppercase text-emerald-800 dark:text-emerald-300')}>
+                        {t('mobile.family_metric_sharing_title')}
+                      </Text>
+                      <View
+                        style={tw(
+                          `px-2 py-0.5 rounded-full ${
+                            activeSharingInfo
+                              ? 'bg-emerald-200 dark:bg-emerald-900'
+                              : 'bg-slate-200 dark:bg-slate-800'
+                          }`,
+                        )}
+                      >
+                        <Text style={tw('text-[10px] font-bold text-slate-800 dark:text-slate-200')}>
+                          {activeSharingInfo
+                            ? t('mobile.family_sharing_active')
+                            : t('mobile.family_sharing_inactive')}
+                        </Text>
+                      </View>
+                    </View>
+
+                    {sharingLoading ? (
+                      <Skeleton className="h-24 w-full rounded-xl" />
+                    ) : (
+                      <>
+                        <View style={tw('flex-row bg-white dark:bg-slate-900 p-1 rounded-xl')}>
+                          {(['selected', 'all'] as const).map((sc) => {
+                            const active = sharingScope === sc;
+                            return (
+                              <TouchableOpacity
+                                key={sc}
+                                onPress={() => setSharingScope(sc)}
+                                style={tw(
+                                  `flex-1 py-2 rounded-lg items-center ${
+                                    active ? 'bg-emerald-600' : ''
+                                  }`,
+                                )}
+                              >
+                                <Text
+                                  style={tw(
+                                    `text-xs font-bold ${
+                                      active ? 'text-white' : 'text-slate-600 dark:text-slate-300'
+                                    }`,
+                                  )}
+                                >
+                                  {sc === 'all'
+                                    ? t('mobile.family_scope_all')
+                                    : t('mobile.family_scope_selected')}
+                                </Text>
+                              </TouchableOpacity>
+                            );
+                          })}
+                        </View>
+
+                        {sharingScope === 'selected' ? (
+                          <View style={tw('flex-row flex-wrap gap-2')}>
+                            {METRIC_TYPES.map((m) => {
+                              const picked = sharingTypes.includes(m.type);
+                              return (
+                                <TouchableOpacity
+                                  key={m.type}
+                                  onPress={() => toggleMetricType(m.type)}
+                                  style={tw(
+                                    `px-3 py-1.5 rounded-full border ${
+                                      picked
+                                        ? 'bg-emerald-600 border-emerald-600'
+                                        : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700'
+                                    }`,
+                                  )}
+                                >
+                                  <Text
+                                    style={tw(
+                                      `text-[11px] font-semibold ${
+                                        picked ? 'text-white' : 'text-slate-600 dark:text-slate-300'
+                                      }`,
+                                    )}
+                                  >
+                                    {t(m.labelKey, m.type)}
+                                  </Text>
+                                </TouchableOpacity>
+                              );
+                            })}
+                          </View>
+                        ) : null}
+
+                        <TouchableOpacity
+                          onPress={() => setSharingConsentChecked((v) => !v)}
+                          style={tw('flex-row items-start pt-1')}
+                        >
+                          <View
+                            style={tw(
+                              `w-5 h-5 rounded border items-center justify-center mr-2.5 mt-0.5 ${
+                                sharingConsentChecked
+                                  ? 'bg-emerald-600 border-emerald-600'
+                                  : 'border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900'
+                              }`,
+                            )}
+                          >
+                            {sharingConsentChecked ? <Check size={12} color="#ffffff" /> : null}
+                          </View>
+                          <Text style={tw('text-xs text-slate-700 dark:text-slate-300 flex-1 leading-4')}>
+                            {t('mobile.family_sharing_consent_checkbox')}
+                          </Text>
+                        </TouchableOpacity>
+
+                        <View style={tw('flex-row gap-2')}>
+                          <TouchableOpacity
+                            disabled={sharingSaving}
+                            onPress={() => void handleSaveHealthMetricSharing()}
+                            style={tw(
+                              'flex-1 h-11 rounded-xl bg-emerald-600 items-center justify-center',
+                            )}
+                          >
+                            {sharingSaving ? (
+                              <ActivityIndicator size="small" color="#ffffff" />
+                            ) : (
+                              <Text style={tw('text-xs font-bold text-white')}>
+                                {t('mobile.family_sharing_save_btn')}
+                              </Text>
+                            )}
+                          </TouchableOpacity>
+                          {activeSharingInfo ? (
+                            <TouchableOpacity
+                              disabled={sharingSaving}
+                              onPress={() => void handleRevokeHealthMetricSharing()}
+                              style={tw(
+                                'px-4 h-11 rounded-xl bg-rose-100 dark:bg-rose-950/50 items-center justify-center',
+                              )}
+                            >
+                              <Text style={tw('text-xs font-bold text-rose-700 dark:text-rose-300')}>
+                                {t('mobile.family_sharing_revoke_btn')}
+                              </Text>
+                            </TouchableOpacity>
+                          ) : null}
+                        </View>
+                      </>
+                    )}
+                  </View>
+                ) : null}
+
+                {/* Lifecycle Actions */}
+                <View style={tw('flex-row gap-2 pt-2 border-t border-slate-100 dark:border-slate-800')}>
+                  {manageTarget.allowedActions.includes('pause') ? (
+                    <TouchableOpacity
+                      disabled={busyLinkId === manageTarget.id}
+                      onPress={() => void performLinkAction(manageTarget, 'pause')}
+                      style={tw(
+                        'flex-1 h-11 rounded-xl bg-amber-50 dark:bg-amber-950/40 flex-row items-center justify-center',
+                      )}
+                    >
+                      <PauseCircle size={16} color="#d97706" />
+                      <Text style={tw('text-xs font-bold text-amber-700 dark:text-amber-300 ml-1.5')}>
+                        {t('mobile.family_pause_btn')}
+                      </Text>
+                    </TouchableOpacity>
+                  ) : null}
+                  {manageTarget.allowedActions.includes('resume') ? (
+                    <TouchableOpacity
+                      disabled={busyLinkId === manageTarget.id}
+                      onPress={() => void performLinkAction(manageTarget, 'resume')}
+                      style={tw(
+                        'flex-1 h-11 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 flex-row items-center justify-center',
+                      )}
+                    >
+                      <PlayCircle size={16} color="#10b981" />
+                      <Text style={tw('text-xs font-bold text-emerald-700 dark:text-emerald-300 ml-1.5')}>
+                        {t('mobile.family_resume_btn')}
+                      </Text>
+                    </TouchableOpacity>
+                  ) : null}
+                  {manageTarget.allowedActions.includes('revoke') ? (
+                    <TouchableOpacity
+                      disabled={busyLinkId === manageTarget.id}
+                      onPress={() => confirmLinkAction(manageTarget, 'revoke')}
+                      style={tw(
+                        'flex-1 h-11 rounded-xl bg-rose-50 dark:bg-rose-950/40 flex-row items-center justify-center',
+                      )}
+                    >
+                      <Trash2 size={16} color="#ef4444" />
+                      <Text style={tw('text-xs font-bold text-rose-600 dark:text-rose-400 ml-1.5')}>
+                        {t('mobile.family_revoke_btn')}
+                      </Text>
+                    </TouchableOpacity>
+                  ) : null}
+                </View>
+              </ScrollView>
+            ) : null}
+            <AppModalToast visible={Boolean(manageTarget)} />
           </View>
-          <AppModalToast visible={settingsModalVisible} />
         </View>
       </Modal>
     </SafeAreaView>

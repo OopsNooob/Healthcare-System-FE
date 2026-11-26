@@ -24,13 +24,25 @@ import {
   ShieldAlert,
   Star,
   Stethoscope,
+  Users,
   X,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { webAdminApi } from "@/lib/api";
+import { extractApiErrorMessage, webAdminApi, type FeTypes } from "@/lib/api";
 
-type AuditTab = "careAlert" | "operations";
+type AuditTab = "careAlert" | "operations" | "familyLinks";
 type OperationsSourceFilter = "all" | "violation" | "consultation" | "review";
+type FamilyLinkStatusFilter = "all" | FeTypes.FamilyLinkStatus;
+
+const FAMILY_STATUS_OPTIONS: FamilyLinkStatusFilter[] = [
+  "all",
+  "pending",
+  "active",
+  "paused",
+  "revoked",
+  "declined",
+  "expired",
+];
 
 interface CareAlertAuditEvent {
   id: string;
@@ -93,6 +105,11 @@ export function AuditLogs() {
   const [sourceFilter, setSourceFilter] =
     useState<OperationsSourceFilter>("all");
   const [feedSearch, setFeedSearch] = useState("");
+
+  // Tab 3: Family Companion Links Audit
+  const [familyStatusFilter, setFamilyStatusFilter] =
+    useState<FamilyLinkStatusFilter>("all");
+  const [familyPage, setFamilyPage] = useState(1);
 
   // Inspect payload modal
   const [inspectPayload, setInspectPayload] = useState<{
@@ -264,6 +281,30 @@ export function AuditLogs() {
     enabled: activeTab === "operations",
   });
 
+  const familyLinksQuery = useQuery({
+    queryKey: ["audit-logs", "family-links", familyStatusFilter, familyPage],
+    queryFn: async () =>
+      webAdminApi.adminFamilyLinksList({
+        query: {
+          status: familyStatusFilter === "all" ? undefined : familyStatusFilter,
+          page: familyPage,
+          limit: 20,
+        },
+      }),
+    enabled: activeTab === "familyLinks",
+  });
+
+  const isFamilyLoading = familyLinksQuery.isLoading || familyLinksQuery.isFetching;
+  const familyLinksData = familyLinksQuery.data?.data;
+  const familyLinks = familyLinksData?.items ?? [];
+  const familyTotalPages = Math.max(1, familyLinksData?.totalPages ?? 1);
+  const familyError = familyLinksQuery.isError
+    ? extractApiErrorMessage(
+        familyLinksQuery.error,
+        t("auditLogs.familyLinks.loadError"),
+      )
+    : null;
+
   const isFeedLoading = feedQuery.isLoading || feedQuery.isFetching;
   const feedError =
     feedQuery.error instanceof Error
@@ -304,16 +345,24 @@ export function AuditLogs() {
           </p>
         </div>
 
-        {activeTab === "operations" ? (
+        {activeTab === "operations" || activeTab === "familyLinks" ? (
           <Button
             type="button"
             variant="outline"
-            disabled={isFeedLoading}
-            onClick={() => void feedQuery.refetch()}
+            disabled={activeTab === "operations" ? isFeedLoading : isFamilyLoading}
+            onClick={() =>
+              void (activeTab === "operations"
+                ? feedQuery.refetch()
+                : familyLinksQuery.refetch())
+            }
             className="gap-2 self-start sm:self-auto"
           >
             <RefreshCw
-              className={`h-4 w-4 ${isFeedLoading ? "animate-spin" : ""}`}
+              className={`h-4 w-4 ${
+                (activeTab === "operations" ? isFeedLoading : isFamilyLoading)
+                  ? "animate-spin"
+                  : ""
+              }`}
             />
             {t("common.refresh", "Làm mới")}
           </Button>
@@ -345,6 +394,19 @@ export function AuditLogs() {
         >
           <ClipboardList className="h-4 w-4" />
           {t("auditLogs.tabs.operationsFeed", "Hoạt động vận hành gần đây")}
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab("familyLinks")}
+          className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition-colors ${
+            activeTab === "familyLinks"
+              ? "bg-blue-600 text-white shadow-xs"
+              : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+          }`}
+        >
+          <Users className="h-4 w-4" />
+          {t("auditLogs.tabs.familyLinks")}
         </button>
       </div>
 
@@ -510,7 +572,7 @@ export function AuditLogs() {
             </div>
           )}
         </div>
-      ) : (
+      ) : activeTab === "operations" ? (
         <div className="space-y-5">
           <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-xs dark:border-slate-800 dark:bg-slate-900 sm:flex-row sm:items-center sm:justify-between">
             <div className="relative flex-1">
@@ -661,6 +723,165 @@ export function AuditLogs() {
                   )}
                 </TableBody>
               </Table>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="space-y-5">
+          <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-slate-200 bg-white p-4 shadow-xs dark:border-slate-800 dark:bg-slate-900">
+            {FAMILY_STATUS_OPTIONS.map((statusOption) => {
+              const active = familyStatusFilter === statusOption;
+              return (
+                <button
+                  key={statusOption}
+                  type="button"
+                  onClick={() => {
+                    setFamilyStatusFilter(statusOption);
+                    setFamilyPage(1);
+                  }}
+                  className={`rounded-xl px-3 py-1.5 text-xs font-semibold transition-colors ${
+                    active
+                      ? "bg-blue-600 text-white"
+                      : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+                  }`}
+                >
+                  {t(`auditLogs.familyLinks.statuses.${statusOption}`)}
+                </button>
+              );
+            })}
+          </div>
+
+          {familyError ? (
+            <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-red-200 bg-red-50/70 p-8 text-center dark:border-red-900/50 dark:bg-red-950/20">
+              <AlertCircle className="h-8 w-8 text-red-600 dark:text-red-400" />
+              <p className="text-sm font-medium text-red-700 dark:text-red-300">
+                {familyError}
+              </p>
+            </div>
+          ) : (
+            <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xs dark:border-slate-800 dark:bg-slate-900">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-slate-50/80 dark:bg-slate-800/60">
+                    <TableHead>{t("auditLogs.familyLinks.columns.linkId")}</TableHead>
+                    <TableHead>{t("auditLogs.familyLinks.columns.patientId")}</TableHead>
+                    <TableHead>{t("auditLogs.familyLinks.columns.relationship")}</TableHead>
+                    <TableHead>{t("auditLogs.familyLinks.columns.status")}</TableHead>
+                    <TableHead>{t("auditLogs.familyLinks.columns.delivery")}</TableHead>
+                    <TableHead>{t("auditLogs.familyLinks.columns.permissions")}</TableHead>
+                    <TableHead>{t("auditLogs.familyLinks.columns.timestamps")}</TableHead>
+                    <TableHead className="text-right">
+                      {t("auditLogs.table.details")}
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {isFamilyLoading ? (
+                    Array.from({ length: 6 }).map((_, idx) => (
+                      <TableRow key={idx}>
+                        <TableCell colSpan={8}>
+                          <Skeleton className="h-8 w-full rounded-lg" />
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : familyLinks.length === 0 ? (
+                    <TableRow>
+                      <TableCell
+                        colSpan={8}
+                        className="py-10 text-center text-sm text-slate-500 dark:text-slate-400"
+                      >
+                        {t("auditLogs.familyLinks.empty")}
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    familyLinks.map((link) => (
+                      <TableRow key={link.id}>
+                        <TableCell className="font-mono text-xs text-slate-600 dark:text-slate-300">
+                          {link.id}
+                        </TableCell>
+                        <TableCell className="font-mono text-xs text-slate-600 dark:text-slate-300">
+                          {link.patientId}
+                        </TableCell>
+                        <TableCell className="text-sm text-slate-700 dark:text-slate-200">
+                          {link.relationship
+                            ? t(`auditLogs.familyLinks.relationships.${link.relationship}`, link.relationship)
+                            : "--"}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline">
+                            {t(`auditLogs.familyLinks.statuses.${link.status}`, link.status)}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-xs text-slate-600 dark:text-slate-300">
+                          {t(`auditLogs.familyLinks.delivery.${link.invitationDelivery}`, link.invitationDelivery)}
+                        </TableCell>
+                        <TableCell className="text-xs text-slate-600 dark:text-slate-300">
+                          {(link.permissions ?? []).length > 0
+                            ? link.permissions
+                                .map((p) => t(`auditLogs.familyLinks.permissions.${p}`, p))
+                                .join(", ")
+                            : "--"}
+                        </TableCell>
+                        <TableCell className="text-xs text-slate-500 dark:text-slate-400">
+                          <div>{formatDateTime(link.invitedAt)}</div>
+                          {link.acceptedAt ? (
+                            <div className="text-emerald-600 dark:text-emerald-400">
+                              {formatDateTime(link.acceptedAt)}
+                            </div>
+                          ) : null}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            onClick={() =>
+                              setInspectPayload({
+                                title: `FAMILY LINK — ${link.id}`,
+                                data: link as unknown as Record<string, unknown>,
+                              })
+                            }
+                            className="gap-1.5"
+                          >
+                            <Eye className="h-3.5 w-3.5" />
+                            {t("auditLogs.inspect")}
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+
+              <div className="flex items-center justify-between border-t border-slate-100 px-4 py-3 text-xs text-slate-500 dark:border-slate-800 dark:text-slate-400">
+                <span>
+                  {t("auditLogs.familyLinks.paginationSummary", {
+                    page: familyPage,
+                    totalPages: familyTotalPages,
+                    total: familyLinksData?.total ?? 0,
+                  })}
+                </span>
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    disabled={familyPage <= 1 || isFamilyLoading}
+                    onClick={() => setFamilyPage((p) => Math.max(1, p - 1))}
+                  >
+                    {t("common.previous")}
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    disabled={familyPage >= familyTotalPages || isFamilyLoading}
+                    onClick={() => setFamilyPage((p) => Math.min(familyTotalPages, p + 1))}
+                  >
+                    {t("common.next")}
+                  </Button>
+                </div>
+              </div>
             </div>
           )}
         </div>

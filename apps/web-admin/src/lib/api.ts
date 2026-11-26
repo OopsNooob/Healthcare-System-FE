@@ -161,23 +161,14 @@ const authFreePaths = new Set([
   "/auth/verify-email",
 ]);
 
-function isVietnameseLocale(): boolean {
-  const lng = (i18n.language || "vi").toLowerCase();
-  return lng.startsWith("vi");
-}
-
 function extractApiErrorMessage(
   error: unknown,
   fallbackKey = "apiErrors.GENERIC_ERROR",
 ): string {
   const resolved = resolveApiError(error);
   if (resolved) {
-    const fallback = isVietnameseLocale()
-      ? resolved.fallbackVi
-      : resolved.fallbackEn;
     return i18n.t(`apiErrors.${resolved.key}`, {
       ...resolved.params,
-      defaultValue: fallback,
     });
   }
 
@@ -186,23 +177,14 @@ function extractApiErrorMessage(
     return ctx.rawMessage;
   }
 
-  return i18n.t(
-    fallbackKey,
-    isVietnameseLocale()
-      ? "Đã xảy ra lỗi. Vui lòng thử lại."
-      : "Something went wrong. Please try again.",
-  );
+  return i18n.t(fallbackKey);
 }
 
 function getApiErrorMessage(error: AxiosError): string | undefined {
   const resolved = resolveApiError(error);
   if (resolved) {
-    const fallback = isVietnameseLocale()
-      ? resolved.fallbackVi
-      : resolved.fallbackEn;
     return i18n.t(`apiErrors.${resolved.key}`, {
       ...resolved.params,
-      defaultValue: fallback,
     });
   }
 

@@ -217,7 +217,8 @@
         "operationalSummary": "Tóm tắt vận hành",
         "deactivateUser": "Ngưng kích hoạt tài khoản",
         "deleteAdmin": "Xóa quyền quản trị",
-        "assignRoleTo": "Chuyển thành {{role}}"
+        "assignRoleTo": "Chuyển thành {{role}}",
+        "bookingSettings": "Quy tắc đặt lịch bác sĩ"
       },
       "roles": {
         "superAdmin": "Quản trị cấp cao",
@@ -2068,7 +2069,9 @@
         "serverError": "Lỗi máy chủ nội bộ. Vui lòng thử lại sau."
       },
       "dateLocale": "vi-VN",
-      "langCode": "vi"
+      "langCode": "vi",
+      "previous": "Trước",
+      "next": "Sau"
     },
     "auditLogs": {
       "tabSystemLogs": "Nhật ký Hệ thống",
@@ -2167,7 +2170,46 @@
       },
       "tabs": {
         "careAlertAudit": "Dấu vết cảnh báo chăm sóc",
-        "operationsFeed": "Hoạt động vận hành gần đây"
+        "operationsFeed": "Hoạt động vận hành gần đây",
+        "familyLinks": "Liên kết Gia đình"
+      },
+      "familyLinks": {
+        "loadError": "Không thể tải danh sách kiểm toán liên kết gia đình.",
+        "empty": "Không có bản ghi liên kết gia đình nào phù hợp bộ lọc.",
+        "paginationSummary": "Trang {{page}} / {{totalPages}} ({{total}} liên kết)",
+        "columns": {
+          "linkId": "Mã liên kết",
+          "patientId": "Bệnh nhân chủ quản",
+          "relationship": "Mối quan hệ",
+          "status": "Trạng thái",
+          "delivery": "Kênh mời",
+          "permissions": "Quyền nhắc nhở",
+          "timestamps": "Thời gian mời / chấp nhận"
+        },
+        "statuses": {
+          "all": "Tất cả",
+          "pending": "Chờ xác nhận",
+          "active": "Đang hoạt động",
+          "paused": "Tạm dừng",
+          "revoked": "Đã thu hồi",
+          "declined": "Đã từ chối",
+          "expired": "Hết hạn"
+        },
+        "relationships": {
+          "parent": "Cha/Mẹ",
+          "child": "Con",
+          "spouse": "Vợ/Chồng",
+          "sibling": "Anh/Chị/Em",
+          "caregiver": "Người chăm sóc"
+        },
+        "delivery": {
+          "shared_link": "Liên kết / QR",
+          "selected_contact": "Chọn trực tiếp"
+        },
+        "permissions": {
+          "missed_task_reminder": "Nhắc nhiệm vụ lỡ",
+          "weekly_progress": "Tiến độ tuần"
+        }
       }
     },
     "apiErrors": {
@@ -2485,7 +2527,87 @@
       "HTTP_409": "Xung đột dữ liệu. Vui lòng tải lại và thử lại.",
       "HTTP_422": "Dữ liệu không hợp lệ theo quy tắc kiểm tra. Vui lòng kiểm tra lại.",
       "HTTP_429": "Bạn gửi quá nhiều yêu cầu. Vui lòng đợi một lát rồi thử lại.",
-      "GENERIC_ERROR": "Đã xảy ra lỗi. Vui lòng thử lại."
+      "GENERIC_ERROR": "Đã xảy ra lỗi. Vui lòng thử lại.",
+      "AUTH_GOOGLE_LOCAL_ACCOUNT_EXISTS": "Email này đã có tài khoản mật khẩu. Vui lòng đăng nhập bằng email và mật khẩu.",
+      "AUTH_GOOGLE_IDENTITY_EXISTS": "Email này đã được liên kết với một tài khoản Google khác. Vui lòng dùng tài khoản Google đó hoặc liên hệ hỗ trợ.",
+      "AUTH_GOOGLE_ACCOUNT_CONFLICT": "Không thể sử dụng tài khoản Google này. Vui lòng đăng nhập bằng phương thức hiện có hoặc liên hệ hỗ trợ.",
+      "AUTH_GOOGLE_EMAIL_INVALID": "Email từ tài khoản Google không hợp lệ.",
+      "GOOGLE_OAUTH_INVALID_CHALLENGE": "Thử thách bảo mật đăng nhập Google không hợp lệ. Vui lòng thử lại.",
+      "DOCTOR_BOOKING_SETTINGS_NOT_CONFIGURED": "Bác sĩ chưa cấu hình quy tắc đặt lịch hẹn.",
+      "DOCTOR_BOOKING_SETTINGS_INVALID": "Giá trị cấu hình đặt lịch hẹn của bác sĩ không hợp lệ.",
+      "DOCTOR_BOOKING_SETTINGS_REQUIRED": "Bác sĩ cần hoàn tất cấu hình đặt lịch trước khi mở đặt lịch hẹn trước.",
+      "OVERRIDE_REASON_REQUIRED": "Vui lòng nhập lý do ghi đè cấu hình (từ 3 đến 500 ký tự).",
+      "FAMILY_COMPANION_DISABLED": "Tính năng Đồng hành Gia đình hiện đang tạm tắt.",
+      "FAMILY_LINK_NOT_FOUND": "Không tìm thấy liên kết gia đình này.",
+      "ACTIVE_FAMILY_LINK_NOT_FOUND": "Cần có liên kết gia đình đang hoạt động để thực hiện thao tác này.",
+      "FAMILY_REUSABLE_LINK_NOT_FOUND": "Không tìm thấy bản ghi lời mời có thể tái sử dụng.",
+      "FAMILY_LINK_ALREADY_EXISTS": "Bạn đã có liên kết gia đình với người dùng này.",
+      "FAMILY_INVITATION_CONFLICT": "Đã tồn tại lời mời đang chờ xử lý cho người nhận này.",
+      "FAMILY_INVITATION_NOT_FOUND": "Không tìm thấy lời mời gia đình đang chờ xử lý.",
+      "FAMILY_INVITATION_NOT_RENEWABLE": "Chỉ lời mời đang chờ mới có thể tạo lại mã QR và liên kết mời.",
+      "INVITATION_NOT_FOUND_OR_EXPIRED": "Liên kết hoặc mã mời không hợp lệ hoặc đã hết hạn.",
+      "INVITATION_TOKEN_OR_CODE_REQUIRED": "Vui lòng nhập mã mời hoặc sử dụng liên kết lời mời hợp lệ.",
+      "INVITATION_REDEEM_REQUIRED": "Vui lòng mở xác thực lời mời trước khi nhấn chấp nhận.",
+      "INVITATION_RECIPIENT_MISMATCH": "Lời mời này được gửi cho một tài khoản bệnh nhân khác.",
+      "FAMILY_SELF_INVITE_NOT_ALLOWED": "Bạn không thể tự gửi lời mời đồng hành cho chính mình.",
+      "FAMILY_CONTACT_NOT_ELIGIBLE": "Người được mời phải là tài khoản bệnh nhân đang hoạt động.",
+      "CONTACT_USER_ID_OR_SHARE_REQUIRED": "Vui lòng chọn người dùng từ danh sách hoặc tạo lời mời bằng liên kết/QR.",
+      "INVALID_CONTACT_USER_ID": "Mã định danh người nhận lời mời không hợp lệ.",
+      "FAMILY_LINK_LIMIT_REACHED": "Bạn đã đạt giới hạn số liên kết gia đình cho phép theo gói hiện tại.",
+      "FAMILY_ENTITLEMENT_UNAVAILABLE": "Gói dịch vụ hiện tại chưa hỗ trợ tính năng Đồng hành Gia đình này.",
+      "FAMILY_CONSENT_VERSION_REQUIRED": "Bạn cần đồng ý với điều khoản liên kết gia đình trước khi chấp nhận.",
+      "FAMILY_POLICY_VERSION_REQUIRED": "Thiếu phiên bản chính sách phân quyền nhắc nhở.",
+      "INVALID_FAMILY_ACTION": "Thao tác trên liên kết gia đình không được hỗ trợ.",
+      "INVALID_FAMILY_PERMISSIONS": "Thiết lập quyền đồng hành gia đình không hợp lệ.",
+      "FAMILY_INVALID_STATE_TRANSITION": "Không thể thực hiện chuyển trạng thái này với liên kết gia đình hiện tại.",
+      "FAMILY_LINK_FORBIDDEN": "Bạn không có quyền truy cập liên kết gia đình này.",
+      "FAMILY_OWNER_ONLY": "Chỉ chủ sở hữu liên kết mới có thể thực hiện thao tác này.",
+      "INVITED_CONTACT_ONLY": "Chỉ người nhận lời mời mới có thể phản hồi lời mời này.",
+      "FAMILY_CODE_LIMITER_UNAVAILABLE": "Hệ thống kiểm tra mã mời hiện tạm gián đoạn. Vui lòng thử lại sau.",
+      "FAMILY_CODE_ATTEMPTS_EXCEEDED": "Bạn đã nhập sai mã mời quá nhiều lần. Vui lòng đợi 15 phút rồi thử lại.",
+      "SEARCH_TERM_TOO_SHORT": "Vui lòng nhập ít nhất 2 ký tự để tìm kiếm người dùng.",
+      "INVALID_HEALTH_METRIC_PERIOD": "Khoảng thời gian thống kê chỉ số sức khoẻ không hợp lệ.",
+      "INVALID_HEALTH_METRIC_CONSENT_VERSION": "Phiên bản chấp thuận chia sẻ chỉ số sức khoẻ không hợp lệ.",
+      "FAMILY_HEALTH_SHARING_CHANGED": "Quyền chia sẻ chỉ số sức khoẻ vừa thay đổi. Vui lòng làm mới dữ liệu.",
+      "FAMILY_HEALTH_ACCESS_DENIED": "Bạn không còn quyền xem chỉ số sức khoẻ được chia sẻ của người này.",
+      "FAMILY_SHARING_CONCURRENT_CHANGE": "Cài đặt chia sẻ chỉ số vừa thay đổi đồng thời. Vui lòng tải lại và thử lại.",
+      "METRIC_TYPES_NOT_ALLOWED_FOR_ALL": "Không được truyền danh sách chỉ số lẻ khi phạm vi chia sẻ là tất cả.",
+      "INVALID_METRIC_SCOPE": "Phạm vi chia sẻ chỉ số sức khoẻ không hợp lệ.",
+      "INVALID_METRIC_TYPES": "Vui lòng chọn ít nhất một loại chỉ số sức khoẻ hợp lệ để chia sẻ.",
+      "INVALID_SHARED_METRIC_QUERY": "Tham số truy vấn chỉ số sức khoẻ được chia sẻ không hợp lệ.",
+      "INVALID_SHARED_METRIC_VALUE": "Dữ liệu chỉ số sức khoẻ được chia sẻ không hợp lệ.",
+      "INVALID_SHARED_METRIC_LIMIT": "Số lượng bản ghi mỗi trang vượt quá giới hạn cho phép.",
+      "INVALID_SHARED_METRIC_CURSOR": "Con trỏ phân trang dữ liệu không hợp lệ. Vui lòng tải lại từ đầu.",
+      "INVALID_SHARED_METRIC_DATE_RANGE": "Khoảng thời gian tra cứu chỉ số sức khoẻ không hợp lệ."
+    },
+    "doctorBookingSettings": {
+      "title": "Ghi đè quy tắc đặt lịch bác sĩ",
+      "minutesUnit": "phút",
+      "bookingPolicyLabel": "Chính sách nhận lịch",
+      "policyInstant": "Xác nhận tự động (Instant)",
+      "unconfiguredNotice": "Bác sĩ chưa thiết lập quy tắc đặt lịch. Bạn có thể cấu hình và ghi đè giá trị mặc định ngay bên dưới.",
+      "fields": {
+        "bufferMinutes": "Khoảng đệm giữa các ca",
+        "minNoticeMinutes": "Thời gian báo trước tối thiểu",
+        "cancellationDeadlineMinutes": "Hạn chót huỷ / đổi lịch trước giờ khám",
+        "checkInEarlyMinutes": "Mở phòng chờ trước giờ hẹn",
+        "noShowAfterMinutes": "Đánh dấu vắng mặt sau",
+        "overrideReason": "Lý do ghi đè của quản trị viên *"
+      },
+      "placeholders": {
+        "overrideReason": "Nhập lý do (3–500 ký tự), ví dụ: Điều chỉnh chính sách trực khám chuyên khoa..."
+      },
+      "errors": {
+        "loadFailed": "Không thể tải cấu hình đặt lịch của bác sĩ.",
+        "overrideFailed": "Không thể ghi đè cấu hình đặt lịch.",
+        "rangeInvalid": "{{field}} phải nằm trong khoảng {{min}}–{{max}} phút.",
+        "overrideReasonLength": "Lý do ghi đè phải từ 3 đến 500 ký tự."
+      },
+      "toasts": {
+        "overrideSuccess": "Đã cập nhật quy tắc đặt lịch bác sĩ thành công."
+      },
+      "saving": "Đang lưu...",
+      "saveOverride": "Lưu ghi đè cấu hình"
     }
   }
 }

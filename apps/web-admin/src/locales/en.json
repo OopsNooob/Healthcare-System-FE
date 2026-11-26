@@ -217,7 +217,8 @@
         "operationalSummary": "Operational Summary",
         "deactivateUser": "Deactivate account",
         "deleteAdmin": "Remove admin",
-        "assignRoleTo": "Set as {{role}}"
+        "assignRoleTo": "Set as {{role}}",
+        "bookingSettings": "Doctor booking settings"
       },
       "roles": {
         "superAdmin": "Super admin",
@@ -2068,7 +2069,9 @@
         "serverError": "Internal server error. Please try again later."
       },
       "dateLocale": "en-US",
-      "langCode": "en"
+      "langCode": "en",
+      "previous": "Previous",
+      "next": "Next"
     },
     "auditLogs": {
       "tabSystemLogs": "System Audit Logs",
@@ -2167,7 +2170,46 @@
       },
       "tabs": {
         "careAlertAudit": "Care Alert Audit",
-        "operationsFeed": "Recent Operations Feed"
+        "operationsFeed": "Recent Operations Feed",
+        "familyLinks": "Family Links"
+      },
+      "familyLinks": {
+        "loadError": "Failed to load family links audit log.",
+        "empty": "No family connection records match the selected filter.",
+        "paginationSummary": "Page {{page}} of {{totalPages}} ({{total}} links)",
+        "columns": {
+          "linkId": "Link ID",
+          "patientId": "Patient ID",
+          "relationship": "Relationship",
+          "status": "Status",
+          "delivery": "Delivery",
+          "permissions": "Permissions",
+          "timestamps": "Invited / Accepted"
+        },
+        "statuses": {
+          "all": "All",
+          "pending": "Pending",
+          "active": "Active",
+          "paused": "Paused",
+          "revoked": "Revoked",
+          "declined": "Declined",
+          "expired": "Expired"
+        },
+        "relationships": {
+          "parent": "Parent",
+          "child": "Child",
+          "spouse": "Spouse",
+          "sibling": "Sibling",
+          "caregiver": "Caregiver"
+        },
+        "delivery": {
+          "shared_link": "Share Link",
+          "selected_contact": "Selected Contact"
+        },
+        "permissions": {
+          "missed_task_reminder": "Missed Tasks",
+          "weekly_progress": "Weekly Progress"
+        }
       }
     },
     "apiErrors": {
@@ -2485,7 +2527,87 @@
       "HTTP_409": "A data conflict occurred. Please refresh and try again.",
       "HTTP_422": "Data validation failed. Please check the highlighted fields.",
       "HTTP_429": "Too many requests. Please wait a moment and try again.",
-      "GENERIC_ERROR": "Something went wrong. Please try again."
+      "GENERIC_ERROR": "Something went wrong. Please try again.",
+      "AUTH_GOOGLE_LOCAL_ACCOUNT_EXISTS": "This email already has a password account. Sign in with your email and password instead.",
+      "AUTH_GOOGLE_IDENTITY_EXISTS": "This email is already connected to a different Google account. Sign in with that Google account or contact support.",
+      "AUTH_GOOGLE_ACCOUNT_CONFLICT": "This Google account cannot be used. Sign in with the existing method or contact support.",
+      "AUTH_GOOGLE_EMAIL_INVALID": "The Google account email is invalid.",
+      "GOOGLE_OAUTH_INVALID_CHALLENGE": "Invalid Google sign-in security challenge. Please start Google sign-in again.",
+      "DOCTOR_BOOKING_SETTINGS_NOT_CONFIGURED": "Doctor booking settings are not configured yet.",
+      "DOCTOR_BOOKING_SETTINGS_INVALID": "Doctor booking settings values are out of the allowed range.",
+      "DOCTOR_BOOKING_SETTINGS_REQUIRED": "Doctor booking settings must be configured before scheduled booking is available.",
+      "OVERRIDE_REASON_REQUIRED": "An override reason (3–500 characters) is required.",
+      "FAMILY_COMPANION_DISABLED": "Family Companion is currently unavailable.",
+      "FAMILY_LINK_NOT_FOUND": "Family connection was not found.",
+      "ACTIVE_FAMILY_LINK_NOT_FOUND": "An active family connection is required for this action.",
+      "FAMILY_REUSABLE_LINK_NOT_FOUND": "No reusable invitation record was found.",
+      "FAMILY_LINK_ALREADY_EXISTS": "A family connection already exists with this person.",
+      "FAMILY_INVITATION_CONFLICT": "A pending invitation already exists for this recipient.",
+      "FAMILY_INVITATION_NOT_FOUND": "Pending family invitation was not found.",
+      "FAMILY_INVITATION_NOT_RENEWABLE": "Only pending invitations can regenerate QR codes and invite links.",
+      "INVITATION_NOT_FOUND_OR_EXPIRED": "This invitation link or code is invalid or has expired.",
+      "INVITATION_TOKEN_OR_CODE_REQUIRED": "Please provide an invitation link token or 6-digit invite code.",
+      "INVITATION_REDEEM_REQUIRED": "Please open and verify the invitation first before accepting.",
+      "INVITATION_RECIPIENT_MISMATCH": "This invitation belongs to a different patient account.",
+      "FAMILY_SELF_INVITE_NOT_ALLOWED": "You cannot send a family invitation to yourself.",
+      "FAMILY_CONTACT_NOT_ELIGIBLE": "Selected contact must be an active patient account to join Family Companion.",
+      "CONTACT_USER_ID_OR_SHARE_REQUIRED": "Select an eligible contact or create a share link invitation.",
+      "INVALID_CONTACT_USER_ID": "Selected contact identifier is invalid.",
+      "FAMILY_LINK_LIMIT_REACHED": "You have reached the maximum number of family connections allowed by your plan.",
+      "FAMILY_ENTITLEMENT_UNAVAILABLE": "Your current plan does not include this Family Companion capability.",
+      "FAMILY_CONSENT_VERSION_REQUIRED": "Consent policy acceptance is required before linking accounts.",
+      "FAMILY_POLICY_VERSION_REQUIRED": "Reminder permission policy version is required.",
+      "INVALID_FAMILY_ACTION": "Unsupported family connection action.",
+      "INVALID_FAMILY_PERMISSIONS": "Selected family permission settings are invalid.",
+      "FAMILY_INVALID_STATE_TRANSITION": "This family connection cannot perform that transition in its current state.",
+      "FAMILY_LINK_FORBIDDEN": "You do not have access to this family connection.",
+      "FAMILY_OWNER_ONLY": "Only the patient who owns this connection can perform this action.",
+      "INVITED_CONTACT_ONLY": "Only the invited recipient can respond to this invitation.",
+      "FAMILY_CODE_LIMITER_UNAVAILABLE": "Invitation verification service is temporarily unavailable. Please try again later.",
+      "FAMILY_CODE_ATTEMPTS_EXCEEDED": "Too many invalid invite code attempts. Please try again in 15 minutes.",
+      "SEARCH_TERM_TOO_SHORT": "Please enter at least 2 characters to search contacts.",
+      "INVALID_HEALTH_METRIC_PERIOD": "Unsupported time period filter for shared health metrics.",
+      "INVALID_HEALTH_METRIC_CONSENT_VERSION": "Health metric sharing consent version is invalid or missing.",
+      "FAMILY_HEALTH_SHARING_CHANGED": "Shared health metric permissions changed. Refreshing the latest access state.",
+      "FAMILY_HEALTH_ACCESS_DENIED": "You do not have permission to view this patient’s shared health metrics.",
+      "FAMILY_SHARING_CONCURRENT_CHANGE": "Health metric sharing settings changed concurrently. Please refresh and try again.",
+      "METRIC_TYPES_NOT_ALLOWED_FOR_ALL": "Specific metric types cannot be set when sharing scope is \"all\".",
+      "INVALID_METRIC_SCOPE": "Selected health metric sharing scope is invalid.",
+      "INVALID_METRIC_TYPES": "Select at least one valid health metric type to share.",
+      "INVALID_SHARED_METRIC_QUERY": "Shared health metric query parameters are invalid.",
+      "INVALID_SHARED_METRIC_VALUE": "Shared health metric record contains an invalid value.",
+      "INVALID_SHARED_METRIC_LIMIT": "Requested page limit is outside the allowed range.",
+      "INVALID_SHARED_METRIC_CURSOR": "Shared health metric pagination cursor is invalid. Please refresh.",
+      "INVALID_SHARED_METRIC_DATE_RANGE": "Selected health metric date window is invalid."
+    },
+    "doctorBookingSettings": {
+      "title": "Override Doctor Booking Settings",
+      "minutesUnit": "min",
+      "bookingPolicyLabel": "Booking policy",
+      "policyInstant": "Instant booking",
+      "unconfiguredNotice": "This doctor has not configured booking settings yet. You can initialize them with an override reason below.",
+      "fields": {
+        "bufferMinutes": "Slot buffer minutes",
+        "minNoticeMinutes": "Minimum notice minutes",
+        "cancellationDeadlineMinutes": "Cancellation deadline minutes",
+        "checkInEarlyMinutes": "Check-in early window",
+        "noShowAfterMinutes": "No-show grace minutes",
+        "overrideReason": "Admin override reason *"
+      },
+      "placeholders": {
+        "overrideReason": "Enter reason (3–500 chars), e.g. Clinic scheduling policy alignment..."
+      },
+      "errors": {
+        "loadFailed": "Failed to load doctor booking settings.",
+        "overrideFailed": "Failed to override doctor booking settings.",
+        "rangeInvalid": "{{field}} must be between {{min}} and {{max}} minutes.",
+        "overrideReasonLength": "Override reason must be between 3 and 500 characters."
+      },
+      "toasts": {
+        "overrideSuccess": "Doctor booking settings overridden successfully."
+      },
+      "saving": "Saving...",
+      "saveOverride": "Save Override"
     }
   }
 }

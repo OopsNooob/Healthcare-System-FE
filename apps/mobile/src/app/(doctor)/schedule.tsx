@@ -15,6 +15,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Toast from 'react-native-toast-message';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import {
+  AlertTriangle,
   Calendar,
   Clock,
   Copy,
@@ -29,6 +30,7 @@ import { mobileApi, normalizePaginatedList, type FeTypes } from '@repo/shared-ho
 import { tw, twInstance } from '@/tw';
 import { useThemeContext } from '@/context/ThemeContext';
 import { extractApiErrorMessage } from '@/utils/apiError';
+import { resolveApiError } from '@healthcare/api-client';
 import { extractUserProfileData } from '@/utils/userProfile';
 import { bookingPolicyLabel, timezoneLabel } from '@/utils/bookingLabels';
 import {
@@ -106,6 +108,7 @@ export default function DoctorScheduleScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [bookingSettingsConfigured, setBookingSettingsConfigured] = useState(true);
   const [slots, setSlots] = useState<DoctorSlotItem[]>([]);
   const [busySlotId, setBusySlotId] = useState<string | null>(null);
 
@@ -167,8 +170,9 @@ export default function DoctorScheduleScreen() {
       try {
         const { from, to } = dayRangeIso(selectedDate, bookingSettings.timezone);
 
-        const [meRes, slotsRes, consultsRes] = await Promise.allSettled([
+        const [meRes, bookingSettingsRes, slotsRes, consultsRes] = await Promise.allSettled([
           mobileApi.usersGetMe(),
+          mobileApi.doctorBookingSettingsGetMine(),
           mobileApi.availabilitySlotsListMine({
             query: { from, to, page: 1, limit: 100, sortOrder: 1 },
           }),
@@ -180,6 +184,33 @@ export default function DoctorScheduleScreen() {
         if (meRes.status === 'fulfilled') {
           const parsedMe = extractUserProfileData(meRes.value);
           setIsAcceptingAppts(parsedMe.isOnline);
+        }
+
+        if (bookingSettingsRes.status === 'fulfilled') {
+          const remote = bookingSettingsRes.value?.data;
+          if (remote) {
+            setBookingSettingsConfigured(true);
+            setBookingSettings((prev) => ({
+              ...prev,
+              bookingPolicy: remote.bookingPolicy ?? 'instant',
+              bufferMinutes: remote.bufferMinutes,
+              minNoticeMinutes: remote.minNoticeMinutes,
+              cancellationDeadlineMinutes: remote.cancellationDeadlineMinutes,
+              checkInEarlyMinutes: remote.checkInEarlyMinutes,
+              noShowAfterMinutes: remote.noShowAfterMinutes,
+              effectiveFrom: remote.effectiveFrom,
+              updatedAt: remote.updatedAt,
+            }));
+          }
+        } else {
+          const reason = bookingSettingsRes.reason as { response?: { status?: number } } | undefined;
+          const resolvedErr = resolveApiError(bookingSettingsRes.reason);
+          if (
+            reason?.response?.status === 404 ||
+            resolvedErr?.key === 'DOCTOR_BOOKING_SETTINGS_NOT_CONFIGURED'
+          ) {
+            setBookingSettingsConfigured(false);
+          }
         }
 
         if (slotsRes.status !== 'fulfilled') {
@@ -274,15 +305,44 @@ export default function DoctorScheduleScreen() {
     }
   };
 
-  const handleSavePrefs = (next: DoctorBookingSettingsDto) => {
-    setBookingSettings(next);
+  const handleSavePrefs = async (next: DoctorBookingSettingsDto) => {
+    const res = await mobileApi.doctorBookingSettingsUpdateMine({
+      bookingPolicy: 'instant',
+      bufferMinutes: next.bufferMinutes,
+      minNoticeMinutes: next.minNoticeMinutes,
+      cancellationDeadlineMinutes: next.cancellationDeadlineMinutes,
+      checkInEarlyMinutes: next.checkInEarlyMinutes,
+      noShowAfterMinutes: next.noShowAfterMinutes,
+    });
+    const saved = res?.data;
+    setBookingSettingsConfigured(true);
+    setBookingSettings((prev) => ({
+      ...prev,
+      timezone: next.timezone,
+      defaultDurationMinutes: next.defaultDurationMinutes,
+      bookingPolicy: saved?.bookingPolicy ?? 'instant',
+      bufferMinutes: saved?.bufferMinutes ?? next.bufferMinutes,
+      minNoticeMinutes: saved?.minNoticeMinutes ?? next.minNoticeMinutes,
+      cancellationDeadlineMinutes:
+        saved?.cancellationDeadlineMinutes ?? next.cancellationDeadlineMinutes,
+      checkInEarlyMinutes: saved?.checkInEarlyMinutes ?? next.checkInEarlyMinutes,
+      noShowAfterMinutes: saved?.noShowAfterMinutes ?? next.noShowAfterMinutes,
+      effectiveFrom: saved?.effectiveFrom,
+      updatedAt: saved?.updatedAt,
+    }));
     AsyncStorage.setItem(
       SCHEDULE_PREFS_KEY,
       JSON.stringify({
         timezone: next.timezone,
         defaultDurationMinutes: next.defaultDurationMinutes,
-      })
+      }),
     ).catch(() => {});
+    Toast.show({
+      type: 'success',
+      text1: t('mobile.booking_settings_saved'),
+      text2: timezoneLabel(next.timezone),
+    });
+    await loadScheduleData(true);
   };
 
   const handleBlockSlot = (slot: DoctorSlotItem) => {
@@ -518,6 +578,28 @@ export default function DoctorScheduleScreen() {
 
         {/* Time Slots */}
         <View style={tw('p-6')}>
+          {!loading && !bookingSettingsConfigured ? (
+            <TouchableOpacity
+              onPress={() => setBookingSettingsVisible(true)}
+              style={tw(
+                'mb-5 p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 flex-row items-start',
+              )}
+            >
+              <AlertTriangle color="#d97706" size={18} style={tw('mt-0.5 mr-3')} />
+              <View style={tw('flex-1')}>
+                <Text style={tw('text-xs font-bold text-amber-900 dark:text-amber-200')}>
+                  {t('mobile.booking_settings_required_banner_title')}
+                </Text>
+                <Text style={tw('text-[11px] text-amber-700 dark:text-amber-300 mt-0.5 leading-4')}>
+                  {t('mobile.booking_settings_required_banner_desc')}
+                </Text>
+                <Text style={tw('text-xs font-bold text-indigo-600 dark:text-indigo-400 mt-1.5')}>
+                  {t('mobile.configure_now_cta')} →
+                </Text>
+              </View>
+            </TouchableOpacity>
+          ) : null}
+
           <View style={tw('flex-row justify-between items-center mb-6')}>
             <View style={tw('flex-1 mr-3')}>
               <Text style={tw('text-lg font-bold text-slate-900 dark:text-white')}>
@@ -529,11 +611,22 @@ export default function DoctorScheduleScreen() {
             </View>
             <TouchableOpacity
               onPress={() => {
+                if (!bookingSettingsConfigured) {
+                  Toast.show({
+                    type: 'info',
+                    text1: t('mobile.booking_settings_required_banner_title'),
+                    text2: t('mobile.booking_settings_required_banner_desc'),
+                  });
+                  setBookingSettingsVisible(true);
+                  return;
+                }
                 setEditingSlot(null);
                 setAddSlotModalVisible(true);
               }}
               style={tw(
-                'w-10 h-10 bg-slate-900 dark:bg-brand rounded-full items-center justify-center'
+                `w-10 h-10 bg-slate-900 dark:bg-brand rounded-full items-center justify-center ${
+                  !bookingSettingsConfigured ? 'opacity-45' : ''
+                }`,
               )}
             >
               <Plus color={twInstance.color('text-white dark:text-slate-900')} size={20} />
@@ -746,6 +839,7 @@ export default function DoctorScheduleScreen() {
         visible={bookingSettingsVisible}
         onClose={() => setBookingSettingsVisible(false)}
         settings={bookingSettings}
+        isConfigured={bookingSettingsConfigured}
         onSave={handleSavePrefs}
       />
 

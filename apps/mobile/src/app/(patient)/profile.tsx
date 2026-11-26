@@ -17,6 +17,7 @@ import { useTranslation } from 'react-i18next';
 import Toast from 'react-native-toast-message';
 import {
   Activity,
+  AlertCircle,
   Bell,
   Building2,
   Calendar,
@@ -101,10 +102,14 @@ export default function PatientProfileScreen() {
   const { isDark, toggleColorScheme } = useThemeContext();
   const router = useRouter();
   const { logout } = useLogout();
+  const authUser = useSharedAuthStore((s) => s.user);
   const updateCurrentUser = useSharedAuthStore((s) => s.updateCurrentUser);
 
   const [form, setForm] = useState<ProfileFormState>(EMPTY_FORM);
   const [savedForm, setSavedForm] = useState<ProfileFormState>(EMPTY_FORM);
+  const [emailVerified, setEmailVerified] = useState<boolean | undefined>(
+    authUser?.emailVerified,
+  );
   const [avatarUrl, setAvatarUrl] = useState('');
   const [avatarPublicId, setAvatarPublicId] = useState('');
   const [activeSubscription, setActiveSubscription] = useState<SubscriptionItem | null>(null);
@@ -157,12 +162,20 @@ export default function PatientProfileScreen() {
         };
         setForm(nextForm);
         setSavedForm(nextForm);
+        const resolvedVerified =
+          typeof parsed.emailVerified === 'boolean'
+            ? parsed.emailVerified
+            : authUser?.emailVerified;
+        setEmailVerified(resolvedVerified);
         setAvatarUrl(parsed.avatarUrl);
         setAvatarPublicId(parsed.avatarPublicId);
 
         updateCurrentUser({
           name: parsed.fullName || undefined,
           avatar: parsed.avatarUrl || undefined,
+          ...(typeof resolvedVerified === 'boolean'
+            ? { emailVerified: resolvedVerified }
+            : {}),
         });
 
         if (subsRes.status === 'fulfilled') {
@@ -499,10 +512,52 @@ export default function PatientProfileScreen() {
                 {savedForm.fullName || t('mobile.patient_role')}
               </Text>
               {savedForm.email ? (
-                <Text style={tw('text-sm text-slate-500 dark:text-slate-400 mt-0.5')}>
-                  {savedForm.email}
-                </Text>
-              ) : null}
+                <View style={tw('items-center mt-1 gap-1.5')}>
+                  <Text style={tw('text-sm text-slate-500 dark:text-slate-400 text-center')}>
+                    {savedForm.email}
+                  </Text>
+                  {emailVerified === true ? (
+                    <View
+                      style={tw(
+                        'flex-row items-center bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 px-2.5 py-1 rounded-full',
+                      )}
+                    >
+                      <ShieldCheck size={12} color={isDark ? '#34d399' : '#059669'} />
+                      <Text style={tw('text-[11px] font-semibold text-emerald-700 dark:text-emerald-300 ml-1')}>
+                        {t('mobile.email_verified_badge')}
+                      </Text>
+                    </View>
+                  ) : emailVerified === false ? (
+                    <TouchableOpacity
+                      onPress={() =>
+                        router.push({
+                          pathname: '/(auth)/verify-email',
+                          params: { email: savedForm.email, role: 'patient', from: 'profile' },
+                        })
+                      }
+                      style={tw(
+                        'flex-row items-center bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800 px-3 py-1 rounded-full',
+                      )}
+                    >
+                      <AlertCircle size={12} color={isDark ? '#fbbf24' : '#d97706'} />
+                      <Text style={tw('text-[11px] font-semibold text-amber-700 dark:text-amber-300 ml-1')}>
+                        {t('mobile.email_unverified_cta')}
+                      </Text>
+                    </TouchableOpacity>
+                  ) : null}
+                </View>
+              ) : (
+                <View
+                  style={tw(
+                    'mt-2 px-3 py-2 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 flex-row items-center',
+                  )}
+                >
+                  <AlertCircle size={14} color={isDark ? '#fbbf24' : '#d97706'} />
+                  <Text style={tw('text-[11px] text-amber-800 dark:text-amber-200 ml-2 flex-1 leading-4')}>
+                    {t('mobile.no_email_linked_notice')}
+                  </Text>
+                </View>
+              )}
 
               {/* Subscription Summary Pill */}
               <TouchableOpacity
