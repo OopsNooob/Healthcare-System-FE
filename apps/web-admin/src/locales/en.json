@@ -303,6 +303,14 @@
         "label": "Presence",
         "offline": "Offline",
         "online": "Online"
+      },
+      "errors": {
+        "loadDetailsFailed": "Failed to load user details.",
+        "deactivateFailed": "Failed to deactivate user account.",
+        "deleteAdminFailed": "Failed to delete admin account.",
+        "emptyRequiredFields": "Please fill in all required fields.",
+        "banFailed": "Failed to ban user account.",
+        "unbanFailed": "Failed to unban user account."
       }
     },
     "medicalFacilities": {
@@ -2177,9 +2185,11 @@
         "loadError": "Failed to load family links audit log.",
         "empty": "No family connection records match the selected filter.",
         "paginationSummary": "Page {{page}} of {{totalPages}} ({{total}} links)",
+        "pendingCompanion": "Not yet accepted",
         "columns": {
           "linkId": "Link ID",
-          "patientId": "Patient ID",
+          "patientId": "Patient",
+          "companion": "Companion",
           "relationship": "Relationship",
           "status": "Status",
           "delivery": "Delivery",
@@ -2578,7 +2588,12 @@
       "INVALID_SHARED_METRIC_VALUE": "Shared health metric record contains an invalid value.",
       "INVALID_SHARED_METRIC_LIMIT": "Requested page limit is outside the allowed range.",
       "INVALID_SHARED_METRIC_CURSOR": "Shared health metric pagination cursor is invalid. Please refresh.",
-      "INVALID_SHARED_METRIC_DATE_RANGE": "Selected health metric date window is invalid."
+      "INVALID_SHARED_METRIC_DATE_RANGE": "Selected health metric date window is invalid.",
+      "VALIDATION_INVALID_PAGINATION": "Invalid page or page-size query parameters.",
+      "VALIDATION_FIELD_REQUIRED": "One or more required fields are missing.",
+      "VALIDATION_INVALID_EMAIL": "Please provide a valid email address.",
+      "VALIDATION_INVALID_LENGTH": "Input length does not meet the required constraints.",
+      "VALIDATION_INVALID_RANGE": "Numeric value is outside the permitted range."
     },
     "doctorBookingSettings": {
       "title": "Override Doctor Booking Settings",
@@ -2589,7 +2604,7 @@
       "fields": {
         "bufferMinutes": "Slot buffer minutes",
         "minNoticeMinutes": "Minimum notice minutes",
-        "cancellationDeadlineMinutes": "Cancellation deadline minutes",
+        "cancellationDeadlineMinutes": "Cancellation deadline",
         "checkInEarlyMinutes": "Check-in early window",
         "noShowAfterMinutes": "No-show grace minutes",
         "overrideReason": "Admin override reason *"

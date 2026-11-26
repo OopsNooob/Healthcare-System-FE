@@ -224,10 +224,14 @@ export function DoctorBookingSettingsModal({
     label: string,
     rangeHint: string,
   ) => (
-    <div className="space-y-1.5">
-      <div className="flex items-center justify-between text-xs">
-        <label className="font-semibold text-slate-700 dark:text-slate-200">{label}</label>
-        <span className="text-slate-400 dark:text-slate-500">{rangeHint}</span>
+    <div className="flex h-full flex-col justify-between gap-1.5">
+      <div className="flex items-start justify-between gap-2 text-xs">
+        <label className="leading-snug font-semibold text-slate-700 dark:text-slate-200">
+          {label}
+        </label>
+        <span className="shrink-0 whitespace-nowrap tabular-nums text-slate-400 dark:text-slate-500">
+          {rangeHint}
+        </span>
       </div>
       <div className="relative">
         <input
@@ -247,7 +251,7 @@ export function DoctorBookingSettingsModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm animate-fade-in">
-      <div className="w-full max-w-xl rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-slate-800 dark:bg-slate-900">
+      <div className="w-full max-w-2xl rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-slate-800 dark:bg-slate-900">
         <div className="flex items-start justify-between gap-3 border-b border-slate-100 pb-4 dark:border-slate-800">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 dark:bg-indigo-950/60 dark:text-indigo-400">

@@ -1,8 +1,10 @@
+import { Platform } from 'react-native';
 import * as Crypto from 'expo-crypto';
 import * as SecureStore from 'expo-secure-store';
 
 const OAUTH_PKCE_STORAGE_KEY = 'hc_google_oauth_pkce_v1';
 const DEFAULT_TTL_MS = 5 * 60 * 1000;
+const EXCHANGE_RESULT_CACHE_TTL_MS = 60 * 1000;
 const BASE64URL_ALPHABET =
   'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
 
@@ -12,7 +14,16 @@ export interface PendingGoogleOAuthAttempt {
   expiresAt: number;
 }
 
+export class OAuthPendingAttemptMissingError extends Error {
+  constructor() {
+    super('OAUTH_ATTEMPT_MISSING');
+    this.name = 'OAuthPendingAttemptMissingError';
+  }
+}
+
 let inMemoryAttempt: PendingGoogleOAuthAttempt | null = null;
+const inFlightTicketExchanges = new Map<string, Promise<unknown>>();
+const completedTicketResults = new Map<string, { value: unknown; expiresAt: number }>();
 
 function encodeBytesBase64Url(bytes: Uint8Array): string {
   let out = '';
@@ -63,13 +74,16 @@ export async function createGoogleOAuthPkcePair(): Promise<{
 
 /**
  * Persists the active PKCE attempt ephemeral secret in SecureStore + memory so cold-start
- * deep-link callbacks (`healthcare://oauth/callback`) can still exchange the one-time ticket.
+ * deep-link callbacks (`healthcare://oauth/callback`) can exchange the one-time ticket.
  */
 export async function savePendingGoogleOAuthAttempt(
   attemptId: string,
   verifier: string,
   expiresInSeconds?: number,
 ): Promise<void> {
+  inFlightTicketExchanges.clear();
+  completedTicketResults.clear();
+
   const ttlMs =
     typeof expiresInSeconds === 'number' && expiresInSeconds > 0
       ? expiresInSeconds * 1000
@@ -81,21 +95,26 @@ export async function savePendingGoogleOAuthAttempt(
   };
   inMemoryAttempt = payload;
   try {
-    await SecureStore.setItemAsync(OAUTH_PKCE_STORAGE_KEY, JSON.stringify(payload), {
-      keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY,
-    });
+    const options =
+      Platform.OS === 'ios'
+        ? { keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY }
+        : undefined;
+    await SecureStore.setItemAsync(
+      OAUTH_PKCE_STORAGE_KEY,
+      JSON.stringify(payload),
+      options,
+    );
   } catch {
-    // Keep memory copy active even if keychain is temporarily unavailable on simulator
+    // Keep memory copy active even if keychain is temporarily unavailable
   }
 }
 
 /**
- * Atomically reads and clears the ephemeral PKCE verifier/attemptId pair.
- * Returns null if missing or expired.
+ * Reads the pending PKCE verifier/attemptId pair without destroying it prematurely.
+ * Clears and returns null only when expired or invalid.
  */
-export async function consumePendingGoogleOAuthAttempt(): Promise<PendingGoogleOAuthAttempt | null> {
+export async function peekPendingGoogleOAuthAttempt(): Promise<PendingGoogleOAuthAttempt | null> {
   let candidate = inMemoryAttempt;
-  inMemoryAttempt = null;
 
   if (!candidate) {
     try {
@@ -112,6 +131,7 @@ export async function consumePendingGoogleOAuthAttempt(): Promise<PendingGoogleO
             verifier: parsed.verifier,
             expiresAt: parsed.expiresAt,
           };
+          inMemoryAttempt = candidate;
         }
       }
     } catch {
@@ -119,13 +139,58 @@ export async function consumePendingGoogleOAuthAttempt(): Promise<PendingGoogleO
     }
   }
 
-  await clearPendingGoogleOAuthAttempt();
+  if (!candidate) {
+    return null;
+  }
 
-  if (!candidate || candidate.expiresAt <= Date.now()) {
+  if (candidate.expiresAt <= Date.now()) {
+    await clearPendingGoogleOAuthAttempt();
     return null;
   }
 
   return candidate;
+}
+
+/**
+ * Deduplicates ticket exchange at the module level so StrictMode double-effects,
+ * simultaneous deep-link listeners, or callback remounts share a single backend exchange
+ * and clear the ephemeral verifier strictly after settlement.
+ */
+export async function exchangeGoogleOAuthTicketOnce<T>(
+  ticket: string,
+  executor: (attempt: PendingGoogleOAuthAttempt) => Promise<T>,
+): Promise<T> {
+  const cached = completedTicketResults.get(ticket);
+  if (cached && cached.expiresAt > Date.now()) {
+    return cached.value as T;
+  }
+
+  const inFlight = inFlightTicketExchanges.get(ticket);
+  if (inFlight) {
+    return inFlight as Promise<T>;
+  }
+
+  const run = (async () => {
+    const attempt = await peekPendingGoogleOAuthAttempt();
+    if (!attempt) {
+      throw new OAuthPendingAttemptMissingError();
+    }
+
+    try {
+      const result = await executor(attempt);
+      completedTicketResults.set(ticket, {
+        value: result,
+        expiresAt: Date.now() + EXCHANGE_RESULT_CACHE_TTL_MS,
+      });
+      return result;
+    } finally {
+      inFlightTicketExchanges.delete(ticket);
+      await clearPendingGoogleOAuthAttempt();
+    }
+  })();
+
+  inFlightTicketExchanges.set(ticket, run);
+  return run;
 }
 
 export async function clearPendingGoogleOAuthAttempt(): Promise<void> {
@@ -149,4 +214,3 @@ export function resolveOriginFromApiBaseUrl(baseUrl: string): string {
   }
   return trimmed.replace(/\/api(?:\/v\d+)?$/i, '');
 }
-

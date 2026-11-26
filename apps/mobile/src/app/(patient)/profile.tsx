@@ -138,8 +138,9 @@ export default function PatientProfileScreen() {
       if (!silent) setLoading(true);
       setLoadError(null);
       try {
-        const [meRes, subsRes, usageRes, enrollListRes] = await Promise.allSettled([
+        const [meRes, authMeRes, subsRes, usageRes, enrollListRes] = await Promise.allSettled([
           mobileApi.usersGetMe(),
+          mobileApi.authGetProfile(),
           mobileApi.patientBillingReadSubscriptions({ query: { page: 1, limit: 10 } }),
           mobileApi.patientBillingReadUsage(),
           mobileApi.careEnrollmentList({
@@ -152,6 +153,10 @@ export default function PatientProfileScreen() {
         }
 
         const parsed = extractUserProfileData(meRes.value);
+        const authParsed =
+          authMeRes.status === 'fulfilled'
+            ? extractUserProfileData(authMeRes.value)
+            : null;
         const nextForm: ProfileFormState = {
           fullName: parsed.fullName,
           email: parsed.email,
@@ -163,9 +168,11 @@ export default function PatientProfileScreen() {
         setForm(nextForm);
         setSavedForm(nextForm);
         const resolvedVerified =
-          typeof parsed.emailVerified === 'boolean'
-            ? parsed.emailVerified
-            : authUser?.emailVerified;
+          typeof authParsed?.emailVerified === 'boolean'
+            ? authParsed.emailVerified
+            : typeof parsed.emailVerified === 'boolean'
+              ? parsed.emailVerified
+              : authUser?.emailVerified;
         setEmailVerified(resolvedVerified);
         setAvatarUrl(parsed.avatarUrl);
         setAvatarPublicId(parsed.avatarPublicId);

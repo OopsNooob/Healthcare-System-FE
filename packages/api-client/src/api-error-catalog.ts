@@ -628,6 +628,26 @@ export const API_ERROR_MESSAGES = {
     en: 'Submitted data is invalid. Please review and try again.',
     vi: 'Dữ liệu gửi lên không hợp lệ. Vui lòng kiểm tra lại.',
   },
+  VALIDATION_INVALID_PAGINATION: {
+    en: 'Invalid page or page-size query parameters.',
+    vi: 'Tham số phân trang (số trang hoặc số lượng mỗi trang) không hợp lệ.',
+  },
+  VALIDATION_FIELD_REQUIRED: {
+    en: 'One or more required fields are missing.',
+    vi: 'Vui lòng nhập đầy đủ các trường bắt buộc.',
+  },
+  VALIDATION_INVALID_EMAIL: {
+    en: 'Please provide a valid email address.',
+    vi: 'Địa chỉ email không đúng định dạng.',
+  },
+  VALIDATION_INVALID_LENGTH: {
+    en: 'Input length does not meet the required constraints.',
+    vi: 'Độ dài dữ liệu nhập vào không đúng giới hạn cho phép.',
+  },
+  VALIDATION_INVALID_RANGE: {
+    en: 'Numeric value is outside the permitted range.',
+    vi: 'Giá trị số nằm ngoài phạm vi cho phép.',
+  },
   FORBIDDEN: {
     en: 'You do not have permission to perform this action.',
     vi: 'Bạn không có quyền thực hiện thao tác này.',
@@ -1931,6 +1951,23 @@ const PATTERN_MESSAGE_RULES: ReadonlyArray<{
   { pattern: /^invalid file type/i, key: 'FILE_TYPE_UNSUPPORTED' },
   { pattern: /^cannot extract readable text from file/i, key: 'AI_DOC_TEXT_EMPTY' },
   { pattern: /too many requests/i, key: 'TOO_MANY_REQUESTS' },
+  {
+    pattern:
+      /(?:page|limit)\s+must\s+(?:not\s+be\s+less\s+than|not\s+be\s+greater\s+than|be\s+an\s+integer)/i,
+    key: 'VALIDATION_INVALID_PAGINATION',
+  },
+  { pattern: /must be an email/i, key: 'VALIDATION_INVALID_EMAIL' },
+  { pattern: /(?:should not be empty|must not be empty)/i, key: 'VALIDATION_FIELD_REQUIRED' },
+  {
+    pattern: /must be (?:longer|shorter) than or equal to/i,
+    key: 'VALIDATION_INVALID_LENGTH',
+  },
+  { pattern: /must not be (?:less|greater) than/i, key: 'VALIDATION_INVALID_RANGE' },
+  {
+    pattern:
+      /(?:must be (?:an? (?:integer|number|string|boolean|array|object|uuid|mongodb id|valid|iso 8601)|one of the following values)|should not exist)/i,
+    key: 'VALIDATION_ERROR',
+  },
 ];
 
 const HTTP_STATUS_MAP: Record<number, ApiErrorTranslationKey> = {

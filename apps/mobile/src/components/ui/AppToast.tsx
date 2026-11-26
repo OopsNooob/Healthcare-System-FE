@@ -199,7 +199,7 @@ export const AppModalToast: React.FC<{ visible?: boolean }> = ({ visible = true 
 
   if (!visible) return null;
 
-  const topOffset = Platform.OS === 'ios' ? Math.max(insets.top + 8, 16) : 16;
+  const topOffset = Math.max(insets.top + 8, 24);
   return <ModalToastRunner isDark={isDark} topOffset={topOffset} />;
 };
 

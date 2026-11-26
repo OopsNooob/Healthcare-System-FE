@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Text, TouchableOpacity, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { AlertCircle, CheckCircle2 } from 'lucide-react-native';
@@ -17,8 +17,9 @@ import { useThemeContext } from '@/context/ThemeContext';
 import { useSafeRouter as useRouter } from '@/utils/useSafeRouter';
 import { extractApiErrorMessage, translateApiErrorCode } from '@/utils/apiError';
 import {
+  OAuthPendingAttemptMissingError,
   clearPendingGoogleOAuthAttempt,
-  consumePendingGoogleOAuthAttempt,
+  exchangeGoogleOAuthTicketOnce,
 } from '@/utils/oauthPkce';
 import { Skeleton } from '@/components/ui/Skeleton';
 
@@ -27,7 +28,6 @@ export default function OAuthCallbackScreen() {
   const { isDark } = useThemeContext();
   const router = useRouter();
   const params = useLocalSearchParams<{ ticket?: string; error?: string }>();
-  const handledKeyRef = useRef<string | null>(null);
 
   const [status, setStatus] = useState<'exchanging' | 'success' | 'error'>('exchanging');
   const [errorText, setErrorText] = useState<string | null>(null);
@@ -36,12 +36,6 @@ export default function OAuthCallbackScreen() {
   const oauthError = typeof params.error === 'string' ? params.error.trim() : '';
 
   useEffect(() => {
-    const executionKey = oauthError ? `error:${oauthError}` : ticket ? `ticket:${ticket}` : 'missing';
-    if (handledKeyRef.current === executionKey) {
-      return;
-    }
-    handledKeyRef.current = executionKey;
-
     if (oauthError) {
       void clearPendingGoogleOAuthAttempt();
       setStatus('error');
@@ -59,10 +53,15 @@ export default function OAuthCallbackScreen() {
     }
 
     if (!ticket) {
-      void clearPendingGoogleOAuthAttempt();
-      setStatus('error');
-      setErrorText(t('mobile.oauth_missing_ticket'));
-      return;
+      setStatus('exchanging');
+      setErrorText(null);
+      const graceTimer = setTimeout(() => {
+        setStatus('error');
+        setErrorText(t('mobile.oauth_missing_ticket'));
+      }, 600);
+      return () => {
+        clearTimeout(graceTimer);
+      };
     }
 
     let cancelled = false;
@@ -72,20 +71,13 @@ export default function OAuthCallbackScreen() {
       setErrorText(null);
 
       try {
-        const pendingAttempt = await consumePendingGoogleOAuthAttempt();
-        if (cancelled) return;
-
-        if (!pendingAttempt) {
-          setStatus('error');
-          setErrorText(t('mobile.oauth_session_expired'));
-          return;
-        }
-
-        const res = await mobileApi.authExchangeGoogleOAuthTicket({
-          attemptId: pendingAttempt.attemptId,
-          ticket,
-          verifier: pendingAttempt.verifier,
-        });
+        const res = await exchangeGoogleOAuthTicketOnce(ticket, (pendingAttempt) =>
+          mobileApi.authExchangeGoogleOAuthTicket({
+            attemptId: pendingAttempt.attemptId,
+            ticket,
+            verifier: pendingAttempt.verifier,
+          }),
+        );
         if (cancelled) return;
 
         if (res.user.role === 'admin') {
@@ -120,8 +112,12 @@ export default function OAuthCallbackScreen() {
 
         router.replace(res.user.role === 'doctor' ? '/(doctor)' : '/(patient)');
       } catch (err) {
-        await clearPendingGoogleOAuthAttempt();
         if (cancelled) return;
+        if (err instanceof OAuthPendingAttemptMissingError) {
+          setStatus('error');
+          setErrorText(t('mobile.oauth_session_expired'));
+          return;
+        }
         const msg = extractApiErrorMessage(err, 'mobile.oauth_failed');
         setStatus('error');
         setErrorText(msg);

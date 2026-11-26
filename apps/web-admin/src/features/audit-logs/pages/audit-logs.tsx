@@ -171,14 +171,9 @@ export function AuditLogs() {
 
       setAlertEvents(mapped);
     } catch (err) {
-      const message =
-        err instanceof Error
-          ? err.message
-          : t(
-              "auditLogs.careAlert.loadError",
-              "Không thể tải lịch sử kiểm toán cho cảnh báo này.",
-            );
-      setAlertError(message);
+      setAlertError(
+        extractApiErrorMessage(err, "auditLogs.careAlert.loadError"),
+      );
       setAlertEvents([]);
     } finally {
       setIsAlertLoading(false);
@@ -301,20 +296,17 @@ export function AuditLogs() {
   const familyError = familyLinksQuery.isError
     ? extractApiErrorMessage(
         familyLinksQuery.error,
-        t("auditLogs.familyLinks.loadError"),
+        "auditLogs.familyLinks.loadError",
       )
     : null;
 
   const isFeedLoading = feedQuery.isLoading || feedQuery.isFetching;
-  const feedError =
-    feedQuery.error instanceof Error
-      ? feedQuery.error.message
-      : feedQuery.isError
-        ? t(
-            "auditLogs.operations.loadError",
-            "Không thể kết nối dữ liệu nhật ký hoạt động.",
-          )
-        : null;
+  const feedError = feedQuery.isError
+    ? extractApiErrorMessage(
+        feedQuery.error,
+        "auditLogs.operations.loadError",
+      )
+    : null;
 
   const filteredFeed = useMemo(() => {
     const query = feedSearch.trim().toLowerCase();
@@ -765,6 +757,7 @@ export function AuditLogs() {
                   <TableRow className="bg-slate-50/80 dark:bg-slate-800/60">
                     <TableHead>{t("auditLogs.familyLinks.columns.linkId")}</TableHead>
                     <TableHead>{t("auditLogs.familyLinks.columns.patientId")}</TableHead>
+                    <TableHead>{t("auditLogs.familyLinks.columns.companion")}</TableHead>
                     <TableHead>{t("auditLogs.familyLinks.columns.relationship")}</TableHead>
                     <TableHead>{t("auditLogs.familyLinks.columns.status")}</TableHead>
                     <TableHead>{t("auditLogs.familyLinks.columns.delivery")}</TableHead>
@@ -779,7 +772,7 @@ export function AuditLogs() {
                   {isFamilyLoading ? (
                     Array.from({ length: 6 }).map((_, idx) => (
                       <TableRow key={idx}>
-                        <TableCell colSpan={8}>
+                        <TableCell colSpan={9}>
                           <Skeleton className="h-8 w-full rounded-lg" />
                         </TableCell>
                       </TableRow>
@@ -787,7 +780,7 @@ export function AuditLogs() {
                   ) : familyLinks.length === 0 ? (
                     <TableRow>
                       <TableCell
-                        colSpan={8}
+                        colSpan={9}
                         className="py-10 text-center text-sm text-slate-500 dark:text-slate-400"
                       >
                         {t("auditLogs.familyLinks.empty")}
@@ -799,8 +792,44 @@ export function AuditLogs() {
                         <TableCell className="font-mono text-xs text-slate-600 dark:text-slate-300">
                           {link.id}
                         </TableCell>
-                        <TableCell className="font-mono text-xs text-slate-600 dark:text-slate-300">
-                          {link.patientId}
+                        <TableCell>
+                          {link.patient?.fullName ? (
+                            <div className="space-y-0.5">
+                              <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                                {link.patient.fullName}
+                              </div>
+                              {link.patient.email ? (
+                                <div className="text-xs text-slate-500 dark:text-slate-400">
+                                  {link.patient.email}
+                                </div>
+                              ) : null}
+                              <div className="font-mono text-[11px] text-slate-400 dark:text-slate-500">
+                                {link.patientId}
+                              </div>
+                            </div>
+                          ) : (
+                            <span className="font-mono text-xs text-slate-600 dark:text-slate-300">
+                              {link.patientId}
+                            </span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {link.companion?.fullName ? (
+                            <div className="space-y-0.5">
+                              <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                                {link.companion.fullName}
+                              </div>
+                              {link.companion.email ? (
+                                <div className="text-xs text-slate-500 dark:text-slate-400">
+                                  {link.companion.email}
+                                </div>
+                              ) : null}
+                            </div>
+                          ) : (
+                            <span className="text-xs italic text-slate-400 dark:text-slate-500">
+                              {t("auditLogs.familyLinks.pendingCompanion")}
+                            </span>
+                          )}
                         </TableCell>
                         <TableCell className="text-sm text-slate-700 dark:text-slate-200">
                           {link.relationship

@@ -29,6 +29,7 @@ import { tw, twInstance } from '@/tw';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { useThemeContext } from '@/context/ThemeContext';
 import { extractApiErrorMessage } from '@/utils/apiError';
+import { DEFAULT_METRIC_UNIT, formatHealthMetricUnit } from '@/utils/healthMetricUnit';
 import { useSafeRouter as useRouter } from '@/utils/useSafeRouter';
 
 interface MetricMeta {
@@ -38,17 +39,17 @@ interface MetricMeta {
 }
 
 const ALL_METRICS: MetricMeta[] = [
-  { type: 'blood_pressure', labelKey: 'mobile.metric_blood_pressure', unit: 'mmHg' },
-  { type: 'heart_rate', labelKey: 'mobile.metric_heart_rate', unit: 'bpm' },
-  { type: 'blood_glucose', labelKey: 'mobile.metric_blood_glucose', unit: 'mg/dL' },
-  { type: 'oxygen_saturation', labelKey: 'mobile.metric_oxygen_saturation', unit: '%' },
-  { type: 'body_temperature', labelKey: 'mobile.metric_body_temperature', unit: '°C' },
-  { type: 'respiratory_rate', labelKey: 'mobile.metric_respiratory_rate', unit: 'br/min' },
-  { type: 'bmi', labelKey: 'mobile.metric_bmi', unit: 'kg/m²' },
-  { type: 'weight', labelKey: 'mobile.metric_weight', unit: 'kg' },
-  { type: 'height', labelKey: 'mobile.metric_height', unit: 'cm' },
-  { type: 'water_intake', labelKey: 'mobile.metric_water_intake', unit: 'mL' },
-  { type: 'kcal_intake', labelKey: 'mobile.metric_kcal_intake', unit: 'kcal' },
+  { type: 'blood_pressure', labelKey: 'mobile.metric_blood_pressure', unit: DEFAULT_METRIC_UNIT.blood_pressure },
+  { type: 'heart_rate', labelKey: 'mobile.metric_heart_rate', unit: DEFAULT_METRIC_UNIT.heart_rate },
+  { type: 'blood_glucose', labelKey: 'mobile.metric_blood_glucose', unit: DEFAULT_METRIC_UNIT.blood_glucose },
+  { type: 'oxygen_saturation', labelKey: 'mobile.metric_oxygen_saturation', unit: DEFAULT_METRIC_UNIT.oxygen_saturation },
+  { type: 'body_temperature', labelKey: 'mobile.metric_body_temperature', unit: DEFAULT_METRIC_UNIT.body_temperature },
+  { type: 'respiratory_rate', labelKey: 'mobile.metric_respiratory_rate', unit: DEFAULT_METRIC_UNIT.respiratory_rate },
+  { type: 'bmi', labelKey: 'mobile.metric_bmi', unit: DEFAULT_METRIC_UNIT.bmi },
+  { type: 'weight', labelKey: 'mobile.metric_weight', unit: DEFAULT_METRIC_UNIT.weight },
+  { type: 'height', labelKey: 'mobile.metric_height', unit: DEFAULT_METRIC_UNIT.height },
+  { type: 'water_intake', labelKey: 'mobile.metric_water_intake', unit: DEFAULT_METRIC_UNIT.water_intake },
+  { type: 'kcal_intake', labelKey: 'mobile.metric_kcal_intake', unit: DEFAULT_METRIC_UNIT.kcal_intake },
 ];
 
 const PERIODS: FeTypes.FamilyHealthMetricPeriod[] = [
@@ -115,9 +116,45 @@ export default function FamilyMetricsScreen() {
     linkId?: string;
     relationship?: string;
     patientId?: string;
+    patientName?: string;
+    patientEmail?: string;
   }>();
   const linkId = typeof params.linkId === 'string' ? params.linkId.trim() : '';
   const dateLocale = t('mobile.date_locale', 'vi-VN');
+  const [resolvedPatientName, setResolvedPatientName] = useState<string>(() =>
+    typeof params.patientName === 'string' ? params.patientName.trim() : '',
+  );
+  const [resolvedPatientEmail, setResolvedPatientEmail] = useState<string>(() =>
+    typeof params.patientEmail === 'string' ? params.patientEmail.trim() : '',
+  );
+
+  useEffect(() => {
+    if (typeof params.patientName === 'string' && params.patientName.trim()) {
+      setResolvedPatientName(params.patientName.trim());
+    }
+    if (typeof params.patientEmail === 'string' && params.patientEmail.trim()) {
+      setResolvedPatientEmail(params.patientEmail.trim());
+    }
+  }, [params.patientName, params.patientEmail]);
+
+  useEffect(() => {
+    if (resolvedPatientName || !linkId) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await mobileApi.familyLinksGet({ params: { id: linkId } });
+        if (cancelled) return;
+        const cp = res?.data?.counterparty;
+        if (cp?.fullName) setResolvedPatientName(cp.fullName);
+        if (cp?.email) setResolvedPatientEmail(cp.email);
+      } catch {
+        // Non-blocking fallback when opened directly
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [linkId, resolvedPatientName]);
 
   const todayVn = useMemo(() => getTodayVietnamDateStr(), []);
 
@@ -330,6 +367,15 @@ export default function FamilyMetricsScreen() {
     () => ALL_METRICS.find((m) => m.type === selectedMetric) ?? ALL_METRICS[0],
     [selectedMetric],
   );
+  const activeDisplayUnit = useMemo(
+    () =>
+      formatHealthMetricUnit(
+        summary?.latest?.unit || trendItems[0]?.unit || activeMetricMeta.unit,
+        t,
+        selectedMetric,
+      ),
+    [activeMetricMeta.unit, selectedMetric, summary?.latest?.unit, t, trendItems],
+  );
 
   const permittedSet = useMemo(() => {
     if (!sharing) return null;
@@ -383,11 +429,16 @@ export default function FamilyMetricsScreen() {
           >
             <ArrowLeft color={twInstance.color('text-slate-700 dark:text-slate-200')} size={20} />
           </TouchableOpacity>
-          <View style={tw('flex-1')}>
-            <Text style={tw('text-lg font-bold text-slate-900 dark:text-white')}>
-              {t('mobile.family_metrics_title')}
+          <View style={tw('flex-1 min-w-0')}>
+            <Text numberOfLines={1} style={tw('text-lg font-bold text-slate-900 dark:text-white')}>
+              {resolvedPatientName || t('mobile.family_metrics_title')}
             </Text>
-            <Text style={tw('text-xs text-slate-500 dark:text-slate-400')}>
+            {resolvedPatientName && resolvedPatientEmail ? (
+              <Text numberOfLines={1} style={tw('text-xs text-slate-500 dark:text-slate-400')}>
+                {resolvedPatientEmail}
+              </Text>
+            ) : null}
+            <Text numberOfLines={1} style={tw('text-xs text-slate-500 dark:text-slate-400')}>
               {params.relationship
                 ? `${t(`mobile.rel_${params.relationship}`, params.relationship)} • `
                 : ''}
@@ -617,7 +668,7 @@ export default function FamilyMetricsScreen() {
                   <Text style={tw('text-xl font-black text-emerald-600 dark:text-emerald-400 mt-1')}>
                     {summary.latest ? formatMetricPointValue(summary.latest) : '—'}{' '}
                     <Text style={tw('text-xs font-semibold text-slate-400')}>
-                      {activeMetricMeta.unit}
+                      {activeDisplayUnit}
                     </Text>
                   </Text>
                 </View>
@@ -633,7 +684,7 @@ export default function FamilyMetricsScreen() {
                   <Text style={tw('text-xl font-black text-slate-900 dark:text-white mt-1')}>
                     {Math.round(summary.average * 10) / 10}{' '}
                     <Text style={tw('text-xs font-semibold text-slate-400')}>
-                      {activeMetricMeta.unit}
+                      {activeDisplayUnit}
                     </Text>
                   </Text>
                 </View>
@@ -724,7 +775,12 @@ export default function FamilyMetricsScreen() {
                     })}
                   </Text>
                   <Text style={tw('text-sm font-bold text-slate-900 dark:text-white')}>
-                    {formatMetricPointValue(pt)} {pt.unit || activeMetricMeta.unit}
+                    {formatMetricPointValue(pt)}{' '}
+                    {formatHealthMetricUnit(
+                      pt.unit || activeMetricMeta.unit,
+                      t,
+                      pt.metricType || selectedMetric,
+                    )}
                   </Text>
                 </View>
               ))}

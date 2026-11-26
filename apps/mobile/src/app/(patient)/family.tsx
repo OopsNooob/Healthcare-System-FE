@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
   Alert,
+  Image,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -104,6 +105,16 @@ function normalizeContactsResponse(
   return [];
 }
 
+function getInitials(name?: string): string {
+  const parts = (name ?? '')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  if (parts.length === 0) return '?';
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return `${parts[0][0] ?? ''}${parts[parts.length - 1][0] ?? ''}`.toUpperCase();
+}
+
 function getStatusBadgeClasses(status: FeTypes.FamilyLinkStatus): {
   container: string;
   text: string;
@@ -197,6 +208,7 @@ export default function FamilyCompanionScreen() {
     useState<FeTypes.FamilyHealthMetricSharingResponse['data']['sharing']>(null);
 
   const actionLockRef = useRef(false);
+  const loadSeqRef = useRef(0);
 
   const relationshipLabel = (rel?: string) => {
     if (!rel) return t('mobile.rel_caregiver');
@@ -205,6 +217,104 @@ export default function FamilyCompanionScreen() {
 
   const statusLabel = (status: FeTypes.FamilyLinkStatus) => {
     return t(`mobile.family_status_${status}`, status);
+  };
+
+  const resolveCounterpartyDisplay = (
+    link: FeTypes.FamilyLink,
+    tab: 'sent' | 'received',
+  ) => {
+    const fullName =
+      link.counterparty?.fullName?.trim() || sessionContactLabels[link.id] || '';
+    const isWaitingShareInvite =
+      !fullName &&
+      tab === 'sent' &&
+      link.status === 'pending' &&
+      link.invitationDelivery === 'shared_link';
+    return {
+      name:
+        fullName ||
+        (isWaitingShareInvite
+          ? t('mobile.family_waiting_companion')
+          : t('mobile.family_unknown_member')),
+      email: link.counterparty?.email?.trim() || undefined,
+      avatarUrl: link.counterparty?.avatarUrl?.trim() || undefined,
+      hasPerson: Boolean(fullName),
+    };
+  };
+
+  const renderParticipantAvatar = (
+    display: ReturnType<typeof resolveCounterpartyDisplay>,
+    sizeClass = 'w-11 h-11 rounded-2xl mr-3',
+  ) => {
+    if (display.avatarUrl) {
+      return (
+        <Image
+          source={{ uri: display.avatarUrl }}
+          style={tw(`${sizeClass} bg-slate-200 dark:bg-slate-800`)}
+        />
+      );
+    }
+    if (display.hasPerson) {
+      return (
+        <View
+          style={tw(
+            `${sizeClass} bg-emerald-100 dark:bg-emerald-950/60 items-center justify-center`,
+          )}
+        >
+          <Text style={tw('text-xs font-bold text-emerald-700 dark:text-emerald-300')}>
+            {getInitials(display.name)}
+          </Text>
+        </View>
+      );
+    }
+    return (
+      <View
+        style={tw(
+          `${sizeClass} bg-indigo-50 dark:bg-indigo-950/40 items-center justify-center`,
+        )}
+      >
+        <HeartHandshake color={isDark ? '#818cf8' : '#4f46e5'} size={20} />
+      </View>
+    );
+  };
+
+  const renderIdentityBanner = (
+    link: FeTypes.FamilyLink,
+    tab: 'sent' | 'received',
+    labelKey: string,
+  ) => {
+    const display = resolveCounterpartyDisplay(link, tab);
+    return (
+      <View
+        style={tw(
+          'flex-row items-center p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800',
+        )}
+      >
+        {renderParticipantAvatar(display, 'w-10 h-10 rounded-xl mr-3')}
+        <View style={tw('flex-1 min-w-0')}>
+          <Text style={tw('text-[11px] font-semibold uppercase text-slate-400 dark:text-slate-500')}>
+            {t(labelKey)}
+          </Text>
+          <Text
+            numberOfLines={1}
+            style={tw('text-sm font-bold text-slate-900 dark:text-white mt-0.5')}
+          >
+            {display.name}
+          </Text>
+          {display.email ? (
+            <Text
+              numberOfLines={1}
+              style={tw('text-xs text-slate-500 dark:text-slate-400')}
+            >
+              {display.email}
+            </Text>
+          ) : null}
+          <Text style={tw('text-[11px] font-medium text-indigo-600 dark:text-indigo-400 mt-0.5')}>
+            {relationshipLabel(link.relationship)}
+          </Text>
+        </View>
+      </View>
+    );
   };
 
   const formatDateTime = (iso?: string) => {
@@ -219,16 +329,20 @@ export default function FamilyCompanionScreen() {
   };
 
   const loadLinks = useCallback(
-    async (silent = false) => {
+    async (silent = false, directionOverride?: 'sent' | 'received') => {
+      const targetDirection = directionOverride ?? activeTab;
+      const reqId = ++loadSeqRef.current;
       if (!silent) setLoading(true);
       setLoadError(null);
       try {
         const res = await mobileApi.familyLinksList({
-          query: { direction: activeTab, page: 1, limit: 50 },
+          query: { direction: targetDirection, page: 1, limit: 50 },
         });
+        if (reqId !== loadSeqRef.current) return;
         setFeatureDisabled(false);
         setLinks(Array.isArray(res?.data?.items) ? res.data.items : []);
       } catch (err) {
+        if (reqId !== loadSeqRef.current) return;
         const resolved = resolveApiError(err);
         if (resolved?.key === 'FAMILY_COMPANION_DISABLED') {
           setFeatureDisabled(true);
@@ -238,8 +352,10 @@ export default function FamilyCompanionScreen() {
           setLoadError(extractApiErrorMessage(err, 'mobile.family_load_failed'));
         }
       } finally {
-        setLoading(false);
-        setRefreshing(false);
+        if (reqId === loadSeqRef.current) {
+          setLoading(false);
+          setRefreshing(false);
+        }
       }
     },
     [activeTab],
@@ -316,6 +432,7 @@ export default function FamilyCompanionScreen() {
           body,
         });
         const redeemedLink = res?.data;
+        const wasReceivedTab = activeTab === 'received';
         setRedeemModalVisible(false);
         setRedeemInput('');
         setActiveTab('received');
@@ -333,7 +450,9 @@ export default function FamilyCompanionScreen() {
               : ['missed_task_reminder', 'weekly_progress'],
           );
         }
-        await loadLinks(true);
+        if (wasReceivedTab) {
+          await loadLinks(true, 'received');
+        }
       } catch (err) {
         Toast.show({
           type: 'error',
@@ -345,7 +464,7 @@ export default function FamilyCompanionScreen() {
         setIsRedeeming(false);
       }
     },
-    [isRedeeming, loadLinks, redeemInput, t],
+    [activeTab, isRedeeming, loadLinks, redeemInput, t],
   );
 
   // Deep-link prefill & redeem trigger (`healthcare://family-links/redeem?token=...`)
@@ -396,6 +515,7 @@ export default function FamilyCompanionScreen() {
         }));
       }
 
+      const wasSentTab = activeTab === 'sent';
       setCreateModalVisible(false);
       setContactQuery('');
       setSelectedContact(null);
@@ -412,7 +532,9 @@ export default function FamilyCompanionScreen() {
         });
       }
 
-      await loadLinks(true);
+      if (wasSentTab) {
+        await loadLinks(true, 'sent');
+      }
     } catch (err) {
       Toast.show({
         type: 'error',
@@ -613,7 +735,11 @@ export default function FamilyCompanionScreen() {
         },
       });
       if (res?.data) {
-        setManageTarget(res.data);
+        const updatedLink = res.data;
+        setManageTarget((prev) => ({
+          ...updatedLink,
+          counterparty: updatedLink.counterparty ?? prev?.counterparty,
+        }));
       }
       Toast.show({
         type: 'success',
@@ -908,9 +1034,7 @@ export default function FamilyCompanionScreen() {
           displayedLinks.map((link) => {
             const badge = getStatusBadgeClasses(link.status);
             const isBusy = busyLinkId === link.id;
-            const label =
-              sessionContactLabels[link.id] ||
-              `${relationshipLabel(link.relationship)} • #${link.id.slice(-6)}`;
+            const display = resolveCounterpartyDisplay(link, activeTab);
 
             return (
               <View
@@ -920,22 +1044,27 @@ export default function FamilyCompanionScreen() {
                 )}
               >
                 <View style={tw('flex-row items-start justify-between gap-2')}>
-                  <View style={tw('flex-row items-center flex-1')}>
-                    <View
-                      style={tw(
-                        'w-11 h-11 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 items-center justify-center mr-3',
-                      )}
-                    >
-                      <HeartHandshake color={isDark ? '#818cf8' : '#4f46e5'} size={20} />
-                    </View>
-                    <View style={tw('flex-1')}>
+                  <View style={tw('flex-row items-center flex-1 min-w-0')}>
+                    {renderParticipantAvatar(display)}
+                    <View style={tw('flex-1 min-w-0')}>
                       <Text
                         numberOfLines={1}
                         style={tw('text-sm font-bold text-slate-900 dark:text-white')}
                       >
-                        {label}
+                        {display.name}
                       </Text>
-                      <Text style={tw('text-xs text-slate-500 dark:text-slate-400 mt-0.5')}>
+                      {display.email ? (
+                        <Text
+                          numberOfLines={1}
+                          style={tw('text-xs text-slate-500 dark:text-slate-400 mt-0.5')}
+                        >
+                          {display.email}
+                        </Text>
+                      ) : null}
+                      <Text
+                        numberOfLines={1}
+                        style={tw('text-[11px] font-medium text-indigo-600 dark:text-indigo-400 mt-0.5')}
+                      >
                         {relationshipLabel(link.relationship)} •{' '}
                         {link.invitationDelivery === 'shared_link'
                           ? t('mobile.family_delivery_shared_link')
@@ -943,7 +1072,7 @@ export default function FamilyCompanionScreen() {
                       </Text>
                     </View>
                   </View>
-                  <View style={tw(`px-2.5 py-1 rounded-full ${badge.container}`)}>
+                  <View style={tw(`shrink-0 px-2.5 py-1 rounded-full ${badge.container}`)}>
                     <Text style={tw(`text-[11px] font-bold ${badge.text}`)}>
                       {statusLabel(link.status)}
                     </Text>
@@ -1068,6 +1197,8 @@ export default function FamilyCompanionScreen() {
                               linkId: link.id,
                               relationship: link.relationship ?? '',
                               patientId: link.patientId,
+                              patientName: link.counterparty?.fullName ?? '',
+                              patientEmail: link.counterparty?.email ?? '',
                             },
                           })
                         }
@@ -1306,8 +1437,8 @@ export default function FamilyCompanionScreen() {
                 )}
               </TouchableOpacity>
             </ScrollView>
-            <AppModalToast visible={createModalVisible} />
           </View>
+          <AppModalToast visible={createModalVisible} />
         </KeyboardAvoidingView>
       </Modal>
 
@@ -1376,6 +1507,7 @@ export default function FamilyCompanionScreen() {
               </>
             ) : null}
           </View>
+          <AppModalToast visible={Boolean(artifactsModalData)} />
         </View>
       </Modal>
 
@@ -1438,8 +1570,8 @@ export default function FamilyCompanionScreen() {
                 </Text>
               )}
             </TouchableOpacity>
-            <AppModalToast visible={redeemModalVisible} />
           </View>
+          <AppModalToast visible={redeemModalVisible} />
         </KeyboardAvoidingView>
       </Modal>
 
@@ -1471,6 +1603,10 @@ export default function FamilyCompanionScreen() {
                 <X color={twInstance.color('text-slate-600 dark:text-slate-300')} size={18} />
               </TouchableOpacity>
             </View>
+
+            {acceptTarget
+              ? renderIdentityBanner(acceptTarget, 'received', 'mobile.family_invited_by_label')
+              : null}
 
             <View style={tw('gap-2.5')}>
               {(['missed_task_reminder', 'weekly_progress'] as const).map((perm) => (
@@ -1536,8 +1672,8 @@ export default function FamilyCompanionScreen() {
                 </Text>
               )}
             </TouchableOpacity>
-            <AppModalToast visible={Boolean(acceptTarget)} />
           </View>
+          <AppModalToast visible={Boolean(acceptTarget)} />
         </View>
       </Modal>
 
@@ -1572,6 +1708,8 @@ export default function FamilyCompanionScreen() {
 
             {manageTarget ? (
               <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={tw('gap-4 pb-4')}>
+                {renderIdentityBanner(manageTarget, 'sent', 'mobile.family_connected_with_label')}
+
                 {/* Reminder Permissions */}
                 <View style={tw('gap-2.5')}>
                   <Text style={tw('text-xs font-bold uppercase text-slate-400')}>
@@ -1805,8 +1943,8 @@ export default function FamilyCompanionScreen() {
                 </View>
               </ScrollView>
             ) : null}
-            <AppModalToast visible={Boolean(manageTarget)} />
           </View>
+          <AppModalToast visible={Boolean(manageTarget)} />
         </View>
       </Modal>
     </SafeAreaView>

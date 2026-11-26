@@ -7,6 +7,7 @@ import { tw, twInstance } from '@/tw';
 import { useThemeContext } from '@/context/ThemeContext';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { extractApiErrorMessage } from '@/utils/apiError';
+import { formatHealthMetricUnit } from '@/utils/healthMetricUnit';
 
 interface HealthChartModalProps {
   visible: boolean;
@@ -131,7 +132,11 @@ export const HealthChartModal: React.FC<HealthChartModalProps> = ({
           setPeakLabel('—');
         }
       } else {
-        const unit = metricType === 'blood_glucose' ? 'mg/dL' : 'bpm';
+        const unit = formatHealthMetricUnit(
+          metricType === 'blood_glucose' ? 'mg/dL' : 'bpm',
+          t,
+          metricType,
+        );
         const computedAvg =
           mapped.length > 0
             ? mapped.reduce((acc, p) => acc + p.primary, 0) / mapped.length

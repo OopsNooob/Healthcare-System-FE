@@ -303,6 +303,14 @@
         "label": "Trạng thái trực tuyến",
         "offline": "Ngoại tuyến",
         "online": "Trực tuyến"
+      },
+      "errors": {
+        "loadDetailsFailed": "Không thể tải thông tin chi tiết người dùng.",
+        "deactivateFailed": "Không thể vô hiệu hoá tài khoản người dùng.",
+        "deleteAdminFailed": "Không thể xoá tài khoản quản trị viên.",
+        "emptyRequiredFields": "Vui lòng điền đầy đủ thông tin bắt buộc.",
+        "banFailed": "Không thể khoá tài khoản người dùng.",
+        "unbanFailed": "Không thể mở khoá tài khoản người dùng."
       }
     },
     "medicalFacilities": {
@@ -2177,9 +2185,11 @@
         "loadError": "Không thể tải danh sách kiểm toán liên kết gia đình.",
         "empty": "Không có bản ghi liên kết gia đình nào phù hợp bộ lọc.",
         "paginationSummary": "Trang {{page}} / {{totalPages}} ({{total}} liên kết)",
+        "pendingCompanion": "Chưa có người nhận",
         "columns": {
           "linkId": "Mã liên kết",
           "patientId": "Bệnh nhân chủ quản",
+          "companion": "Người đồng hành",
           "relationship": "Mối quan hệ",
           "status": "Trạng thái",
           "delivery": "Kênh mời",
@@ -2578,18 +2588,23 @@
       "INVALID_SHARED_METRIC_VALUE": "Dữ liệu chỉ số sức khoẻ được chia sẻ không hợp lệ.",
       "INVALID_SHARED_METRIC_LIMIT": "Số lượng bản ghi mỗi trang vượt quá giới hạn cho phép.",
       "INVALID_SHARED_METRIC_CURSOR": "Con trỏ phân trang dữ liệu không hợp lệ. Vui lòng tải lại từ đầu.",
-      "INVALID_SHARED_METRIC_DATE_RANGE": "Khoảng thời gian tra cứu chỉ số sức khoẻ không hợp lệ."
+      "INVALID_SHARED_METRIC_DATE_RANGE": "Khoảng thời gian tra cứu chỉ số sức khoẻ không hợp lệ.",
+      "VALIDATION_INVALID_PAGINATION": "Tham số phân trang (số trang hoặc số lượng mỗi trang) không hợp lệ.",
+      "VALIDATION_FIELD_REQUIRED": "Vui lòng nhập đầy đủ các trường bắt buộc.",
+      "VALIDATION_INVALID_EMAIL": "Địa chỉ email không đúng định dạng.",
+      "VALIDATION_INVALID_LENGTH": "Độ dài dữ liệu nhập vào không đúng giới hạn cho phép.",
+      "VALIDATION_INVALID_RANGE": "Giá trị số nằm ngoài phạm vi cho phép."
     },
     "doctorBookingSettings": {
       "title": "Ghi đè quy tắc đặt lịch bác sĩ",
       "minutesUnit": "phút",
       "bookingPolicyLabel": "Chính sách nhận lịch",
-      "policyInstant": "Xác nhận tự động (Instant)",
+      "policyInstant": "Xác nhận tự động",
       "unconfiguredNotice": "Bác sĩ chưa thiết lập quy tắc đặt lịch. Bạn có thể cấu hình và ghi đè giá trị mặc định ngay bên dưới.",
       "fields": {
         "bufferMinutes": "Khoảng đệm giữa các ca",
         "minNoticeMinutes": "Thời gian báo trước tối thiểu",
-        "cancellationDeadlineMinutes": "Hạn chót huỷ / đổi lịch trước giờ khám",
+        "cancellationDeadlineMinutes": "Hạn chót huỷ / đổi lịch",
         "checkInEarlyMinutes": "Mở phòng chờ trước giờ hẹn",
         "noShowAfterMinutes": "Đánh dấu vắng mặt sau",
         "overrideReason": "Lý do ghi đè của quản trị viên *"

@@ -147,18 +147,21 @@ function RootNavigator() {
 
     if (isOAuthCallback) {
       handledDeepLinkRef.current = incomingUrl;
-      if (pathname !== '/oauth-callback' && pathname !== '/oauth/callback') {
-        const ticket = typeof parsed.queryParams?.ticket === 'string' ? parsed.queryParams.ticket.trim() : '';
-        const error = typeof parsed.queryParams?.error === 'string' ? parsed.queryParams.error.trim() : '';
-        router.replace({
-          pathname: '/(auth)/oauth-callback',
-          params: {
-            ...(ticket ? { ticket } : {}),
-            ...(error ? { error } : {}),
-          },
-        });
-      }
-      return;
+      const ticket = typeof parsed.queryParams?.ticket === 'string' ? parsed.queryParams.ticket.trim() : '';
+      const error = typeof parsed.queryParams?.error === 'string' ? parsed.queryParams.error.trim() : '';
+      const navTimer = setTimeout(() => {
+        const current = (pathnameRef.current || '').replace(/\/+$/, '');
+        if (current !== '/oauth-callback' && current !== '/oauth/callback') {
+          router.replace({
+            pathname: '/(auth)/oauth-callback',
+            params: {
+              ...(ticket ? { ticket } : {}),
+              ...(error ? { error } : {}),
+            },
+          });
+        }
+      }, 120);
+      return () => clearTimeout(navTimer);
     }
 
     const isFamilyRedeem =
