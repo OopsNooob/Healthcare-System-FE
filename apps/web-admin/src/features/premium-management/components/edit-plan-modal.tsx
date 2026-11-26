@@ -41,6 +41,9 @@ export function EditPlanModal({
   const [careProgramLimit, setCareProgramLimit] = useState(
     String(initialPlan?.activeCareProgramLimit ?? 5)
   );
+  const [familyLinkLimit, setFamilyLinkLimit] = useState(
+    String(initialPlan?.familyLinkLimit ?? 1)
+  );
   const initialFeatures = Array.isArray(initialPlan?.benefits?.highlights)
     ? (initialPlan?.benefits?.highlights as unknown[]).map((f) => String(f))
     : [];
@@ -80,12 +83,32 @@ export function EditPlanModal({
       return;
     }
 
+    const parsedFamilyLimit = Number(familyLinkLimit);
+    if (
+      familyLinkLimit.trim() === "" ||
+      !Number.isInteger(parsedFamilyLimit) ||
+      parsedFamilyLimit < 0 ||
+      parsedFamilyLimit > 10
+    ) {
+      showToast.warning(
+        t(
+          "premiumManagement.toasts.invalidFamilyLimit",
+          "Linked family members limit must be an integer between 0 and 10."
+        )
+      );
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const highlights = featuresText
         .split("\n")
         .map((s) => s.trim())
         .filter(Boolean);
+      const parsedRefundDays = parseInt(refundWindowDays, 10);
+      const eligibleWithinDays = Number.isFinite(parsedRefundDays)
+        ? Math.max(0, parsedRefundDays)
+        : 7;
 
       await onSave({
         code: normalizedCode,
@@ -99,9 +122,11 @@ export function EditPlanModal({
         aiQuotaPeriod,
         consultationLimitPerCycle: Math.max(0, parseInt(consultationLimit, 10) || 0),
         activeCareProgramLimit: Math.max(0, Math.min(100, parseInt(careProgramLimit, 10) || 0)),
-        benefits: { highlights },
+        familyLinkLimit: parsedFamilyLimit,
+        benefits: { ...(initialPlan?.benefits ?? {}), highlights },
         refundPolicy: {
-          eligibleWithinDays: Math.max(0, parseInt(refundWindowDays, 10) || 7),
+          ...(initialPlan?.refundPolicy ?? {}),
+          eligibleWithinDays,
         },
       });
     } finally {
@@ -111,7 +136,7 @@ export function EditPlanModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm animate-fade-in">
-      <div className="w-full max-w-xl rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-2xl overflow-y-auto max-h-[90vh]">
+      <div className="w-full max-w-2xl rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-2xl overflow-y-auto max-h-[90vh]">
         <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800">
           <div>
             <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
@@ -139,8 +164,8 @@ export function EditPlanModal({
 
         <div className="space-y-4 py-4 text-sm">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+            <div className="flex h-full flex-col justify-between gap-1.5">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 leading-snug">
                 {t("premiumManagement.catalog.code", "Code")} *
               </label>
               <input
@@ -151,8 +176,8 @@ export function EditPlanModal({
                 className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3.5 py-2 text-slate-900 dark:text-slate-100 font-mono uppercase outline-none focus:border-brand"
               />
             </div>
-            <div className="md:col-span-2">
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+            <div className="flex h-full flex-col justify-between gap-1.5 md:col-span-2">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 leading-snug">
                 {t("premiumManagement.editPlanModal.planName", "Plan Name")} *
               </label>
               <input
@@ -164,9 +189,9 @@ export function EditPlanModal({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="flex h-full flex-col justify-between gap-1.5">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 leading-snug">
                 {t("premiumManagement.editPlanModal.price", "Price (VND)")} *
               </label>
               <input
@@ -177,8 +202,8 @@ export function EditPlanModal({
                 className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3.5 py-2 text-slate-900 dark:text-slate-100 outline-none focus:border-brand"
               />
             </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+            <div className="flex h-full flex-col justify-between gap-1.5">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 leading-snug">
                 {t("premiumManagement.editPlanModal.durationDays", "Duration (days)")} *
               </label>
               <input
@@ -190,8 +215,8 @@ export function EditPlanModal({
                 className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3.5 py-2 text-slate-900 dark:text-slate-100 outline-none focus:border-brand"
               />
             </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+            <div className="flex h-full flex-col justify-between gap-1.5">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 leading-snug">
                 {t("premiumManagement.editPlanModal.quotaPeriod", "AI Quota Period")}
               </label>
               <select
@@ -211,9 +236,9 @@ export function EditPlanModal({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+            <div className="flex h-full flex-col justify-between gap-1.5">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 leading-snug">
                 {t("premiumManagement.editPlanModal.aiRequests", "AI Requests")}
               </label>
               <input
@@ -221,11 +246,11 @@ export function EditPlanModal({
                 min={0}
                 value={aiRequestLimit}
                 onChange={(e) => setAiRequestLimit(e.target.value)}
-                className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3 py-1.5 text-xs text-slate-900 dark:text-slate-100 outline-none focus:border-brand"
+                className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3 py-2 text-xs text-slate-900 dark:text-slate-100 outline-none focus:border-brand"
               />
             </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+            <div className="flex h-full flex-col justify-between gap-1.5">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 leading-snug">
                 {t("premiumManagement.editPlanModal.aiTokenLimit", "AI Token Quota")}
               </label>
               <input
@@ -233,11 +258,11 @@ export function EditPlanModal({
                 min={0}
                 value={aiTokenLimit}
                 onChange={(e) => setAiTokenLimit(e.target.value)}
-                className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3 py-1.5 text-xs text-slate-900 dark:text-slate-100 outline-none focus:border-brand"
+                className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3 py-2 text-xs text-slate-900 dark:text-slate-100 outline-none focus:border-brand"
               />
             </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+            <div className="flex h-full flex-col justify-between gap-1.5">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 leading-snug">
                 {t("premiumManagement.editPlanModal.consultsLimit", "Consults Quota")}
               </label>
               <input
@@ -245,38 +270,47 @@ export function EditPlanModal({
                 min={0}
                 value={consultationLimit}
                 onChange={(e) => setConsultationLimit(e.target.value)}
-                className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3 py-1.5 text-xs text-slate-900 dark:text-slate-100 outline-none focus:border-brand"
+                className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3 py-2 text-xs text-slate-900 dark:text-slate-100 outline-none focus:border-brand"
               />
             </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                {t("premiumManagement.catalog.carePrograms", "Care Programs")}
-              </label>
+            <div className="flex h-full flex-col justify-between gap-1.5">
+              <div className="flex items-start justify-between gap-2 text-xs">
+                <label className="font-semibold text-slate-700 dark:text-slate-300 leading-snug">
+                  {t("premiumManagement.catalog.carePrograms", "Care Programs")}
+                </label>
+                <span className="shrink-0 whitespace-nowrap tabular-nums text-slate-400 dark:text-slate-500">
+                  0–100
+                </span>
+              </div>
               <input
                 type="number"
                 min={0}
                 max={100}
                 value={careProgramLimit}
                 onChange={(e) => setCareProgramLimit(e.target.value)}
-                className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3 py-1.5 text-xs text-slate-900 dark:text-slate-100 outline-none focus:border-brand"
+                className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3 py-2 text-xs text-slate-900 dark:text-slate-100 outline-none focus:border-brand"
               />
             </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="md:col-span-2">
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                {t("premiumManagement.editPlanModal.description", "Description")}
-              </label>
+            <div className="flex h-full flex-col justify-between gap-1.5">
+              <div className="flex items-start justify-between gap-2 text-xs">
+                <label className="font-semibold text-slate-700 dark:text-slate-300 leading-snug">
+                  {t("premiumManagement.editPlanModal.familyLimit", "Linked Family Members")}
+                </label>
+                <span className="shrink-0 whitespace-nowrap tabular-nums text-slate-400 dark:text-slate-500">
+                  0–10
+                </span>
+              </div>
               <input
-                type="text"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3 py-1.5 text-xs text-slate-900 dark:text-slate-100 outline-none focus:border-brand"
+                type="number"
+                min={0}
+                max={10}
+                value={familyLinkLimit}
+                onChange={(e) => setFamilyLinkLimit(e.target.value)}
+                className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3 py-2 text-xs text-slate-900 dark:text-slate-100 outline-none focus:border-brand"
               />
             </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+            <div className="flex h-full flex-col justify-between gap-1.5">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 leading-snug">
                 {t("premiumManagement.editPlanModal.refundDays", "Refund Window (days)")}
               </label>
               <input
@@ -284,9 +318,21 @@ export function EditPlanModal({
                 min={0}
                 value={refundWindowDays}
                 onChange={(e) => setRefundWindowDays(e.target.value)}
-                className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3 py-1.5 text-xs text-slate-900 dark:text-slate-100 outline-none focus:border-brand"
+                className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3 py-2 text-xs text-slate-900 dark:text-slate-100 outline-none focus:border-brand"
               />
             </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 leading-snug">
+              {t("premiumManagement.editPlanModal.description", "Description")}
+            </label>
+            <input
+              type="text"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3.5 py-2 text-xs text-slate-900 dark:text-slate-100 outline-none focus:border-brand"
+            />
           </div>
 
           <div>

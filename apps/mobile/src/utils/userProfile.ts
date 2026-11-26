@@ -14,6 +14,7 @@ export type NormalizedGender = 'male' | 'female' | 'other' | '';
 export interface NormalizedUserProfile {
   id: string;
   email: string;
+  emailVerified?: boolean;
   fullName: string;
   phoneNumber: string;
   gender: NormalizedGender;
@@ -59,9 +60,18 @@ export function extractUserProfileData(raw: unknown): NormalizedUserProfile {
         : '';
   const doc = (data.doctorProfile ?? null) as Record<string, unknown> | null;
 
+  const rawEmailVerified = data.emailVerified ?? data.email_verified;
+  const resolvedEmailVerified =
+    typeof rawEmailVerified === 'boolean'
+      ? rawEmailVerified
+      : 'emailVerifiedAt' in data || 'email_verified_at' in data
+        ? Boolean(data.emailVerifiedAt ?? data.email_verified_at)
+        : undefined;
+
   return {
     id: String(data._id ?? data.id ?? ''),
     email: String(data.email ?? ''),
+    emailVerified: resolvedEmailVerified,
     fullName: String(data.fullName ?? data.full_name ?? ''),
     phoneNumber: String(data.phoneNumber ?? data.phone_number ?? ''),
     gender: normalizeGenderValue(typeof data.gender === 'string' ? data.gender : ''),

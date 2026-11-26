@@ -29,6 +29,7 @@ import {
   extractUserProfileData,
   formatAddressSummary,
 } from '@/utils/userProfile';
+import { formatHealthMetricUnit } from '@/utils/healthMetricUnit';
 
 export interface PatientProfileModalTarget {
   id?: string | number;
@@ -65,11 +66,6 @@ const METRIC_LABEL_KEYS: Record<string, { key: string; fallback: string }> = {
   calories: { key: 'mobile.calories', fallback: 'Calories' },
 };
 
-const UNIT_LABEL_KEYS: Record<string, string> = {
-  'breaths/min': 'mobile.unit_breaths_per_min',
-  times: 'mobile.unit_times',
-};
-
 function getMetricLabel(metricType: unknown, t: TranslateFn): string {
   const raw = String(metricType ?? '').trim().toLowerCase();
   const mapped = METRIC_LABEL_KEYS[raw];
@@ -101,15 +97,9 @@ function getBaselineFieldLabel(fieldKey: string, t: TranslateFn): string {
   }
 }
 
-function formatMetricUnit(unit: unknown, t: TranslateFn): string {
-  const raw = String(unit ?? '').trim();
-  if (!raw) return '';
-  const key = UNIT_LABEL_KEYS[raw.toLowerCase()];
-  return key ? t(key, raw) : raw;
-}
-
 function formatMetricSummary(item: Record<string, unknown>, t: TranslateFn): string {
-  const unit = formatMetricUnit(item.unit, t);
+  const metricType = typeof item.metricType === 'string' ? item.metricType : undefined;
+  const unit = formatHealthMetricUnit(item.unit, t, metricType);
   const values = (item.values ?? {}) as Record<string, unknown>;
   if (values.systolic !== undefined && values.diastolic !== undefined) {
     return `${String(values.systolic)}/${String(values.diastolic)} ${unit}`.trim();

@@ -202,19 +202,63 @@ export interface AuthLoginResponse {
   user: {
     id: string;
     email: undefined | string;
+    emailVerified?: boolean;
     fullName: string;
     role: "patient" | "doctor" | "admin";
     avatarUrl?: string;
   };
 }
 
-/** POST /api/v1/auth/oauth/google/exchange — input. */
-export interface AuthExchangeGoogleOAuthTicketRequest {
-  ticket: string;
+/** POST /api/v1/auth/oauth/google/mobile/attempt — input. */
+export interface BeginGoogleMobileOAuthRequest {
+  challenge: string;
 }
 
+/** POST /api/v1/auth/oauth/google/mobile/attempt — response. */
+export interface BeginGoogleMobileOAuthResponse {
+  attemptId: string;
+  authorizationPath: string;
+  expiresInSeconds: number;
+}
+
+/** POST /api/v1/auth/oauth/google/exchange — input. */
+export interface ExchangeGoogleMobileOAuthRequest {
+  attemptId: string;
+  ticket: string;
+  verifier: string;
+}
+
+export type AuthExchangeGoogleOAuthTicketRequest = ExchangeGoogleMobileOAuthRequest;
+
+export interface AuthSessionUser {
+  id: string;
+  email?: string;
+  emailVerified: boolean;
+  fullName: string;
+  role: 'patient' | 'doctor' | 'admin';
+  avatarUrl?: string;
+}
+
+export type GoogleOAuthSessionUser = AuthSessionUser;
+
+export type GoogleOAuthSafeErrorCode =
+  | 'AUTH_GOOGLE_LOCAL_ACCOUNT_EXISTS'
+  | 'AUTH_GOOGLE_IDENTITY_EXISTS'
+  | 'AUTH_GOOGLE_ACCOUNT_CONFLICT'
+  | 'GOOGLE_OAUTH_INVALID_CHALLENGE'
+  | 'GOOGLE_OAUTH_UNAVAILABLE'
+  | 'GOOGLE_OAUTH_HANDOFF_INVALID';
+
+export interface AuthSessionResponse {
+  accessToken: string;
+  refreshToken: string;
+  user: AuthSessionUser;
+}
+
+export type GoogleOAuthSessionResponse = AuthSessionResponse;
+
 /** POST /api/v1/auth/oauth/google/exchange — response. */
-export type AuthExchangeGoogleOAuthTicketResponse = AuthLoginResponse;
+export type AuthExchangeGoogleOAuthTicketResponse = GoogleOAuthSessionResponse;
 
 /** POST /api/v1/auth/refresh — input (Phase A: signed refresh token only, never userId). */
 export interface AuthRefreshRequest {
@@ -287,6 +331,8 @@ export interface AuthGetProfileRequest {
 export interface AuthGetProfileResponse {
   fullName: string;
   email?: string;
+  emailVerified?: boolean;
+  emailVerifiedAt?: string | null;
   passwordHash?: string;
   gender: string;
   dateOfBirth: string;
@@ -611,6 +657,8 @@ export interface UsersGetMeRequest {
 export interface UsersGetMeResponse {
   fullName: string;
   email?: string;
+  emailVerified?: boolean;
+  emailVerifiedAt?: string | null;
   passwordHash?: string;
   gender: string;
   dateOfBirth: string;
@@ -2690,7 +2738,22 @@ export type PlansListResponse = Array<{ code: string; version: number; name: str
 
 /** POST /api/v1/billing/plans/drafts — input (Params/Query/Headers/Body theo tên field). */
 export interface PlansCreateRequest {
-  
+  body: {
+    code: string;
+    name: string;
+    description?: string;
+    price: number;
+    currency?: string;
+    durationDays: number;
+    aiRequestLimit: number;
+    aiTokenLimit: number;
+    aiQuotaPeriod: "day" | "subscription_cycle";
+    consultationLimitPerCycle: number;
+    activeCareProgramLimit: number;
+    familyLinkLimit: number;
+    benefits: Record<string, unknown>;
+    refundPolicy: Record<string, unknown>;
+  };
 }
 
 /** POST /api/v1/billing/plans/drafts — response thành công theo return type thực tế. */
@@ -2707,6 +2770,7 @@ export interface PlansCreateResponse {
   aiQuotaPeriod: "day" | "subscription_cycle";
   consultationLimitPerCycle: number;
   activeCareProgramLimit: number;
+  familyLinkLimit: number;
   benefits: Record<string, unknown>;
   refundPolicy: Record<string, unknown>;
   status: "draft" | "published" | "retired";
@@ -2978,6 +3042,7 @@ export interface PatientBillingReadListPlansResponse {
   aiQuotaPeriod: unknown;
   consultationLimitPerCycle: number;
   activeCareProgramLimit: number;
+  familyLinkLimit: number;
   };
   benefits: Record<string, unknown>;
   available: boolean;
@@ -3012,6 +3077,7 @@ export interface PatientBillingReadGetPlanResponse {
   aiQuotaPeriod: unknown;
   consultationLimitPerCycle: number;
   activeCareProgramLimit: number;
+  familyLinkLimit: number;
   };
   benefits: Record<string, unknown>;
   available: boolean;
@@ -3058,6 +3124,7 @@ export interface PatientBillingReadSubscriptionsResponse {
   aiQuotaPeriod: "day" | "subscription_cycle";
   consultationLimitPerCycle: number;
   activeCareProgramLimit: number;
+  familyLinkLimit: number;
   benefits: Record<string, unknown>;
   };
   startedAt: string;
@@ -3090,6 +3157,7 @@ export interface PatientBillingReadSubscriptionsResponse {
   aiQuotaPeriod: "day" | "subscription_cycle";
   consultationLimitPerCycle: number;
   activeCareProgramLimit: number;
+  familyLinkLimit: number;
   benefits: Record<string, unknown>;
   };
   startedAt: string;
@@ -6182,4 +6250,414 @@ export interface BookingSettingsSnapshot {
 export interface PromoteKnowledgeCandidateResponse {
   candidate: KnowledgeCandidate;
   document: KnowledgeDocument;
+}
+
+// ============================================================================
+// E1 — DOCTOR BOOKING SETTINGS
+// ============================================================================
+
+/** Canonical configuration applied to newly scheduled bookings after save. */
+export interface DoctorBookingSettings {
+  bookingPolicy: 'instant';
+  bufferMinutes: number;
+  minNoticeMinutes: number;
+  cancellationDeadlineMinutes: number;
+  checkInEarlyMinutes: number;
+  noShowAfterMinutes: number;
+  effectiveFrom: Da2IsoDateTime;
+  updatedAt: Da2IsoDateTime;
+  updatedBy?: string;
+}
+
+export type UpdateDoctorBookingSettingsRequest = Pick<
+  DoctorBookingSettings,
+  | 'bookingPolicy'
+  | 'bufferMinutes'
+  | 'minNoticeMinutes'
+  | 'cancellationDeadlineMinutes'
+  | 'checkInEarlyMinutes'
+  | 'noShowAfterMinutes'
+>;
+
+export interface OverrideDoctorBookingSettingsRequest
+  extends UpdateDoctorBookingSettingsRequest {
+  overrideReason: string;
+}
+
+export interface DoctorBookingSettingsGetForAdminRequest {
+  params: { doctorId: string };
+}
+
+export interface DoctorBookingSettingsOverrideRequest {
+  params: { doctorId: string };
+  body: OverrideDoctorBookingSettingsRequest;
+}
+
+export interface DoctorBookingSettingsResponse {
+  statusCode: number;
+  data: DoctorBookingSettings;
+}
+
+// ============================================================================
+// E2 — FAMILY COMPANION & HEALTH METRIC SHARING
+// ============================================================================
+
+export type FamilyLinkStatus =
+  | 'pending'
+  | 'active'
+  | 'paused'
+  | 'revoked'
+  | 'declined'
+  | 'expired';
+
+export type FamilyReminderPermission =
+  | 'missed_task_reminder'
+  | 'weekly_progress';
+
+export interface FamilyLinkParticipantProfile {
+  fullName: string;
+  email?: string;
+  avatarUrl?: string;
+}
+
+export interface FamilyLink {
+  id: string;
+  patientId: string;
+  relationship?: string;
+  status: FamilyLinkStatus;
+  invitationVersion: number;
+  invitationDelivery: 'shared_link' | 'selected_contact';
+  invitationExpiresAt: Da2IsoDateTime;
+  shortCodeExpiresAt?: Da2IsoDateTime;
+  permissions: FamilyReminderPermission[];
+  consentVersion?: string;
+  invitedAt: Da2IsoDateTime;
+  acceptedAt?: Da2IsoDateTime;
+  pausedAt?: Da2IsoDateTime;
+  resumedAt?: Da2IsoDateTime;
+  declinedAt?: Da2IsoDateTime;
+  expiredAt?: Da2IsoDateTime;
+  revokedAt?: Da2IsoDateTime;
+  allowedActions: Array<'accept' | 'decline' | 'pause' | 'resume' | 'revoke'>;
+  counterparty?: FamilyLinkParticipantProfile | null;
+  patient?: FamilyLinkParticipantProfile | null;
+  companion?: FamilyLinkParticipantProfile | null;
+}
+
+export interface CreateFamilyLinkRequest {
+  contactUserId?: string;
+  share?: boolean;
+  relationship?: string;
+}
+
+export interface FamilyLinksCreateApiRequest {
+  headers?: { 'Idempotency-Key'?: string; 'idempotency-key'?: string };
+  body: CreateFamilyLinkRequest;
+}
+
+export interface SearchFamilyCompanionContactsRequest {
+  search: string;
+  page?: number;
+  limit?: number;
+}
+
+export interface UsersSearchFamilyCompanionContactsRequest {
+  query: SearchFamilyCompanionContactsRequest;
+}
+
+export interface FamilyCompanionContactRecord {
+  id: string;
+  fullName: string;
+  email?: string;
+  phoneNumber?: string;
+}
+
+export interface SearchFamilyCompanionContactsPage {
+  items: FamilyCompanionContactRecord[];
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
+
+export interface SearchFamilyCompanionContactsResponse {
+  statusCode?: number;
+  message?: string;
+  data?: SearchFamilyCompanionContactsPage;
+  items?: FamilyCompanionContactRecord[];
+  page?: number;
+  limit?: number;
+  total?: number;
+  totalPages?: number;
+}
+
+export interface FamilyLinksListRequest {
+  query?: {
+    direction?: 'sent' | 'received' | 'all';
+    status?: FamilyLinkStatus;
+    page?: number;
+    limit?: number;
+  };
+}
+
+export interface FamilyLinksListResponse {
+  statusCode: number;
+  message: string;
+  data: {
+    items: FamilyLink[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+}
+
+export interface AdminFamilyLinksListRequest {
+  query?: {
+    status?: FamilyLinkStatus;
+    page?: number;
+    limit?: number;
+  };
+}
+
+export type AdminFamilyLinksListResponse = FamilyLinksListResponse;
+
+export interface FamilyLinkGetRequest {
+  params: { id: string };
+}
+
+export interface FamilyLinkGetResponse {
+  statusCode: number;
+  message: string;
+  data: FamilyLink;
+}
+
+export interface FamilyInvitationArtifacts {
+  familyLinkId: string;
+  shareLink: string;
+  qrPayload: string;
+  shortCode: string;
+  shortCodeExpiresAt: Da2IsoDateTime;
+  invitationExpiresAt: Da2IsoDateTime;
+  revealOnce: true;
+}
+
+export interface FamilyInvitationArtifactsReplay {
+  familyLinkId: string;
+  revealOnce: true;
+  available: false;
+}
+
+export type FamilyInvitationArtifactsResult =
+  | FamilyInvitationArtifacts
+  | FamilyInvitationArtifactsReplay;
+
+export interface RegenerateFamilyInvitationArtifactsRequest {
+  params: { id: string };
+  headers?: { 'Idempotency-Key'?: string; 'idempotency-key'?: string };
+}
+
+export interface RegenerateFamilyInvitationArtifactsResponse {
+  statusCode: 201 | 200;
+  message: string;
+  data: {
+    link: FamilyLink;
+    artifacts: FamilyInvitationArtifactsResult;
+  };
+}
+
+export interface RedeemFamilyInvitationRequest {
+  invitationToken?: string;
+  shortCode?: string;
+}
+
+export interface FamilyLinksRedeemApiRequest {
+  headers?: { 'Idempotency-Key'?: string; 'idempotency-key'?: string };
+  body: RedeemFamilyInvitationRequest;
+}
+
+export interface FamilyLinksRedeemResponse {
+  statusCode: number;
+  message: string;
+  data: FamilyLink;
+}
+
+export interface AcceptFamilyInvitationRequest {
+  consentVersion: string;
+  permissions: FamilyReminderPermission[];
+}
+
+export interface FamilyLinksAcceptApiRequest {
+  params: { id: string };
+  headers?: { 'Idempotency-Key'?: string; 'idempotency-key'?: string };
+  body: AcceptFamilyInvitationRequest;
+}
+
+export interface FamilyLinksAcceptResponse {
+  statusCode: number;
+  message: string;
+  data: FamilyLink;
+}
+
+export interface FamilyLinksActionApiRequest {
+  params: { id: string; action: 'decline' | 'pause' | 'resume' | 'revoke' };
+  headers?: { 'Idempotency-Key'?: string; 'idempotency-key'?: string };
+  body?: { reason?: string };
+}
+
+export interface FamilyLinksActionResponse {
+  statusCode: number;
+  message: string;
+  data: FamilyLink;
+}
+
+export interface UpdateFamilyReminderPreferencesRequest {
+  permissions: FamilyReminderPermission[];
+  policyVersion: string;
+}
+
+export interface FamilyLinksUpdatePermissionsApiRequest {
+  params: { id: string };
+  headers?: { 'Idempotency-Key'?: string; 'idempotency-key'?: string };
+  body: UpdateFamilyReminderPreferencesRequest;
+}
+
+export interface FamilyLinksUpdatePermissionsResponse {
+  statusCode: number;
+  message: string;
+  data: FamilyLink;
+}
+
+export interface FamilyInvitationResponse {
+  link: FamilyLink;
+  artifacts?: FamilyInvitationArtifactsResult;
+}
+
+export interface CreateFamilyInvitationResponse {
+  statusCode: 201 | 200;
+  message: string;
+  data: {
+    link: FamilyLink;
+    artifacts: FamilyInvitationArtifactsResult;
+  };
+}
+
+export interface FamilyCompanionCommandHeaders {
+  'Idempotency-Key': string;
+}
+
+export type FamilySharedMetricType =
+  | 'blood_pressure'
+  | 'heart_rate'
+  | 'blood_glucose'
+  | 'oxygen_saturation'
+  | 'body_temperature'
+  | 'respiratory_rate'
+  | 'bmi'
+  | 'weight'
+  | 'height'
+  | 'water_intake'
+  | 'kcal_intake';
+
+export type FamilyHealthMetricPeriod =
+  | 'week'
+  | 'month'
+  | 'quarter'
+  | 'year'
+  | 'all'
+  | 'custom';
+
+export type FamilyHealthMetricSharingRequest =
+  | { scope?: 'all'; consentVersion: 'family-health-metric-sharing.v1' }
+  | {
+      scope: 'selected';
+      metricTypes: FamilySharedMetricType[];
+      consentVersion: 'family-health-metric-sharing.v1';
+    };
+
+export interface FamilyLinksGetHealthMetricSharingRequest {
+  params: { id: string };
+}
+
+export interface FamilyLinksUpsertHealthMetricSharingRequest {
+  params: { id: string };
+  headers?: { 'Idempotency-Key'?: string; 'idempotency-key'?: string };
+  body: FamilyHealthMetricSharingRequest;
+}
+
+export interface FamilyLinksRevokeHealthMetricSharingRequest {
+  params: { id: string };
+  headers?: { 'Idempotency-Key'?: string; 'idempotency-key'?: string };
+}
+
+export interface FamilyLinksRevokeHealthMetricSharingResponse {
+  statusCode: number;
+  data: { revoked: boolean };
+}
+
+export interface FamilyHealthMetricPoint {
+  metricType: FamilySharedMetricType;
+  unit: string;
+  values: Record<string, number>;
+  recordedAt: Da2IsoDateTime;
+}
+
+export interface FamilyHealthMetricQuery {
+  metricType: FamilySharedMetricType;
+  period?: FamilyHealthMetricPeriod;
+  anchor?: string;
+  from?: Da2IsoDateTime;
+  to?: Da2IsoDateTime;
+  cursor?: string;
+  limit?: number;
+}
+
+export interface FamilyLinksReadHealthMetricApiRequest {
+  params: { id: string };
+  query: FamilyHealthMetricQuery;
+}
+
+export interface FamilyHealthMetricWindow {
+  period: FamilyHealthMetricPeriod | 'legacy-range';
+  anchor?: string;
+  timeZone: 'Asia/Ho_Chi_Minh';
+  from: Da2IsoDateTime | null;
+  to: Da2IsoDateTime | null;
+  boundary: '[start,end)';
+}
+
+export interface FamilyHealthMetricTrendResponse {
+  statusCode: number;
+  data: {
+    items: FamilyHealthMetricPoint[];
+    nextCursor: string | null;
+    window: FamilyHealthMetricWindow;
+  };
+}
+
+export interface FamilyHealthMetricSummaryResponse {
+  statusCode: number;
+  data: {
+    metricType: FamilySharedMetricType;
+    count: number;
+    average: number;
+    minimum: number;
+    maximum: number;
+    latest: FamilyHealthMetricPoint;
+    window: FamilyHealthMetricWindow;
+  };
+}
+
+export interface FamilyHealthMetricSharingResponse {
+  statusCode: number;
+  data: {
+    linkStatus: string;
+    sharing: null | {
+      scope: 'all' | 'selected';
+      metricTypes: FamilySharedMetricType[];
+      revision: number;
+      consentVersion: string;
+      consentedAt: Da2IsoDateTime;
+    };
+  };
 }

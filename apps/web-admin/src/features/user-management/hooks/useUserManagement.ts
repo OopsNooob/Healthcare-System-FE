@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { useAuthStore } from "@repo/ui/store/useAuthStore";
+import i18n from "@/i18n";
 import {
+  extractApiErrorMessage,
   presenceSocket,
   SOCKET_EVENTS,
   updateSocketAuth,
@@ -130,7 +132,9 @@ export function useOperationalSummary(
         })
         .catch((err) => {
           if (active) {
-            setError(err instanceof Error ? err.message : "Failed to load details");
+            setError(
+              extractApiErrorMessage(err, "userManagement.errors.loadDetailsFailed"),
+            );
           }
         })
         .finally(() => {
@@ -166,7 +170,7 @@ export function useDeactivateUser() {
       return await deactivateUser(userId);
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Failed to deactivate user",
+        extractApiErrorMessage(err, "userManagement.errors.deactivateFailed"),
       );
       return null;
     } finally {
@@ -191,7 +195,9 @@ export function useDeleteAdmin() {
     try {
       return await deleteAdmin(adminUserId);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to delete admin");
+      setError(
+        extractApiErrorMessage(err, "userManagement.errors.deleteAdminFailed"),
+      );
       return null;
     } finally {
       setIsLoading(false);
@@ -208,7 +214,7 @@ export function useBanUser() {
 
   const submitBanUser = useCallback(async (payload: ApiBanUser) => {
     if (!payload.id) {
-      setError("Empty required fields!");
+      setError(i18n.t("userManagement.errors.emptyRequiredFields"));
       return null;
     }
 
@@ -221,7 +227,7 @@ export function useBanUser() {
       return res;
     } catch (loadError) {
       setError(
-        loadError instanceof Error ? loadError.message : "Failed to ban user",
+        extractApiErrorMessage(loadError, "userManagement.errors.banFailed"),
       );
       return null;
     } finally {
@@ -244,7 +250,7 @@ export function useUnbanUser() {
 
   const submitUnbanUser = useCallback(async (payload: ApiUnbanUser) => {
     if (!payload.id) {
-      setError("Empty required fields!");
+      setError(i18n.t("userManagement.errors.emptyRequiredFields"));
       return null;
     }
 
@@ -257,7 +263,7 @@ export function useUnbanUser() {
       return res;
     } catch (loadError) {
       setError(
-        loadError instanceof Error ? loadError.message : "Failed to unban user",
+        extractApiErrorMessage(loadError, "userManagement.errors.unbanFailed"),
       );
       return null;
     } finally {

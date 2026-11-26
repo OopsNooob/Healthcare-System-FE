@@ -13,11 +13,6 @@ export interface ApiErrorInfo {
 
 type TranslateFn = (key: string, opts?: Record<string, unknown>) => string;
 
-function isVietnameseLocale(): boolean {
-  const lng = (i18n.language || 'vi').toLowerCase();
-  return lng.startsWith('vi');
-}
-
 /**
  * Extracts structured backend error code, details, and raw message from an HTTP/Error object.
  */
@@ -41,10 +36,8 @@ export function translateApiErrorCode(
   const resolved = resolveApiErrorByCode(code, details);
   if (!resolved) return null;
 
-  const fallback = isVietnameseLocale() ? resolved.fallbackVi : resolved.fallbackEn;
   return tFn(`apiErrors.${resolved.key}`, {
     ...resolved.params,
-    defaultValue: fallback,
   });
 }
 
@@ -54,10 +47,8 @@ export function translateApiErrorCode(
 export function extractApiErrorMessage(err: unknown, fallbackKey = 'mobile.error_generic'): string {
   const resolved = resolveApiError(err);
   if (resolved) {
-    const fallback = isVietnameseLocale() ? resolved.fallbackVi : resolved.fallbackEn;
     return i18n.t(`apiErrors.${resolved.key}`, {
       ...resolved.params,
-      defaultValue: fallback,
     });
   }
 
@@ -66,5 +57,5 @@ export function extractApiErrorMessage(err: unknown, fallbackKey = 'mobile.error
     return ctx.rawMessage;
   }
 
-  return i18n.t(fallbackKey, 'Something went wrong. Please try again.');
+  return i18n.t(fallbackKey);
 }

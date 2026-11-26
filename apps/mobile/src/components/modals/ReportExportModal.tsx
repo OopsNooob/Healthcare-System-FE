@@ -18,6 +18,7 @@ import Toast from 'react-native-toast-message';
 import { tw, twInstance } from '@/tw';
 import { AppModalToast } from '@/components/ui/AppToast';
 import { extractApiErrorMessage } from '@/utils/apiError';
+import { formatHealthMetricUnit } from '@/utils/healthMetricUnit';
 import {
   generateHealthReport,
   saveReportToDevice,
@@ -418,10 +419,14 @@ export const ReportExportModal: React.FC<ReportExportModalProps> = ({
                                   : '—'}
                               </Text>
                               <Text style={tw('w-24 text-[11px] text-slate-700 dark:text-slate-300')}>
-                                {row.glucose != null ? `${row.glucose} mg/dL` : '—'}
+                                {row.glucose != null
+                                  ? `${row.glucose} ${formatHealthMetricUnit('mg/dL', t, 'blood_glucose')}`
+                                  : '—'}
                               </Text>
                               <Text style={tw('w-20 text-[11px] text-slate-700 dark:text-slate-300')}>
-                                {row.heartRate != null ? `${row.heartRate} bpm` : '—'}
+                                {row.heartRate != null
+                                  ? `${row.heartRate} ${formatHealthMetricUnit('bpm', t, 'heart_rate')}`
+                                  : '—'}
                               </Text>
                               <Text
                                 style={tw(

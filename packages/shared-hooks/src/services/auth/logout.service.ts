@@ -22,7 +22,7 @@ export async function revokeAuthSession(
 }
 
 export async function exchangeGoogleOAuthTicket(
-  ticket: string,
+  payload: FeTypes.ExchangeGoogleMobileOAuthRequest,
 ): Promise<FeTypes.AuthExchangeGoogleOAuthTicketResponse> {
-  return mobileApi.authExchangeGoogleOAuthTicket({ ticket });
+  return mobileApi.authExchangeGoogleOAuthTicket(payload);
 }

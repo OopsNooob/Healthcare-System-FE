@@ -16,6 +16,7 @@ import {
 import type { MetricsTypes } from '@repo/shared-hooks';
 import { tw } from '../tw';
 import { useThemeContext } from '@/context/ThemeContext';
+import { formatHealthMetricUnit } from '@/utils/healthMetricUnit';
 
 interface MetricEntry {
   value: number;
@@ -215,7 +216,9 @@ export function MetricOverviewCard({
         <View style={tw('mt-2')}>
           <View style={tw('flex-row items-baseline gap-1')}>
             <Text style={tw(`text-4xl font-bold ${variant.textColor}`)}>{displayValue}</Text>
-            <Text style={tw('text-sm font-normal text-zinc-500 dark:text-zinc-400')}>{unit}</Text>
+            <Text style={tw('text-sm font-normal text-zinc-500 dark:text-zinc-400')}>
+              {formatHealthMetricUnit(unit, t, metricsType)}
+            </Text>
           </View>
           <View style={tw('flex-row items-center justify-between mt-4')}>
             <Text style={tw('text-xs text-zinc-500 dark:text-zinc-400')}>

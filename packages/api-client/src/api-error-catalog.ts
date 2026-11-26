@@ -628,6 +628,26 @@ export const API_ERROR_MESSAGES = {
     en: 'Submitted data is invalid. Please review and try again.',
     vi: 'Dữ liệu gửi lên không hợp lệ. Vui lòng kiểm tra lại.',
   },
+  VALIDATION_INVALID_PAGINATION: {
+    en: 'Invalid page or page-size query parameters.',
+    vi: 'Tham số phân trang (số trang hoặc số lượng mỗi trang) không hợp lệ.',
+  },
+  VALIDATION_FIELD_REQUIRED: {
+    en: 'One or more required fields are missing.',
+    vi: 'Vui lòng nhập đầy đủ các trường bắt buộc.',
+  },
+  VALIDATION_INVALID_EMAIL: {
+    en: 'Please provide a valid email address.',
+    vi: 'Địa chỉ email không đúng định dạng.',
+  },
+  VALIDATION_INVALID_LENGTH: {
+    en: 'Input length does not meet the required constraints.',
+    vi: 'Độ dài dữ liệu nhập vào không đúng giới hạn cho phép.',
+  },
+  VALIDATION_INVALID_RANGE: {
+    en: 'Numeric value is outside the permitted range.',
+    vi: 'Giá trị số nằm ngoài phạm vi cho phép.',
+  },
   FORBIDDEN: {
     en: 'You do not have permission to perform this action.',
     vi: 'Bạn không có quyền thực hiện thao tác này.',
@@ -1259,6 +1279,216 @@ export const API_ERROR_MESSAGES = {
     vi: 'Không thể xoá tệp trên hệ thống lưu trữ.',
   },
 
+  // Google OAuth hardening & mobile PKCE handoff
+  AUTH_GOOGLE_LOCAL_ACCOUNT_EXISTS: {
+    en: 'This email already has a password account. Sign in with your email and password instead.',
+    vi: 'Email này đã có tài khoản mật khẩu. Vui lòng đăng nhập bằng email và mật khẩu.',
+  },
+  AUTH_GOOGLE_IDENTITY_EXISTS: {
+    en: 'This email is already connected to a different Google account. Sign in with that Google account or contact support.',
+    vi: 'Email này đã được liên kết với một tài khoản Google khác. Vui lòng dùng tài khoản Google đó hoặc liên hệ hỗ trợ.',
+  },
+  AUTH_GOOGLE_ACCOUNT_CONFLICT: {
+    en: 'This Google account cannot be used. Sign in with the existing method or contact support.',
+    vi: 'Không thể sử dụng tài khoản Google này. Vui lòng đăng nhập bằng phương thức hiện có hoặc liên hệ hỗ trợ.',
+  },
+  AUTH_GOOGLE_EMAIL_INVALID: {
+    en: 'The Google account email is invalid.',
+    vi: 'Email từ tài khoản Google không hợp lệ.',
+  },
+  GOOGLE_OAUTH_INVALID_CHALLENGE: {
+    en: 'Invalid Google sign-in security challenge. Please start Google sign-in again.',
+    vi: 'Thử thách bảo mật đăng nhập Google không hợp lệ. Vui lòng thử lại.',
+  },
+
+  // E1 Doctor booking settings & scheduled booking policy
+  DOCTOR_BOOKING_SETTINGS_NOT_CONFIGURED: {
+    en: 'Doctor booking settings are not configured yet.',
+    vi: 'Bác sĩ chưa cấu hình quy tắc đặt lịch hẹn.',
+  },
+  DOCTOR_BOOKING_SETTINGS_INVALID: {
+    en: 'Doctor booking settings values are out of the allowed range.',
+    vi: 'Giá trị cấu hình đặt lịch hẹn của bác sĩ không hợp lệ.',
+  },
+  DOCTOR_BOOKING_SETTINGS_REQUIRED: {
+    en: 'Doctor booking settings must be configured before scheduled booking is available.',
+    vi: 'Bác sĩ cần hoàn tất cấu hình đặt lịch trước khi mở đặt lịch hẹn trước.',
+  },
+  OVERRIDE_REASON_REQUIRED: {
+    en: 'An override reason (3–500 characters) is required.',
+    vi: 'Vui lòng nhập lý do ghi đè cấu hình (từ 3 đến 500 ký tự).',
+  },
+
+  // E2 Family Companion & Shared HealthMetrics
+  FAMILY_COMPANION_DISABLED: {
+    en: 'Family Companion is currently unavailable.',
+    vi: 'Tính năng Đồng hành Gia đình hiện đang tạm tắt.',
+  },
+  FAMILY_LINK_NOT_FOUND: {
+    en: 'Family connection was not found.',
+    vi: 'Không tìm thấy liên kết gia đình này.',
+  },
+  ACTIVE_FAMILY_LINK_NOT_FOUND: {
+    en: 'An active family connection is required for this action.',
+    vi: 'Cần có liên kết gia đình đang hoạt động để thực hiện thao tác này.',
+  },
+  FAMILY_REUSABLE_LINK_NOT_FOUND: {
+    en: 'No reusable invitation record was found.',
+    vi: 'Không tìm thấy bản ghi lời mời có thể tái sử dụng.',
+  },
+  FAMILY_LINK_ALREADY_EXISTS: {
+    en: 'A family connection already exists with this person.',
+    vi: 'Bạn đã có liên kết gia đình với người dùng này.',
+  },
+  FAMILY_INVITATION_CONFLICT: {
+    en: 'A pending invitation already exists for this recipient.',
+    vi: 'Đã tồn tại lời mời đang chờ xử lý cho người nhận này.',
+  },
+  FAMILY_INVITATION_NOT_FOUND: {
+    en: 'Pending family invitation was not found.',
+    vi: 'Không tìm thấy lời mời gia đình đang chờ xử lý.',
+  },
+  FAMILY_INVITATION_NOT_RENEWABLE: {
+    en: 'Only pending invitations can regenerate QR codes and invite links.',
+    vi: 'Chỉ lời mời đang chờ mới có thể tạo lại mã QR và liên kết mời.',
+  },
+  INVITATION_NOT_FOUND_OR_EXPIRED: {
+    en: 'This invitation link or code is invalid or has expired.',
+    vi: 'Liên kết hoặc mã mời không hợp lệ hoặc đã hết hạn.',
+  },
+  INVITATION_TOKEN_OR_CODE_REQUIRED: {
+    en: 'Please provide an invitation link token or 6-digit invite code.',
+    vi: 'Vui lòng nhập mã mời hoặc sử dụng liên kết lời mời hợp lệ.',
+  },
+  INVITATION_REDEEM_REQUIRED: {
+    en: 'Please open and verify the invitation first before accepting.',
+    vi: 'Vui lòng mở xác thực lời mời trước khi nhấn chấp nhận.',
+  },
+  INVITATION_RECIPIENT_MISMATCH: {
+    en: 'This invitation belongs to a different patient account.',
+    vi: 'Lời mời này được gửi cho một tài khoản bệnh nhân khác.',
+  },
+  FAMILY_SELF_INVITE_NOT_ALLOWED: {
+    en: 'You cannot send a family invitation to yourself.',
+    vi: 'Bạn không thể tự gửi lời mời đồng hành cho chính mình.',
+  },
+  FAMILY_CONTACT_NOT_ELIGIBLE: {
+    en: 'Selected contact must be an active patient account to join Family Companion.',
+    vi: 'Người được mời phải là tài khoản bệnh nhân đang hoạt động.',
+  },
+  CONTACT_USER_ID_OR_SHARE_REQUIRED: {
+    en: 'Select an eligible contact or create a share link invitation.',
+    vi: 'Vui lòng chọn người dùng từ danh sách hoặc tạo lời mời bằng liên kết/QR.',
+  },
+  INVALID_CONTACT_USER_ID: {
+    en: 'Selected contact identifier is invalid.',
+    vi: 'Mã định danh người nhận lời mời không hợp lệ.',
+  },
+  FAMILY_LINK_LIMIT_REACHED: {
+    en: 'You have reached the maximum number of family connections allowed by your plan.',
+    vi: 'Bạn đã đạt giới hạn số liên kết gia đình cho phép theo gói hiện tại.',
+  },
+  FAMILY_ENTITLEMENT_UNAVAILABLE: {
+    en: 'Your current plan does not include this Family Companion capability.',
+    vi: 'Gói dịch vụ hiện tại chưa hỗ trợ tính năng Đồng hành Gia đình này.',
+  },
+  FAMILY_CONSENT_VERSION_REQUIRED: {
+    en: 'Consent policy acceptance is required before linking accounts.',
+    vi: 'Bạn cần đồng ý với điều khoản liên kết gia đình trước khi chấp nhận.',
+  },
+  FAMILY_POLICY_VERSION_REQUIRED: {
+    en: 'Reminder permission policy version is required.',
+    vi: 'Thiếu phiên bản chính sách phân quyền nhắc nhở.',
+  },
+  INVALID_FAMILY_ACTION: {
+    en: 'Unsupported family connection action.',
+    vi: 'Thao tác trên liên kết gia đình không được hỗ trợ.',
+  },
+  INVALID_FAMILY_PERMISSIONS: {
+    en: 'Selected family permission settings are invalid.',
+    vi: 'Thiết lập quyền đồng hành gia đình không hợp lệ.',
+  },
+  FAMILY_INVALID_STATE_TRANSITION: {
+    en: 'This family connection cannot perform that transition in its current state.',
+    vi: 'Không thể thực hiện chuyển trạng thái này với liên kết gia đình hiện tại.',
+  },
+  FAMILY_LINK_FORBIDDEN: {
+    en: 'You do not have access to this family connection.',
+    vi: 'Bạn không có quyền truy cập liên kết gia đình này.',
+  },
+  FAMILY_OWNER_ONLY: {
+    en: 'Only the patient who owns this connection can perform this action.',
+    vi: 'Chỉ chủ sở hữu liên kết mới có thể thực hiện thao tác này.',
+  },
+  INVITED_CONTACT_ONLY: {
+    en: 'Only the invited recipient can respond to this invitation.',
+    vi: 'Chỉ người nhận lời mời mới có thể phản hồi lời mời này.',
+  },
+  FAMILY_CODE_LIMITER_UNAVAILABLE: {
+    en: 'Invitation verification service is temporarily unavailable. Please try again later.',
+    vi: 'Hệ thống kiểm tra mã mời hiện tạm gián đoạn. Vui lòng thử lại sau.',
+  },
+  FAMILY_CODE_ATTEMPTS_EXCEEDED: {
+    en: 'Too many invalid invite code attempts. Please try again in 15 minutes.',
+    vi: 'Bạn đã nhập sai mã mời quá nhiều lần. Vui lòng đợi 15 phút rồi thử lại.',
+  },
+  SEARCH_TERM_TOO_SHORT: {
+    en: 'Please enter at least 2 characters to search contacts.',
+    vi: 'Vui lòng nhập ít nhất 2 ký tự để tìm kiếm người dùng.',
+  },
+  INVALID_HEALTH_METRIC_PERIOD: {
+    en: 'Unsupported time period filter for shared health metrics.',
+    vi: 'Khoảng thời gian thống kê chỉ số sức khoẻ không hợp lệ.',
+  },
+  INVALID_HEALTH_METRIC_CONSENT_VERSION: {
+    en: 'Health metric sharing consent version is invalid or missing.',
+    vi: 'Phiên bản chấp thuận chia sẻ chỉ số sức khoẻ không hợp lệ.',
+  },
+  FAMILY_HEALTH_SHARING_CHANGED: {
+    en: 'Shared health metric permissions changed. Refreshing the latest access state.',
+    vi: 'Quyền chia sẻ chỉ số sức khoẻ vừa thay đổi. Vui lòng làm mới dữ liệu.',
+  },
+  FAMILY_HEALTH_ACCESS_DENIED: {
+    en: 'You do not have permission to view this patient’s shared health metrics.',
+    vi: 'Bạn không còn quyền xem chỉ số sức khoẻ được chia sẻ của người này.',
+  },
+  FAMILY_SHARING_CONCURRENT_CHANGE: {
+    en: 'Health metric sharing settings changed concurrently. Please refresh and try again.',
+    vi: 'Cài đặt chia sẻ chỉ số vừa thay đổi đồng thời. Vui lòng tải lại và thử lại.',
+  },
+  METRIC_TYPES_NOT_ALLOWED_FOR_ALL: {
+    en: 'Specific metric types cannot be set when sharing scope is "all".',
+    vi: 'Không được truyền danh sách chỉ số lẻ khi phạm vi chia sẻ là tất cả.',
+  },
+  INVALID_METRIC_SCOPE: {
+    en: 'Selected health metric sharing scope is invalid.',
+    vi: 'Phạm vi chia sẻ chỉ số sức khoẻ không hợp lệ.',
+  },
+  INVALID_METRIC_TYPES: {
+    en: 'Select at least one valid health metric type to share.',
+    vi: 'Vui lòng chọn ít nhất một loại chỉ số sức khoẻ hợp lệ để chia sẻ.',
+  },
+  INVALID_SHARED_METRIC_QUERY: {
+    en: 'Shared health metric query parameters are invalid.',
+    vi: 'Tham số truy vấn chỉ số sức khoẻ được chia sẻ không hợp lệ.',
+  },
+  INVALID_SHARED_METRIC_VALUE: {
+    en: 'Shared health metric record contains an invalid value.',
+    vi: 'Dữ liệu chỉ số sức khoẻ được chia sẻ không hợp lệ.',
+  },
+  INVALID_SHARED_METRIC_LIMIT: {
+    en: 'Requested page limit is outside the allowed range.',
+    vi: 'Số lượng bản ghi mỗi trang vượt quá giới hạn cho phép.',
+  },
+  INVALID_SHARED_METRIC_CURSOR: {
+    en: 'Shared health metric pagination cursor is invalid. Please refresh.',
+    vi: 'Con trỏ phân trang dữ liệu không hợp lệ. Vui lòng tải lại từ đầu.',
+  },
+  INVALID_SHARED_METRIC_DATE_RANGE: {
+    en: 'Selected health metric date window is invalid.',
+    vi: 'Khoảng thời gian tra cứu chỉ số sức khoẻ không hợp lệ.',
+  },
+
   // Generic / HTTP / Network fallbacks
   NETWORK_ERROR: {
     en: 'Unable to reach the server. Please check your internet connection.',
@@ -1315,6 +1545,11 @@ const CODE_ALIAS_MAP: Record<string, ApiErrorTranslationKey> = {
   answer_type_invalid: 'ANSWER_TYPE_INVALID',
   answer_unknown_field: 'ANSWER_UNKNOWN_FIELD',
   IDEMPOTENCY_KEY_CONFLICT: 'IDEMPOTENCY_CONFLICT',
+  GOOGLE_OAUTH_UNAVAILABLE: 'AUTH_OAUTH_UNAVAILABLE',
+  GOOGLE_OAUTH_HANDOFF_INVALID: 'AUTH_OAUTH_HANDOFF_INVALID',
+  local_account_exists: 'AUTH_GOOGLE_LOCAL_ACCOUNT_EXISTS',
+  account_ineligible: 'AUTH_ACCOUNT_NOT_ELIGIBLE',
+  oauth_failed: 'AUTH_OAUTH_UNAVAILABLE',
 };
 
 const EXACT_MESSAGE_MAP: Record<string, ApiErrorTranslationKey> = {
@@ -1365,6 +1600,29 @@ const EXACT_MESSAGE_MAP: Record<string, ApiErrorTranslationKey> = {
   'this email already has a password account; sign in with password': 'AUTH_OAUTH_USE_PASSWORD',
   'this email is already registered with a different google account; use the original google account or contact support':
     'AUTH_OAUTH_DIFFERENT_GOOGLE',
+  'this google account cannot be used. sign in with the existing method or contact support.':
+    'AUTH_GOOGLE_ACCOUNT_CONFLICT',
+  'google account email is invalid': 'AUTH_GOOGLE_EMAIL_INVALID',
+  'this account uses password sign-in. please use the password sign-in option.':
+    'AUTH_OAUTH_USE_PASSWORD',
+  'this email already has a password account. sign in with your email and password instead.':
+    'AUTH_GOOGLE_LOCAL_ACCOUNT_EXISTS',
+  'this email is already connected to a different google account. sign in with that google account or contact support.':
+    'AUTH_GOOGLE_IDENTITY_EXISTS',
+  'google mobile handoff is unavailable': 'AUTH_OAUTH_UNAVAILABLE',
+  'invalid google oauth mobile challenge': 'GOOGLE_OAUTH_INVALID_CHALLENGE',
+  'google oauth is temporarily unavailable': 'AUTH_OAUTH_UNAVAILABLE',
+  'google oauth handoff is invalid or expired': 'AUTH_OAUTH_HANDOFF_INVALID',
+  'doctor booking settings are not configured': 'DOCTOR_BOOKING_SETTINGS_NOT_CONFIGURED',
+  'doctor booking settings are invalid': 'DOCTOR_BOOKING_SETTINGS_INVALID',
+  'invalid booking settings': 'DOCTOR_BOOKING_SETTINGS_INVALID',
+  'override reason is required': 'OVERRIDE_REASON_REQUIRED',
+  'doctor booking settings are required before scheduled booking is available':
+    'DOCTOR_BOOKING_SETTINGS_REQUIRED',
+  'family link not found': 'FAMILY_LINK_NOT_FOUND',
+  'invitation not found': 'FAMILY_INVITATION_NOT_FOUND',
+  'patient not found': 'PATIENT_NOT_FOUND',
+  'pending family invitation not found': 'FAMILY_INVITATION_NOT_FOUND',
   'google sign-in is unavailable for this account; sign in with password':
     'AUTH_OAUTH_UNAVAILABLE_FOR_ACCOUNT',
   'failed to send otp email': 'AUTH_OTP_SEND_FAILED',
@@ -1649,6 +1907,15 @@ const EXACT_MESSAGE_MAP: Record<string, ApiErrorTranslationKey> = {
   'notification not found': 'NOT_FOUND',
   'a valid consultation id is required': 'INVALID_ID',
   'consultationid is required': 'INVALID_ID',
+  'invalid user id': 'INVALID_ID',
+  'invalid doctor id': 'INVALID_ID',
+  'invalid consultation id': 'INVALID_ID',
+  'invalid sender id': 'INVALID_ID',
+  'invalid message cursor': 'VALIDATION_ERROR',
+  'invalid message id': 'INVALID_ID',
+  'invalid patient id': 'INVALID_ID',
+  'invalid review cursor': 'VALIDATION_ERROR',
+  'invalid review id': 'INVALID_ID',
 };
 
 const PATTERN_MESSAGE_RULES: ReadonlyArray<{
@@ -1684,6 +1951,23 @@ const PATTERN_MESSAGE_RULES: ReadonlyArray<{
   { pattern: /^invalid file type/i, key: 'FILE_TYPE_UNSUPPORTED' },
   { pattern: /^cannot extract readable text from file/i, key: 'AI_DOC_TEXT_EMPTY' },
   { pattern: /too many requests/i, key: 'TOO_MANY_REQUESTS' },
+  {
+    pattern:
+      /(?:^|,\s*)\b(?:page|limit)\s+must\s+(?:not\s+be\s+less\s+than|not\s+be\s+greater\s+than|be\s+an\s+integer)/i,
+    key: 'VALIDATION_INVALID_PAGINATION',
+  },
+  { pattern: /must be an email/i, key: 'VALIDATION_INVALID_EMAIL' },
+  { pattern: /(?:should not be empty|must not be empty)/i, key: 'VALIDATION_FIELD_REQUIRED' },
+  {
+    pattern: /must be (?:longer|shorter) than or equal to/i,
+    key: 'VALIDATION_INVALID_LENGTH',
+  },
+  { pattern: /must not be (?:less|greater) than/i, key: 'VALIDATION_INVALID_RANGE' },
+  {
+    pattern:
+      /(?:must be (?:an? (?:integer|number|string|boolean|array|object|uuid|mongodb id|valid|iso 8601)|one of the following values)|should not exist)/i,
+    key: 'VALIDATION_ERROR',
+  },
 ];
 
 const HTTP_STATUS_MAP: Record<number, ApiErrorTranslationKey> = {
@@ -1842,6 +2126,15 @@ export function resolveApiError(err: unknown): ResolvedApiError | null {
   // 2. Specific plain/DTO exception messages take precedence over umbrella codes
   //    (e.g. FORBIDDEN / CARE_FORBIDDEN / VALIDATION_ERROR / CARE_ENROLLMENT_INVALID_STATE)
   if (ctx.rawMessage) {
+    const rawCodeKey =
+      CODE_ALIAS_MAP[ctx.rawMessage] ??
+      (ctx.rawMessage in API_ERROR_MESSAGES
+        ? (ctx.rawMessage as ApiErrorTranslationKey)
+        : undefined);
+    if (rawCodeKey) {
+      return buildResolved(rawCodeKey);
+    }
+
     const normalized = ctx.rawMessage.toLowerCase();
     const exactKey = EXACT_MESSAGE_MAP[normalized];
     if (exactKey) {

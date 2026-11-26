@@ -47,6 +47,7 @@ import { useThemeContext } from '@/context/ThemeContext';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { VoidDataModal } from '@/components/modals';
 import { extractApiErrorMessage } from '@/utils/apiError';
+import { formatHealthMetricUnit } from '@/utils/healthMetricUnit';
 
 interface MetricConfig {
   id: MetricsTypes;
@@ -130,6 +131,10 @@ export default function HealthMetricScreen() {
   const selectedConfig = useMemo(
     () => METRIC_CONFIGS.find((m) => m.id === selectedMetricId) ?? METRIC_CONFIGS[0],
     [selectedMetricId]
+  );
+  const selectedDisplayUnit = useMemo(
+    () => formatHealthMetricUnit(selectedConfig.unit, t, selectedMetricId),
+    [selectedConfig.unit, selectedMetricId, t],
   );
 
   const {
@@ -294,17 +299,17 @@ export default function HealthMetricScreen() {
         setAlertReason(
           isUrgent
             ? t('mobile.alert_vital_urgent_msg', {
-                metric: t(selectedConfig.titleKey, selectedConfig.fallbackTitle),
-                value: formatMetricReading(savedMetric),
-                unit: selectedConfig.unit,
-                defaultValue: `${formatMetricReading(savedMetric)} ${selectedConfig.unit} requires urgent clinical review.`,
-              })
+              metric: t(selectedConfig.titleKey, selectedConfig.fallbackTitle),
+              value: formatMetricReading(savedMetric),
+              unit: selectedDisplayUnit,
+              defaultValue: `${formatMetricReading(savedMetric)} ${selectedDisplayUnit} requires urgent clinical review.`,
+            })
             : t('mobile.alert_vital_attention_msg', {
-                metric: t(selectedConfig.titleKey, selectedConfig.fallbackTitle),
-                value: formatMetricReading(savedMetric),
-                unit: selectedConfig.unit,
-                defaultValue: `${formatMetricReading(savedMetric)} ${selectedConfig.unit} is outside the target range.`,
-              })
+              metric: t(selectedConfig.titleKey, selectedConfig.fallbackTitle),
+              value: formatMetricReading(savedMetric),
+              unit: selectedDisplayUnit,
+              defaultValue: `${formatMetricReading(savedMetric)} ${selectedDisplayUnit} is outside the target range.`,
+            })
         );
         setAlertVisible(true);
       } else {
@@ -339,13 +344,18 @@ export default function HealthMetricScreen() {
     const dt = new Date(entry.recordedAt);
     const valStr = formatMetricReading(entry);
     const metricTitle = t(selectedConfig.titleKey, selectedConfig.fallbackTitle);
+    const entryUnit = formatHealthMetricUnit(
+      entry.unit || selectedConfig.unit,
+      t,
+      selectedMetricId,
+    );
     const prompt = t('mobile.ask_ai_metric_prompt', {
       metric: metricTitle,
       value: valStr,
-      unit: entry.unit || selectedConfig.unit,
+      unit: entryUnit,
       time: formatTime(dt),
       date: formatDate(dt),
-      defaultValue: `Please evaluate my ${metricTitle} reading of ${valStr} ${entry.unit || selectedConfig.unit} recorded at ${formatTime(dt)} on ${formatDate(dt)}.`,
+      defaultValue: `Please evaluate my ${metricTitle} reading of ${valStr} ${entryUnit} recorded at ${formatTime(dt)} on ${formatDate(dt)}.`,
     });
     router.push({
       pathname: '/(patient)/ai-chat/[id]',
@@ -391,10 +401,9 @@ export default function HealthMetricScreen() {
                 key={metric.id}
                 onPress={() => setSelectedMetricId(metric.id)}
                 style={tw(
-                  `flex-row items-center gap-2 px-3.5 py-2.5 rounded-2xl border ${
-                    isSelected
-                      ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/30'
-                      : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900'
+                  `flex-row items-center gap-2 px-3.5 py-2.5 rounded-2xl border ${isSelected
+                    ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/30'
+                    : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900'
                   }`
                 )}
               >
@@ -403,8 +412,7 @@ export default function HealthMetricScreen() {
                 </View>
                 <Text
                   style={tw(
-                    `font-semibold text-xs ${
-                      isSelected ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-700 dark:text-slate-200'
+                    `font-semibold text-xs ${isSelected ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-700 dark:text-slate-200'
                     }`
                   )}
                 >
@@ -438,22 +446,22 @@ export default function HealthMetricScreen() {
               <Text style={tw('text-base font-bold text-emerald-600 dark:text-emerald-400 mt-0.5')}>
                 {selectedMetricId === 'blood_pressure'
                   ? (() => {
-                      const bpItems = entries.filter(
-                        (e) =>
-                          e.values?.systolic?.value !== undefined &&
-                          e.values?.diastolic?.value !== undefined,
-                      );
-                      if (bpItems.length === 0) {
-                        return stats.average ? `${Math.round(stats.average)}` : '—';
-                      }
-                      const avgSys =
-                        bpItems.reduce((acc, e) => acc + Number(e.values?.systolic?.value ?? 0), 0) /
-                        bpItems.length;
-                      const avgDia =
-                        bpItems.reduce((acc, e) => acc + Number(e.values?.diastolic?.value ?? 0), 0) /
-                        bpItems.length;
-                      return `${Math.round(avgSys)}/${Math.round(avgDia)}`;
-                    })()
+                    const bpItems = entries.filter(
+                      (e) =>
+                        e.values?.systolic?.value !== undefined &&
+                        e.values?.diastolic?.value !== undefined,
+                    );
+                    if (bpItems.length === 0) {
+                      return stats.average ? `${Math.round(stats.average)}` : '—';
+                    }
+                    const avgSys =
+                      bpItems.reduce((acc, e) => acc + Number(e.values?.systolic?.value ?? 0), 0) /
+                      bpItems.length;
+                    const avgDia =
+                      bpItems.reduce((acc, e) => acc + Number(e.values?.diastolic?.value ?? 0), 0) /
+                      bpItems.length;
+                    return `${Math.round(avgSys)}/${Math.round(avgDia)}`;
+                  })()
                   : Math.round(Number(stats.average ?? 0) * 10) / 10}
               </Text>
             </View>
@@ -526,7 +534,11 @@ export default function HealthMetricScreen() {
                       <Text style={tw('text-2xl font-bold text-slate-900 dark:text-white')}>
                         {valueText}{' '}
                         <Text style={tw('text-sm text-slate-500 dark:text-slate-400 font-medium')}>
-                          {entry.unit || selectedConfig.unit}
+                          {formatHealthMetricUnit(
+                            entry.unit || selectedConfig.unit,
+                            t,
+                            selectedMetricId,
+                          )}
                         </Text>
                       </Text>
                       {hasAlert && (
@@ -624,7 +636,7 @@ export default function HealthMetricScreen() {
               ) : (
                 <View>
                   <Text style={tw('text-xs font-semibold text-slate-700 dark:text-slate-200 mb-1.5')}>
-                    {t('mobile.value', 'Value')} ({selectedConfig.unit})
+                    {t('mobile.value', 'Value')} ({selectedDisplayUnit})
                   </Text>
                   <TextInput
                     value={primaryInput}
@@ -720,7 +732,11 @@ export default function HealthMetricScreen() {
         onClose={() => setVoidTarget(null)}
         metricLabel={
           voidTarget
-            ? `${t(selectedConfig.titleKey, selectedConfig.fallbackTitle)}: ${formatMetricReading(voidTarget)} ${voidTarget.unit || selectedConfig.unit}`
+            ? `${t(selectedConfig.titleKey, selectedConfig.fallbackTitle)}: ${formatMetricReading(voidTarget)} ${formatHealthMetricUnit(
+              voidTarget.unit || selectedConfig.unit,
+              t,
+              selectedMetricId,
+            )}`
             : undefined
         }
         onVoidConfirm={handleVoidConfirm}

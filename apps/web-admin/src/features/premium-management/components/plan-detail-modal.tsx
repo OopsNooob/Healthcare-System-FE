@@ -196,6 +196,14 @@ export function PlanDetailModal({ plan, onClose, onClone }: PlanDetailModalProps
                   {plan.activeCareProgramLimit}
                 </span>
               </div>
+              <div className="flex justify-between text-xs pt-1 border-t border-slate-100 dark:border-slate-800">
+                <span className="text-slate-500 dark:text-slate-400">
+                  {t("premiumManagement.detailModal.familyLinks", "Family Companion Links")}
+                </span>
+                <span className="font-semibold text-slate-800 dark:text-slate-200">
+                  {plan.familyLinkLimit}
+                </span>
+              </div>
             </div>
           </div>
 

@@ -9,6 +9,7 @@ export interface Login {
 type ApiUserAuthResponse = {
   id: string;
   email: string;
+  emailVerified?: boolean;
   fullName: string;
   role: AppRole;
   avatarUrl?: string;

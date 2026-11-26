@@ -10,6 +10,7 @@ import {
   MoreHorizontal,
   Search,
   ShieldCheck,
+  SlidersHorizontal,
   Star,
   Stethoscope,
   Users,
@@ -65,6 +66,7 @@ import type {
 import { useAuthStore } from "@repo/ui/store/useAuthStore";
 import { normalizeAdminRole } from "@repo/ui/types/auth";
 import { useTranslation } from "react-i18next";
+import { DoctorBookingSettingsModal } from "../components/doctor-booking-settings-modal";
 
 type UserRole = "patient" | "doctor" | "admin";
 type UserStatus = "active" | "banned";
@@ -174,6 +176,7 @@ export function UserManagement() {
   const [lockModalUser, setLockModalUser] = useState<UserRecord | null>(null);
   const [lockReason, setLockReason] = useState("");
   const [operationalSummaryUser, setOperationalSummaryUser] = useState<UserRecord | null>(null);
+  const [bookingSettingsDoctor, setBookingSettingsDoctor] = useState<UserRecord | null>(null);
   const {
     data: operationalDetails,
     isLoading: isOperationalLoading,
@@ -581,6 +584,20 @@ export function UserManagement() {
         },
       },
     ];
+
+    if (user.role === "doctor") {
+      actions.push({
+        id: `${user.id}-booking-settings`,
+        title: t("userManagement.actions.bookingSettings"),
+        icon: <SlidersHorizontal className="h-4 w-4" />,
+        iconColor: "text-indigo-600",
+        onHandle: () => {
+          setBookingSettingsDoctor(user);
+          setOpenActionUserId(null);
+          setOpenActionRect(null);
+        },
+      });
+    }
 
     if (!isSelf) {
       actions.push({
@@ -1217,6 +1234,12 @@ export function UserManagement() {
             </div>
           </div>
         )}
+
+        {/* Doctor Booking Settings Modal (E1 Admin Override) */}
+        <DoctorBookingSettingsModal
+          doctor={bookingSettingsDoctor}
+          onClose={() => setBookingSettingsDoctor(null)}
+        />
 
       </div>
     </div>

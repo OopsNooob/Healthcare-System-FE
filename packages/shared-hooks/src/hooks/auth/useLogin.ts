@@ -42,9 +42,10 @@ export function useLogin() {
         await getStorage().setItem("accessToken", res.accessToken);
         await getStorage().setItem("refreshToken", res.refreshToken);
 
-        const normalizedUser: User = {
+        const normalizedUser: User & { emailVerified?: boolean } = {
           id: res.user.id,
           email: res.user.email,
+          emailVerified: res.user.emailVerified,
           name: res.user.fullName,
           role: res.user.role,
           avatar: res.user.avatarUrl,

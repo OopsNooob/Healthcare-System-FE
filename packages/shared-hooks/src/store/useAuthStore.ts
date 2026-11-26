@@ -13,6 +13,7 @@ export type LocalUser = {
   name: string;
   role: string;
   avatar?: string | null;
+  emailVerified?: boolean;
 };
 
 export type LocalAuthState = {

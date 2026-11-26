@@ -489,6 +489,21 @@ export function createFeApiSdk(executor: ApiExecutor) {
         options,
       );
     },
+    /** POST /api/v1/auth/oauth/google/mobile/attempt */
+    authBeginGoogleMobileOAuth(input: FeTypes.BeginGoogleMobileOAuthRequest, options?: RequestRuntimeOptions): Promise<FeTypes.BeginGoogleMobileOAuthResponse> {
+      return runEndpoint<FeTypes.BeginGoogleMobileOAuthRequest, FeTypes.BeginGoogleMobileOAuthResponse>(
+        executor,
+        {
+          method: 'POST',
+          path: '/auth/oauth/google/mobile/attempt',
+          isWrapper: false,
+          isMultipart: false,
+          requiresIdempotency: false,
+        },
+        input,
+        options,
+      );
+    },
     /** POST /api/v1/auth/oauth/google/exchange */
     authExchangeGoogleOAuthTicket(input: FeTypes.AuthExchangeGoogleOAuthTicketRequest, options?: RequestRuntimeOptions): Promise<FeTypes.AuthExchangeGoogleOAuthTicketResponse> {
       return runEndpoint<FeTypes.AuthExchangeGoogleOAuthTicketRequest, FeTypes.AuthExchangeGoogleOAuthTicketResponse>(
@@ -3876,6 +3891,347 @@ export function createFeApiSdk(executor: ApiExecutor) {
         {
           method: 'POST',
           path: '/ai-documents/{id}/rag-ingesting',
+          isWrapper: true,
+          isMultipart: false,
+          requiresIdempotency: false,
+        },
+        input,
+        options,
+      );
+    },
+    // ==================== E1: DOCTOR BOOKING SETTINGS ====================
+    /** GET /api/v1/doctor-booking-settings/me */
+    doctorBookingSettingsGetMine(options?: RequestRuntimeOptions): Promise<FeTypes.DoctorBookingSettingsResponse> {
+      return runEndpoint<undefined, FeTypes.DoctorBookingSettingsResponse>(
+        executor,
+        {
+          method: 'GET',
+          path: '/doctor-booking-settings/me',
+          isWrapper: false,
+          isMultipart: false,
+          requiresIdempotency: false,
+        },
+        undefined,
+        options,
+      );
+    },
+    /** PATCH /api/v1/doctor-booking-settings/me */
+    doctorBookingSettingsUpdateMine(
+      input: FeTypes.UpdateDoctorBookingSettingsRequest,
+      options?: RequestRuntimeOptions,
+    ): Promise<FeTypes.DoctorBookingSettingsResponse> {
+      return runEndpoint<FeTypes.UpdateDoctorBookingSettingsRequest, FeTypes.DoctorBookingSettingsResponse>(
+        executor,
+        {
+          method: 'PATCH',
+          path: '/doctor-booking-settings/me',
+          isWrapper: false,
+          isMultipart: false,
+          requiresIdempotency: false,
+        },
+        input,
+        options,
+      );
+    },
+    /** GET /api/v1/doctor-booking-settings/{doctorId} */
+    doctorBookingSettingsGetForAdmin(
+      input: FeTypes.DoctorBookingSettingsGetForAdminRequest,
+      options?: RequestRuntimeOptions,
+    ): Promise<FeTypes.DoctorBookingSettingsResponse> {
+      return runEndpoint<FeTypes.DoctorBookingSettingsGetForAdminRequest, FeTypes.DoctorBookingSettingsResponse>(
+        executor,
+        {
+          method: 'GET',
+          path: '/doctor-booking-settings/{doctorId}',
+          isWrapper: true,
+          isMultipart: false,
+          requiresIdempotency: false,
+        },
+        input,
+        options,
+      );
+    },
+    /** PATCH /api/v1/doctor-booking-settings/{doctorId}/override */
+    doctorBookingSettingsOverride(
+      input: FeTypes.DoctorBookingSettingsOverrideRequest,
+      options?: RequestRuntimeOptions,
+    ): Promise<FeTypes.DoctorBookingSettingsResponse> {
+      return runEndpoint<FeTypes.DoctorBookingSettingsOverrideRequest, FeTypes.DoctorBookingSettingsResponse>(
+        executor,
+        {
+          method: 'PATCH',
+          path: '/doctor-booking-settings/{doctorId}/override',
+          isWrapper: true,
+          isMultipart: false,
+          requiresIdempotency: false,
+        },
+        input,
+        options,
+      );
+    },
+    // ==================== E2: FAMILY COMPANION & METRICS ====================
+    /** GET /api/v1/users/family-companion/contacts */
+    usersSearchFamilyCompanionContacts(
+      input: FeTypes.UsersSearchFamilyCompanionContactsRequest,
+      options?: RequestRuntimeOptions,
+    ): Promise<FeTypes.SearchFamilyCompanionContactsResponse> {
+      return runEndpoint<FeTypes.UsersSearchFamilyCompanionContactsRequest, FeTypes.SearchFamilyCompanionContactsResponse>(
+        executor,
+        {
+          method: 'GET',
+          path: '/users/family-companion/contacts',
+          isWrapper: true,
+          isMultipart: false,
+          requiresIdempotency: false,
+        },
+        input,
+        options,
+      );
+    },
+    /** POST /api/v1/family-links */
+    familyLinksCreate(
+      input: WithFlexibleHeaders<FeTypes.FamilyLinksCreateApiRequest>,
+      options?: RequestRuntimeOptions,
+    ): Promise<FeTypes.CreateFamilyInvitationResponse> {
+      return runEndpoint<WithFlexibleHeaders<FeTypes.FamilyLinksCreateApiRequest>, FeTypes.CreateFamilyInvitationResponse>(
+        executor,
+        {
+          method: 'POST',
+          path: '/family-links',
+          isWrapper: true,
+          isMultipart: false,
+          requiresIdempotency: true,
+        },
+        input,
+        options,
+      );
+    },
+    /** GET /api/v1/family-links */
+    familyLinksList(
+      input?: FeTypes.FamilyLinksListRequest,
+      options?: RequestRuntimeOptions,
+    ): Promise<FeTypes.FamilyLinksListResponse> {
+      return runEndpoint<FeTypes.FamilyLinksListRequest, FeTypes.FamilyLinksListResponse>(
+        executor,
+        {
+          method: 'GET',
+          path: '/family-links',
+          isWrapper: true,
+          isMultipart: false,
+          requiresIdempotency: false,
+        },
+        input,
+        options,
+      );
+    },
+    /** GET /api/v1/family-links/{id} */
+    familyLinksGet(
+      input: FeTypes.FamilyLinkGetRequest,
+      options?: RequestRuntimeOptions,
+    ): Promise<FeTypes.FamilyLinkGetResponse> {
+      return runEndpoint<FeTypes.FamilyLinkGetRequest, FeTypes.FamilyLinkGetResponse>(
+        executor,
+        {
+          method: 'GET',
+          path: '/family-links/{id}',
+          isWrapper: true,
+          isMultipart: false,
+          requiresIdempotency: false,
+        },
+        input,
+        options,
+      );
+    },
+    /** POST /api/v1/family-links/redeem */
+    familyLinksRedeem(
+      input: WithFlexibleHeaders<FeTypes.FamilyLinksRedeemApiRequest>,
+      options?: RequestRuntimeOptions,
+    ): Promise<FeTypes.FamilyLinksRedeemResponse> {
+      return runEndpoint<WithFlexibleHeaders<FeTypes.FamilyLinksRedeemApiRequest>, FeTypes.FamilyLinksRedeemResponse>(
+        executor,
+        {
+          method: 'POST',
+          path: '/family-links/redeem',
+          isWrapper: true,
+          isMultipart: false,
+          requiresIdempotency: true,
+        },
+        input,
+        options,
+      );
+    },
+    /** POST /api/v1/family-links/{id}/accept */
+    familyLinksAccept(
+      input: WithFlexibleHeaders<FeTypes.FamilyLinksAcceptApiRequest>,
+      options?: RequestRuntimeOptions,
+    ): Promise<FeTypes.FamilyLinksAcceptResponse> {
+      return runEndpoint<WithFlexibleHeaders<FeTypes.FamilyLinksAcceptApiRequest>, FeTypes.FamilyLinksAcceptResponse>(
+        executor,
+        {
+          method: 'POST',
+          path: '/family-links/{id}/accept',
+          isWrapper: true,
+          isMultipart: false,
+          requiresIdempotency: true,
+        },
+        input,
+        options,
+      );
+    },
+    /** POST /api/v1/family-links/{id}/actions/{action} */
+    familyLinksAction(
+      input: WithFlexibleHeaders<FeTypes.FamilyLinksActionApiRequest>,
+      options?: RequestRuntimeOptions,
+    ): Promise<FeTypes.FamilyLinksActionResponse> {
+      return runEndpoint<WithFlexibleHeaders<FeTypes.FamilyLinksActionApiRequest>, FeTypes.FamilyLinksActionResponse>(
+        executor,
+        {
+          method: 'POST',
+          path: '/family-links/{id}/actions/{action}',
+          isWrapper: true,
+          isMultipart: false,
+          requiresIdempotency: true,
+        },
+        input,
+        options,
+      );
+    },
+    /** PUT /api/v1/family-links/{id}/permissions */
+    familyLinksUpdatePermissions(
+      input: WithFlexibleHeaders<FeTypes.FamilyLinksUpdatePermissionsApiRequest>,
+      options?: RequestRuntimeOptions,
+    ): Promise<FeTypes.FamilyLinksUpdatePermissionsResponse> {
+      return runEndpoint<WithFlexibleHeaders<FeTypes.FamilyLinksUpdatePermissionsApiRequest>, FeTypes.FamilyLinksUpdatePermissionsResponse>(
+        executor,
+        {
+          method: 'PUT',
+          path: '/family-links/{id}/permissions',
+          isWrapper: true,
+          isMultipart: false,
+          requiresIdempotency: true,
+        },
+        input,
+        options,
+      );
+    },
+    /** POST /api/v1/family-links/{id}/regenerate-artifacts */
+    familyLinksRegenerateArtifacts(
+      input: WithFlexibleHeaders<FeTypes.RegenerateFamilyInvitationArtifactsRequest>,
+      options?: RequestRuntimeOptions,
+    ): Promise<FeTypes.RegenerateFamilyInvitationArtifactsResponse> {
+      return runEndpoint<WithFlexibleHeaders<FeTypes.RegenerateFamilyInvitationArtifactsRequest>, FeTypes.RegenerateFamilyInvitationArtifactsResponse>(
+        executor,
+        {
+          method: 'POST',
+          path: '/family-links/{id}/regenerate-artifacts',
+          isWrapper: true,
+          isMultipart: false,
+          requiresIdempotency: true,
+        },
+        input,
+        options,
+      );
+    },
+    /** GET /api/v1/family-links/{id}/health-metric-sharing */
+    familyLinksGetHealthMetricSharing(
+      input: FeTypes.FamilyLinksGetHealthMetricSharingRequest,
+      options?: RequestRuntimeOptions,
+    ): Promise<FeTypes.FamilyHealthMetricSharingResponse> {
+      return runEndpoint<FeTypes.FamilyLinksGetHealthMetricSharingRequest, FeTypes.FamilyHealthMetricSharingResponse>(
+        executor,
+        {
+          method: 'GET',
+          path: '/family-links/{id}/health-metric-sharing',
+          isWrapper: true,
+          isMultipart: false,
+          requiresIdempotency: false,
+        },
+        input,
+        options,
+      );
+    },
+    /** PUT /api/v1/family-links/{id}/health-metric-sharing */
+    familyLinksUpsertHealthMetricSharing(
+      input: WithFlexibleHeaders<FeTypes.FamilyLinksUpsertHealthMetricSharingRequest>,
+      options?: RequestRuntimeOptions,
+    ): Promise<FeTypes.FamilyHealthMetricSharingResponse> {
+      return runEndpoint<WithFlexibleHeaders<FeTypes.FamilyLinksUpsertHealthMetricSharingRequest>, FeTypes.FamilyHealthMetricSharingResponse>(
+        executor,
+        {
+          method: 'PUT',
+          path: '/family-links/{id}/health-metric-sharing',
+          isWrapper: true,
+          isMultipart: false,
+          requiresIdempotency: true,
+        },
+        input,
+        options,
+      );
+    },
+    /** DELETE /api/v1/family-links/{id}/health-metric-sharing */
+    familyLinksRevokeHealthMetricSharing(
+      input: WithFlexibleHeaders<FeTypes.FamilyLinksRevokeHealthMetricSharingRequest>,
+      options?: RequestRuntimeOptions,
+    ): Promise<FeTypes.FamilyLinksRevokeHealthMetricSharingResponse> {
+      return runEndpoint<WithFlexibleHeaders<FeTypes.FamilyLinksRevokeHealthMetricSharingRequest>, FeTypes.FamilyLinksRevokeHealthMetricSharingResponse>(
+        executor,
+        {
+          method: 'DELETE',
+          path: '/family-links/{id}/health-metric-sharing',
+          isWrapper: true,
+          isMultipart: false,
+          requiresIdempotency: true,
+        },
+        input,
+        options,
+      );
+    },
+    /** GET /api/v1/family-links/{id}/health-metrics/summary */
+    familyLinksReadHealthMetricSummary(
+      input: FeTypes.FamilyLinksReadHealthMetricApiRequest,
+      options?: RequestRuntimeOptions,
+    ): Promise<FeTypes.FamilyHealthMetricSummaryResponse> {
+      return runEndpoint<FeTypes.FamilyLinksReadHealthMetricApiRequest, FeTypes.FamilyHealthMetricSummaryResponse>(
+        executor,
+        {
+          method: 'GET',
+          path: '/family-links/{id}/health-metrics/summary',
+          isWrapper: true,
+          isMultipart: false,
+          requiresIdempotency: false,
+        },
+        input,
+        options,
+      );
+    },
+    /** GET /api/v1/family-links/{id}/health-metrics/trend */
+    familyLinksReadHealthMetricTrend(
+      input: FeTypes.FamilyLinksReadHealthMetricApiRequest,
+      options?: RequestRuntimeOptions,
+    ): Promise<FeTypes.FamilyHealthMetricTrendResponse> {
+      return runEndpoint<FeTypes.FamilyLinksReadHealthMetricApiRequest, FeTypes.FamilyHealthMetricTrendResponse>(
+        executor,
+        {
+          method: 'GET',
+          path: '/family-links/{id}/health-metrics/trend',
+          isWrapper: true,
+          isMultipart: false,
+          requiresIdempotency: false,
+        },
+        input,
+        options,
+      );
+    },
+    /** GET /api/v1/admin/family-links */
+    adminFamilyLinksList(
+      input?: FeTypes.AdminFamilyLinksListRequest,
+      options?: RequestRuntimeOptions,
+    ): Promise<FeTypes.AdminFamilyLinksListResponse> {
+      return runEndpoint<FeTypes.AdminFamilyLinksListRequest, FeTypes.AdminFamilyLinksListResponse>(
+        executor,
+        {
+          method: 'GET',
+          path: '/admin/family-links',
           isWrapper: true,
           isMultipart: false,
           requiresIdempotency: false,

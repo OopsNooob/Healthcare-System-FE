@@ -41,14 +41,23 @@ export default function Index() {
             id?: string;
             _id?: string;
             email?: string;
+            emailVerified?: boolean;
+            emailVerifiedAt?: string | null;
             fullName?: string;
             role?: string;
             avatarUrl?: string;
           };
           if (profileRecord && (profileRecord.id || profileRecord._id)) {
+            const resolvedEmailVerified =
+              typeof profileRecord.emailVerified === 'boolean'
+                ? profileRecord.emailVerified
+                : 'emailVerifiedAt' in profileRecord
+                  ? Boolean(profileRecord.emailVerifiedAt)
+                  : undefined;
             const hydratedUser = {
               id: String(profileRecord.id ?? profileRecord._id),
               email: profileRecord.email ?? '',
+              emailVerified: resolvedEmailVerified,
               name: profileRecord.fullName ?? '',
               role: profileRecord.role ?? 'patient',
               avatar: profileRecord.avatarUrl,

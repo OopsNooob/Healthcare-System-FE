@@ -79,10 +79,11 @@ export function getDefaultSelectedPlanId<T extends BillingPlanLike>(
 export function formatBillingMoney(
   amount: number,
   currency = 'VND',
-  freeLabel = 'Miễn phí'
+  freeLabel = 'Miễn phí',
+  locale = 'vi-VN'
 ): string {
   if (!amount || amount <= 0) return freeLabel;
-  return `${amount.toLocaleString('vi-VN')} ${currency}`;
+  return `${amount.toLocaleString(locale)} ${currency}`;
 }
 
 /** Classifies the CTA behavior for the currently selected catalog plan card. */

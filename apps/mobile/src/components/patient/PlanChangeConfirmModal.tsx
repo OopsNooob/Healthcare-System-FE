@@ -24,6 +24,7 @@ export interface PlanQuotaSummary {
   aiRequestLimit: number;
   aiTokenLimit: number;
   activeCareProgramLimit: number;
+  familyLinkLimit?: number;
 }
 
 interface PlanChangeConfirmModalProps {
@@ -125,6 +126,7 @@ export const PlanChangeConfirmModal: React.FC<PlanChangeConfirmModalProps> = ({
   const visual = MODE_VISUALS[mode];
   const HeaderIcon = visual.Icon;
   const freePriceLabel = t('mobile.free_price', '0đ');
+  const dateLocale = t('mobile.date_locale', 'vi-VN');
 
   const rows = targetPlan
     ? [
@@ -133,9 +135,14 @@ export const PlanChangeConfirmModal: React.FC<PlanChangeConfirmModalProps> = ({
           label: t('mobile.compare_row_price', 'Giá gói'),
           currentDisplay:
             currentPrice !== null
-              ? formatBillingMoney(currentPrice, currentCurrency, freePriceLabel)
+              ? formatBillingMoney(currentPrice, currentCurrency, freePriceLabel, dateLocale)
               : '—',
-          nextDisplay: formatBillingMoney(targetPlan.price, targetPlan.currency, freePriceLabel),
+          nextDisplay: formatBillingMoney(
+            targetPlan.price,
+            targetPlan.currency,
+            freePriceLabel,
+            dateLocale
+          ),
           nextClass: 'text-slate-900 dark:text-white font-bold',
         },
         {
@@ -143,9 +150,9 @@ export const PlanChangeConfirmModal: React.FC<PlanChangeConfirmModalProps> = ({
           label: t('mobile.compare_row_consultations', 'Tư vấn bác sĩ'),
           currentDisplay:
             currentQuota !== null
-              ? currentQuota.consultationLimitPerCycle.toLocaleString('vi-VN')
+              ? currentQuota.consultationLimitPerCycle.toLocaleString(dateLocale)
               : '—',
-          nextDisplay: targetPlan.quota.consultationLimitPerCycle.toLocaleString('vi-VN'),
+          nextDisplay: targetPlan.quota.consultationLimitPerCycle.toLocaleString(dateLocale),
           nextClass: getNumericDeltaClass(
             currentQuota?.consultationLimitPerCycle,
             targetPlan.quota.consultationLimitPerCycle
@@ -155,8 +162,8 @@ export const PlanChangeConfirmModal: React.FC<PlanChangeConfirmModalProps> = ({
           key: 'aiRequests',
           label: t('mobile.compare_row_ai_requests', 'Lượt hỏi AI'),
           currentDisplay:
-            currentQuota !== null ? currentQuota.aiRequestLimit.toLocaleString('vi-VN') : '—',
-          nextDisplay: targetPlan.quota.aiRequestLimit.toLocaleString('vi-VN'),
+            currentQuota !== null ? currentQuota.aiRequestLimit.toLocaleString(dateLocale) : '—',
+          nextDisplay: targetPlan.quota.aiRequestLimit.toLocaleString(dateLocale),
           nextClass: getNumericDeltaClass(
             currentQuota?.aiRequestLimit,
             targetPlan.quota.aiRequestLimit
@@ -166,8 +173,8 @@ export const PlanChangeConfirmModal: React.FC<PlanChangeConfirmModalProps> = ({
           key: 'aiTokens',
           label: t('mobile.compare_row_ai_tokens', 'Hạn mức token AI'),
           currentDisplay:
-            currentQuota !== null ? currentQuota.aiTokenLimit.toLocaleString('vi-VN') : '—',
-          nextDisplay: targetPlan.quota.aiTokenLimit.toLocaleString('vi-VN'),
+            currentQuota !== null ? currentQuota.aiTokenLimit.toLocaleString(dateLocale) : '—',
+          nextDisplay: targetPlan.quota.aiTokenLimit.toLocaleString(dateLocale),
           nextClass: getNumericDeltaClass(
             currentQuota?.aiTokenLimit,
             targetPlan.quota.aiTokenLimit
@@ -178,12 +185,25 @@ export const PlanChangeConfirmModal: React.FC<PlanChangeConfirmModalProps> = ({
           label: t('mobile.compare_row_care_programs', 'Chương trình chăm sóc'),
           currentDisplay:
             currentQuota !== null
-              ? currentQuota.activeCareProgramLimit.toLocaleString('vi-VN')
+              ? currentQuota.activeCareProgramLimit.toLocaleString(dateLocale)
               : '—',
-          nextDisplay: targetPlan.quota.activeCareProgramLimit.toLocaleString('vi-VN'),
+          nextDisplay: targetPlan.quota.activeCareProgramLimit.toLocaleString(dateLocale),
           nextClass: getNumericDeltaClass(
             currentQuota?.activeCareProgramLimit,
             targetPlan.quota.activeCareProgramLimit
+          ),
+        },
+        {
+          key: 'familyLinks',
+          label: t('mobile.compare_row_family_links', 'Liên kết gia đình'),
+          currentDisplay:
+            typeof currentQuota?.familyLinkLimit === 'number'
+              ? currentQuota.familyLinkLimit.toLocaleString(dateLocale)
+              : '—',
+          nextDisplay: (targetPlan.quota.familyLinkLimit ?? 0).toLocaleString(dateLocale),
+          nextClass: getNumericDeltaClass(
+            currentQuota?.familyLinkLimit,
+            targetPlan.quota.familyLinkLimit ?? 0
           ),
         },
       ]
@@ -267,7 +287,7 @@ export const PlanChangeConfirmModal: React.FC<PlanChangeConfirmModalProps> = ({
                 >
                   <View
                     style={tw(
-                      'flex-row px-3.5 py-2.5 bg-slate-100 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700'
+                      'flex-row items-center px-3.5 py-2.5 bg-slate-100 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700'
                     )}
                   >
                     <Text
@@ -278,22 +298,44 @@ export const PlanChangeConfirmModal: React.FC<PlanChangeConfirmModalProps> = ({
                     >
                       {t('mobile.compare_col_metric', 'Quyền lợi')}
                     </Text>
-                    <Text
-                      style={tw(
-                        'flex-1 text-[11px] font-bold uppercase text-slate-500 dark:text-slate-400 text-right'
-                      )}
-                      numberOfLines={1}
-                    >
-                      {t('mobile.compare_col_current', 'Hiện tại')} ({currentPlanName})
-                    </Text>
-                    <Text
-                      style={tw(
-                        'flex-1 text-[11px] font-bold uppercase text-slate-700 dark:text-slate-200 text-right ml-2'
-                      )}
-                      numberOfLines={1}
-                    >
-                      {t('mobile.compare_col_next', 'Chu kỳ sau')} ({targetPlan.name})
-                    </Text>
+                    <View style={tw('flex-1 items-end')}>
+                      <Text
+                        style={tw(
+                          'text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400 text-right'
+                        )}
+                        numberOfLines={1}
+                      >
+                        {t('mobile.compare_col_current', 'Hiện tại')}
+                      </Text>
+                      <Text
+                        style={tw(
+                          'text-[11px] font-bold text-slate-600 dark:text-slate-300 text-right mt-0.5'
+                        )}
+                        numberOfLines={1}
+                        ellipsizeMode="tail"
+                      >
+                        {currentPlanName}
+                      </Text>
+                    </View>
+                    <View style={tw('flex-1 items-end ml-2')}>
+                      <Text
+                        style={tw(
+                          'text-[10px] font-bold uppercase text-slate-700 dark:text-slate-200 text-right'
+                        )}
+                        numberOfLines={1}
+                      >
+                        {t('mobile.compare_col_next', 'Chu kỳ sau')}
+                      </Text>
+                      <Text
+                        style={tw(
+                          'text-[11px] font-bold text-slate-900 dark:text-white text-right mt-0.5'
+                        )}
+                        numberOfLines={1}
+                        ellipsizeMode="tail"
+                      >
+                        {targetPlan.name}
+                      </Text>
+                    </View>
                   </View>
 
                   {rows.map((row, idx) => (
@@ -336,7 +378,7 @@ export const PlanChangeConfirmModal: React.FC<PlanChangeConfirmModalProps> = ({
                     {t('mobile.pay_now_vnpay_label', 'Thanh toán ngay qua VNPAY')}
                   </Text>
                   <Text style={tw('text-base font-bold text-slate-900 dark:text-white')}>
-                    {formatBillingMoney(targetPlan.price, targetPlan.currency, freePriceLabel)}
+                    {formatBillingMoney(targetPlan.price, targetPlan.currency, freePriceLabel, dateLocale)}
                   </Text>
                 </View>
               </>
