@@ -47,6 +47,7 @@ import {
   type PlanActionKind,
 } from '@/utils/billingPlanSelection';
 import { PlanChangeConfirmModal } from '@/components/patient/PlanChangeConfirmModal';
+import { formatPlanBenefits } from '@/utils/billingBenefits';
 import {
   mobileApi,
   normalizePaginatedList,
@@ -103,6 +104,7 @@ export default function PremiumScreen() {
   const [usage, setUsage] = useState<UsageDto | null>(null);
   const [orders, setOrders] = useState<OrderSummaryDto[]>([]);
   const [activeCareCount, setActiveCareCount] = useState<number>(0);
+  const [activeFamilyLinkCount, setActiveFamilyLinkCount] = useState<number>(0);
   const [aiTotalTokens, setAiTotalTokens] = useState<number | null>(null);
   const [aiTotalConversations, setAiTotalConversations] = useState<number | null>(null);
 
@@ -165,6 +167,7 @@ export default function PremiumScreen() {
         ordersResult,
         careResult,
         aiSummaryResult,
+        familyLinksResult,
       ] = await Promise.allSettled([
         mobileApi.patientBillingReadListPlans({
           query: { page: 1, limit: 50, sortOrder: 1, sortBy: 'price' },
@@ -178,6 +181,9 @@ export default function PremiumScreen() {
         }),
         mobileApi.careEnrollmentList({ query: { page: 1, limit: 20, status: 'active' } }),
         mobileApi.aiAssistantGetUserConversationSummary(),
+        mobileApi.familyLinksList({
+          query: { direction: 'sent', status: 'active', page: 1, limit: 1 },
+        }),
       ]);
 
       const coreErrors: unknown[] = [];
@@ -255,6 +261,20 @@ export default function PremiumScreen() {
             setAiTotalConversations(summaryData.totalConversations);
           }
         }
+      }
+
+      if (familyLinksResult.status === 'fulfilled') {
+        const rawFamily = familyLinksResult.value as
+          | { data?: { total?: number; items?: unknown[] }; total?: number; items?: unknown[] }
+          | undefined;
+        const familyPayload = rawFamily?.data ?? rawFamily;
+        const familyTotal =
+          typeof familyPayload?.total === 'number'
+            ? familyPayload.total
+            : Array.isArray(familyPayload?.items)
+              ? familyPayload.items.length
+              : 0;
+        setActiveFamilyLinkCount(familyTotal);
       }
 
       if (coreErrors.length === 2) {
@@ -847,7 +867,7 @@ export default function PremiumScreen() {
                   </Text>
                   <Text style={tw('text-xs font-bold text-indigo-600 dark:text-indigo-400')}>
                     {entitlement
-                      ? `${entitlement.aiRequestLimit.toLocaleString('vi-VN')} ${t(
+                      ? `${entitlement.aiRequestLimit.toLocaleString(dateLocale)} ${t(
                           'mobile.requests_unit',
                           'lượt'
                         )} / ${aiPeriodLabel}`
@@ -856,9 +876,9 @@ export default function PremiumScreen() {
                 </View>
                 <Text style={tw('text-[11px] text-slate-500 dark:text-slate-400')}>
                   {t('mobile.ai_token_limit_label', 'Giới hạn token')}:{' '}
-                  {entitlement ? entitlement.aiTokenLimit.toLocaleString('vi-VN') : '—'}
+                  {entitlement ? entitlement.aiTokenLimit.toLocaleString(dateLocale) : '—'}
                   {aiTotalTokens !== null
-                    ? ` • ${t('mobile.used_total_tokens', 'Đã dùng tích lũy')}: ${aiTotalTokens.toLocaleString('vi-VN')}`
+                    ? ` • ${t('mobile.used_total_tokens', 'Đã dùng tích lũy')}: ${aiTotalTokens.toLocaleString(dateLocale)}`
                     : ''}
                   {aiTotalConversations !== null
                     ? ` (${aiTotalConversations} ${t('mobile.conversations_unit', 'hội thoại')})`
@@ -905,13 +925,25 @@ export default function PremiumScreen() {
               </View>
 
               {/* Meter 3: Care Program Limit */}
-              <View style={tw('bg-slate-50 dark:bg-slate-800/60 p-3 rounded-2xl')}>
+              <View style={tw('mb-3 bg-slate-50 dark:bg-slate-800/60 p-3 rounded-2xl')}>
                 <View style={tw('flex-row justify-between items-center')}>
                   <Text style={tw('text-xs font-bold text-slate-700 dark:text-slate-200')}>
                     {t('mobile.meter_3_care_program', 'Chương trình chăm sóc đang hoạt động')}
                   </Text>
                   <Text style={tw('text-xs font-bold text-slate-900 dark:text-white')}>
                     {activeCareCount} / {entitlement?.activeCareProgramLimit ?? 0}
+                  </Text>
+                </View>
+              </View>
+
+              {/* Meter 4: Family Companion Link Limit */}
+              <View style={tw('bg-slate-50 dark:bg-slate-800/60 p-3 rounded-2xl')}>
+                <View style={tw('flex-row justify-between items-center')}>
+                  <Text style={tw('text-xs font-bold text-slate-700 dark:text-slate-200')}>
+                    {t('mobile.meter_4_family_link', 'Liên kết tài khoản người thân')}
+                  </Text>
+                  <Text style={tw('text-xs font-bold text-slate-900 dark:text-white')}>
+                    {activeFamilyLinkCount} / {entitlement?.familyLinkLimit ?? 0}
                   </Text>
                 </View>
               </View>
@@ -1022,7 +1054,12 @@ export default function PremiumScreen() {
                     </View>
                     <View style={tw('items-end')}>
                       <Text style={tw('text-lg font-bold text-slate-900 dark:text-white')}>
-                        {formatMoney(plan.price, plan.currency, t('mobile.free_price', '0đ'))}
+                        {formatMoney(
+                          plan.price,
+                          plan.currency,
+                          t('mobile.free_price', '0đ'),
+                          dateLocale
+                        )}
                       </Text>
                       {plan.durationDays > 0 ? (
                         <Text style={tw('text-[11px] text-slate-500 dark:text-slate-400')}>
@@ -1035,30 +1072,47 @@ export default function PremiumScreen() {
                   <View style={tw('gap-2')}>
                     <View style={tw('flex-row items-center')}>
                       <CheckCircle2 color="#10b981" size={16} />
-                      <Text style={tw('text-slate-700 dark:text-slate-300 text-xs ml-2')}>
+                      <Text style={tw('text-slate-700 dark:text-slate-300 text-xs ml-2 flex-1')}>
                         {plan.quota.consultationLimitPerCycle}{' '}
                         {t('mobile.consultations_per_cycle_short', 'lượt tư vấn bác sĩ mỗi chu kỳ')}
                       </Text>
                     </View>
                     <View style={tw('flex-row items-center')}>
                       <CheckCircle2 color="#10b981" size={16} />
-                      <Text style={tw('text-slate-700 dark:text-slate-300 text-xs ml-2')}>
-                        {plan.quota.aiRequestLimit} {t('mobile.requests_unit', 'lượt')} AI •{' '}
-                        {plan.quota.aiTokenLimit.toLocaleString('vi-VN')} tokens
+                      <Text style={tw('text-slate-700 dark:text-slate-300 text-xs ml-2 flex-1')}>
+                        {plan.quota.aiRequestLimit.toLocaleString(dateLocale)}{' '}
+                        {t('mobile.requests_unit', 'lượt')} AI •{' '}
+                        {plan.quota.aiTokenLimit.toLocaleString(dateLocale)}{' '}
+                        {t('mobile.tokens_unit', 'token')}
                       </Text>
                     </View>
                     <View style={tw('flex-row items-center')}>
                       <CheckCircle2 color="#10b981" size={16} />
-                      <Text style={tw('text-slate-700 dark:text-slate-300 text-xs ml-2')}>
+                      <Text style={tw('text-slate-700 dark:text-slate-300 text-xs ml-2 flex-1')}>
                         {plan.quota.activeCareProgramLimit > 0
                           ? t(
                               'mobile.care_program_included',
-                              `Tối đa ${plan.quota.activeCareProgramLimit} chương trình chăm sóc mạn tính`,
+                              'Tối đa {{count}} chương trình chăm sóc mạn tính',
                               { count: plan.quota.activeCareProgramLimit }
                             )
                           : t(
                               'mobile.no_care_program_included',
                               'Theo dõi chỉ số cơ bản và cảnh báo an toàn'
+                            )}
+                      </Text>
+                    </View>
+                    <View style={tw('flex-row items-center')}>
+                      <CheckCircle2 color="#10b981" size={16} />
+                      <Text style={tw('text-slate-700 dark:text-slate-300 text-xs ml-2 flex-1')}>
+                        {(plan.quota.familyLinkLimit ?? 0) > 0
+                          ? t(
+                              'mobile.family_links_included',
+                              'Tối đa {{count}} liên kết đồng hành gia đình',
+                              { count: plan.quota.familyLinkLimit }
+                            )
+                          : t(
+                              'mobile.no_family_links_included',
+                              'Chưa hỗ trợ liên kết đồng hành gia đình'
                             )}
                       </Text>
                     </View>
@@ -1335,7 +1389,8 @@ export default function PremiumScreen() {
                       {formatMoney(
                         planDetail.price,
                         planDetail.currency,
-                        t('mobile.free_price', 'Miễn phí')
+                        t('mobile.free_price', 'Miễn phí'),
+                        dateLocale
                       )}
                     </Text>
                   </Text>
@@ -1349,41 +1404,92 @@ export default function PremiumScreen() {
                   </Text>
                   <Text style={tw('text-sm text-slate-800 dark:text-slate-200')}>
                     • {t('mobile.ai_requests_quota_label', 'Lượt hỏi đáp AI')}:{' '}
-                    {planDetail.quota.aiRequestLimit} ({planDetail.quota.aiTokenLimit.toLocaleString('vi-VN')} tokens)
+                    {planDetail.quota.aiRequestLimit.toLocaleString(dateLocale)} (
+                    {planDetail.quota.aiTokenLimit.toLocaleString(dateLocale)}{' '}
+                    {t('mobile.tokens_unit', 'token')})
                   </Text>
                   <Text style={tw('text-sm text-slate-800 dark:text-slate-200')}>
                     • {t('mobile.care_program_quota_label', 'Chương trình chăm sóc tối đa')}:{' '}
-                    {planDetail.quota.activeCareProgramLimit}
+                    {planDetail.quota.activeCareProgramLimit.toLocaleString(dateLocale)}
+                  </Text>
+                  <Text style={tw('text-sm text-slate-800 dark:text-slate-200')}>
+                    • {t('mobile.family_link_quota_label', 'Liên kết gia đình tối đa')}:{' '}
+                    {(planDetail.quota.familyLinkLimit ?? 0).toLocaleString(dateLocale)}
                   </Text>
                 </View>
 
-                {planDetail.benefits && Object.keys(planDetail.benefits).length > 0 ? (
-                  <View
-                    style={tw(
-                      'bg-slate-50 dark:bg-slate-800/70 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 mb-4 gap-2'
-                    )}
-                  >
-                    <Text
-                      style={tw('text-xs font-bold uppercase text-slate-500 dark:text-slate-400')}
+                {(() => {
+                  const formattedBenefits = formatPlanBenefits(
+                    planDetail.benefits,
+                    t,
+                    dateLocale
+                  );
+                  if (
+                    formattedBenefits.rows.length === 0 &&
+                    formattedBenefits.highlights.length === 0
+                  ) {
+                    return null;
+                  }
+                  return (
+                    <View
+                      style={tw(
+                        'bg-slate-50 dark:bg-slate-800/70 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 mb-4 gap-2'
+                      )}
                     >
-                      {t('mobile.included_benefits', 'Quyền lợi bổ sung')}
-                    </Text>
-                    {Object.entries(planDetail.benefits).map(([key, value]) => (
-                      <View key={key} style={tw('flex-row justify-between items-center py-0.5')}>
-                        <Text style={tw('text-xs text-slate-600 dark:text-slate-300 flex-1 mr-2')}>
-                          {key}
-                        </Text>
-                        <Text style={tw('text-xs font-bold text-slate-900 dark:text-white')}>
-                          {typeof value === 'boolean'
-                            ? value
-                              ? t('mobile.common_yes', 'Có')
-                              : t('mobile.common_no', 'Không')
-                            : String(value)}
-                        </Text>
-                      </View>
-                    ))}
-                  </View>
-                ) : null}
+                      <Text
+                        style={tw('text-xs font-bold uppercase text-slate-500 dark:text-slate-400')}
+                      >
+                        {t('mobile.included_benefits', 'Quyền lợi bổ sung')}
+                      </Text>
+                      {formattedBenefits.rows.map((row) => (
+                        <View
+                          key={row.key}
+                          style={tw('flex-row justify-between items-center py-0.5')}
+                        >
+                          <Text style={tw('text-xs text-slate-600 dark:text-slate-300 flex-1 mr-3')}>
+                            {row.label}
+                          </Text>
+                          <Text
+                            style={tw(
+                              `text-xs font-bold ${
+                                row.isBoolean
+                                  ? row.boolValue
+                                    ? 'text-emerald-600 dark:text-emerald-400'
+                                    : 'text-slate-400 dark:text-slate-500'
+                                  : 'text-slate-900 dark:text-white'
+                              }`
+                            )}
+                          >
+                            {row.valueText}
+                          </Text>
+                        </View>
+                      ))}
+                      {formattedBenefits.highlights.length > 0 ? (
+                        <View
+                          style={tw(
+                            `${
+                              formattedBenefits.rows.length > 0
+                                ? 'pt-2 mt-1 border-t border-slate-200 dark:border-slate-700'
+                                : ''
+                            } gap-1`
+                          )}
+                        >
+                          <Text style={tw('text-xs font-semibold text-slate-700 dark:text-slate-200')}>
+                            {t('mobile.plan_benefit_highlights', 'Tính năng nổi bật')}
+                          </Text>
+                          {formattedBenefits.highlights.map((item, idx) => (
+                            <Text
+                              key={`hl-${idx}`}
+                              style={tw('text-xs text-slate-600 dark:text-slate-300 pl-2 leading-4')}
+                            >
+                              • {item}
+                            </Text>
+                          ))}
+                        </View>
+                      ) : null}
+                    </View>
+                  );
+                })()}
               </ScrollView>
             ) : null}
           </View>
@@ -1567,7 +1673,12 @@ export default function PremiumScreen() {
                               </Text>
                             </View>
                             <Text style={tw('font-bold text-slate-900 dark:text-white text-sm')}>
-                              {formatMoney(ord.amount, ord.currency)}
+                              {formatMoney(
+                                ord.amount,
+                                ord.currency,
+                                t('mobile.free_price', '0đ'),
+                                dateLocale
+                              )}
                             </Text>
                           </View>
                           <View style={tw('flex-row items-center justify-between mt-2')}>
@@ -1640,7 +1751,9 @@ export default function PremiumScreen() {
                       <Text style={tw('text-[11px] text-slate-500 dark:text-slate-400 mt-1.5')}>
                         {sub.entitlement.consultationLimitPerCycle}{' '}
                         {t('mobile.consultations_per_cycle_short', 'lượt tư vấn')} •{' '}
-                        {sub.entitlement.aiRequestLimit} {t('mobile.requests_unit', 'lượt')} AI
+                        {sub.entitlement.aiRequestLimit} {t('mobile.requests_unit', 'lượt')} AI •{' '}
+                        {sub.entitlement.familyLinkLimit ?? 0}{' '}
+                        {t('mobile.family_links_short', 'liên kết gia đình')}
                       </Text>
                     </View>
                   );
@@ -1724,7 +1837,12 @@ export default function PremiumScreen() {
               )}
 
               <Text style={tw('text-2xl font-bold text-slate-900 dark:text-white mt-4')}>
-                {formatMoney(currentOrder?.amount ?? 0, currentOrder?.currency)}
+                {formatMoney(
+                  currentOrder?.amount ?? 0,
+                  currentOrder?.currency,
+                  t('mobile.free_price', '0đ'),
+                  dateLocale
+                )}
               </Text>
 
               <View

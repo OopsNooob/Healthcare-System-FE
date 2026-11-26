@@ -2738,7 +2738,22 @@ export type PlansListResponse = Array<{ code: string; version: number; name: str
 
 /** POST /api/v1/billing/plans/drafts — input (Params/Query/Headers/Body theo tên field). */
 export interface PlansCreateRequest {
-  
+  body: {
+    code: string;
+    name: string;
+    description?: string;
+    price: number;
+    currency?: string;
+    durationDays: number;
+    aiRequestLimit: number;
+    aiTokenLimit: number;
+    aiQuotaPeriod: "day" | "subscription_cycle";
+    consultationLimitPerCycle: number;
+    activeCareProgramLimit: number;
+    familyLinkLimit: number;
+    benefits: Record<string, unknown>;
+    refundPolicy: Record<string, unknown>;
+  };
 }
 
 /** POST /api/v1/billing/plans/drafts — response thành công theo return type thực tế. */
@@ -2755,6 +2770,7 @@ export interface PlansCreateResponse {
   aiQuotaPeriod: "day" | "subscription_cycle";
   consultationLimitPerCycle: number;
   activeCareProgramLimit: number;
+  familyLinkLimit: number;
   benefits: Record<string, unknown>;
   refundPolicy: Record<string, unknown>;
   status: "draft" | "published" | "retired";
@@ -3026,6 +3042,7 @@ export interface PatientBillingReadListPlansResponse {
   aiQuotaPeriod: unknown;
   consultationLimitPerCycle: number;
   activeCareProgramLimit: number;
+  familyLinkLimit: number;
   };
   benefits: Record<string, unknown>;
   available: boolean;
@@ -3060,6 +3077,7 @@ export interface PatientBillingReadGetPlanResponse {
   aiQuotaPeriod: unknown;
   consultationLimitPerCycle: number;
   activeCareProgramLimit: number;
+  familyLinkLimit: number;
   };
   benefits: Record<string, unknown>;
   available: boolean;
@@ -3106,6 +3124,7 @@ export interface PatientBillingReadSubscriptionsResponse {
   aiQuotaPeriod: "day" | "subscription_cycle";
   consultationLimitPerCycle: number;
   activeCareProgramLimit: number;
+  familyLinkLimit: number;
   benefits: Record<string, unknown>;
   };
   startedAt: string;
@@ -3138,6 +3157,7 @@ export interface PatientBillingReadSubscriptionsResponse {
   aiQuotaPeriod: "day" | "subscription_cycle";
   consultationLimitPerCycle: number;
   activeCareProgramLimit: number;
+  familyLinkLimit: number;
   benefits: Record<string, unknown>;
   };
   startedAt: string;

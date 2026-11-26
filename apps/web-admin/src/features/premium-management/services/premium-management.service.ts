@@ -19,6 +19,7 @@ export interface PlanVersionRecord {
   aiQuotaPeriod: "day" | "subscription_cycle";
   consultationLimitPerCycle: number;
   activeCareProgramLimit: number;
+  familyLinkLimit: number;
   benefits: Record<string, unknown>;
   refundPolicy: Record<string, unknown>;
   status: "draft" | "published" | "retired";
@@ -38,6 +39,7 @@ export interface CreatePlanDraftInput {
   aiQuotaPeriod: "day" | "subscription_cycle";
   consultationLimitPerCycle: number;
   activeCareProgramLimit: number;
+  familyLinkLimit: number;
   benefits: Record<string, unknown>;
   refundPolicy: Record<string, unknown>;
 }
@@ -63,6 +65,7 @@ function mapRawPlan(raw: Record<string, unknown>, idx: number): PlanVersionRecor
       raw.aiQuotaPeriod === "day" ? "day" : "subscription_cycle",
     consultationLimitPerCycle: Number(raw.consultationLimitPerCycle ?? 0),
     activeCareProgramLimit: Number(raw.activeCareProgramLimit ?? 0),
+    familyLinkLimit: Number(raw.familyLinkLimit ?? 0),
     benefits:
       raw.benefits && typeof raw.benefits === "object"
         ? (raw.benefits as Record<string, unknown>)
@@ -104,10 +107,11 @@ export const premiumManagementService = {
         aiQuotaPeriod: input.aiQuotaPeriod,
         consultationLimitPerCycle: Math.max(0, Math.round(input.consultationLimitPerCycle)),
         activeCareProgramLimit: Math.max(0, Math.min(100, Math.round(input.activeCareProgramLimit))),
+        familyLinkLimit: Math.max(0, Math.min(10, Math.round(input.familyLinkLimit))),
         benefits: input.benefits,
         refundPolicy: input.refundPolicy,
       },
-    } as never);
+    });
     return mapRawPlan(created as unknown as Record<string, unknown>, 0);
   },
 

@@ -1953,7 +1953,7 @@ const PATTERN_MESSAGE_RULES: ReadonlyArray<{
   { pattern: /too many requests/i, key: 'TOO_MANY_REQUESTS' },
   {
     pattern:
-      /(?:page|limit)\s+must\s+(?:not\s+be\s+less\s+than|not\s+be\s+greater\s+than|be\s+an\s+integer)/i,
+      /(?:^|,\s*)\b(?:page|limit)\s+must\s+(?:not\s+be\s+less\s+than|not\s+be\s+greater\s+than|be\s+an\s+integer)/i,
     key: 'VALIDATION_INVALID_PAGINATION',
   },
   { pattern: /must be an email/i, key: 'VALIDATION_INVALID_EMAIL' },

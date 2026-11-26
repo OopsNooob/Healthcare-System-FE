@@ -1431,7 +1431,7 @@ export function PremiumManagement() {
                 </div>
 
                 <div className="overflow-x-auto">
-                  <table className="w-full min-w-[820px] text-left text-xs border-collapse">
+                  <table className="w-full min-w-[920px] text-left text-xs border-collapse">
                     <thead>
                       <tr className="bg-slate-50/70 dark:bg-slate-800/40 text-slate-500 dark:text-slate-400 uppercase border-b border-slate-200 dark:border-slate-800">
                         <th className="px-4 py-3 font-semibold whitespace-nowrap">
@@ -1453,6 +1453,9 @@ export function PremiumManagement() {
                           {t("premiumManagement.catalog.carePrograms")}
                         </th>
                         <th className="px-4 py-3 font-semibold whitespace-nowrap">
+                          {t("premiumManagement.catalog.familyLinks")}
+                        </th>
+                        <th className="px-4 py-3 font-semibold whitespace-nowrap">
                           {t("premiumManagement.catalog.status")}
                         </th>
                         <th className="px-4 py-3 font-semibold text-right whitespace-nowrap">
@@ -1463,7 +1466,7 @@ export function PremiumManagement() {
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                       {planVersions.length === 0 ? (
                         <tr>
-                          <td colSpan={8} className="px-6 py-12 text-center text-slate-400">
+                          <td colSpan={9} className="px-6 py-12 text-center text-slate-400">
                             {t("premiumManagement.empty.noPlans")}
                           </td>
                         </tr>
@@ -1496,6 +1499,9 @@ export function PremiumManagement() {
                             </td>
                             <td className="px-4 py-3 text-slate-600 dark:text-slate-300 whitespace-nowrap">
                               {pv.activeCareProgramLimit}
+                            </td>
+                            <td className="px-4 py-3 text-slate-600 dark:text-slate-300 whitespace-nowrap">
+                              {pv.familyLinkLimit}
                             </td>
                             <td className="px-4 py-3 whitespace-nowrap">
                               {pv.status === "published" ? (

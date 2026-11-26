@@ -606,6 +606,7 @@
         "quotaPeriod": "Chu kỳ cấp hạn mức AI",
         "consultations": "Số buổi tư vấn bác sĩ",
         "carePrograms": "Số chương trình chăm sóc",
+        "familyLinks": "Liên kết đồng hành gia đình",
         "benefitsSection": "Quyền lợi đi kèm",
         "weeklyAiSummary": "Tóm tắt sức khỏe AI hàng tuần",
         "summaryTokenBudget": "Ngân sách token tóm tắt",
@@ -733,7 +734,8 @@
         "versionPublished": "Đã phát hành phiên bản {{code}} {{version}}",
         "versionRetired": "Đã ngừng lưu hành phiên bản {{code}} {{version}}",
         "invalidCode": "Mã gói phải bắt đầu bằng chữ in hoa dài 2–32 ký tự gồm A–Z, 0–9 và gạch dưới.",
-        "invalidNumbers": "Vui lòng nhập giá và thời hạn là số hợp lệ."
+        "invalidNumbers": "Vui lòng nhập giá và thời hạn là số hợp lệ.",
+        "invalidFamilyLimit": "Số thành viên gia đình liên kết phải là số nguyên từ 0 đến 10."
       },
       "catalog": {
         "title": "Danh mục Gói & Phiên bản",

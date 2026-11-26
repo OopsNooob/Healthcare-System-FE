@@ -606,6 +606,7 @@
         "quotaPeriod": "AI Quota Period",
         "consultations": "Doctor Consultations / Cycle",
         "carePrograms": "Active Care Programs",
+        "familyLinks": "Family Companion Links",
         "benefitsSection": "Included Benefits",
         "weeklyAiSummary": "Weekly AI Health Summary",
         "summaryTokenBudget": "Summary Token Budget",
@@ -733,7 +734,8 @@
         "versionPublished": "Published {{code}} {{version}}",
         "versionRetired": "Retired {{code}} {{version}}",
         "invalidCode": "Plan code must start with an uppercase letter, 2–32 chars of A–Z, 0–9, and underscore.",
-        "invalidNumbers": "Please enter valid numeric price and duration."
+        "invalidNumbers": "Please enter valid numeric price and duration.",
+        "invalidFamilyLimit": "Linked family members limit must be an integer between 0 and 10."
       },
       "catalog": {
         "title": "Subscription Plan Versions Catalog",
