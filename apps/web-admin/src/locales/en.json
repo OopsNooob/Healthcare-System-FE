@@ -1606,8 +1606,23 @@
         "noTestSummary": "Not tested",
         "saveTestEvidence": "Save Test Evidence",
         "testSummaryLabel": "Verification Summary",
+        "testStatus": {
+          "passed": "Passed",
+          "failed": "Failed",
+          "unavailable": "Unavailable"
+        },
+        "verificationGuideDraft": "To reach Passed verification status: click Simulate (▶) on a draft rule → Run Simulation → click \"Save Test Evidence\", then click Activate.",
+        "verificationGuideActive": "Active rules are immutable. To record verification evidence (Passed), create or select a rule in the \"Draft Projection\" tab and save test evidence before activating.",
+        "scenarioLabel": "Test Scenario #{{index}}",
+        "scenarioPassed": "Pass",
+        "scenarioFailed": "Fail",
         "viewActive": "Active Projection",
         "viewDraft": "Draft Projection"
+      },
+      "simResultSeverity": {
+        "normal": "Normal",
+        "attention": "Attention",
+        "urgent": "Urgent"
       },
       "baseline": {
         "systolic": "Baseline Systolic BP",
@@ -1629,6 +1644,14 @@
         "appointment": "Follow-up Appointment",
         "doctor_review": "Doctor Review"
       },
+      "metricTypes": {
+        "blood_pressure": "Blood Pressure (mmHg)",
+        "blood_glucose": "Blood Glucose (mg/dL)",
+        "heart_rate": "Heart Rate (bpm)",
+        "oxygen_saturation": "Oxygen Saturation - SpO2 (%)",
+        "weight": "Weight (kg)",
+        "body_temperature": "Body Temperature (°C)"
+      },
       "symptoms": {
         "chest_pain": "Chest pain",
         "shortness_of_breath": "Shortness of breath",
@@ -1642,9 +1665,11 @@
       "educationCatalog": {
         "notice": "Only published educational materials can be viewed and acknowledged by patients in their daily tasks. Draft or retired materials are automatically locked from patient acknowledgement.",
         "colTitle": "MATERIAL",
+        "colPrograms": "LINKED PROGRAMS",
         "colFormat": "FORMAT",
-        "colVersion": "VERSION",
+        "colVersion": "MATERIAL VERSION",
         "colStatus": "STATUS",
+        "retiredOnlyTag": "Retired versions only",
         "publishBtn": "Publish",
         "format": {
           "article": "Article",
@@ -1675,6 +1700,7 @@
         "diastolic": "Diastolic BP",
         "glucose": "Blood Glucose",
         "heartRate": "Heart Rate",
+        "vitalValue": "Vital Value",
         "symptomSeverityRank": "Symptom Severity Level",
         "chestPainReported": "Chest Pain",
         "shortnessOfBreathReported": "Shortness of Breath",
@@ -1691,7 +1717,13 @@
         "greaterOrEqual": "Greater or equal",
         "lessThan": "Less than",
         "lessOrEqual": "Less or equal",
-        "equals": "Equals"
+        "equals": "Equals",
+        "notEqual": "Not equal",
+        "between": "Between",
+        "exists": "Exists",
+        "all": "All",
+        "any": "Any",
+        "not": "Not"
       },
       "modals": {
         "createTitle": "Create Care Program Template",
@@ -1716,6 +1748,7 @@
         "windowMinutes": "Completion Window",
         "allowedSymptomsLabel": "Tracked Symptoms for Check-in",
         "educationMaterialLabel": "Published Educational Material",
+        "trackedMetricLabel": "Required Health Metric",
         "completionCriteria": "Completion Criteria",
         "completionCriteriaPlaceholder": "80% adherence over 90 days",
         "saveDraft": "Save as Draft",
@@ -1748,8 +1781,13 @@
         "simFalsePos": "False Positive Rate",
         "simStatus": "Safety Validation Passed",
         "simTelemetryInputs": "Synthetic Patient Inputs",
+        "simInputSummaryLabel": "Simulated Input Facts",
         "simWarningSymptomToggle": "Patient reported warning symptom",
         "simInactiveRuleNotice": "Note: This rule is not currently active, so only an evaluation log is recorded without sending a live doctor alert.",
+        "simActiveImmutableNotice": "This rule is Active and immutable, so only dry-run preview is available. To save verification evidence (Passed), test a rule in the \"Draft Projection\" tab and save before activating.",
+        "simDraftSaveHint": "After running the simulation, click \"Save Test Evidence\" to record Passed verification status on this draft before activating.",
+        "simBooleanYes": "Yes",
+        "simBooleanNo": "No",
         "simViolated": "TRIGGERED",
         "simSafe": "SAFE",
         "simMatched": "Condition Triggered",

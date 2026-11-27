@@ -26,13 +26,27 @@ import {
 } from "../constants";
 import {
   careProgramService,
+  formatRuleConditionSummary,
   type CareProgramRecord,
   type CareRuleRecord,
   type CareRuleTestScenario,
   type CareRuleTestSummary,
   type CreateOrUpdateRuleInput,
+  type ProgramStatus,
   type RuleView,
 } from "../services/care-program.service";
+
+interface EducationTableRow {
+  uniqueKey: string;
+  material: EducationCatalogItem;
+  linkedPrograms: Array<{
+    id: string;
+    name: string;
+    version: number;
+    status: ProgramStatus;
+  }>;
+  retiredCount: number;
+}
 
 export function CareProgram() {
   const { t } = useTranslation();
@@ -72,7 +86,11 @@ export function CareProgram() {
         const projections = await Promise.all(
           detailedPrograms.map((prog) => careProgramService.getRuleProjection(prog, view))
         );
-        setRulesList(projections.filter((r): r is CareRuleRecord => r !== null));
+        const nextRules = projections.filter((r): r is CareRuleRecord => r !== null);
+        setRulesList(nextRules);
+        setSelectedRuleForSim((prev) =>
+          prev ? nextRules.find((r) => r.id === prev.id) ?? prev : null
+        );
       } catch (err) {
         const message =
           err instanceof Error
@@ -95,9 +113,57 @@ export function CareProgram() {
   }, [loadData, ruleView]);
 
   const educationCatalog = useMemo<EducationCatalogItem[]>(() => {
-    const fromPrograms = programsList.flatMap((p) => p.contentJourney);
-    if (fromPrograms.length > 0) return fromPrograms;
-    return STANDARD_CONTENT_REF_SUGGESTIONS;
+    const merged = new Map<string, EducationCatalogItem>();
+    for (const item of STANDARD_CONTENT_REF_SUGGESTIONS) {
+      const k = `${item.contentId}|${item.version}|${item.locale}|${item.displayType}`;
+      merged.set(k, item);
+    }
+    const orderedPrograms = [
+      ...programsList.filter((p) => p.status !== "retired"),
+      ...programsList.filter((p) => p.status === "retired"),
+    ];
+    for (const prog of orderedPrograms) {
+      for (const item of prog.contentJourney) {
+        const k = `${item.contentId}|${item.version}|${item.locale}|${item.displayType}`;
+        if (!merged.has(k)) {
+          merged.set(k, item);
+        }
+      }
+    }
+    return Array.from(merged.values());
+  }, [programsList]);
+
+  const educationRows = useMemo<EducationTableRow[]>(() => {
+    const grouped = new Map<string, EducationTableRow>();
+    for (const prog of programsList) {
+      for (const item of prog.contentJourney) {
+        const uniqueKey = `${item.contentId}|${item.version}|${item.locale}|${item.displayType}`;
+        let entry = grouped.get(uniqueKey);
+        if (!entry) {
+          entry = {
+            uniqueKey,
+            material: item,
+            linkedPrograms: [],
+            retiredCount: 0,
+          };
+          grouped.set(uniqueKey, entry);
+        }
+        if (prog.status === "retired") {
+          entry.retiredCount += 1;
+        } else if (!entry.linkedPrograms.some((p) => p.id === prog.id)) {
+          entry.linkedPrograms.push({
+            id: prog.id,
+            name: prog.name,
+            version: prog.version,
+            status: prog.status,
+          });
+          if (item.status === "published" && entry.material.status !== "published") {
+            entry.material = item;
+          }
+        }
+      }
+    }
+    return Array.from(grouped.values());
   }, [programsList]);
 
   const handleOpenEditProgram = async (prog: CareProgramRecord) => {
@@ -383,7 +449,6 @@ export function CareProgram() {
 
   const publishedCount = programsList.filter((p) => p.status === "published").length;
   const draftCount = programsList.filter((p) => p.status === "draft").length;
-  const educationFromPrograms = programsList.flatMap((p) => p.contentJourney);
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -718,159 +783,182 @@ export function CareProgram() {
               ))}
 
             {activeTab === "rules" && (
-              <div className="rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden bg-white dark:bg-slate-900">
-                <div className="overflow-x-auto">
-                  <table className="w-full min-w-[920px] text-left text-sm text-slate-600 dark:text-slate-400">
-                    <thead className="bg-slate-50 dark:bg-slate-800/50 text-xs font-semibold uppercase text-slate-500 dark:text-slate-400">
-                      <tr>
-                        <th className="px-6 py-4 whitespace-nowrap">
-                          {t("careProgram.rules.program", "CARE PROGRAM")}
-                        </th>
-                        <th className="px-6 py-4 whitespace-nowrap">
-                          {t("careProgram.rules.condition", "ALERT CONDITION")}
-                        </th>
-                        <th className="px-6 py-4 whitespace-nowrap">
-                          {t("careProgram.rules.severity", "SEVERITY")}
-                        </th>
-                        <th className="px-6 py-4 whitespace-nowrap">
-                          {t("careProgram.rules.testSummaryLabel", "VERIFICATION")}
-                        </th>
-                        <th className="px-6 py-4 whitespace-nowrap">
-                          {t("careProgram.rules.status", "STATUS")}
-                        </th>
-                        <th className="px-6 py-4 text-right whitespace-nowrap">
-                          {t("careProgram.rules.edit", "ACTIONS")}
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-200 dark:divide-slate-800 bg-white dark:bg-slate-900">
-                      {rulesList.length === 0 ? (
+              <div className="space-y-4">
+                <div className="rounded-2xl border border-indigo-200/70 dark:border-indigo-900/50 bg-indigo-50/60 dark:bg-indigo-950/20 p-4 flex items-start gap-3">
+                  <ShieldCheck
+                    size={18}
+                    className="text-indigo-600 dark:text-indigo-400 mt-0.5 shrink-0"
+                  />
+                  <p className="text-xs text-indigo-900 dark:text-indigo-200 leading-relaxed">
+                    {ruleView === "draft"
+                      ? t(
+                          "careProgram.rules.verificationGuideDraft",
+                          'To reach Passed verification status: click Simulate on a draft rule -> Run Simulation -> click "Save Test Evidence", then click Activate.'
+                        )
+                      : t(
+                          "careProgram.rules.verificationGuideActive",
+                          'Active rules are immutable. To record verification evidence (Passed), create or select a rule in the "Draft Projection" tab and save test evidence before activating.'
+                        )}
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden bg-white dark:bg-slate-900">
+                  <div className="overflow-x-auto">
+                    <table className="w-full min-w-[920px] text-left text-sm text-slate-600 dark:text-slate-400">
+                      <thead className="bg-slate-50 dark:bg-slate-800/50 text-xs font-semibold uppercase text-slate-500 dark:text-slate-400">
                         <tr>
-                          <td colSpan={6} className="px-6 py-10 text-center text-slate-400">
-                            {ruleView === "draft"
-                              ? t("careProgram.empty.draftRules", "No draft rules found across programs.")
-                              : t("careProgram.empty.activeRules", "No active rules found across programs.")}
-                          </td>
+                          <th className="px-6 py-4 whitespace-nowrap">
+                            {t("careProgram.rules.program", "CARE PROGRAM")}
+                          </th>
+                          <th className="px-6 py-4 whitespace-nowrap">
+                            {t("careProgram.rules.condition", "ALERT CONDITION")}
+                          </th>
+                          <th className="px-6 py-4 whitespace-nowrap">
+                            {t("careProgram.rules.severity", "SEVERITY")}
+                          </th>
+                          <th className="px-6 py-4 whitespace-nowrap">
+                            {t("careProgram.rules.testSummaryLabel", "VERIFICATION")}
+                          </th>
+                          <th className="px-6 py-4 whitespace-nowrap">
+                            {t("careProgram.rules.status", "STATUS")}
+                          </th>
+                          <th className="px-6 py-4 text-right whitespace-nowrap">
+                            {t("careProgram.rules.edit", "ACTIONS")}
+                          </th>
                         </tr>
-                      ) : (
-                        rulesList.map((rule) => (
-                          <tr
-                            key={rule.id}
-                            className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
-                          >
-                            <td className="px-6 py-4 font-medium text-slate-900 dark:text-slate-100 whitespace-nowrap">
-                              <div>{rule.programName}</div>
-                              <div className="text-[11px] font-mono text-slate-400">
-                                v{rule.version}
-                                {rule.revision !== undefined ? ` • r${rule.revision}` : ""}
-                              </div>
-                            </td>
-                            <td className="px-6 py-4 min-w-[240px]">
-                              <span className="font-mono text-xs bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded text-slate-800 dark:text-slate-200 font-semibold inline-block">
-                                {rule.conditionSummary}
-                              </span>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              {rule.primarySeverity === "Urgent" ? (
-                                <Badge
-                                  variant="destructive"
-                                  className="gap-1 whitespace-nowrap inline-flex items-center"
-                                >
-                                  <AlertTriangle size={12} />{" "}
-                                  {t("careProgram.modals.severityUrgent", "Urgent")}
-                                </Badge>
-                              ) : (
-                                <Badge
-                                  variant="outline"
-                                  className="border-amber-500/50 text-amber-600 dark:text-amber-400 whitespace-nowrap inline-flex items-center"
-                                >
-                                  {t("careProgram.modals.severityAttention", "Attention")}
-                                </Badge>
-                              )}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              {rule.testSummary ? (
-                                <Badge
-                                  className={
-                                    rule.testSummary.status === "passed"
-                                      ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border-none"
-                                      : rule.testSummary.status === "failed"
-                                      ? "bg-rose-50 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400 border-none"
-                                      : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border-none"
-                                  }
-                                >
-                                  {rule.testSummary.status}
-                                  {rule.testSummary.total !== undefined
-                                    ? ` ${rule.testSummary.passed ?? 0}/${rule.testSummary.total}`
-                                    : ""}
-                                </Badge>
-                              ) : (
-                                <span className="text-xs text-slate-400">
-                                  {t("careProgram.rules.noTestSummary", "Not tested")}
-                                </span>
-                              )}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              {rule.status === "active" ? (
-                                <Badge
-                                  variant="default"
-                                  className="bg-emerald-50 text-emerald-700 border-none dark:bg-emerald-900/30 dark:text-emerald-400 whitespace-nowrap inline-flex items-center"
-                                >
-                                  {t("careProgram.rules.active", "Active")}
-                                </Badge>
-                              ) : rule.status === "retired" ? (
-                                <Badge
-                                  variant="outline"
-                                  className="bg-slate-100 text-slate-600 border-none dark:bg-slate-800 dark:text-slate-400 whitespace-nowrap inline-flex items-center"
-                                >
-                                  {t("careProgram.rules.retired", "Retired")}
-                                </Badge>
-                              ) : (
-                                <Badge
-                                  variant="outline"
-                                  className="bg-amber-50 text-amber-600 border-none dark:bg-amber-900/30 dark:text-amber-400 whitespace-nowrap inline-flex items-center"
-                                >
-                                  {t("careProgram.rules.draft", "Draft")}
-                                </Badge>
-                              )}
-                            </td>
-                            <td className="px-6 py-4 text-right whitespace-nowrap">
-                              <div className="flex items-center justify-end gap-2 whitespace-nowrap">
-                                {rule.status === "draft" && rule.programStatus === "published" && (
-                                  <button
-                                    type="button"
-                                    disabled={busyId === `rule-${rule.id}` || rule.revision === undefined}
-                                    onClick={() => handleActivateRule(rule)}
-                                    className="px-3 py-1.5 text-xs font-semibold rounded-md bg-brand text-slate-900 hover:bg-brand/90 transition-colors whitespace-nowrap shrink-0 inline-flex items-center justify-center disabled:opacity-50"
-                                  >
-                                    {t("careProgram.rules.activate", "Activate")}
-                                  </button>
-                                )}
-                                {rule.status === "active" && (
-                                  <button
-                                    type="button"
-                                    disabled={busyId === `rule-${rule.id}` || rule.revision === undefined}
-                                    onClick={() => handleRetireRule(rule)}
-                                    className="px-3 py-1.5 text-xs font-semibold rounded-md bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400 hover:bg-rose-200 dark:hover:bg-rose-900/50 transition-colors whitespace-nowrap shrink-0 inline-flex items-center justify-center disabled:opacity-50"
-                                  >
-                                    {t("careProgram.rules.retire", "Retire")}
-                                  </button>
-                                )}
-                                <button
-                                  type="button"
-                                  onClick={() => openSimulation(rule)}
-                                  className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded transition-colors whitespace-nowrap shrink-0 inline-flex items-center justify-center"
-                                  title={t("careProgram.modals.simTitle", "Simulate Dry-Run")}
-                                >
-                                  <Play size={16} />
-                                </button>
-                              </div>
+                      </thead>
+                      <tbody className="divide-y divide-slate-200 dark:divide-slate-800 bg-white dark:bg-slate-900">
+                        {rulesList.length === 0 ? (
+                          <tr>
+                            <td colSpan={6} className="px-6 py-10 text-center text-slate-400">
+                              {ruleView === "draft"
+                                ? t("careProgram.empty.draftRules", "No draft rules found across programs.")
+                                : t("careProgram.empty.activeRules", "No active rules found across programs.")}
                             </td>
                           </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
+                        ) : (
+                          rulesList.map((rule) => (
+                            <tr
+                              key={rule.id}
+                              className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+                            >
+                              <td className="px-6 py-4 font-medium text-slate-900 dark:text-slate-100 whitespace-nowrap">
+                                <div>{rule.programName}</div>
+                                <div className="text-[11px] font-mono text-slate-400">
+                                  v{rule.version}
+                                  {rule.revision !== undefined ? ` • r${rule.revision}` : ""}
+                                </div>
+                              </td>
+                              <td className="px-6 py-4 min-w-[240px]">
+                                <span className="font-mono text-xs bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded text-slate-800 dark:text-slate-200 font-semibold inline-block">
+                                  {formatRuleConditionSummary(rule.rules, t, rule.diseaseKey)}
+                                </span>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                {rule.primarySeverity === "Urgent" ? (
+                                  <Badge
+                                    variant="destructive"
+                                    className="gap-1 whitespace-nowrap inline-flex items-center"
+                                  >
+                                    <AlertTriangle size={12} />{" "}
+                                    {t("careProgram.modals.severityUrgent", "Urgent")}
+                                  </Badge>
+                                ) : (
+                                  <Badge
+                                    variant="outline"
+                                    className="border-amber-500/50 text-amber-600 dark:text-amber-400 whitespace-nowrap inline-flex items-center"
+                                  >
+                                    {t("careProgram.modals.severityAttention", "Attention")}
+                                  </Badge>
+                                )}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                {rule.testSummary ? (
+                                  <Badge
+                                    className={
+                                      rule.testSummary.status === "passed"
+                                        ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border-none"
+                                        : rule.testSummary.status === "failed"
+                                        ? "bg-rose-50 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400 border-none"
+                                        : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border-none"
+                                    }
+                                  >
+                                    {t(
+                                      `careProgram.rules.testStatus.${rule.testSummary.status}`,
+                                      rule.testSummary.status
+                                    )}
+                                    {rule.testSummary.total !== undefined
+                                      ? ` ${rule.testSummary.passed ?? 0}/${rule.testSummary.total}`
+                                      : ""}
+                                  </Badge>
+                                ) : (
+                                  <span className="text-xs text-slate-400">
+                                    {t("careProgram.rules.noTestSummary", "Not tested")}
+                                  </span>
+                                )}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                {rule.status === "active" ? (
+                                  <Badge
+                                    variant="default"
+                                    className="bg-emerald-50 text-emerald-700 border-none dark:bg-emerald-900/30 dark:text-emerald-400 whitespace-nowrap inline-flex items-center"
+                                  >
+                                    {t("careProgram.rules.active", "Active")}
+                                  </Badge>
+                                ) : rule.status === "retired" ? (
+                                  <Badge
+                                    variant="outline"
+                                    className="bg-slate-100 text-slate-600 border-none dark:bg-slate-800 dark:text-slate-400 whitespace-nowrap inline-flex items-center"
+                                  >
+                                    {t("careProgram.rules.retired", "Retired")}
+                                  </Badge>
+                                ) : (
+                                  <Badge
+                                    variant="outline"
+                                    className="bg-amber-50 text-amber-600 border-none dark:bg-amber-900/30 dark:text-amber-400 whitespace-nowrap inline-flex items-center"
+                                  >
+                                    {t("careProgram.rules.draft", "Draft")}
+                                  </Badge>
+                                )}
+                              </td>
+                              <td className="px-6 py-4 text-right whitespace-nowrap">
+                                <div className="flex items-center justify-end gap-2 whitespace-nowrap">
+                                  {rule.status === "draft" && rule.programStatus === "published" && (
+                                    <button
+                                      type="button"
+                                      disabled={busyId === `rule-${rule.id}` || rule.revision === undefined}
+                                      onClick={() => handleActivateRule(rule)}
+                                      className="px-3 py-1.5 text-xs font-semibold rounded-md bg-brand text-slate-900 hover:bg-brand/90 transition-colors whitespace-nowrap shrink-0 inline-flex items-center justify-center disabled:opacity-50"
+                                    >
+                                      {t("careProgram.rules.activate", "Activate")}
+                                    </button>
+                                  )}
+                                  {rule.status === "active" && (
+                                    <button
+                                      type="button"
+                                      disabled={busyId === `rule-${rule.id}` || rule.revision === undefined}
+                                      onClick={() => handleRetireRule(rule)}
+                                      className="px-3 py-1.5 text-xs font-semibold rounded-md bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400 hover:bg-rose-200 dark:hover:bg-rose-900/50 transition-colors whitespace-nowrap shrink-0 inline-flex items-center justify-center disabled:opacity-50"
+                                    >
+                                      {t("careProgram.rules.retire", "Retire")}
+                                    </button>
+                                  )}
+                                  <button
+                                    type="button"
+                                    onClick={() => openSimulation(rule)}
+                                    className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded transition-colors whitespace-nowrap shrink-0 inline-flex items-center justify-center"
+                                    title={t("careProgram.modals.simTitle", "Simulate Dry-Run")}
+                                  >
+                                    <Play size={16} />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               </div>
             )}
@@ -899,13 +987,13 @@ export function CareProgram() {
                             {t("careProgram.educationCatalog.colTitle", "MATERIAL")}
                           </th>
                           <th className="px-6 py-4 whitespace-nowrap">
-                            {t("careProgram.rules.program", "CARE PROGRAM")}
+                            {t("careProgram.educationCatalog.colPrograms", "LINKED PROGRAMS")}
                           </th>
                           <th className="px-6 py-4 whitespace-nowrap">
                             {t("careProgram.educationCatalog.colFormat", "FORMAT")}
                           </th>
                           <th className="px-6 py-4 whitespace-nowrap">
-                            {t("careProgram.educationCatalog.colVersion", "VERSION")}
+                            {t("careProgram.educationCatalog.colVersion", "MATERIAL VERSION")}
                           </th>
                           <th className="px-6 py-4 whitespace-nowrap">
                             {t("careProgram.educationCatalog.colStatus", "STATUS")}
@@ -913,7 +1001,7 @@ export function CareProgram() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-200 dark:divide-slate-800 bg-white dark:bg-slate-900">
-                        {educationFromPrograms.length === 0 ? (
+                        {educationRows.length === 0 ? (
                           <tr>
                             <td colSpan={5} className="px-6 py-10 text-center text-slate-400">
                               {t(
@@ -923,57 +1011,83 @@ export function CareProgram() {
                             </td>
                           </tr>
                         ) : (
-                          educationFromPrograms.map((item) => (
-                            <tr
-                              key={item.id}
-                              className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
-                            >
-                              <td className="px-6 py-4">
-                                <p className="font-semibold text-slate-900 dark:text-slate-100">
-                                  {t(
-                                    `careProgram.educationCatalogItems.${item.contentId}.title`,
-                                    item.title
-                                  )}
-                                </p>
-                                {item.summary && (
-                                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                          educationRows.map((row) => {
+                            const item = row.material;
+                            return (
+                              <tr
+                                key={row.uniqueKey}
+                                className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+                              >
+                                <td className="px-6 py-4">
+                                  <p className="font-semibold text-slate-900 dark:text-slate-100">
                                     {t(
-                                      `careProgram.educationCatalogItems.${item.contentId}.summary`,
-                                      item.summary
+                                      `careProgram.educationCatalogItems.${item.contentId}.title`,
+                                      item.title
                                     )}
                                   </p>
-                                )}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-xs font-medium text-slate-700 dark:text-slate-300">
-                                {item.programName || "—"}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap">
-                                <span className="text-xs font-semibold uppercase px-2.5 py-1 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
-                                  {t(
-                                    `careProgram.educationCatalog.format.${item.displayType}`,
-                                    item.displayType
+                                  {item.summary && (
+                                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                                      {t(
+                                        `careProgram.educationCatalogItems.${item.contentId}.summary`,
+                                        item.summary
+                                      )}
+                                    </p>
                                   )}
-                                </span>
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap font-mono text-xs">
-                                {item.version}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap">
-                                <Badge
-                                  variant={item.status === "published" ? "default" : "outline"}
-                                  className={
-                                    item.status === "published"
-                                      ? "bg-emerald-50 text-emerald-700 border-none dark:bg-emerald-900/30 dark:text-emerald-400 whitespace-nowrap"
-                                      : "bg-slate-100 text-slate-600 border-none dark:bg-slate-800 dark:text-slate-400 whitespace-nowrap"
-                                  }
-                                >
-                                  {item.status === "published"
-                                    ? t("careProgram.cards.published", "Published")
-                                    : t("careProgram.cards.draft", "Draft")}
-                                </Badge>
-                              </td>
-                            </tr>
-                          ))
+                                </td>
+                                <td className="px-6 py-4">
+                                  <div className="flex flex-wrap gap-1.5">
+                                    {row.linkedPrograms.length > 0 ? (
+                                      row.linkedPrograms.map((p) => (
+                                        <span
+                                          key={p.id}
+                                          className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 whitespace-nowrap"
+                                        >
+                                          <span>{p.name}</span>
+                                          <span className="font-mono text-[11px] text-slate-500 dark:text-slate-400">
+                                            (v{p.version})
+                                          </span>
+                                        </span>
+                                      ))
+                                    ) : row.retiredCount > 0 ? (
+                                      <span className="text-xs text-slate-400 dark:text-slate-500 italic">
+                                        {t(
+                                          "careProgram.educationCatalog.retiredOnlyTag",
+                                          "Retired versions only"
+                                        )}
+                                      </span>
+                                    ) : (
+                                      "—"
+                                    )}
+                                  </div>
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                  <span className="text-xs font-semibold uppercase px-2.5 py-1 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                                    {t(
+                                      `careProgram.educationCatalog.format.${item.displayType}`,
+                                      item.displayType
+                                    )}
+                                  </span>
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap font-mono text-xs">
+                                  {item.version}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                  <Badge
+                                    variant={item.status === "published" ? "default" : "outline"}
+                                    className={
+                                      item.status === "published"
+                                        ? "bg-emerald-50 text-emerald-700 border-none dark:bg-emerald-900/30 dark:text-emerald-400 whitespace-nowrap"
+                                        : "bg-slate-100 text-slate-600 border-none dark:bg-slate-800 dark:text-slate-400 whitespace-nowrap"
+                                    }
+                                  >
+                                    {item.status === "published"
+                                      ? t("careProgram.cards.published", "Published")
+                                      : t("careProgram.cards.draft", "Draft")}
+                                  </Badge>
+                                </td>
+                              </tr>
+                            );
+                          })
                         )}
                       </tbody>
                     </table>

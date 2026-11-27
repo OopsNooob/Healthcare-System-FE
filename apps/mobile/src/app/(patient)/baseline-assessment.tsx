@@ -424,13 +424,22 @@ export default function BaselineAssessmentScreen() {
       )
     : t('mobile.scheduled_daily_tasks', 'Scheduled per care plan');
 
-  const firstBaselineSummary = fields
+  const baselineSummaryItems = fields
     .map((f) => {
-      const val = f.type === 'boolean' ? String(Boolean(answersBool[f.key])) : answersText[f.key];
-      return val ? `${val}${f.unit ? ` ${f.unit}` : ''}` : null;
+      const rawVal =
+        f.type === 'boolean'
+          ? answersBool[f.key]
+            ? t('mobile.yes', 'Yes')
+            : t('mobile.no', 'No')
+          : (answersText[f.key] ?? '').trim();
+      if (!rawVal) return null;
+      return {
+        key: f.key,
+        label: getFieldLabel(f.key),
+        displayValue: f.unit ? `${rawVal} ${f.unit}` : rawVal,
+      };
     })
-    .filter(Boolean)
-    .join(' / ');
+    .filter((item): item is { key: string; label: string; displayValue: string } => Boolean(item));
 
   return (
     <SafeAreaView style={tw('flex-1 bg-slate-50 dark:bg-slate-950')} edges={['top']}>
@@ -874,7 +883,7 @@ export default function BaselineAssessmentScreen() {
                     {t('mobile.configuration_summary', 'Configuration Summary')}
                   </Text>
 
-                  <View style={tw('flex-row justify-between items-start py-1 border-b border-slate-100 dark:border-slate-800 gap-2')}>
+                  <View style={tw('flex-row justify-between items-start py-1 border-b border-slate-100 dark:border-slate-800 gap-3')}>
                     <Text style={tw('text-sm text-slate-600 dark:text-slate-400 shrink-0')}>
                       {t('mobile.active_program', 'Active Program')}
                     </Text>
@@ -883,40 +892,52 @@ export default function BaselineAssessmentScreen() {
                     </Text>
                   </View>
 
-                  <View style={tw('flex-row justify-between items-center py-1 border-b border-slate-100 dark:border-slate-800')}>
-                    <Text style={tw('text-sm text-slate-600 dark:text-slate-400')}>
+                  <View style={tw('flex-row justify-between items-start py-1 border-b border-slate-100 dark:border-slate-800 gap-3')}>
+                    <Text style={tw('text-sm text-slate-600 dark:text-slate-400 shrink-0')}>
                       {t('mobile.status', 'Status')}
                     </Text>
-                    <Text style={tw('text-sm font-bold text-emerald-600 dark:text-emerald-400 uppercase')}>
+                    <Text style={tw('text-sm font-bold text-emerald-600 dark:text-emerald-400 uppercase flex-1 text-right')}>
                       {t(`mobile.enrollment_status_${activationStatus}`, activationStatus)}
                     </Text>
                   </View>
 
-                  {firstBaselineSummary ? (
-                    <View style={tw('flex-row justify-between items-center py-1 border-b border-slate-100 dark:border-slate-800')}>
+                  {baselineSummaryItems.length > 0 ? (
+                    <View style={tw('py-1.5 border-b border-slate-100 dark:border-slate-800 gap-2')}>
                       <Text style={tw('text-sm text-slate-600 dark:text-slate-400')}>
                         {t('mobile.baseline_values', 'Baseline')}
                       </Text>
-                      <Text style={tw('text-sm font-bold text-slate-900 dark:text-slate-100')}>
-                        {firstBaselineSummary}
-                      </Text>
+                      <View style={tw('flex-row flex-wrap gap-1.5')}>
+                        {baselineSummaryItems.map((item) => (
+                          <View
+                            key={item.key}
+                            style={tw('px-2.5 py-1 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200/70 dark:border-slate-700/70 max-w-full')}
+                          >
+                            <Text style={tw('text-xs text-slate-600 dark:text-slate-300')}>
+                              {item.label}:{' '}
+                              <Text style={tw('font-bold text-slate-900 dark:text-slate-100')}>
+                                {item.displayValue}
+                              </Text>
+                            </Text>
+                          </View>
+                        ))}
+                      </View>
                     </View>
                   ) : null}
 
-                  <View style={tw('flex-row justify-between items-center py-1 border-b border-slate-100 dark:border-slate-800')}>
-                    <Text style={tw('text-sm text-slate-600 dark:text-slate-400')}>
-                      {t('mobile.step_3_quiet_hours', 'Quiet Hours')}
+                  <View style={tw('flex-row justify-between items-start py-1 border-b border-slate-100 dark:border-slate-800 gap-3')}>
+                    <Text style={tw('text-sm text-slate-600 dark:text-slate-400 shrink-0')}>
+                      {t('mobile.quiet_hours_label', 'Quiet Hours')}
                     </Text>
-                    <Text style={tw('text-sm font-bold text-slate-900 dark:text-slate-100')}>
+                    <Text style={tw('text-sm font-bold text-slate-900 dark:text-slate-100 flex-1 text-right')}>
                       {quietStart} - {quietEnd}
                     </Text>
                   </View>
 
-                  <View style={tw('flex-row justify-between items-center py-1')}>
-                    <Text style={tw('text-sm text-slate-600 dark:text-slate-400')}>
+                  <View style={tw('flex-row justify-between items-start py-1 gap-3')}>
+                    <Text style={tw('text-sm text-slate-600 dark:text-slate-400 shrink-0')}>
                       {t('mobile.task_scheduled', 'Next Task')}
                     </Text>
-                    <Text style={tw('text-sm font-bold text-indigo-600 dark:text-indigo-400')}>
+                    <Text style={tw('text-sm font-bold text-indigo-600 dark:text-indigo-400 flex-1 text-right')}>
                       {formattedNextTaskTime}
                     </Text>
                   </View>

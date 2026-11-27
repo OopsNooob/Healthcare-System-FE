@@ -7,13 +7,15 @@ import {
   AlertTriangle,
   CheckCircle2,
   ShieldCheck,
+  Info,
 } from "lucide-react";
 import { Badge } from "@repo/ui/components/ui/badge";
-import type {
-  CareRuleRecord,
-  CareRuleTestScenario,
-  CareRuleTestSummary,
-  DeclarativeRuleNode,
+import {
+  formatRuleConditionSummary,
+  type CareRuleRecord,
+  type CareRuleTestScenario,
+  type CareRuleTestSummary,
+  type DeclarativeRuleNode,
 } from "../services/care-program.service";
 
 interface SimulationModalProps {
@@ -78,7 +80,13 @@ export function SimulationModal({
     matched: boolean;
     severity: "normal" | "attention" | "urgent";
     reasonCodes: string[];
-    details: string;
+    facts: {
+      systolic: number;
+      diastolic: number;
+      value: number;
+      severityRank: number;
+      chestPain: boolean;
+    };
     isActiveRule: boolean;
   } | null>(null);
   const [isSavingEvidence, setIsSavingEvidence] = useState(false);
@@ -86,6 +94,9 @@ export function SimulationModal({
   if (!isOpen) return null;
 
   const activeRule = selectedRule || rules[0] || null;
+  const isDiabetesProgram =
+    activeRule?.diseaseKey === "diabetes" ||
+    Boolean(activeRule?.programCode.toLowerCase().includes("diabetes"));
 
   const buildFacts = (): Record<string, unknown> => {
     const sys = parseFloat(simSystolic) || 0;
@@ -96,7 +107,7 @@ export function SimulationModal({
     return {
       systolic: sys,
       diastolic: dia,
-      value: activeRule?.programCode.includes("diabetes") ? glu : sys || hr,
+      value: isDiabetesProgram ? glu : sys || hr,
       "check_in.severity_rank": sevRank,
       "check_in.severity": sevRank >= 3 ? "severe" : sevRank === 2 ? "moderate" : sevRank === 1 ? "mild" : "none",
       "check_in.overall_status": sevRank >= 2 ? "worse" : "stable",
@@ -124,7 +135,13 @@ export function SimulationModal({
       matched: severity !== "normal",
       severity,
       reasonCodes: Array.from(new Set(reasonCodes)),
-      details: `${activeRule.conditionSummary} | facts: systolic=${facts.systolic}, diastolic=${facts.diastolic}, value=${facts.value}, severity_rank=${facts["check_in.severity_rank"]}`,
+      facts: {
+        systolic: Number(facts.systolic ?? 0),
+        diastolic: Number(facts.diastolic ?? 0),
+        value: Number(facts.value ?? 0),
+        severityRank: Number(facts["check_in.severity_rank"] ?? 0),
+        chestPain: Boolean(simChestPain),
+      },
       isActiveRule: activeRule.status === "active",
     });
   };
@@ -200,11 +217,33 @@ export function SimulationModal({
             >
               {rules.map((r) => (
                 <option key={r.id} value={r.id}>
-                  {r.programName} (v{r.version}) • {r.conditionSummary}
+                  {r.programName} (v{r.version}) • {formatRuleConditionSummary(r.rules, t, r.diseaseKey)}
                 </option>
               ))}
             </select>
           </div>
+
+          {activeRule && activeRule.status !== "draft" ? (
+            <div className="rounded-xl border border-sky-200/80 dark:border-sky-900/50 bg-sky-50/70 dark:bg-sky-950/30 p-3 flex items-start gap-2.5 text-xs text-sky-900 dark:text-sky-200">
+              <Info size={16} className="text-sky-600 dark:text-sky-400 shrink-0 mt-0.5" />
+              <span className="leading-relaxed">
+                {t(
+                  "careProgram.modals.simActiveImmutableNotice",
+                  "This rule is Active and immutable, so only dry-run preview is available. To save verification evidence (Passed), test a rule in the Draft Projection tab and save before activating."
+                )}
+              </span>
+            </div>
+          ) : activeRule?.status === "draft" && !simResult ? (
+            <div className="rounded-xl border border-emerald-200/80 dark:border-emerald-900/50 bg-emerald-50/70 dark:bg-emerald-950/30 p-3 flex items-start gap-2.5 text-xs text-emerald-900 dark:text-emerald-200">
+              <ShieldCheck size={16} className="text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+              <span className="leading-relaxed">
+                {t(
+                  "careProgram.modals.simDraftSaveHint",
+                  "After running the simulation, click Save Test Evidence to record Passed verification status on this draft before activating."
+                )}
+              </span>
+            </div>
+          ) : null}
 
           {activeRule?.testSummary && (
             <div className="rounded-2xl border border-slate-200 dark:border-slate-800 p-4 bg-slate-50/70 dark:bg-slate-950/60 space-y-2">
@@ -222,7 +261,10 @@ export function SimulationModal({
                       : "bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border-none"
                   }
                 >
-                  {activeRule.testSummary.status.toUpperCase()}
+                  {t(
+                    `careProgram.rules.testStatus.${activeRule.testSummary.status}`,
+                    activeRule.testSummary.status
+                  )}
                   {activeRule.testSummary.total !== undefined
                     ? ` (${activeRule.testSummary.passed ?? 0}/${activeRule.testSummary.total})`
                     : ""}
@@ -230,13 +272,16 @@ export function SimulationModal({
               </div>
               {activeRule.testResults && activeRule.testResults.length > 0 && (
                 <div className="space-y-1.5 pt-1 max-h-32 overflow-y-auto">
-                  {activeRule.testResults.map((sc) => (
+                  {activeRule.testResults.map((sc, idx) => (
                     <div
-                      key={sc.scenarioKey}
-                      className="flex items-center justify-between text-xs px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200/70 dark:border-slate-800"
+                      key={`${sc.scenarioKey}-${idx}`}
+                      className="flex items-center justify-between gap-2 text-xs px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200/70 dark:border-slate-800"
                     >
-                      <span className="font-mono text-slate-700 dark:text-slate-300 truncate max-w-[60%]">
-                        {sc.scenarioKey}
+                      <span className="font-medium text-slate-700 dark:text-slate-300 truncate max-w-[60%]">
+                        {t("careProgram.rules.scenarioLabel", {
+                          index: idx + 1,
+                          defaultValue: `Test Scenario #${idx + 1}`,
+                        })}
                       </span>
                       <span
                         className={
@@ -245,7 +290,15 @@ export function SimulationModal({
                             : "font-semibold text-rose-600 dark:text-rose-400"
                         }
                       >
-                        {sc.actualSeverity || (sc.passed ? "PASS" : "FAIL")}
+                        {sc.actualSeverity
+                          ? `${t(
+                              `careProgram.simResultSeverity.${sc.actualSeverity}`,
+                              sc.actualSeverity
+                            )} • `
+                          : ""}
+                        {sc.passed
+                          ? t("careProgram.rules.scenarioPassed", "Pass")
+                          : t("careProgram.rules.scenarioFailed", "Fail")}
                       </span>
                     </div>
                   ))}
@@ -343,7 +396,7 @@ export function SimulationModal({
                   : "bg-emerald-50/70 border-emerald-200 dark:bg-emerald-950/30 dark:border-emerald-900/50"
               }`}
             >
-              <div className="flex items-center gap-2 mb-1.5">
+              <div className="flex items-center gap-2 mb-2">
                 {simResult.matched ? (
                   <AlertTriangle className="text-rose-600 dark:text-rose-400" size={18} />
                 ) : (
@@ -361,12 +414,47 @@ export function SimulationModal({
                     : t("careProgram.modals.simNoTrigger", "Within Safe Threshold")}
                 </span>
                 <Badge className="ml-auto bg-slate-900 text-white dark:bg-slate-800 border-none">
-                  {simResult.severity.toUpperCase()}
+                  {t(`careProgram.simResultSeverity.${simResult.severity}`, simResult.severity)}
                 </Badge>
               </div>
-              <p className="text-xs text-slate-600 dark:text-slate-300 mb-2 font-mono break-all">
-                {simResult.details}
-              </p>
+              <div className="space-y-1.5 text-xs text-slate-700 dark:text-slate-300 mb-2">
+                <p className="font-semibold">
+                  {activeRule
+                    ? formatRuleConditionSummary(activeRule.rules, t, activeRule.diseaseKey)
+                    : "—"}
+                </p>
+                <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                  {t("careProgram.modals.simInputSummaryLabel", "Simulated Input Facts")}:
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  <span className="px-2 py-0.5 rounded-md bg-white/80 dark:bg-slate-900 border border-slate-200/70 dark:border-slate-800">
+                    {t("careProgram.metrics.systolic", "Systolic BP")}:{" "}
+                    <strong>{simResult.facts.systolic} mmHg</strong>
+                  </span>
+                  <span className="px-2 py-0.5 rounded-md bg-white/80 dark:bg-slate-900 border border-slate-200/70 dark:border-slate-800">
+                    {t("careProgram.metrics.diastolic", "Diastolic BP")}:{" "}
+                    <strong>{simResult.facts.diastolic} mmHg</strong>
+                  </span>
+                  <span className="px-2 py-0.5 rounded-md bg-white/80 dark:bg-slate-900 border border-slate-200/70 dark:border-slate-800">
+                    {isDiabetesProgram
+                      ? t("careProgram.metrics.glucose", "Blood Glucose")
+                      : t("careProgram.metrics.vitalValue", "Vital Value")}
+                    : <strong>{simResult.facts.value}</strong>
+                  </span>
+                  <span className="px-2 py-0.5 rounded-md bg-white/80 dark:bg-slate-900 border border-slate-200/70 dark:border-slate-800">
+                    {t("careProgram.metrics.symptomSeverityRank", "Symptom Severity Level")}:{" "}
+                    <strong>{simResult.facts.severityRank}</strong>
+                  </span>
+                  <span className="px-2 py-0.5 rounded-md bg-white/80 dark:bg-slate-900 border border-slate-200/70 dark:border-slate-800">
+                    {t("careProgram.metrics.chestPainReported", "Chest Pain")}:{" "}
+                    <strong>
+                      {simResult.facts.chestPain
+                        ? t("careProgram.modals.simBooleanYes", "Yes")
+                        : t("careProgram.modals.simBooleanNo", "No")}
+                    </strong>
+                  </span>
+                </div>
+              </div>
               {simResult.reasonCodes.length > 0 && (
                 <div className="flex flex-wrap gap-1.5 pt-2 border-t border-slate-200/60 dark:border-slate-800">
                   {simResult.reasonCodes.map((code) => (

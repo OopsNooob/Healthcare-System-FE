@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
+  Activity,
   X,
   Check,
   Users,
@@ -17,8 +18,10 @@ import {
   BASELINE_OPTIONS,
   DEFAULT_PROGRAM_TASK_TEMPLATES,
   DISEASE_KEY_OPTIONS,
+  METRIC_TYPE_OPTIONS,
   SYMPTOM_OPTIONS,
   TASK_TYPE_OPTIONS,
+  inferDefaultMetricType,
   type CareTaskTemplateItem,
   type CareTaskType,
   type EducationCatalogItem,
@@ -127,6 +130,7 @@ function EditProgramForm({
         type: "metric",
         time: "08:00",
         windowMinutes: 120,
+        metricType: inferDefaultMetricType(diseaseKey),
       },
     ]);
   };
@@ -172,6 +176,9 @@ function EditProgramForm({
           type: newType,
           time: item.time,
           windowMinutes: item.windowMinutes,
+          ...(newType === "metric"
+            ? { metricType: item.metricType || inferDefaultMetricType(diseaseKey) }
+            : {}),
         };
       })
     );
@@ -495,6 +502,37 @@ function EditProgramForm({
                     </button>
                   </div>
                 </div>
+
+                {tpl.type === "metric" && (
+                  <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
+                    <div className="flex items-center gap-1.5 text-xs font-semibold text-rose-600 dark:text-rose-400 mb-1.5">
+                      <Activity size={14} />
+                      <span>
+                        {t(
+                          "careProgram.modals.trackedMetricLabel",
+                          "Required Health Metric"
+                        )}
+                      </span>
+                    </div>
+                    <select
+                      value={tpl.metricType || inferDefaultMetricType(diseaseKey)}
+                      onChange={(e) =>
+                        setTaskTemplates((prev) =>
+                          prev.map((item, i) =>
+                            i === idx ? { ...item, metricType: e.target.value } : item
+                          )
+                        )
+                      }
+                      className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-2.5 py-1.5 text-xs text-slate-900 dark:text-slate-100"
+                    >
+                      {METRIC_TYPE_OPTIONS.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {t(`careProgram.metricTypes.${opt.value}`, opt.defaultLabel)}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
 
                 {tpl.type === "check_in" && (
                   <div className="pt-2 border-t border-slate-100 dark:border-slate-800">

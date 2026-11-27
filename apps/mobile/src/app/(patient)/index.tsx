@@ -49,6 +49,7 @@ import { useThemeContext } from '@/context/ThemeContext';
 import { useSafeRouter as useRouter } from '@/utils/useSafeRouter';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { extractApiErrorMessage } from '@/utils/apiError';
+import { resolveCareTaskTemplateTitle } from '@/utils/careTaskHelpers';
 import {
   AppointmentTaskLinkModal,
   EducationTaskModal,
@@ -59,9 +60,11 @@ import {
 interface TaskRow {
   id: string;
   taskType: 'metric' | 'check_in' | 'education' | 'appointment' | 'doctor_review';
+  metricType?: string;
   templateKey: string;
   status: 'scheduled' | 'due' | 'completed' | 'missed' | 'cancelled';
   scheduledFor?: string;
+  windowEnd?: string;
   allowedActions?: string[];
 }
 
@@ -83,7 +86,7 @@ interface UpcomingConsultationItem {
 }
 
 export default function PatientHomeScreen() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   useThemeContext();
   const router = useRouter();
 
@@ -107,6 +110,9 @@ export default function PatientHomeScreen() {
   const [isSyncingTasks, setIsSyncingTasks] = useState(false);
   const outboxRefetchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const outboxRetriedEnrollmentRef = useRef<string | null>(null);
+  const metricSyncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingMetricSyncRef = useRef(false);
+  const hasMountedRef = useRef(false);
   const [upcomingConsult, setUpcomingConsult] = useState<UpcomingConsultationItem | null>(null);
   const [healthAlertsCount, setHealthAlertsCount] = useState<number>(0);
 
@@ -266,12 +272,23 @@ export default function PatientHomeScreen() {
           setTasks([]);
           setIsSyncingTasks(false);
         } else {
+          const nowLocal = new Date();
+          const startOfTodayIso = new Date(
+            nowLocal.getFullYear(),
+            nowLocal.getMonth(),
+            nowLocal.getDate()
+          ).toISOString();
           const [detailRes, rateRes, tasksRes] = await Promise.allSettled([
             mobileApi.careEnrollmentDetail({ params: { id: enrollmentId } }),
             mobileApi.careTaskCompletionRate({ params: { id: enrollmentId } }),
             mobileApi.careTaskTasks({
               params: { id: enrollmentId },
-              query: { limit: 20, sortBy: 'scheduledFor', sortOrder: 1 },
+              query: {
+                limit: 50,
+                from: startOfTodayIso,
+                sortBy: 'scheduledFor',
+                sortOrder: 1,
+              },
             }),
           ]);
           const resolvedStatus =
@@ -299,9 +316,11 @@ export default function PatientHomeScreen() {
               .map((tk) => ({
                 id: String(tk.id ?? tk._id ?? ''),
                 taskType: (tk.taskType as TaskRow['taskType']) ?? 'metric',
+                metricType: typeof tk.metricType === 'string' ? tk.metricType : undefined,
                 templateKey: String(tk.templateKey ?? tk.taskType ?? 'task'),
                 status: (tk.status as TaskRow['status']) ?? 'scheduled',
                 scheduledFor: typeof tk.scheduledFor === 'string' ? tk.scheduledFor : undefined,
+                windowEnd: typeof tk.windowEnd === 'string' ? tk.windowEnd : undefined,
                 allowedActions: Array.isArray(tk.allowedActions)
                   ? tk.allowedActions.filter((a): a is string => typeof a === 'string')
                   : undefined,
@@ -390,13 +409,31 @@ export default function PatientHomeScreen() {
       if (outboxRefetchTimerRef.current) {
         clearTimeout(outboxRefetchTimerRef.current);
       }
+      if (metricSyncTimerRef.current) {
+        clearTimeout(metricSyncTimerRef.current);
+      }
     };
   }, [loadHomeData]);
 
   useFocusEffect(
     useCallback(() => {
       void refreshUnreadCount();
-    }, [refreshUnreadCount])
+      if (hasMountedRef.current) {
+        void loadHomeData(true);
+        if (pendingMetricSyncRef.current) {
+          pendingMetricSyncRef.current = false;
+          if (metricSyncTimerRef.current) {
+            clearTimeout(metricSyncTimerRef.current);
+          }
+          metricSyncTimerRef.current = setTimeout(() => {
+            metricSyncTimerRef.current = null;
+            void loadHomeData(true);
+          }, 3500);
+        }
+      } else {
+        hasMountedRef.current = true;
+      }
+    }, [loadHomeData, refreshUnreadCount])
   );
 
   useEffect(() => {
@@ -414,28 +451,11 @@ export default function PatientHomeScreen() {
     void loadHomeData(true);
   }, [loadHomeData]);
 
-  const getTaskTitle = (task: TaskRow): string => {
-    switch (task.templateKey) {
-      case 'morning_vital_measurement':
-        return t('mobile.task_template_morning_vital_measurement', 'Morning Vital Measurement');
-      case 'morning_blood_pressure':
-      case 'evening_blood_pressure':
-        return t('mobile.task_bp_measurement', 'Blood Pressure Measurement');
-      case 'morning_blood_glucose':
-        return t('mobile.task_glucose_measurement', 'Blood Glucose Measurement');
-      case 'daily_symptom_checkin':
-      case 'daily_symptom_check_in':
-      case 'symptom_check_in':
-        return t('mobile.health_check_in_title', 'Routine Symptom Check-in');
-      case 'follow_up_appointment':
-        return t('mobile.task_follow_up_appointment', 'Follow-up Appointment');
-      default:
-        return t(
-          `mobile.task_template_${task.templateKey}`,
-          t(`mobile.task_type_${task.taskType}`, task.templateKey.replace(/_/g, ' '))
-        );
-    }
-  };
+  const getTaskTitle = (task: TaskRow): string =>
+    resolveCareTaskTemplateTitle(t, i18n, {
+      templateKey: task.templateKey,
+      taskType: task.taskType,
+    });
 
   const formatTaskTime = (iso?: string): string => {
     if (!iso) return '';
@@ -447,7 +467,25 @@ export default function PatientHomeScreen() {
     });
   };
 
-  const handleTaskPress = (task: TaskRow) => {
+  const resolveTaskMetricType = (task: TaskRow): string | undefined => {
+    if (task.metricType) return task.metricType;
+    if (task.taskType !== 'metric') return undefined;
+    const dKey = enrollment?.program?.diseaseKey?.trim().toLowerCase() ?? '';
+    if (dKey.includes('diabetes')) return 'blood_glucose';
+    if (dKey.includes('hypertension') || dKey.includes('cardio')) return 'blood_pressure';
+    if (dKey.includes('respiratory') || dKey.includes('copd') || dKey.includes('asthma')) {
+      return 'oxygen_saturation';
+    }
+    return undefined;
+  };
+
+  const getTaskMetricLabel = (metricType?: string): string | undefined => {
+    if (!metricType) return undefined;
+    const key = `mobile.metric_${metricType.trim().toLowerCase()}`;
+    return i18n.exists(key) ? t(key) : undefined;
+  };
+
+  const handleTaskPress = async (task: TaskRow) => {
     if (enrollment && enrollment.status !== 'active') {
       Toast.show({
         type: 'info',
@@ -458,7 +496,33 @@ export default function PatientHomeScreen() {
     }
     setActiveTask(task);
     if (task.taskType === 'metric') {
-      router.push('/(patient)/health-metric');
+      let targetMetricType = task.metricType;
+      if (!targetMetricType) {
+        try {
+          const detailRes = await mobileApi.careTaskDetail({ params: { id: task.id } });
+          const raw = detailRes as unknown as {
+            metricType?: unknown;
+            presentation?: { metricType?: unknown };
+          };
+          const fromDetail = raw?.presentation?.metricType ?? raw?.metricType;
+          if (typeof fromDetail === 'string' && fromDetail.trim()) {
+            targetMetricType = fromDetail.trim();
+          }
+        } catch {
+          // Fall back safely to enrollment inference
+        }
+      }
+      targetMetricType = targetMetricType ?? resolveTaskMetricType(task);
+      pendingMetricSyncRef.current = true;
+      router.push({
+        pathname: '/(patient)/health-metric',
+        params: {
+          ...(targetMetricType ? { metricType: targetMetricType } : {}),
+          fromCareTask: '1',
+          taskId: task.id,
+          navAt: String(Date.now()),
+        },
+      });
       return;
     }
     if (task.taskType === 'check_in') {
@@ -528,18 +592,17 @@ export default function PatientHomeScreen() {
     (enrollment.allowedActions?.includes('submit_consent') ||
       enrollment.allowedActions?.includes('submit_baseline'));
 
-  const todayCompletedCount = tasks.filter((x) => x.status === 'completed').length;
-  const todayTotalCount = tasks.length;
-  const completedTasksCount =
-    todayTotalCount > 0 ? todayCompletedCount : (completionRate?.completed ?? 0);
-  const totalTasksCount =
-    todayTotalCount > 0 ? todayTotalCount : (completionRate?.expected ?? 0);
-  const adherencePercent =
-    typeof completionRate?.completionRate === 'number'
+  const patientTasksToday = tasks.filter((x) => x.taskType !== 'doctor_review');
+  const todayCompletedCount = patientTasksToday.filter((x) => x.status === 'completed').length;
+  const todayTotalCount = patientTasksToday.length;
+  const todayProgressPercent =
+    todayTotalCount > 0
+      ? Math.min(100, Math.max(0, Math.round((todayCompletedCount / todayTotalCount) * 100)))
+      : 0;
+  const cumulativeAdherencePercent =
+    typeof completionRate?.completionRate === 'number' && (completionRate?.expected ?? 0) > 0
       ? Math.min(100, Math.max(0, Math.round(completionRate.completionRate * 100)))
-      : totalTasksCount > 0
-        ? Math.round((completedTasksCount / totalTasksCount) * 100)
-        : 0;
+      : null;
 
   const getTaskVisual = (taskType: TaskRow['taskType']) => {
     switch (taskType) {
@@ -729,7 +792,7 @@ export default function PatientHomeScreen() {
                   <View style={tw('bg-white/20 px-3 py-1.5 rounded-full flex-row items-center shrink-0')}>
                     <Flame size={14} color="#fca5a5" />
                     <Text numberOfLines={1} style={tw('text-white text-xs font-bold ml-1 shrink-0')}>
-                      {completedTasksCount}/{totalTasksCount}
+                      {todayCompletedCount}/{todayTotalCount}
                     </Text>
                   </View>
                 </View>
@@ -743,18 +806,32 @@ export default function PatientHomeScreen() {
                   </View>
                 )}
 
-                {/* Adherence Progress Bar */}
+                {/* Today's Task Progress & Cumulative Adherence */}
                 <View style={tw('mb-4')}>
                   <View style={tw('flex-row justify-between mb-1.5')}>
                     <Text style={tw('text-indigo-100 text-xs font-medium')}>
-                      {t('mobile.adherence', 'Adherence')}
+                      {t('mobile.today_progress')}
                     </Text>
                     <Text style={tw('text-white font-bold text-xs')}>
-                      {adherencePercent}%
+                      {todayProgressPercent}%
                     </Text>
                   </View>
                   <View style={tw('w-full h-2 bg-indigo-900/50 rounded-full overflow-hidden')}>
-                    <View style={[tw('h-full bg-emerald-400 rounded-full'), { width: `${adherencePercent}%` }]} />
+                    <View style={[tw('h-full bg-emerald-400 rounded-full'), { width: `${todayProgressPercent}%` }]} />
+                  </View>
+                  <View style={tw('flex-row flex-wrap items-center justify-between gap-1 mt-2')}>
+                    <Text style={tw('text-indigo-100/90 text-[11px] font-medium')}>
+                      {t('mobile.cumulative_adherence')}:
+                    </Text>
+                    <Text style={tw('text-white/95 text-[11px] font-semibold')}>
+                      {cumulativeAdherencePercent !== null
+                        ? t('mobile.adherence_closed_tasks_ratio', {
+                            rate: cumulativeAdherencePercent,
+                            completed: completionRate?.completed ?? 0,
+                            expected: completionRate?.expected ?? 0,
+                          })
+                        : t('mobile.adherence_pending_evaluation')}
+                    </Text>
                   </View>
                 </View>
 
@@ -824,7 +901,7 @@ export default function PatientHomeScreen() {
                 </View>
                 <View style={tw('bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/70 dark:border-emerald-800/50 px-3 py-1 rounded-full shrink-0')}>
                   <Text numberOfLines={1} style={tw('text-xs font-bold text-emerald-600 dark:text-emerald-400 shrink-0')}>
-                    {completedTasksCount}/{totalTasksCount} {t('mobile.done', 'Done')}
+                    {todayCompletedCount}/{todayTotalCount} {t('mobile.done', 'Done')}
                   </Text>
                 </View>
               </View>
@@ -878,10 +955,14 @@ export default function PatientHomeScreen() {
                     const isMissed = task.status === 'missed';
                     const isCancelled = task.status === 'cancelled';
                     const isTerminal = isDone || isMissed || isCancelled;
+                    const metricLabel =
+                      task.taskType === 'metric'
+                        ? getTaskMetricLabel(resolveTaskMetricType(task))
+                        : undefined;
                     return (
                       <TouchableOpacity
                         key={task.id}
-                        onPress={() => handleTaskPress(task)}
+                        onPress={() => void handleTaskPress(task)}
                         activeOpacity={0.8}
                         style={tw(
                           `p-4 rounded-2xl border flex-row items-center justify-between ${
@@ -910,7 +991,7 @@ export default function PatientHomeScreen() {
                             >
                               {getTaskTitle(task)}
                             </Text>
-                            <View style={tw('flex-row items-center gap-2 mt-0.5')}>
+                            <View style={tw('flex-row flex-wrap items-center gap-2 mt-0.5')}>
                               {task.scheduledFor ? (
                                 <View style={tw('flex-row items-center gap-1')}>
                                   <Clock color={twInstance.color('text-slate-400')} size={12} />
@@ -922,6 +1003,13 @@ export default function PatientHomeScreen() {
                               <Text style={tw('text-xs text-slate-500 dark:text-slate-400')}>
                                 {t(`mobile.task_status_${task.status}`, task.status)}
                               </Text>
+                              {metricLabel && !isTerminal ? (
+                                <View style={tw('bg-rose-50 dark:bg-rose-950/40 border border-rose-200/70 dark:border-rose-800/50 px-2 py-0.5 rounded-md')}>
+                                  <Text style={tw('text-[11px] font-semibold text-rose-700 dark:text-rose-300')}>
+                                    {t('mobile.care_task_required_metric_hint', { metric: metricLabel })}
+                                  </Text>
+                                </View>
+                              ) : null}
                             </View>
                           </View>
                         </View>
@@ -930,6 +1018,12 @@ export default function PatientHomeScreen() {
                             <CheckCircle2 color="#10b981" size={24} />
                           ) : isMissed ? (
                             <AlertCircle color="#ef4444" size={24} />
+                          ) : !isTerminal && task.taskType === 'doctor_review' ? (
+                            <View style={tw('bg-slate-200/80 dark:bg-slate-800 px-3 py-1.5 rounded-full')}>
+                              <Text numberOfLines={1} style={tw('text-slate-600 dark:text-slate-300 text-xs font-semibold shrink-0')}>
+                                {t('mobile.task_waiting_doctor')}
+                              </Text>
+                            </View>
                           ) : task.status === 'due' ? (
                             <View style={tw('bg-indigo-600 px-3.5 py-1.5 rounded-full')}>
                               <Text numberOfLines={1} style={tw('text-white text-xs font-bold shrink-0')}>

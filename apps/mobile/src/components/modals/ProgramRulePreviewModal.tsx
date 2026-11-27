@@ -25,6 +25,7 @@ import {
 import { tw, twInstance } from '@/tw';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { extractApiErrorMessage } from '@/utils/apiError';
+import { resolveCareTaskTemplateTitle } from '@/utils/careTaskHelpers';
 
 interface ProgramRulePreviewModalProps {
   visible: boolean;
@@ -66,7 +67,7 @@ export const ProgramRulePreviewModal: React.FC<ProgramRulePreviewModalProps> = (
   programId,
   programName,
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const dateLocale = t('mobile.date_locale', 'vi-VN');
 
   const [loading, setLoading] = useState(false);
@@ -147,24 +148,28 @@ export const ProgramRulePreviewModal: React.FC<ProgramRulePreviewModalProps> = (
   const testStatus = testSummary?.status ?? 'unavailable';
   const taskTemplates = Array.isArray(program?.taskTemplates) ? program.taskTemplates : [];
 
-  const diseaseLabel = program?.diseaseKey
-    ? t(`mobile.disease_${program.diseaseKey.trim().toLowerCase()}`, formatHumanCode(program.diseaseKey))
+  const normalizedDiseaseKey = program?.diseaseKey?.trim().toLowerCase() ?? '';
+  const diseaseLabel = normalizedDiseaseKey
+    ? i18n.exists(`mobile.disease_${normalizedDiseaseKey}`)
+      ? t(`mobile.disease_${normalizedDiseaseKey}`)
+      : t('mobile.disease_general')
     : '';
 
-  const getTemplateTitle = (tpl: Record<string, unknown>, idx: number): string => {
-    if (typeof tpl.title === 'string' && tpl.title.trim()) return tpl.title;
-    if (typeof tpl.label === 'string' && tpl.label.trim()) return tpl.label;
-    if (typeof tpl.name === 'string' && tpl.name.trim()) return tpl.name;
-    const rawKey = String(tpl.templateKey ?? tpl.key ?? '').trim().toLowerCase();
-    if (rawKey) {
-      return t(`mobile.task_template_${rawKey}`, formatHumanCode(rawKey));
-    }
-    return `${t('mobile.care_task')} ${idx + 1}`;
-  };
+  const getTemplateTitle = (tpl: Record<string, unknown>, idx: number): string =>
+    resolveCareTaskTemplateTitle(t, i18n, {
+      title: tpl.title,
+      label: tpl.label,
+      name: tpl.name,
+      templateKey: tpl.templateKey ?? tpl.key,
+      taskType: tpl.taskType ?? tpl.type,
+      fallbackIndex: idx,
+    });
 
   const getTaskTypeLabel = (rawTypeValue: unknown): string => {
     const rawType = String(rawTypeValue ?? 'check_in').trim().toLowerCase();
-    return t(`mobile.task_type_${rawType}`, formatHumanCode(rawType));
+    return i18n.exists(`mobile.task_type_${rawType}`)
+      ? t(`mobile.task_type_${rawType}`)
+      : t('mobile.care_task');
   };
 
   return (
@@ -356,6 +361,38 @@ export const ProgramRulePreviewModal: React.FC<ProgramRulePreviewModalProps> = (
                         const tplRecord = tpl as unknown as Record<string, unknown>;
                         const title = getTemplateTitle(tplRecord, idx);
                         const taskType = getTaskTypeLabel(tplRecord.taskType ?? tplRecord.type);
+                        const schedule =
+                          tplRecord.schedule && typeof tplRecord.schedule === 'object'
+                            ? (tplRecord.schedule as {
+                                frequency?: unknown;
+                                time?: unknown;
+                                windowMinutes?: unknown;
+                              })
+                            : undefined;
+                        const freqKey =
+                          typeof schedule?.frequency === 'string'
+                            ? schedule.frequency.trim().toLowerCase()
+                            : '';
+                        const freqLabel =
+                          freqKey && i18n.exists(`mobile.schedule_frequency_${freqKey}`)
+                            ? t(`mobile.schedule_frequency_${freqKey}`)
+                            : '';
+                        const scheduleTime =
+                          typeof schedule?.time === 'string' ? schedule.time.trim() : '';
+                        const windowMinutes =
+                          typeof schedule?.windowMinutes === 'number' &&
+                          Number.isFinite(schedule.windowMinutes)
+                            ? schedule.windowMinutes
+                            : undefined;
+                        const timeSummary = [
+                          scheduleTime,
+                          windowMinutes
+                            ? `(${t('mobile.schedule_window_minutes', { minutes: windowMinutes })})`
+                            : '',
+                        ]
+                          .filter(Boolean)
+                          .join(' ');
+                        const scheduleSummary = [freqLabel, timeSummary].filter(Boolean).join(' • ');
                         const cadenceDays = tpl.frequencyDays ?? tpl.intervalDays ?? tpl.cadenceDays;
                         return (
                           <View
@@ -373,11 +410,15 @@ export const ProgramRulePreviewModal: React.FC<ProgramRulePreviewModalProps> = (
                                   {taskType}
                                 </Text>
                               </View>
-                              {cadenceDays !== undefined && cadenceDays !== null && (
+                              {scheduleSummary ? (
+                                <Text style={tw('text-xs text-slate-500 dark:text-slate-400')}>
+                                  {scheduleSummary}
+                                </Text>
+                              ) : cadenceDays !== undefined && cadenceDays !== null ? (
                                 <Text style={tw('text-xs text-slate-500 dark:text-slate-400')}>
                                   {t('mobile.every_n_days', { count: Number(cadenceDays) })}
                                 </Text>
-                              )}
+                              ) : null}
                             </View>
                           </View>
                         );
@@ -472,16 +513,22 @@ export const ProgramRulePreviewModal: React.FC<ProgramRulePreviewModalProps> = (
                             {t('mobile.verified_alert_triggers')}
                           </Text>
                           <View style={tw('flex-row flex-wrap gap-1.5')}>
-                            {testSummary.reasonCodes.map((code) => (
-                              <View
-                                key={code}
-                                style={tw('bg-emerald-100 dark:bg-emerald-900/40 px-2.5 py-1 rounded-lg')}
-                              >
-                                <Text style={tw('text-[11px] font-semibold text-emerald-800 dark:text-emerald-200')}>
-                                  {t(`mobile.reason_code_${code.toLowerCase()}`, formatHumanCode(code))}
-                                </Text>
-                              </View>
-                            ))}
+                            {testSummary.reasonCodes.map((code) => {
+                              const normalizedCode = code.trim().toLowerCase();
+                              const reasonText = i18n.exists(`mobile.reason_code_${normalizedCode}`)
+                                ? t(`mobile.reason_code_${normalizedCode}`)
+                                : formatHumanCode(code);
+                              return (
+                                <View
+                                  key={code}
+                                  style={tw('bg-emerald-100 dark:bg-emerald-900/40 px-2.5 py-1 rounded-lg')}
+                                >
+                                  <Text style={tw('text-[11px] font-semibold text-emerald-800 dark:text-emerald-200')}>
+                                    {reasonText}
+                                  </Text>
+                                </View>
+                              );
+                            })}
                           </View>
                         </View>
                       )}

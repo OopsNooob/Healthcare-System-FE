@@ -29,6 +29,7 @@ import { tw, twInstance } from '@/tw';
 import { AppModalToast } from '@/components/ui/AppToast';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { extractApiErrorMessage } from '@/utils/apiError';
+import { isDoctorReviewTaskOpenNow } from '@/utils/careTaskHelpers';
 
 export type DoctorReviewReasonCode =
   | 'reviewed_no_action'
@@ -42,6 +43,9 @@ interface CareTaskSummary {
   templateKey: string;
   status: string;
   scheduledFor: string;
+  windowStart?: string;
+  windowEnd?: string;
+  allowedActions?: string[];
 }
 
 interface DoctorReviewTaskModalProps {
@@ -67,7 +71,7 @@ export const DoctorReviewTaskModal: React.FC<DoctorReviewTaskModalProps> = ({
   programName,
   onSubmitReview,
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const dateLocale = t('mobile.date_locale', 'vi-VN');
 
   const [reasonCode, setReasonCode] =
@@ -79,17 +83,14 @@ export const DoctorReviewTaskModal: React.FC<DoctorReviewTaskModalProps> = ({
   const [tasksError, setTasksError] = useState<string | null>(null);
   const [reviewTasks, setReviewTasks] = useState<CareTaskSummary[]>([]);
   const [selectedTaskId, setSelectedTaskId] = useState<string>(initialTaskId ?? '');
+  const [nowMs, setNowMs] = useState<number>(() => Date.now());
 
   const loadReviewTasks = useCallback(async () => {
     if (!visible) return;
-    if (initialTaskId) {
-      setSelectedTaskId(initialTaskId);
-      setTasksError(null);
-      return;
-    }
     if (!enrollmentId) {
       setReviewTasks([]);
-      setSelectedTaskId('');
+      setSelectedTaskId(initialTaskId ?? '');
+      setTasksError(null);
       return;
     }
 
@@ -98,22 +99,36 @@ export const DoctorReviewTaskModal: React.FC<DoctorReviewTaskModalProps> = ({
     try {
       const res = await mobileApi.careTaskTasks({
         params: { id: enrollmentId },
-        query: { type: 'doctor_review', page: 1, limit: 20 },
+        query: {
+          type: 'doctor_review',
+          page: 1,
+          limit: 20,
+          sortBy: 'scheduledFor',
+          sortOrder: 1,
+        },
       });
-      const items = normalizePaginatedList<Record<string, unknown>>(res).items
+      const currentNowMs = Date.now();
+      setNowMs(currentNowMs);
+      const items: CareTaskSummary[] = normalizePaginatedList<Record<string, unknown>>(res).items
         .map((item) => ({
           id: String(item.id ?? item._id ?? ''),
           taskType: String(item.taskType ?? 'doctor_review'),
           templateKey: String(item.templateKey ?? ''),
           status: String(item.status ?? ''),
           scheduledFor: String(item.scheduledFor ?? ''),
+          windowStart: typeof item.windowStart === 'string' ? item.windowStart : undefined,
+          windowEnd: typeof item.windowEnd === 'string' ? item.windowEnd : undefined,
+          allowedActions: Array.isArray(item.allowedActions)
+            ? item.allowedActions.filter((a): a is string => typeof a === 'string')
+            : undefined,
         }))
         .filter((item) => Boolean(item.id));
 
       setReviewTasks(items);
+      const openTasks = items.filter((item) => isDoctorReviewTaskOpenNow(item, currentNowMs));
       const preferred =
-        items.find((item) => item.status === 'due' || item.status === 'upcoming' || item.status === 'overdue') ??
-        items[0];
+        (initialTaskId ? openTasks.find((item) => item.id === initialTaskId) : undefined) ??
+        openTasks[0];
       setSelectedTaskId(preferred?.id ?? '');
     } catch (err) {
       setTasksError(extractApiErrorMessage(err, 'mobile.load_review_tasks_failed'));
@@ -121,6 +136,26 @@ export const DoctorReviewTaskModal: React.FC<DoctorReviewTaskModalProps> = ({
       setLoadingTasks(false);
     }
   }, [enrollmentId, initialTaskId, visible]);
+
+  const openReviewTasks = reviewTasks.filter((item) => isDoctorReviewTaskOpenNow(item, nowMs));
+  const selectedReviewTask = reviewTasks.find((item) => item.id === selectedTaskId);
+  const isSelectedTaskOpenNow = enrollmentId
+    ? Boolean(selectedReviewTask && isDoctorReviewTaskOpenNow(selectedReviewTask, nowMs))
+    : Boolean(selectedTaskId);
+
+  const nextUpcomingReviewTask = reviewTasks.find((item) => {
+    const st = String(item.status ?? '').toLowerCase();
+    if (st !== 'scheduled' && st !== 'due') return false;
+    const startMs = item.windowStart ? Date.parse(item.windowStart) : NaN;
+    return Number.isNaN(startMs) || startMs > nowMs;
+  });
+
+  const formatTimeHm = (iso?: string): string => {
+    if (!iso) return '';
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return '';
+    return d.toLocaleTimeString(dateLocale, { hour: '2-digit', minute: '2-digit' });
+  };
 
   useEffect(() => {
     if (visible) {
@@ -159,7 +194,7 @@ export const DoctorReviewTaskModal: React.FC<DoctorReviewTaskModalProps> = ({
   ];
 
   const handleConfirm = async () => {
-    if (isSubmitting || !selectedTaskId) return;
+    if (isSubmitting || !selectedTaskId || !isSelectedTaskOpenNow) return;
     setIsSubmitting(true);
     try {
       const trimmedNote = note.trim() || undefined;
@@ -257,7 +292,7 @@ export const DoctorReviewTaskModal: React.FC<DoctorReviewTaskModalProps> = ({
             </View>
 
             {/* Task Selector when loaded from enrollment */}
-            {!initialTaskId && (
+            {(Boolean(enrollmentId) || !initialTaskId) && (
               <View>
                 {loadingTasks ? (
                   <Skeleton className="h-16 w-full rounded-2xl" />
@@ -291,6 +326,25 @@ export const DoctorReviewTaskModal: React.FC<DoctorReviewTaskModalProps> = ({
                   </View>
                 ) : (
                   <View>
+                    {openReviewTasks.length === 0 && (
+                      <View
+                        style={tw(
+                          'bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 rounded-2xl p-3.5 flex-row items-start mb-3'
+                        )}
+                      >
+                        <AlertCircle color="#d97706" size={17} style={tw('mt-0.5 mr-2 shrink-0')} />
+                        <Text style={tw('text-xs text-amber-800 dark:text-amber-200 flex-1 leading-4')}>
+                          {nextUpcomingReviewTask?.windowStart || nextUpcomingReviewTask?.scheduledFor
+                            ? t('mobile.doctor_review_window_not_open', {
+                                time: new Date(
+                                  nextUpcomingReviewTask.windowStart ??
+                                    nextUpcomingReviewTask.scheduledFor
+                                ).toLocaleString(dateLocale),
+                              })
+                            : t('mobile.doctor_review_no_open_window')}
+                        </Text>
+                      </View>
+                    )}
                     <Text
                       style={tw(
                         'text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2'
@@ -299,41 +353,54 @@ export const DoctorReviewTaskModal: React.FC<DoctorReviewTaskModalProps> = ({
                       {t('mobile.select_review_task')}
                     </Text>
                     <View style={tw('gap-2')}>
-                      {reviewTasks.map((task) => {
-                        const isSelected = selectedTaskId === task.id;
-                        const isDone = task.status === 'completed';
-                        return (
-                          <TouchableOpacity
-                            key={task.id}
-                            disabled={isSubmitting || isDone}
-                            onPress={() => setSelectedTaskId(task.id)}
-                            style={tw(
-                              `p-3 rounded-xl border flex-row items-center justify-between ${
-                                isSelected
-                                  ? 'bg-indigo-50 dark:bg-indigo-950/40 border-indigo-500'
-                                  : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800'
-                              } ${isDone ? 'opacity-50' : ''}`
-                            )}
-                          >
-                            <View style={tw('flex-1 mr-2')}>
-                              <Text style={tw('text-xs font-bold text-slate-900 dark:text-white')}>
-                                {task.scheduledFor
-                                  ? new Date(task.scheduledFor).toLocaleString(dateLocale)
-                                  : t('mobile.doctor_review_task_title')}
-                              </Text>
-                              <Text style={tw('text-[11px] text-slate-500 dark:text-slate-400 uppercase mt-0.5')}>
-                                {task.status}
-                              </Text>
-                            </View>
-                            {isSelected && (
-                              <CheckCircle2
-                                color={twInstance.color('text-indigo-600 dark:text-indigo-400')}
-                                size={16}
-                              />
-                            )}
-                          </TouchableOpacity>
-                        );
-                      })}
+                      {reviewTasks
+                        .slice(0, Math.max(4, openReviewTasks.length))
+                        .map((task) => {
+                          const isSelected = selectedTaskId === task.id;
+                          const taskOpenNow = isDoctorReviewTaskOpenNow(task, nowMs);
+                          const statusKey = `mobile.task_status_${task.status.trim().toLowerCase()}`;
+                          const localizedStatus = i18n.exists(statusKey)
+                            ? t(statusKey)
+                            : t('mobile.task_status_scheduled');
+                          const startHm = formatTimeHm(task.windowStart);
+                          const endHm = formatTimeHm(task.windowEnd);
+                          const windowLabel =
+                            startHm && endHm
+                              ? ` • ${t('mobile.doctor_review_window_label')}: ${startHm} – ${endHm}`
+                              : '';
+                          return (
+                            <TouchableOpacity
+                              key={task.id}
+                              disabled={isSubmitting || !taskOpenNow}
+                              onPress={() => setSelectedTaskId(task.id)}
+                              style={tw(
+                                `p-3 rounded-xl border flex-row items-center justify-between ${
+                                  isSelected
+                                    ? 'bg-indigo-50 dark:bg-indigo-950/40 border-indigo-500'
+                                    : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800'
+                                } ${!taskOpenNow ? 'opacity-50' : ''}`
+                              )}
+                            >
+                              <View style={tw('flex-1 mr-2')}>
+                                <Text style={tw('text-xs font-bold text-slate-900 dark:text-white')}>
+                                  {task.scheduledFor
+                                    ? new Date(task.scheduledFor).toLocaleString(dateLocale)
+                                    : t('mobile.doctor_review_task_title')}
+                                </Text>
+                                <Text style={tw('text-[11px] text-slate-500 dark:text-slate-400 mt-0.5')}>
+                                  {localizedStatus}
+                                  {windowLabel}
+                                </Text>
+                              </View>
+                              {isSelected && (
+                                <CheckCircle2
+                                  color={twInstance.color('text-indigo-600 dark:text-indigo-400')}
+                                  size={16}
+                                />
+                              )}
+                            </TouchableOpacity>
+                          );
+                        })}
                     </View>
                   </View>
                 )}
@@ -439,10 +506,10 @@ export const DoctorReviewTaskModal: React.FC<DoctorReviewTaskModalProps> = ({
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => void handleConfirm()}
-              disabled={isSubmitting || !selectedTaskId}
+              disabled={isSubmitting || !selectedTaskId || !isSelectedTaskOpenNow}
               style={tw(
                 `flex-1 py-3.5 rounded-xl bg-brand items-center justify-center flex-row ${
-                  isSubmitting || !selectedTaskId ? 'opacity-60' : ''
+                  isSubmitting || !selectedTaskId || !isSelectedTaskOpenNow ? 'opacity-60' : ''
                 }`
               )}
             >

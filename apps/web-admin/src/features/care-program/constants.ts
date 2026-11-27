@@ -34,11 +34,31 @@ export interface CareTaskTemplateItem {
   type: CareTaskType;
   time: string;
   windowMinutes: number;
+  metricType?: string;
   allowedSymptomCodes?: string[];
   contentId?: string;
   contentVersion?: string;
   contentLocale?: string;
   displayType?: "article" | "video" | "document";
+}
+
+export const METRIC_TYPE_OPTIONS: { value: string; defaultLabel: string }[] = [
+  { value: "blood_pressure", defaultLabel: "Blood Pressure (mmHg)" },
+  { value: "blood_glucose", defaultLabel: "Blood Glucose (mg/dL)" },
+  { value: "heart_rate", defaultLabel: "Heart Rate (bpm)" },
+  { value: "oxygen_saturation", defaultLabel: "Oxygen Saturation - SpO2 (%)" },
+  { value: "weight", defaultLabel: "Weight (kg)" },
+  { value: "body_temperature", defaultLabel: "Body Temperature (°C)" },
+];
+
+export function inferDefaultMetricType(diseaseKey: string): string {
+  const normalized = diseaseKey.trim().toLowerCase();
+  if (normalized === "diabetes") return "blood_glucose";
+  if (normalized === "hypertension" || normalized === "cardiovascular") {
+    return "blood_pressure";
+  }
+  if (normalized === "respiratory") return "oxygen_saturation";
+  return "heart_rate";
 }
 
 export interface EducationCatalogItem {
@@ -52,6 +72,8 @@ export interface EducationCatalogItem {
   status: "draft" | "published" | "retired";
   programId?: string;
   programName?: string;
+  programVersion?: number;
+  programStatus?: "draft" | "published" | "retired";
 }
 
 export const SYMPTOM_OPTIONS: { code: string; defaultLabel: string }[] = [
@@ -83,23 +105,23 @@ export const STANDARD_CONTENT_REF_SUGGESTIONS: EducationCatalogItem[] = [
     status: "published",
   },
   {
-    id: "ref-glucose",
-    contentId: "diabetes_meal_timing",
+    id: "ref-bp-video",
+    contentId: "bp_home_measurement_video",
     version: "v1.0",
     locale: "vi",
     displayType: "video",
-    title: "Post-Meal Glucose Monitoring",
-    summary: "Daily glycemic tracking intervals and meal balance.",
+    title: "Home Blood Pressure Measurement Posture Video",
+    summary: "Proper cuff positioning and resting intervals before logging.",
     status: "published",
   },
   {
-    id: "ref-bp",
-    contentId: "home_bp_measurement_video",
+    id: "ref-diabetes-foot",
+    contentId: "diabetes_foot_care_doc",
     version: "v1.0",
     locale: "vi",
-    displayType: "video",
-    title: "Home Blood Pressure Technique",
-    summary: "Proper cuff positioning and resting intervals before logging.",
+    displayType: "document",
+    title: "Diabetic Foot Care & Complication Prevention Handbook",
+    summary: "Daily foot inspection checklist and warning signs to consult a doctor.",
     status: "published",
   },
 ];

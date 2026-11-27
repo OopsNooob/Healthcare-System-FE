@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
@@ -126,8 +127,43 @@ export default function HealthMetricScreen() {
   const { t } = useTranslation();
   const { isDark } = useThemeContext();
   const router = useRouter();
+  const rawParams = useLocalSearchParams<{
+    metricType?: string | string[];
+    fromCareTask?: string | string[];
+    taskId?: string | string[];
+    navAt?: string | string[];
+  }>();
+  const paramMetricType = Array.isArray(rawParams.metricType)
+    ? rawParams.metricType[0]
+    : rawParams.metricType;
+  const fromCareTaskParam = Array.isArray(rawParams.fromCareTask)
+    ? rawParams.fromCareTask[0]
+    : rawParams.fromCareTask;
+  const paramTaskId = Array.isArray(rawParams.taskId)
+    ? rawParams.taskId[0]
+    : rawParams.taskId;
+  const paramNavAt = Array.isArray(rawParams.navAt)
+    ? rawParams.navAt[0]
+    : rawParams.navAt;
 
-  const [selectedMetricId, setSelectedMetricId] = useState<MetricsTypes>('blood_pressure');
+  const [selectedMetricId, setSelectedMetricId] = useState<MetricsTypes>(() =>
+    paramMetricType && METRIC_CONFIGS.some((m) => m.id === paramMetricType)
+      ? (paramMetricType as MetricsTypes)
+      : 'blood_pressure'
+  );
+  const requiredTaskConfig = useMemo(
+    () =>
+      fromCareTaskParam === '1' && paramMetricType
+        ? METRIC_CONFIGS.find((m) => m.id === paramMetricType)
+        : undefined,
+    [fromCareTaskParam, paramMetricType]
+  );
+
+  useEffect(() => {
+    if (paramMetricType && METRIC_CONFIGS.some((m) => m.id === paramMetricType)) {
+      setSelectedMetricId(paramMetricType as MetricsTypes);
+    }
+  }, [paramMetricType, paramTaskId, paramNavAt]);
   const selectedConfig = useMemo(
     () => METRIC_CONFIGS.find((m) => m.id === selectedMetricId) ?? METRIC_CONFIGS[0],
     [selectedMetricId]
@@ -313,12 +349,18 @@ export default function HealthMetricScreen() {
         );
         setAlertVisible(true);
       } else {
+        const isMatchingCareTask =
+          !editId &&
+          Boolean(requiredTaskConfig) &&
+          selectedMetricId === requiredTaskConfig?.id;
         Toast.show({
           type: 'success',
           text1: t('mobile.success', 'Success'),
           text2: editId
             ? t('mobile.entry_updated', 'Entry replaced (Correction logged)')
-            : t('mobile.new_entry_added', 'New entry added'),
+            : isMatchingCareTask
+              ? t('mobile.care_task_metric_saved_sync_hint')
+              : t('mobile.new_entry_added', 'New entry added'),
         });
       }
     } catch (err) {
@@ -391,6 +433,28 @@ export default function HealthMetricScreen() {
           <Plus color="#ffffff" size={22} />
         </TouchableOpacity>
       </View>
+
+      {requiredTaskConfig && (
+        <TouchableOpacity
+          activeOpacity={0.85}
+          onPress={() => setSelectedMetricId(requiredTaskConfig.id)}
+          style={tw(
+            'mx-6 mb-3 px-4 py-3 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/60 flex-row items-start'
+          )}
+        >
+          <AlertCircle color="#4f46e5" size={18} style={tw('mt-0.5 mr-2.5 shrink-0')} />
+          <View style={tw('flex-1')}>
+            <Text style={tw('text-xs font-bold text-indigo-800 dark:text-indigo-200')}>
+              {t('mobile.care_task_metric_banner_title')}
+            </Text>
+            <Text style={tw('text-xs text-indigo-700 dark:text-indigo-300 mt-0.5 leading-4')}>
+              {t('mobile.care_task_metric_banner_desc', {
+                metric: t(requiredTaskConfig.titleKey, requiredTaskConfig.fallbackTitle),
+              })}
+            </Text>
+          </View>
+        </TouchableOpacity>
+      )}
 
       <View style={tw('mb-4')}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={tw('px-6 gap-2.5')}>
