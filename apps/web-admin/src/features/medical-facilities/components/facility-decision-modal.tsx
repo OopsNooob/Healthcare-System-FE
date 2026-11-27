@@ -127,7 +127,8 @@ export function FacilityDecisionModal({
                   {facilityDetails?.name || t("medicalFacilities.unnamedFacility")}
                 </div>
                 <div className="text-slate-500 dark:text-slate-400">
-                  rev {target.record.revision} • {target.record.status}
+                  rev {target.record.revision} •{" "}
+                  {t(`medicalFacilities.status.${target.record.status}`)}
                   {target.record.googlePlaceId
                     ? ` • Place ID: ${target.record.googlePlaceId}`
                     : ""}
@@ -145,7 +146,10 @@ export function FacilityDecisionModal({
             ) : (
               <>
                 <div className="font-semibold text-slate-900 dark:text-slate-100">
-                  {target.record.scope}: {target.record.scopeKey}
+                  {target.record.scope === "program"
+                    ? t("medicalFacilities.diseaseSpecialty.scopeProgram")
+                    : t("medicalFacilities.diseaseSpecialty.scopeDisease")}
+                  : {target.record.scopeKey}
                 </div>
                 <div className="text-slate-500 dark:text-slate-400">
                   v{target.record.version} • rev {target.record.revision}

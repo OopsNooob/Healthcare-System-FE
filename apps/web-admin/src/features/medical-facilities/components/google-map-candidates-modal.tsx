@@ -286,7 +286,7 @@ export function GoogleMapCandidatesModal({
                 </option>
                 {GOOGLE_PLACE_TYPE_OPTIONS.map((pt) => (
                   <option key={pt} value={pt}>
-                    {pt}
+                    {t(`medicalFacilities.mapModal.placeTypes.${pt}`)}
                   </option>
                 ))}
               </select>
@@ -366,7 +366,7 @@ export function GoogleMapCandidatesModal({
                   value={latitude}
                   onChange={(e) => setLatitude(e.target.value)}
                   disabled={busy}
-                  placeholder="Lat (10.7769)"
+                  placeholder={t("medicalFacilities.mapModal.latPlaceholder")}
                   className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3 py-2 font-mono text-xs text-slate-900 dark:text-slate-100"
                 />
                 <input
@@ -375,7 +375,7 @@ export function GoogleMapCandidatesModal({
                   value={longitude}
                   onChange={(e) => setLongitude(e.target.value)}
                   disabled={busy}
-                  placeholder="Lng (106.7009)"
+                  placeholder={t("medicalFacilities.mapModal.lngPlaceholder")}
                   className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3 py-2 font-mono text-xs text-slate-900 dark:text-slate-100"
                 />
                 <input
@@ -385,7 +385,7 @@ export function GoogleMapCandidatesModal({
                   value={radiusKm}
                   onChange={(e) => setRadiusKm(e.target.value)}
                   disabled={busy}
-                  placeholder="Radius km"
+                  placeholder={t("medicalFacilities.mapModal.radiusPlaceholder")}
                   className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3 py-2 font-mono text-xs text-slate-900 dark:text-slate-100"
                 />
               </div>
@@ -440,7 +440,7 @@ export function GoogleMapCandidatesModal({
                   })}
                 </span>
                 <Badge variant="outline" className="text-[11px]">
-                  Attribution: Google Maps
+                  {t("medicalFacilities.formModal.attributionLabel")}: Google Maps
                 </Badge>
               </div>
               {candidates.map((item) => (
@@ -464,7 +464,10 @@ export function GoogleMapCandidatesModal({
                     )}
                     <div className="flex flex-wrap items-center gap-3 text-[11px] text-slate-500 dark:text-slate-400">
                       <span className="font-mono">Place ID: {item.placeId}</span>
-                      <span>Attribution: {item.attribution}</span>
+                      <span>
+                        {t("medicalFacilities.formModal.attributionLabel")}:{" "}
+                        {item.attribution}
+                      </span>
                       {item.mapsUrl && (
                         <a
                           href={item.mapsUrl}

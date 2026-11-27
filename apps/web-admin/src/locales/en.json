@@ -365,7 +365,7 @@
         "save": "Save Facility",
         "addTitle": "Add Medical Facility",
         "facilityType": "Facility type",
-        "hcmcAddressSection": "Structured Address (HCMC Pilot)",
+        "hcmcAddressSection": "Structured Address",
         "street": "Street & House number",
         "streetPlaceholder": "e.g. 201B Nguyen Chi Thanh",
         "ward": "Ward",
@@ -396,7 +396,8 @@
         "linkPlaceButton": "Link Place ID",
         "placeIdLengthError": "Google Place ID must be 8–200 characters.",
         "verifyRequirementsHint": "Requirements to Verify & Publish: facility name, type, province & district (HCMC), valid coordinates, at least 1 specialty, and phone or official HTTPS URL.",
-        "duplicateHistoryTitle": "Duplicate Review History ({{count}})"
+        "duplicateHistoryTitle": "Duplicate Review History ({{count}})",
+        "attributionLabel": "Attribution"
       },
       "decisionModal": {
         "approveTitle": "Approve Medical Facility",
@@ -488,7 +489,14 @@
         "sourcesHint": "Each mapping requires at least 1 public HTTPS reference source (health ministry, clinical guideline) for clinical audit.",
         "sourcesRequired": "Please provide at least 1 official reference URL.",
         "sourcesHttpsError": "All reference sources must be valid public https:// URLs (max 1000 chars).",
-        "sourcesColumn": "SOURCES"
+        "sourcesColumn": "SOURCES",
+        "selectSpecialtiesLabel": "Applicable specialties",
+        "selectProgramPlaceholder": "Select a published care program...",
+        "selectDiseasePlaceholder": "Select an active disease group...",
+        "searchScopePlaceholder": "Search by name or code...",
+        "noScopeMatches": "No matching items found.",
+        "noPublishedScopeHint": "No published care programs available yet. Please publish a care program before creating a mapping.",
+        "scopeKeyRequired": "Please select a care program or disease group to map."
       },
       "subtitle": "Manage directory facilities on map and configure disease-to-specialty routing rules for care programs.",
       "tabFacilities": "Facilities Directory",
@@ -570,7 +578,26 @@
         "searchButton": "Search Candidates",
         "resultsCount": "Found {{count}} external candidates",
         "createDraftButton": "Import as Draft",
-        "emptyHint": "Enter a query or pick a specialty and click \"Search Candidates\" to query Google Places (when enabled on server)."
+        "emptyHint": "Enter a query or pick a specialty and click \"Search Candidates\" to query Google Places (when enabled on server).",
+        "latPlaceholder": "Latitude (e.g. 10.7769)",
+        "lngPlaceholder": "Longitude (e.g. 106.7009)",
+        "radiusPlaceholder": "Radius (1–50 km)",
+        "placeTypes": {
+          "hospital": "Hospital",
+          "general_hospital": "General hospital",
+          "medical_center": "Medical center",
+          "medical_clinic": "Medical clinic",
+          "doctor": "Doctor's office",
+          "dental_clinic": "Dental clinic",
+          "dentist": "Dentist",
+          "medical_lab": "Medical lab",
+          "pharmacy": "Pharmacy",
+          "drugstore": "Drugstore",
+          "physiotherapist": "Physiotherapist",
+          "chiropractor": "Chiropractor",
+          "skin_care_clinic": "Skin care clinic",
+          "wellness_center": "Wellness center"
+        }
       },
       "specialtyModal": {
         "createTitle": "Add Specialty",
@@ -583,7 +610,8 @@
         "codeInvalid": "Specialty code must be 2–64 lowercase letters, digits, underscores, or hyphens.",
         "nameInvalid": "Specialty name must be 2–120 characters.",
         "synonymsInvalid": "Up to 20 synonyms allowed, max 80 chars each."
-      }
+      },
+      "googlePlaceLinked": "Google Place linked"
     },
     "docVerification": {
       "title": "Document Verification",

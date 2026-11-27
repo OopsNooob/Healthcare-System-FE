@@ -334,10 +334,10 @@ export function FacilityFormModal({
           {/* Transient Google Places Preview (never auto-copied to form inputs) */}
           {facility?.googlePlaceId && (
             <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40 p-3.5 text-xs space-y-2">
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <MapPin size={15} className="text-rose-500" />
-                  <span className="font-bold text-slate-800 dark:text-slate-100">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex flex-wrap items-center gap-2 min-w-0">
+                  <MapPin size={15} className="text-rose-500 shrink-0" />
+                  <span className="font-bold text-slate-800 dark:text-slate-100 whitespace-nowrap">
                     {t("medicalFacilities.formModal.providerPreviewTitle")}
                   </span>
                   <Badge className="bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 border-none text-[10px]">
@@ -349,7 +349,7 @@ export function FacilityFormModal({
                     type="button"
                     disabled={busy}
                     onClick={() => void onFetchFreshPreview(facility.id)}
-                    className="px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 font-semibold flex items-center gap-1 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-50"
+                    className="inline-flex items-center gap-1 whitespace-nowrap shrink-0 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 font-semibold hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-50"
                   >
                     <RefreshCw
                       size={12}
@@ -377,7 +377,8 @@ export function FacilityFormModal({
                   )}
                   <div className="flex flex-wrap items-center gap-3 pt-1">
                     <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
-                      Attribution: {providerPreview.attribution}
+                      {t("medicalFacilities.formModal.attributionLabel")}:{" "}
+                      {providerPreview.attribution}
                     </span>
                     {providerPreview.mapsUrl && (
                       <a

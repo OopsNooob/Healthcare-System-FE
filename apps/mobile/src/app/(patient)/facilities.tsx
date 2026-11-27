@@ -81,6 +81,27 @@ function formatDistanceText(meters?: number): string | null {
   return `${(meters / 1000).toFixed(1)} km`;
 }
 
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new Error('GPS_TIMEOUT'));
+    }, timeoutMs);
+    promise
+      .then((value) => {
+        clearTimeout(timer);
+        resolve(value);
+      })
+      .catch((err) => {
+        clearTimeout(timer);
+        reject(err);
+      });
+  });
+}
+
+function isWithinHcmcArea(lat: number, lng: number): boolean {
+  return lat >= 10.35 && lat <= 11.2 && lng >= 106.35 && lng <= 107.05;
+}
+
 export default function MedicalFacilitiesScreen() {
   const { t } = useTranslation();
   useThemeContext();
@@ -360,6 +381,14 @@ export default function MedicalFacilitiesScreen() {
     setLocatingGps(true);
     setGpsError(null);
     try {
+      const servicesEnabled = await Location.hasServicesEnabledAsync();
+      if (!servicesEnabled) {
+        setLocationConsent(false);
+        setCoords(null);
+        setGpsError(t('mobile.facility_gps_services_disabled'));
+        return;
+      }
+
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
         setLocationConsent(false);
@@ -367,14 +396,65 @@ export default function MedicalFacilitiesScreen() {
         setGpsError(t('mobile.facility_gps_permission_denied'));
         return;
       }
-      const pos = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Balanced,
-      });
-      setLocationConsent(true);
-      setCoords({
-        latitude: pos.coords.latitude,
-        longitude: pos.coords.longitude,
-      });
+
+      let pos: Location.LocationObject | null = null;
+      try {
+        pos = await withTimeout(
+          Location.getCurrentPositionAsync({
+            accuracy: Location.Accuracy.High,
+          }),
+          8000
+        );
+      } catch {
+        pos = null;
+      }
+
+      if (!pos?.coords) {
+        try {
+          pos = await Location.getLastKnownPositionAsync({
+            maxAge: 3_600_000,
+          });
+        } catch {
+          pos = null;
+        }
+      }
+
+      if (!pos?.coords) {
+        try {
+          pos = await Location.getLastKnownPositionAsync();
+        } catch {
+          pos = null;
+        }
+      }
+
+      if (!pos?.coords) {
+        try {
+          pos = await withTimeout(
+            Location.getCurrentPositionAsync({
+              accuracy: Location.Accuracy.Lowest,
+            }),
+            5000
+          );
+        } catch {
+          pos = null;
+        }
+      }
+
+      if (
+        pos?.coords &&
+        Number.isFinite(pos.coords.latitude) &&
+        Number.isFinite(pos.coords.longitude)
+      ) {
+        setLocationConsent(true);
+        setCoords({
+          latitude: pos.coords.latitude,
+          longitude: pos.coords.longitude,
+        });
+      } else {
+        setLocationConsent(false);
+        setCoords(null);
+        setGpsError(t('mobile.facility_gps_unavailable_fallback'));
+      }
     } catch {
       setLocationConsent(false);
       setCoords(null);
@@ -801,7 +881,7 @@ export default function MedicalFacilitiesScreen() {
                             }`
                           )}
                         >
-                          {dk}
+                          {t(`mobile.disease_${dk}`, dk)}
                         </Text>
                       </TouchableOpacity>
                     );
@@ -964,11 +1044,50 @@ export default function MedicalFacilitiesScreen() {
                         </Text>
                       </TouchableOpacity>
                       {locationConsent && coords && (
-                        <Text
-                          style={tw('text-[11px] font-semibold text-emerald-700 dark:text-emerald-400')}
-                        >
-                          {t('mobile.facility_gps_ready')}
-                        </Text>
+                        <View style={tw('gap-2')}>
+                          <Text
+                            style={tw(
+                              'text-[11px] font-semibold text-emerald-700 dark:text-emerald-400'
+                            )}
+                          >
+                            {t('mobile.facility_gps_ready_coords', {
+                              lat: coords.latitude.toFixed(4),
+                              lng: coords.longitude.toFixed(4),
+                            })}
+                          </Text>
+                          {!isWithinHcmcArea(
+                            coords.latitude,
+                            coords.longitude
+                          ) && (
+                            <View
+                              style={tw(
+                                'bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl p-2.5 gap-1.5'
+                              )}
+                            >
+                              <Text
+                                style={tw(
+                                  'text-[11px] text-amber-800 dark:text-amber-300'
+                                )}
+                              >
+                                {t('mobile.facility_gps_outside_hcmc_hint')}
+                              </Text>
+                              <TouchableOpacity
+                                onPress={() => setScopeMode('area')}
+                                style={tw(
+                                  'self-start px-2.5 py-1 rounded-lg bg-amber-100 dark:bg-amber-900/50 border border-amber-300 dark:border-amber-700'
+                                )}
+                              >
+                                <Text
+                                  style={tw(
+                                    'text-[11px] font-bold text-amber-900 dark:text-amber-200'
+                                  )}
+                                >
+                                  {t('mobile.facility_scope_area')}
+                                </Text>
+                              </TouchableOpacity>
+                            </View>
+                          )}
+                        </View>
                       )}
                       {gpsError && (
                         <Text
@@ -1444,7 +1563,7 @@ export default function MedicalFacilitiesScreen() {
                     <Text
                       style={tw('text-[11px] font-bold text-slate-500 dark:text-slate-400')}
                     >
-                      Attribution: Google Maps
+                      {t('mobile.facility_attribution_label')}: Google Maps
                       {externalAttributions.length > 0
                         ? ` (${externalAttributions.join(', ')})`
                         : ''}

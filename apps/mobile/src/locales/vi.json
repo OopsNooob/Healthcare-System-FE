@@ -2849,7 +2849,7 @@
   "mobile.care_task_metric_banner_desc": "Hãy ghi nhận chỉ số {{metric}} trong khung giờ để hoàn thành nhiệm vụ hôm nay.",
   "mobile.care_task_metric_saved_sync_hint": "Đã lưu chỉ số! Nhiệm vụ chăm sóc sẽ tự động đánh dấu hoàn thành sau vài giây.",
   "mobile.care_task_required_metric_hint": "Cần đo: {{metric}}",
-  "mobile.facility_pilot_subtitle": "Danh mục cơ sở y tế đã xác minh (Thí điểm TP.HCM)",
+  "mobile.facility_pilot_subtitle": "Danh mục cơ sở y tế đã xác minh",
   "mobile.facility_urgent_banner_title": "Cần cấp cứu y tế khẩn cấp?",
   "mobile.facility_urgent_banner_desc": "Nếu bạn đau ngực dữ dội, khó thở hoặc dấu hiệu nguy kịch, hãy gọi ngay cấp cứu 115 hoặc đến khoa Cấp cứu gần nhất thay vì tra cứu danh mục.",
   "mobile.facility_disabled_title": "Danh mục Cơ sở Y tế tạm ngưng",
@@ -2908,5 +2908,9 @@
   "mobile.facility_reason_disease_mapping_specialty_match": "Khớp chuyên khoa theo nhóm bệnh",
   "mobile.facility_reason_manual_specialty_specialty_match_nearby": "Khớp chuyên khoa đã chọn · gần vị trí hiện tại",
   "mobile.facility_reason_program_mapping_specialty_match_nearby": "Khớp chuyên khoa theo chương trình · gần vị trí hiện tại",
-  "mobile.facility_reason_disease_mapping_specialty_match_nearby": "Khớp chuyên khoa theo nhóm bệnh · gần vị trí hiện tại"
+  "mobile.facility_reason_disease_mapping_specialty_match_nearby": "Khớp chuyên khoa theo nhóm bệnh · gần vị trí hiện tại",
+  "mobile.facility_gps_services_disabled": "Dịch vụ định vị (GPS) trên thiết bị đang tắt. Hãy bật Vị trí trong Cài đặt rồi thử lại.",
+  "mobile.facility_gps_ready_coords": "Đã lấy tọa độ GPS ({{lat}}, {{lng}})",
+  "mobile.facility_gps_outside_hcmc_hint": "Tọa độ GPS hiện tại nằm ngoài khu vực TP.HCM. Hãy cập nhật vị trí thiết bị/Emulator về TP.HCM hoặc chuyển sang tìm theo Khu vực.",
+  "mobile.facility_attribution_label": "Nguồn dữ liệu"
 }

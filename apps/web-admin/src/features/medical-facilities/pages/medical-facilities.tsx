@@ -244,19 +244,28 @@ export function MedicalFacilities() {
 
   const loadCarePrograms = useCallback(async () => {
     try {
-      const res = await webAdminApi.careProgramRuleListPrograms({
-        query: { status: "published", limit: 50, page: 1 },
-      });
-      const page = normalizePaginatedList<Record<string, unknown>>(res);
-      setCarePrograms(
-        page.items
-          .map((item) => ({
-            programCode: String(item.programCode ?? ""),
-            name: String(item.name ?? item.programCode ?? ""),
-            diseaseKey: String(item.diseaseKey ?? ""),
-          }))
-          .filter((p) => Boolean(p.programCode)),
-      );
+      const collected = new Map<string, CareProgramOption>();
+      for (let p = 1; p <= 5; p++) {
+        const res = await webAdminApi.careProgramRuleListPrograms({
+          query: { status: "published", limit: 50, page: p },
+        });
+        const pageData = normalizePaginatedList<Record<string, unknown>>(
+          res,
+          p,
+          50,
+        );
+        for (const item of pageData.items) {
+          const programCode = String(item.programCode ?? "").trim();
+          if (!programCode || collected.has(programCode)) continue;
+          collected.set(programCode, {
+            programCode,
+            name: String(item.name ?? programCode),
+            diseaseKey: String(item.diseaseKey ?? "").trim(),
+          });
+        }
+        if (pageData.items.length < 50 || !pageData.hasNextPage) break;
+      }
+      setCarePrograms(Array.from(collected.values()));
     } catch {
       // Optional suggestions only
     }
@@ -839,7 +848,7 @@ export function MedicalFacilities() {
       <div className="rounded-3xl border border-slate-200/70 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm">
         {/* Top Header */}
         <div className="mb-6 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
-          <div>
+          <div className="min-w-0 flex-1">
             <h1 className="text-3xl font-semibold text-slate-900 dark:text-slate-100">
               {t("sidebar.medicalFacilities")}
             </h1>
@@ -847,12 +856,12 @@ export function MedicalFacilities() {
               {t("medicalFacilities.subtitle")}
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 shrink-0">
             <button
               type="button"
               disabled={isRefreshing || isMutating}
               onClick={() => void handleRefreshAll()}
-              className="flex items-center gap-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3.5 py-2.5 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 whitespace-nowrap shrink-0 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3.5 py-2.5 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50"
             >
               <RefreshCw
                 size={15}
@@ -870,7 +879,7 @@ export function MedicalFacilities() {
                     setMapErrorMessage(null);
                     setIsMapModalOpen(true);
                   }}
-                  className="flex items-center gap-1.5 rounded-xl border border-indigo-200 dark:border-indigo-800 bg-indigo-50 dark:bg-indigo-950/40 px-3.5 py-2.5 text-xs font-bold text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 disabled:opacity-50"
+                  className="inline-flex items-center gap-1.5 whitespace-nowrap shrink-0 rounded-xl border border-indigo-200 dark:border-indigo-800 bg-indigo-50 dark:bg-indigo-950/40 px-3.5 py-2.5 text-xs font-bold text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 disabled:opacity-50"
                 >
                   <MapPin size={15} />
                   <span>{t("medicalFacilities.findOnGoogleMaps")}</span>
@@ -883,7 +892,7 @@ export function MedicalFacilities() {
                     setFacilityPreview(null);
                     setIsFormOpen(true);
                   }}
-                  className="flex items-center gap-2 rounded-xl bg-brand px-4 py-2.5 text-xs font-bold text-slate-900 transition-colors hover:bg-brand/90 shadow-sm disabled:opacity-50"
+                  className="inline-flex items-center gap-2 whitespace-nowrap shrink-0 rounded-xl bg-brand px-4 py-2.5 text-xs font-bold text-slate-900 transition-colors hover:bg-brand/90 shadow-sm disabled:opacity-50"
                 >
                   <Plus size={16} />
                   <span>{t("medicalFacilities.formModal.addTitle")}</span>
@@ -899,7 +908,7 @@ export function MedicalFacilities() {
                   setEditingSpecialty(null);
                   setIsSpecialtyModalOpen(true);
                 }}
-                className="flex items-center gap-2 rounded-xl bg-brand px-4 py-2.5 text-xs font-bold text-slate-900 transition-colors hover:bg-brand/90 shadow-sm disabled:opacity-50"
+                className="inline-flex items-center gap-2 whitespace-nowrap shrink-0 rounded-xl bg-brand px-4 py-2.5 text-xs font-bold text-slate-900 transition-colors hover:bg-brand/90 shadow-sm disabled:opacity-50"
               >
                 <Plus size={16} />
                 <span>{t("medicalFacilities.specialtyModal.createTitle")}</span>
@@ -914,7 +923,7 @@ export function MedicalFacilities() {
                   setEditingMapping(null);
                   setIsMappingModalOpen(true);
                 }}
-                className="flex items-center gap-2 rounded-xl bg-brand px-4 py-2.5 text-xs font-bold text-slate-900 transition-colors hover:bg-brand/90 shadow-sm disabled:opacity-50"
+                className="inline-flex items-center gap-2 whitespace-nowrap shrink-0 rounded-xl bg-brand px-4 py-2.5 text-xs font-bold text-slate-900 transition-colors hover:bg-brand/90 shadow-sm disabled:opacity-50"
               >
                 <Plus size={16} />
                 <span>{t("medicalFacilities.diseaseSpecialty.addTitle")}</span>
@@ -1016,7 +1025,7 @@ export function MedicalFacilities() {
                   {t("medicalFacilities.status.retired")}
                 </option>
               </select>
-              <label className="flex items-center gap-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3.5 py-2.5 text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer">
+              <label className="flex items-center gap-2 whitespace-nowrap shrink-0 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3.5 py-2.5 text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer">
                 <input
                   type="checkbox"
                   checked={needsRecheckOnly}
@@ -1101,8 +1110,8 @@ export function MedicalFacilities() {
                                   )}
                                   <span>• rev {fac.revision}</span>
                                   {fac.googlePlaceId && (
-                                    <span className="font-mono text-[11px] text-indigo-600 dark:text-indigo-400">
-                                      • Google Place Linked
+                                    <span className="text-[11px] font-medium text-indigo-600 dark:text-indigo-400">
+                                      • {t("medicalFacilities.googlePlaceLinked")}
                                     </span>
                                   )}
                                 </div>

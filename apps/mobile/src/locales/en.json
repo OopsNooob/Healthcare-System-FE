@@ -2849,7 +2849,7 @@
   "mobile.care_task_metric_banner_desc": "Record your {{metric}} reading within the task window to complete today's task.",
   "mobile.care_task_metric_saved_sync_hint": "Reading saved! Your care task will automatically mark as completed in a few seconds.",
   "mobile.care_task_required_metric_hint": "Required: {{metric}}",
-  "mobile.facility_pilot_subtitle": "Verified Medical Facility Directory (HCMC Pilot)",
+  "mobile.facility_pilot_subtitle": "Verified Medical Facility Directory",
   "mobile.facility_urgent_banner_title": "Need urgent medical care?",
   "mobile.facility_urgent_banner_desc": "If you experience severe chest pain, breathing difficulty, or emergency symptoms, call 115 immediately or visit the nearest emergency department instead of searching the directory.",
   "mobile.facility_disabled_title": "Facility Directory Unavailable",
@@ -2908,5 +2908,9 @@
   "mobile.facility_reason_disease_mapping_specialty_match": "Matches disease specialty",
   "mobile.facility_reason_manual_specialty_specialty_match_nearby": "Matches selected specialty · near your location",
   "mobile.facility_reason_program_mapping_specialty_match_nearby": "Matches care program specialty · near your location",
-  "mobile.facility_reason_disease_mapping_specialty_match_nearby": "Matches disease specialty · near your location"
+  "mobile.facility_reason_disease_mapping_specialty_match_nearby": "Matches disease specialty · near your location",
+  "mobile.facility_gps_services_disabled": "Location services (GPS) are turned off on this device. Please enable Location in Settings and retry.",
+  "mobile.facility_gps_ready_coords": "GPS location ready ({{lat}}, {{lng}})",
+  "mobile.facility_gps_outside_hcmc_hint": "Current GPS coordinates are outside Ho Chi Minh City. Update your device/emulator location to Ho Chi Minh City or switch to Area search.",
+  "mobile.facility_attribution_label": "Attribution"
 }

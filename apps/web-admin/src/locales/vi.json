@@ -365,7 +365,7 @@
         "save": "Lưu thông tin",
         "addTitle": "Thêm Cơ sở Y tế Mới",
         "facilityType": "Loại hình cơ sở",
-        "hcmcAddressSection": "Địa chỉ chuẩn hóa (Thí điểm TP.HCM)",
+        "hcmcAddressSection": "Địa chỉ chuẩn hóa",
         "street": "Số nhà, Tên đường",
         "streetPlaceholder": "Ví dụ: 201B Nguyễn Chí Thanh",
         "ward": "Phường / Xã",
@@ -396,7 +396,8 @@
         "linkPlaceButton": "Liên kết Place ID",
         "placeIdLengthError": "Google Place ID phải có từ 8 đến 200 ký tự.",
         "verifyRequirementsHint": "Lưu ý để Xác minh & Công bố: cần đủ Tên cơ sở, Loại hình, Tỉnh/Thành và Quận/Huyện (TP.HCM), Tọa độ hợp lệ, ít nhất 1 Chuyên khoa, và Số điện thoại hoặc Nguồn chính thức/Website HTTPS.",
-        "duplicateHistoryTitle": "Lịch sử xác nhận không trùng lặp ({{count}})"
+        "duplicateHistoryTitle": "Lịch sử xác nhận không trùng lặp ({{count}})",
+        "attributionLabel": "Nguồn dữ liệu"
       },
       "decisionModal": {
         "approveTitle": "Xác nhận Phê duyệt Cơ sở Y tế",
@@ -488,7 +489,14 @@
         "sourcesHint": "Mỗi ánh xạ cần ít nhất 1 đường dẫn HTTPS chính thức (Bộ/Sở Y tế, hướng dẫn lâm sàng...) để làm căn cứ y khoa.",
         "sourcesRequired": "Vui lòng nhập ít nhất 1 URL nguồn tham khảo chính thức.",
         "sourcesHttpsError": "Tất cả nguồn tham khảo phải là URL https:// công khai hợp lệ (tối đa 1000 ký tự).",
-        "sourcesColumn": "NGUỒN THAM KHẢO"
+        "sourcesColumn": "NGUỒN THAM KHẢO",
+        "selectSpecialtiesLabel": "Chuyên khoa áp dụng",
+        "selectProgramPlaceholder": "Chọn chương trình chăm sóc đã phát hành...",
+        "selectDiseasePlaceholder": "Chọn nhóm bệnh lý đang áp dụng...",
+        "searchScopePlaceholder": "Tìm theo tên hoặc mã...",
+        "noScopeMatches": "Không tìm thấy mục phù hợp.",
+        "noPublishedScopeHint": "Chưa có chương trình chăm sóc nào đang ở trạng thái Đã phát hành. Hãy phát hành chương trình trước khi tạo ánh xạ.",
+        "scopeKeyRequired": "Vui lòng chọn chương trình chăm sóc hoặc nhóm bệnh lý cần ánh xạ."
       },
       "subtitle": "Quản lý cơ sở y tế hiển thị trên bản đồ và cấu hình quy tắc gợi ý chuyên khoa theo bệnh lý/chương trình chăm sóc.",
       "tabFacilities": "Danh mục Cơ sở Y tế",
@@ -570,7 +578,26 @@
         "searchButton": "Tìm ứng viên",
         "resultsCount": "Tìm thấy {{count}} ứng viên ngoài hệ thống",
         "createDraftButton": "Nhập thành Bản nháp",
-        "emptyHint": "Nhập từ khóa hoặc chọn chuyên khoa rồi nhấn \"Tìm ứng viên\" để tra cứu từ Google Places (nếu máy chủ đã bật)."
+        "emptyHint": "Nhập từ khóa hoặc chọn chuyên khoa rồi nhấn \"Tìm ứng viên\" để tra cứu từ Google Places (nếu máy chủ đã bật).",
+        "latPlaceholder": "Vĩ độ (VD: 10.7769)",
+        "lngPlaceholder": "Kinh độ (VD: 106.7009)",
+        "radiusPlaceholder": "Bán kính (1–50 km)",
+        "placeTypes": {
+          "hospital": "Bệnh viện chuyên khoa",
+          "general_hospital": "Bệnh viện đa khoa",
+          "medical_center": "Trung tâm y tế",
+          "medical_clinic": "Phòng khám đa khoa / chuyên khoa",
+          "doctor": "Phòng khám bác sĩ",
+          "dental_clinic": "Phòng khám nha khoa",
+          "dentist": "Bác sĩ nha khoa",
+          "medical_lab": "Phòng xét nghiệm y khoa",
+          "pharmacy": "Nhà thuốc",
+          "drugstore": "Cửa hàng dược phẩm",
+          "physiotherapist": "Vật lý trị liệu",
+          "chiropractor": "Trị liệu thần kinh cột sống",
+          "skin_care_clinic": "Phòng khám da liễu / chăm sóc da",
+          "wellness_center": "Trung tâm chăm sóc sức khỏe"
+        }
       },
       "specialtyModal": {
         "createTitle": "Thêm Chuyên khoa",
@@ -583,7 +610,8 @@
         "codeInvalid": "Mã chuyên khoa chỉ gồm chữ thường, số, gạch dưới hoặc gạch nối (2–64 ký tự).",
         "nameInvalid": "Tên chuyên khoa phải từ 2 đến 120 ký tự.",
         "synonymsInvalid": "Tối đa 20 từ khóa đồng nghĩa và mỗi từ tối đa 80 ký tự."
-      }
+      },
+      "googlePlaceLinked": "Đã gắn Google Place"
     },
     "docVerification": {
       "title": "Xác thực Tài liệu",
