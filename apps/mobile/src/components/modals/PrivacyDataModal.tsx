@@ -5,7 +5,6 @@ import {
   Modal,
   TouchableOpacity,
   ScrollView,
-  TextInput,
   Platform,
   ActivityIndicator,
 } from 'react-native';
@@ -13,9 +12,7 @@ import { useTranslation } from 'react-i18next';
 import {
   X,
   FileDown,
-  Trash2,
-  ShieldAlert,
-  CheckCircle2,
+  ShieldCheck,
   Clock,
   Download,
   Info,
@@ -23,11 +20,10 @@ import {
 import Toast from 'react-native-toast-message';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
-import { mobileApi, normalizePaginatedList, useLogout, useSharedAuthStore } from '@repo/shared-hooks';
+import { mobileApi, normalizePaginatedList, useSharedAuthStore } from '@repo/shared-hooks';
 import { tw, twInstance } from '@/tw';
 import { AppModalToast } from '@/components/ui/AppToast';
 import { useThemeContext } from '@/context/ThemeContext';
-import { useSafeRouter as useRouter } from '@/utils/useSafeRouter';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { extractApiErrorMessage } from '@/utils/apiError';
 
@@ -41,30 +37,24 @@ interface DataSummaryState {
   consultationsCount: number;
   enrollmentsCount: number;
   reportsCount: number;
-  hasPatientProfile: boolean;
   latestEnrollmentId?: string;
 }
 
 export const PrivacyDataModal: React.FC<PrivacyDataModalProps> = ({ visible, onClose }) => {
   const { t } = useTranslation();
   useThemeContext();
-  const router = useRouter();
   const user = useSharedAuthStore((s) => s.user);
-  const { logout } = useLogout();
+  const dateLocale = t('mobile.date_locale', 'vi-VN');
 
   const [isLoadingSummary, setIsLoadingSummary] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
   const [summary, setSummary] = useState<DataSummaryState | null>(null);
   const [lastExportAt, setLastExportAt] = useState<string | null>(null);
-  const [deleteReason, setDeleteReason] = useState('');
-  const [confirmText, setConfirmText] = useState('');
-  const [deletionCompleted, setDeletionCompleted] = useState(false);
 
   const loadSummary = useCallback(async () => {
     setIsLoadingSummary(true);
     try {
-      const [profileRes, metricsRes, consultRes, enrollRes] = await Promise.allSettled([
+      const [, metricsRes, consultRes, enrollRes] = await Promise.allSettled([
         mobileApi.patientProfileGetProfile(),
         mobileApi.healthMetricsFindAll({ query: { page: 1, limit: 20 } }),
         mobileApi.consultationsFindAll({ query: { page: 1, limit: 20 } }),
@@ -90,7 +80,6 @@ export const PrivacyDataModal: React.FC<PrivacyDataModalProps> = ({ visible, onC
         : { items: [], total: 0 };
 
       setSummary({
-        hasPatientProfile: profileRes.status === 'fulfilled',
         metricsCount: metricsPage.total || metricsPage.items.length,
         consultationsCount: consultPage.total || consultPage.items.length,
         enrollmentsCount: enrollPage.total || enrollPage.items.length,
@@ -104,9 +93,6 @@ export const PrivacyDataModal: React.FC<PrivacyDataModalProps> = ({ visible, onC
 
   useEffect(() => {
     if (visible) {
-      setDeletionCompleted(false);
-      setConfirmText('');
-      setDeleteReason('');
       void loadSummary();
     }
   }, [visible, loadSummary]);
@@ -162,7 +148,7 @@ export const PrivacyDataModal: React.FC<PrivacyDataModalProps> = ({ visible, onC
             await FileSystem.writeAsStringAsync(newFileUri, jsonString, {
               encoding: FileSystem.EncodingType.UTF8,
             });
-            setLastExportAt(new Date().toLocaleTimeString());
+            setLastExportAt(new Date().toLocaleTimeString(dateLocale));
             Toast.show({
               type: 'success',
               text1: t('mobile.file_saved_to_folder', 'Saved to device'),
@@ -193,7 +179,7 @@ export const PrivacyDataModal: React.FC<PrivacyDataModalProps> = ({ visible, onC
         });
       }
 
-      setLastExportAt(new Date().toLocaleTimeString());
+      setLastExportAt(new Date().toLocaleTimeString(dateLocale));
       Toast.show({
         type: 'success',
         text1: t('mobile.file_saved_to_folder', 'Export Ready'),
@@ -207,40 +193,6 @@ export const PrivacyDataModal: React.FC<PrivacyDataModalProps> = ({ visible, onC
       });
     } finally {
       setIsExporting(false);
-    }
-  };
-
-  const handleDeletePatientProfile = async () => {
-    if (isDeleting) return;
-    if (confirmText.trim().toUpperCase() !== 'DELETE') {
-      Toast.show({
-        type: 'error',
-        text1: t('mobile.confirmation_required', 'Confirmation Required'),
-        text2: t('mobile.type_delete_to_confirm', 'Please type DELETE to confirm.'),
-      });
-      return;
-    }
-
-    setIsDeleting(true);
-    try {
-      await mobileApi.patientProfileDelete();
-      setDeletionCompleted(true);
-      Toast.show({
-        type: 'success',
-        text1: t('mobile.deletion_requested_title', 'Profile Removed'),
-        text2: t('mobile.deletion_requested_desc', 'Your patient profile has been deleted.'),
-      });
-      await logout();
-      onClose();
-      router.replace('/(auth)/login');
-    } catch (err) {
-      Toast.show({
-        type: 'error',
-        text1: t('mobile.error', 'Error'),
-        text2: extractApiErrorMessage(err),
-      });
-    } finally {
-      setIsDeleting(false);
     }
   };
 
@@ -258,7 +210,7 @@ export const PrivacyDataModal: React.FC<PrivacyDataModalProps> = ({ visible, onC
                   {t('mobile.privacy_data_title', 'Privacy & Personal Data')}
                 </Text>
                 <Text style={tw('text-xs text-slate-500 dark:text-slate-400')}>
-                  {t('mobile.privacy_data_subtitle', 'Export health records or manage profile data')}
+                  {t('mobile.privacy_data_subtitle', 'Export your health records and review account retention policy')}
                 </Text>
               </View>
             </View>
@@ -294,7 +246,7 @@ export const PrivacyDataModal: React.FC<PrivacyDataModalProps> = ({ visible, onC
               <Text style={tw('text-xs text-slate-500 dark:text-slate-400 mb-3 leading-4')}>
                 {t(
                   'mobile.export_policy_desc',
-                  'Download a structured JSON copy of your profile, health metrics, consultations, and care reports.',
+                  'Export a structured JSON copy of your profile, health metrics, consultations, and care reports directly to your device.',
                 )}
               </Text>
 
@@ -341,72 +293,30 @@ export const PrivacyDataModal: React.FC<PrivacyDataModalProps> = ({ visible, onC
               )}
             </View>
 
-            <View style={tw('bg-rose-50/50 dark:bg-rose-950/20 p-4 rounded-2xl border border-rose-200 dark:border-rose-900/50')}>
-              <View style={tw('flex-row items-center mb-2')}>
-                <ShieldAlert color="#ef4444" size={18} style={tw('mr-2')} />
-                <Text style={tw('text-sm font-bold text-rose-800 dark:text-rose-300')}>
-                  {t('mobile.account_deletion_request', 'Delete Patient Profile')}
+            <View style={tw('bg-slate-50 dark:bg-slate-950 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 gap-3')}>
+              <View style={tw('flex-row items-center')}>
+                <ShieldCheck color="#10b981" size={18} style={tw('mr-2')} />
+                <Text style={tw('text-sm font-bold text-slate-900 dark:text-white flex-1')}>
+                  {t('mobile.privacy_retention_title', 'Retention Policy & Account Support')}
                 </Text>
               </View>
 
-              <View style={tw('bg-white/80 dark:bg-slate-900/80 p-3 rounded-xl border border-rose-100 dark:border-rose-900/40 mb-3 flex-row items-start')}>
-                <Info color="#f43f5e" size={15} style={tw('mt-0.5 mr-2 shrink-0')} />
+              <View style={tw('bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800 flex-row items-start')}>
+                <Info color={twInstance.color('text-slate-500 dark:text-slate-400')} size={15} style={tw('mt-0.5 mr-2 shrink-0')} />
                 <Text style={tw('text-xs text-slate-600 dark:text-slate-300 flex-1 leading-4')}>
                   {t(
-                    'mobile.retention_policy_notice',
-                    'Deleting your patient profile clears active care enrollment associations and signs you out on this device.',
+                    'mobile.privacy_retention_desc',
+                    'Your health records, consultation history, and billing invoices are secured and retained in accordance with healthcare regulations.',
                   )}
                 </Text>
               </View>
 
-              {deletionCompleted ? (
-                <View style={tw('bg-amber-100 dark:bg-amber-900/40 p-3.5 rounded-xl flex-row items-center')}>
-                  <CheckCircle2 color="#d97706" size={18} style={tw('mr-2')} />
-                  <Text style={tw('text-xs font-bold text-amber-900 dark:text-amber-200 flex-1')}>
-                    {t('mobile.deletion_pending_banner', 'Patient profile removed.')}
-                  </Text>
-                </View>
-              ) : (
-                <View style={tw('gap-2.5')}>
-                  <TextInput
-                    value={deleteReason}
-                    onChangeText={setDeleteReason}
-                    placeholder={t('mobile.delete_reason_placeholder', 'Optional reason')}
-                    placeholderTextColor="#94a3b8"
-                    style={tw('bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 dark:text-white')}
-                    editable={!isDeleting}
-                  />
-                  <TextInput
-                    value={confirmText}
-                    onChangeText={setConfirmText}
-                    placeholder={t('mobile.type_delete_placeholder', 'Type DELETE to confirm')}
-                    placeholderTextColor="#94a3b8"
-                    autoCapitalize="characters"
-                    style={tw('bg-white dark:bg-slate-900 border border-rose-200 dark:border-rose-800 rounded-xl px-3.5 py-2.5 text-xs font-bold text-rose-700 dark:text-rose-300')}
-                    editable={!isDeleting}
-                  />
-                  <TouchableOpacity
-                    onPress={handleDeletePatientProfile}
-                    disabled={isDeleting || summary?.hasPatientProfile === false}
-                    style={tw(
-                      `py-3 rounded-xl items-center flex-row justify-center mt-1 ${
-                        isDeleting || summary?.hasPatientProfile === false ? 'bg-rose-400' : 'bg-rose-600'
-                      }`,
-                    )}
-                  >
-                    {isDeleting ? (
-                      <ActivityIndicator size="small" color="#ffffff" />
-                    ) : (
-                      <>
-                        <Trash2 color="#ffffff" size={15} style={tw('mr-1.5')} />
-                        <Text style={tw('text-xs font-bold text-white')}>
-                          {t('mobile.submit_deletion_request', 'Delete Patient Profile')}
-                        </Text>
-                      </>
-                    )}
-                  </TouchableOpacity>
-                </View>
-              )}
+              <Text style={tw('text-xs text-slate-500 dark:text-slate-400 leading-4')}>
+                {t(
+                  'mobile.privacy_delete_support_note',
+                  'Self-service account deletion is not currently available in the app. If you need to deactivate or close your account, please contact an administrator or support.',
+                )}
+              </Text>
             </View>
           </ScrollView>
 

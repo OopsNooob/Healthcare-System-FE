@@ -13,6 +13,8 @@ export type AuthCallbackUser = {
   name: string;
   role: string;
   avatar?: string | null;
+  hasPassword?: boolean;
+  authProvider?: 'local' | 'google';
 };
 
 // NOTE: We'll inject useAuthStore later to avoid circular dependencies
@@ -187,6 +189,8 @@ type RefreshResponse = {
     fullName?: string;
     role?: string;
     avatarUrl?: string;
+    hasPassword?: boolean;
+    authProvider?: 'local' | 'google';
   };
 };
 
@@ -422,6 +426,11 @@ api.interceptors.response.use(
             role: refreshResponse.data.user.role ?? currentUser?.role ?? "patient",
             avatar:
               refreshResponse.data.user.avatarUrl ?? currentUser?.avatar,
+            hasPassword:
+              refreshResponse.data.user.hasPassword ?? currentUser?.hasPassword,
+            authProvider:
+              refreshResponse.data.user.authProvider ??
+              currentUser?.authProvider,
           }
         : currentUser;
 

@@ -13,6 +13,8 @@ type ApiUserAuthResponse = {
   fullName: string;
   role: AppRole;
   avatarUrl?: string;
+  hasPassword?: boolean;
+  authProvider?: 'local' | 'google';
 };
 
 export type ApiLoginResponse = {

@@ -206,6 +206,8 @@ export interface AuthLoginResponse {
     fullName: string;
     role: "patient" | "doctor" | "admin";
     avatarUrl?: string;
+    hasPassword?: boolean;
+    authProvider?: "local" | "google";
   };
 }
 
@@ -237,6 +239,8 @@ export interface AuthSessionUser {
   fullName: string;
   role: 'patient' | 'doctor' | 'admin';
   avatarUrl?: string;
+  hasPassword?: boolean;
+  authProvider?: 'local' | 'google';
 }
 
 export type GoogleOAuthSessionUser = AuthSessionUser;
@@ -275,6 +279,8 @@ export interface AuthRefreshResponse {
     fullName: string;
     role: "patient" | "doctor" | "admin";
     avatarUrl?: string;
+    hasPassword?: boolean;
+    authProvider?: "local" | "google";
   };
 }
 
@@ -333,7 +339,8 @@ export interface AuthGetProfileResponse {
   email?: string;
   emailVerified?: boolean;
   emailVerifiedAt?: string | null;
-  passwordHash?: string;
+  hasPassword?: boolean;
+  authProvider?: "local" | "google";
   gender: string;
   dateOfBirth: string;
   role: "patient" | "doctor" | "admin";

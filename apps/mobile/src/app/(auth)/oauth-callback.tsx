@@ -92,6 +92,8 @@ export default function OAuthCallbackScreen() {
             id: res.user.id,
             email: res.user.email ?? '',
             emailVerified: res.user.emailVerified,
+            hasPassword: res.user.hasPassword ?? false,
+            authProvider: res.user.authProvider ?? 'google',
             name: res.user.fullName,
             role: res.user.role,
             avatar: res.user.avatarUrl,
