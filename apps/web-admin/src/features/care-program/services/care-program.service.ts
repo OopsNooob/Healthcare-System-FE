@@ -1,3 +1,4 @@
+import type { TFunction } from "i18next";
 import {
   webAdminApi,
   normalizePaginatedList,
@@ -7,7 +8,11 @@ import {
   type CareProgramRuleGetRuleResponse,
   type CareTaskScheduleResponse,
 } from "@/lib/api";
-import type { CareTaskTemplateItem, EducationCatalogItem } from "../constants";
+import {
+  inferDefaultMetricType,
+  type CareTaskTemplateItem,
+  type EducationCatalogItem,
+} from "../constants";
 
 export type ProgramStatus = "draft" | "published" | "retired";
 export type RuleStatus = "draft" | "active" | "retired";
@@ -69,6 +74,7 @@ export interface CareRuleRecord {
   careProgramId: string;
   programName: string;
   programCode: string;
+  diseaseKey: string;
   programStatus: ProgramStatus;
   view: RuleView;
   version: number;
@@ -282,12 +288,6 @@ function buildBaselineForm(baselineKeys: string[]) {
   return { schemaVersion: "v1", fields };
 }
 
-function inferMetricType(diseaseKey: string): string {
-  if (diseaseKey === "diabetes") return "blood_glucose";
-  if (diseaseKey === "hypertension" || diseaseKey === "cardiovascular") return "blood_pressure";
-  return "heart_rate";
-}
-
 function buildTaskTemplatesPayload(
   templates: CareTaskTemplateItem[],
   diseaseKey: string
@@ -336,7 +336,9 @@ function buildTaskTemplatesPayload(
         displayType: tpl.displayType || "article",
       };
     } else if (tpl.type === "metric") {
-      payload.completionRule = { metricType: inferMetricType(diseaseKey) };
+      payload.completionRule = {
+        metricType: tpl.metricType || inferDefaultMetricType(diseaseKey),
+      };
     } else {
       payload.completionRule = { responseMode: "confirm" };
     }
@@ -400,6 +402,10 @@ function mapBeTaskTemplates(taskTemplates: unknown): CareTaskTemplateItem[] {
       type: validType,
       time: typeof schedule.time === "string" ? schedule.time : "08:00",
       windowMinutes: Number(schedule.windowMinutes) || 120,
+      metricType:
+        typeof completionRule.metricType === "string"
+          ? completionRule.metricType
+          : undefined,
       allowedSymptomCodes: Array.isArray(completionRule.allowedSymptomCodes)
         ? completionRule.allowedSymptomCodes.filter((c): c is string => typeof c === "string")
         : undefined,
@@ -418,7 +424,7 @@ function mapBeTaskTemplates(taskTemplates: unknown): CareTaskTemplateItem[] {
 
 function mapBeContentJourney(
   rawList: unknown,
-  program: { id: string; name: string }
+  program: { id: string; name: string; version: number; status: ProgramStatus }
 ): EducationCatalogItem[] {
   if (!Array.isArray(rawList)) return [];
   return rawList.map((raw, idx) => {
@@ -441,6 +447,8 @@ function mapBeContentJourney(
       status,
       programId: program.id,
       programName: program.name,
+      programVersion: program.version,
+      programStatus: program.status,
     };
   });
 }
@@ -462,6 +470,8 @@ export function mapBeProgramToRecord(
   const rec = raw as Record<string, unknown>;
   const id = String(rec.id || rec._id || previous?.id || "");
   const name = String(rec.name || previous?.name || "");
+  const programVersion = Number(rec.version ?? previous?.version ?? 1);
+  const programStatus = (rec.status as ProgramStatus) || previous?.status || "draft";
   const updatedIso = String(
     rec.updatedAt || rec.publishedAt || rec.retiredAt || previous?.lastUpdated || new Date().toISOString()
   );
@@ -475,18 +485,23 @@ export function mapBeProgramToRecord(
     : previous?.taskTemplates ?? [];
 
   const contentJourney = rec.contentJourney
-    ? mapBeContentJourney(rec.contentJourney, { id, name })
+    ? mapBeContentJourney(rec.contentJourney, {
+        id,
+        name,
+        version: programVersion,
+        status: programStatus,
+      })
     : previous?.contentJourney ?? [];
 
   return {
     id,
     programCode: String(rec.programCode || previous?.programCode || ""),
-    version: Number(rec.version ?? previous?.version ?? 1),
+    version: programVersion,
     revision: Number(rec.revision ?? previous?.revision ?? 1),
     name,
     diseaseKey: String(rec.diseaseKey || previous?.diseaseKey || "general"),
     description: typeof rec.description === "string" ? rec.description : previous?.description || "",
-    status: (rec.status as ProgramStatus) || previous?.status || "draft",
+    status: programStatus,
     baselineKeys,
     taskTemplates,
     completionSummary: rec.completionCriteria
@@ -506,6 +521,106 @@ export function mapBeProgramToRecord(
     retiredAt: typeof rec.retiredAt === "string" ? rec.retiredAt : previous?.retiredAt,
     hasDetailLoaded: Boolean(rec.taskTemplates || rec.baselineForm || previous?.hasDetailLoaded),
   };
+}
+
+const RULE_METRIC_LABEL_KEYS: Record<string, { key: string; fallback: string }> = {
+  systolic: { key: "careProgram.metrics.systolic", fallback: "Systolic BP" },
+  Systolic: { key: "careProgram.metrics.systolic", fallback: "Systolic BP" },
+  diastolic: { key: "careProgram.metrics.diastolic", fallback: "Diastolic BP" },
+  Diastolic: { key: "careProgram.metrics.diastolic", fallback: "Diastolic BP" },
+  Glucose: { key: "careProgram.metrics.glucose", fallback: "Blood Glucose" },
+  HeartRate: { key: "careProgram.metrics.heartRate", fallback: "Heart Rate" },
+  "check_in.severity_rank": {
+    key: "careProgram.metrics.symptomSeverityRank",
+    fallback: "Symptom Severity Level",
+  },
+  SymptomSeverityRank: {
+    key: "careProgram.metrics.symptomSeverityRank",
+    fallback: "Symptom Severity Level",
+  },
+  "check_in.symptom.chest_pain": {
+    key: "careProgram.metrics.chestPainReported",
+    fallback: "Chest Pain",
+  },
+  ChestPainReported: {
+    key: "careProgram.metrics.chestPainReported",
+    fallback: "Chest Pain",
+  },
+  "check_in.symptom.shortness_of_breath": {
+    key: "careProgram.metrics.shortnessOfBreathReported",
+    fallback: "Shortness of Breath",
+  },
+  ShortnessOfBreathReported: {
+    key: "careProgram.metrics.shortnessOfBreathReported",
+    fallback: "Shortness of Breath",
+  },
+  "check_in.symptom.dizziness": {
+    key: "careProgram.metrics.dizzinessReported",
+    fallback: "Dizziness",
+  },
+  DizzinessReported: {
+    key: "careProgram.metrics.dizzinessReported",
+    fallback: "Dizziness",
+  },
+};
+
+const GROUP_OP_LABEL_KEYS: Record<string, { key: string; fallback: string }> = {
+  all: { key: "careProgram.operators.all", fallback: "All" },
+  any: { key: "careProgram.operators.any", fallback: "Any" },
+  not: { key: "careProgram.operators.not", fallback: "Not" },
+};
+
+export function translateRuleMetricKey(
+  rawKey: string,
+  t: TFunction,
+  diseaseKey?: string
+): string {
+  if (rawKey === "value") {
+    return diseaseKey === "diabetes"
+      ? t("careProgram.metrics.glucose", "Blood Glucose")
+      : t("careProgram.metrics.vitalValue", "Vital Value");
+  }
+  const entry = RULE_METRIC_LABEL_KEYS[rawKey];
+  if (entry) return t(entry.key, entry.fallback);
+  return BE_KEY_TO_UI_METRIC[rawKey] || rawKey;
+}
+
+function formatRuleNodeLocalized(
+  node: DeclarativeRuleNode | undefined,
+  t: TFunction,
+  diseaseKey?: string
+): string {
+  if (!node) return "—";
+  if (node.key) {
+    const metricLabel = translateRuleMetricKey(node.key, t, diseaseKey);
+    const opSymbol = BE_TO_UI_OPERATOR[node.operator] || node.operator;
+    if (node.operator === "between") {
+      const betweenText = t("careProgram.operators.between", "Between").toLowerCase();
+      return `${metricLabel} ${betweenText} ${node.min ?? "?"}–${node.max ?? "?"}`;
+    }
+    if (node.operator === "exists") {
+      const existsText = t("careProgram.operators.exists", "Exists").toLowerCase();
+      return `${metricLabel} (${existsText})`;
+    }
+    return `${metricLabel} ${opSymbol} ${String(node.value ?? "")}`;
+  }
+  if (Array.isArray(node.rules) && node.rules.length > 0) {
+    const groupMeta = GROUP_OP_LABEL_KEYS[node.operator];
+    const groupLabel = groupMeta
+      ? t(groupMeta.key, groupMeta.fallback)
+      : node.operator.toUpperCase();
+    return `${groupLabel} (${node.rules.length})`;
+  }
+  return node.reasonCode || node.operator;
+}
+
+export function formatRuleConditionSummary(
+  rules: DeclarativeRuleNode[] | undefined,
+  t: TFunction,
+  diseaseKey?: string
+): string {
+  if (!Array.isArray(rules) || rules.length === 0) return "—";
+  return rules.map((node) => formatRuleNodeLocalized(node, t, diseaseKey)).join(" | ");
 }
 
 function summarizeRuleNode(node: DeclarativeRuleNode | undefined): string {
@@ -556,6 +671,7 @@ export function mapBeRuleProjectionToRecord(
     careProgramId: full.careProgramId,
     programName: program.name,
     programCode: program.programCode,
+    diseaseKey: program.diseaseKey,
     programStatus: program.status,
     view,
     version: full.version,

@@ -117,9 +117,18 @@ export default function ForgotPasswordScreen() {
               </View>
             </View>
 
+            <View style={tw('rounded-xl bg-slate-100 dark:bg-slate-800/70 px-3.5 py-2.5')}>
+              <Text style={tw('text-xs text-slate-600 dark:text-slate-300 leading-4')}>
+                {t(
+                  'mobile.forgot_password_google_note',
+                  'Note: Accounts signed in with Google do not use a local password and will not receive a password-reset OTP.',
+                )}
+              </Text>
+            </View>
+
             <TouchableOpacity
               style={tw(
-                `h-12 w-full mt-4 rounded-2xl items-center justify-center ${
+                `h-12 w-full mt-2 rounded-2xl items-center justify-center ${
                   isLoading ? 'bg-emerald-400' : 'bg-emerald-500'
                 }`,
               )}

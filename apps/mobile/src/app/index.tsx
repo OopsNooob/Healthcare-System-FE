@@ -43,6 +43,8 @@ export default function Index() {
             email?: string;
             emailVerified?: boolean;
             emailVerifiedAt?: string | null;
+            hasPassword?: boolean;
+            authProvider?: 'local' | 'google';
             fullName?: string;
             role?: string;
             avatarUrl?: string;
@@ -58,6 +60,12 @@ export default function Index() {
               id: String(profileRecord.id ?? profileRecord._id),
               email: profileRecord.email ?? '',
               emailVerified: resolvedEmailVerified,
+              ...(typeof profileRecord.hasPassword === 'boolean'
+                ? { hasPassword: profileRecord.hasPassword }
+                : {}),
+              ...(profileRecord.authProvider
+                ? { authProvider: profileRecord.authProvider }
+                : {}),
               name: profileRecord.fullName ?? '',
               role: profileRecord.role ?? 'patient',
               avatar: profileRecord.avatarUrl,

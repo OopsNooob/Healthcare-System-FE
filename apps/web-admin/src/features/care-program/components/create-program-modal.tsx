@@ -1,13 +1,15 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { X, Check, Plus, Trash2, Clock, BookOpen, ClipboardCheck } from "lucide-react";
+import { Activity, X, Check, Plus, Trash2, Clock, BookOpen, ClipboardCheck } from "lucide-react";
 import { showToast } from "@repo/ui/components/ui/toasts";
 import {
   BASELINE_OPTIONS,
   DEFAULT_PROGRAM_TASK_TEMPLATES,
   DISEASE_KEY_OPTIONS,
+  METRIC_TYPE_OPTIONS,
   SYMPTOM_OPTIONS,
   TASK_TYPE_OPTIONS,
+  inferDefaultMetricType,
   type CareTaskTemplateItem,
   type CareTaskType,
   type EducationCatalogItem,
@@ -68,6 +70,20 @@ export function CreateProgramModal({
     );
   };
 
+  const handleDiseaseKeyChange = (nextDiseaseKey: string) => {
+    const prevDefaultMetric = inferDefaultMetricType(diseaseKey);
+    const nextDefaultMetric = inferDefaultMetricType(nextDiseaseKey);
+    setDiseaseKey(nextDiseaseKey);
+    setTaskTemplates((prev) =>
+      prev.map((item) =>
+        item.type === "metric" &&
+        (!item.metricType || item.metricType === prevDefaultMetric)
+          ? { ...item, metricType: nextDefaultMetric }
+          : item
+      )
+    );
+  };
+
   const handleAddTaskTemplate = () => {
     const nextIdx = taskTemplates.length + 1;
     setTaskTemplates((prev) => [
@@ -77,6 +93,7 @@ export function CreateProgramModal({
         type: "metric",
         time: "08:00",
         windowMinutes: 120,
+        metricType: inferDefaultMetricType(diseaseKey),
       },
     ]);
   };
@@ -122,6 +139,9 @@ export function CreateProgramModal({
           type: newType,
           time: item.time,
           windowMinutes: item.windowMinutes,
+          ...(newType === "metric"
+            ? { metricType: item.metricType || inferDefaultMetricType(diseaseKey) }
+            : {}),
         };
       })
     );
@@ -268,7 +288,7 @@ export function CreateProgramModal({
               </label>
               <select
                 value={diseaseKey}
-                onChange={(e) => setDiseaseKey(e.target.value)}
+                onChange={(e) => handleDiseaseKeyChange(e.target.value)}
                 className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3.5 py-2 text-slate-900 dark:text-slate-100 outline-none focus:border-brand"
               >
                 {DISEASE_KEY_OPTIONS.map((opt) => (
@@ -472,6 +492,38 @@ export function CreateProgramModal({
                       </button>
                     </div>
                   </div>
+
+                  {/* Metric Type Configuration */}
+                  {tpl.type === "metric" && (
+                    <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
+                      <div className="flex items-center gap-1.5 text-xs font-semibold text-rose-600 dark:text-rose-400 mb-1.5">
+                        <Activity size={14} />
+                        <span>
+                          {t(
+                            "careProgram.modals.trackedMetricLabel",
+                            "Required Health Metric"
+                          )}
+                        </span>
+                      </div>
+                      <select
+                        value={tpl.metricType || inferDefaultMetricType(diseaseKey)}
+                        onChange={(e) =>
+                          setTaskTemplates((prev) =>
+                            prev.map((item, i) =>
+                              i === idx ? { ...item, metricType: e.target.value } : item
+                            )
+                          )
+                        }
+                        className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-2.5 py-1.5 text-xs text-slate-900 dark:text-slate-100"
+                      >
+                        {METRIC_TYPE_OPTIONS.map((opt) => (
+                          <option key={opt.value} value={opt.value}>
+                            {t(`careProgram.metricTypes.${opt.value}`, opt.defaultLabel)}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
 
                   {/* Symptom Check-in Configuration */}
                   {tpl.type === "check_in" && (

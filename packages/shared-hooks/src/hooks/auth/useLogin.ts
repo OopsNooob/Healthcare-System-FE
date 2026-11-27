@@ -42,10 +42,16 @@ export function useLogin() {
         await getStorage().setItem("accessToken", res.accessToken);
         await getStorage().setItem("refreshToken", res.refreshToken);
 
-        const normalizedUser: User & { emailVerified?: boolean } = {
+        const normalizedUser: User & {
+          emailVerified?: boolean;
+          hasPassword?: boolean;
+          authProvider?: 'local' | 'google';
+        } = {
           id: res.user.id,
           email: res.user.email,
           emailVerified: res.user.emailVerified,
+          hasPassword: res.user.hasPassword ?? true,
+          authProvider: res.user.authProvider ?? 'local',
           name: res.user.fullName,
           role: res.user.role,
           avatar: res.user.avatarUrl,

@@ -14,6 +14,8 @@ export type LocalUser = {
   role: string;
   avatar?: string | null;
   emailVerified?: boolean;
+  hasPassword?: boolean;
+  authProvider?: 'local' | 'google';
 };
 
 export type LocalAuthState = {

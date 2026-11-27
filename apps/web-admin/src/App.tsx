@@ -50,7 +50,6 @@ const ADMIN_ALLOWED_PATHS: Record<AdminRole, string[]> = {
     "/user-management",
     "/doc-verification",
     "/care-program",
-    "/medical-facilities",
     "/violation-reports",
     "/audit-logs",
     "/profile",

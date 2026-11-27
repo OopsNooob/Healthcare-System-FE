@@ -4,6 +4,7 @@ import { X, Sliders, Activity, ClipboardCheck } from "lucide-react";
 import { showToast } from "@repo/ui/components/ui/toasts";
 import {
   careProgramService,
+  translateRuleMetricKey,
   type CareProgramRecord,
   type CreateOrUpdateRuleInput,
 } from "../services/care-program.service";
@@ -306,7 +307,7 @@ export function AddRuleModal({
             <div className="mt-3 p-2 bg-indigo-50/50 dark:bg-indigo-950/30 rounded-lg text-xs font-mono text-indigo-700 dark:text-indigo-300 flex items-center justify-between">
               <span>
                 {t("careProgram.modals.conditionPreview", "Condition Preview")}:{" "}
-                {ruleMetric} {ruleOperator} {ruleThreshold}
+                {translateRuleMetricKey(ruleMetric, t)} {ruleOperator} {ruleThreshold}
               </span>
               <Sliders size={14} />
             </div>

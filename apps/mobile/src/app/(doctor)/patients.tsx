@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import type { TFunction, i18n as I18nInstance } from 'i18next';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -37,6 +38,8 @@ import { AppModalToast } from '@/components/ui/AppToast';
 import { useThemeContext } from '@/context/ThemeContext';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { extractApiErrorMessage } from '@/utils/apiError';
+import { isDoctorReviewTaskOpenNow } from '@/utils/careTaskHelpers';
+import { formatHealthMetricUnit } from '@/utils/healthMetricUnit';
 import { AiSummaryModal } from '@/components/modals/AiSummaryModal';
 import { ClinicalNotesModal } from '@/components/modals/ClinicalNotesModal';
 import { ProgramRulePreviewModal } from '@/components/modals/ProgramRulePreviewModal';
@@ -65,6 +68,7 @@ interface DoctorPatientRecord {
   enrollmentId?: string;
   programId?: string;
   programName?: string;
+  diseaseKey?: string;
   enrollmentStatus?: EnrollmentStatus;
   allowedActions: LifecycleAction[];
   lastEndedProgram?: {
@@ -75,6 +79,10 @@ interface DoctorPatientRecord {
   baseline: string;
   current: string;
   adherence?: number;
+  adherenceCompleted?: number;
+  adherenceExpected?: number;
+  todayCompletedCount?: number;
+  todayTotalCount?: number;
   openAlertCount: number;
   pendingReviewTaskId?: string;
 }
@@ -150,29 +158,158 @@ function mergeDoctorPatientRecords(
   return Array.from(byPatient.values());
 }
 
-function formatMetricCompact(item: Record<string, unknown> | undefined): string {
+function extractMetricType(item: Record<string, unknown>): string {
+  const meta =
+    item.meta && typeof item.meta === 'object'
+      ? (item.meta as Record<string, unknown>)
+      : undefined;
+  return String(item.metricType ?? item.type ?? meta?.metricType ?? '')
+    .trim()
+    .toLowerCase();
+}
+
+function formatMetricCompact(
+  item: Record<string, unknown> | undefined,
+  t: TFunction
+): string {
   if (!item) return '—';
-  const unit = String(item.unit ?? '');
-  const values = (item.values ?? {}) as Record<string, unknown>;
+  const meta =
+    item.meta && typeof item.meta === 'object'
+      ? (item.meta as Record<string, unknown>)
+      : undefined;
+  const metricType = extractMetricType(item);
+  const rawUnit = item.unit ?? meta?.unit;
+  const unit = formatHealthMetricUnit(rawUnit, t, metricType);
+  const values = (
+    item.values && typeof item.values === 'object' ? item.values : {}
+  ) as Record<string, unknown>;
   if (values.systolic !== undefined && values.diastolic !== undefined) {
     return `${String(values.systolic)}/${String(values.diastolic)} ${unit}`.trim();
   }
-  const v = values.value ?? values.amount;
+  if (item.value !== undefined && item.secondaryValue !== undefined) {
+    return `${String(item.value)}/${String(item.secondaryValue)} ${unit}`.trim();
+  }
+  const v = values.value ?? values.amount ?? item.value;
   if (v !== undefined) return `${String(v)} ${unit}`.trim();
   return '—';
 }
 
-function formatBaselineCompact(detail: Record<string, unknown>): string {
+const PREFERRED_METRICS_BY_DISEASE: Record<string, string[]> = {
+  diabetes: ['blood_glucose', 'hba1c'],
+  hypertension: ['blood_pressure', 'heart_rate'],
+  cardiovascular: ['blood_pressure', 'heart_rate'],
+  respiratory: ['oxygen_saturation', 'respiratory_rate', 'heart_rate'],
+  copd: ['oxygen_saturation', 'respiratory_rate', 'heart_rate'],
+  asthma: ['oxygen_saturation', 'respiratory_rate', 'heart_rate'],
+};
+
+function selectCurrentMetricCompact(
+  metrics: Record<string, unknown>[],
+  diseaseKey: string | undefined,
+  t: TFunction,
+  i18n: I18nInstance
+): string {
+  if (!metrics.length) return '—';
+  const normalizedDisease = (diseaseKey ?? '').trim().toLowerCase();
+  const preferredTypes =
+    PREFERRED_METRICS_BY_DISEASE[normalizedDisease] ??
+    Object.entries(PREFERRED_METRICS_BY_DISEASE).find(([k]) =>
+      normalizedDisease.includes(k)
+    )?.[1];
+
+  if (preferredTypes) {
+    for (const targetType of preferredTypes) {
+      const matched = metrics.find((m) => extractMetricType(m) === targetType);
+      if (matched) return formatMetricCompact(matched, t);
+    }
+  }
+
+  const latest = metrics[0];
+  const formatted = formatMetricCompact(latest, t);
+  if (formatted === '—') return formatted;
+  const metricType = extractMetricType(latest);
+  const shortKey = `mobile.metric_short_${metricType}`;
+  if (metricType && i18n.exists(shortKey)) {
+    return `${t(shortKey)} ${formatted}`;
+  }
+  return formatted;
+}
+
+function formatBaselineCompact(
+  detail: Record<string, unknown>,
+  diseaseKey: string | undefined,
+  t: TFunction
+): string {
   const baseline = detail.baseline as Record<string, unknown> | undefined;
-  const answers = (baseline?.answers ?? detail.baselineAnswers) as Record<string, unknown> | undefined;
+  const answers = (baseline?.answers ?? detail.baselineAnswers) as
+    | Record<string, unknown>
+    | undefined;
   if (!answers || typeof answers !== 'object') return '—';
-  const entries = Object.entries(answers).slice(0, 2);
-  if (entries.length === 0) return '—';
-  return entries.map(([, v]) => String(v)).join(' / ');
+
+  const baselineForm = detail.baselineForm as
+    | { fields?: Array<Record<string, unknown>> }
+    | undefined;
+  const unitByKey: Record<string, string> = {};
+  if (Array.isArray(baselineForm?.fields)) {
+    for (const f of baselineForm.fields) {
+      const k = typeof f.key === 'string' ? f.key.trim() : '';
+      const u = typeof f.unit === 'string' ? f.unit.trim() : '';
+      if (k && u) unitByKey[k] = u;
+    }
+  }
+
+  const resolveUnit = (key: string, fallbackUnit = '') =>
+    formatHealthMetricUnit(unitByKey[key] ?? fallbackUnit, t);
+
+  const hasValue = (val: unknown): boolean =>
+    val !== undefined && val !== null && String(val).trim() !== '';
+
+  const dKey = (diseaseKey ?? '').trim().toLowerCase();
+  const hasBp =
+    hasValue(answers.usual_systolic) && hasValue(answers.usual_diastolic);
+
+  if (
+    (dKey.includes('hypertension') || dKey.includes('cardio')) &&
+    hasBp
+  ) {
+    const unit = resolveUnit('usual_systolic', 'mmHg');
+    return `${String(answers.usual_systolic)}/${String(answers.usual_diastolic)} ${unit}`.trim();
+  }
+
+  if (dKey.includes('diabetes')) {
+    if (hasValue(answers.usual_fasting_glucose)) {
+      const unit = resolveUnit('usual_fasting_glucose', 'mg/dL');
+      return `${String(answers.usual_fasting_glucose)} ${unit}`.trim();
+    }
+    if (hasValue(answers.baseline_hba1c)) {
+      const unit = resolveUnit('baseline_hba1c', '%');
+      return `${String(answers.baseline_hba1c)} ${unit}`.trim();
+    }
+  }
+
+  if (hasBp) {
+    const unit = resolveUnit('usual_systolic', 'mmHg');
+    return `${String(answers.usual_systolic)}/${String(answers.usual_diastolic)} ${unit}`.trim();
+  }
+
+  const entries = Object.entries(answers).filter(([, v]) => hasValue(v));
+  const numericEntry = entries.find(
+    ([, v]) => typeof v === 'number' || !Number.isNaN(Number(v))
+  );
+  if (numericEntry) {
+    const [k, v] = numericEntry;
+    const unit = resolveUnit(k, '');
+    return `${String(v)} ${unit}`.trim();
+  }
+
+  if (entries.length > 0) {
+    return String(entries[0][1]);
+  }
+  return '—';
 }
 
 export default function DoctorPatientsScreen() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   useThemeContext();
 
   const [patients, setPatients] = useState<DoctorPatientRecord[]>([]);
@@ -340,7 +477,7 @@ export default function DoctorPatientsScreen() {
       for (const id of unenrolledPatientIds) allPatientIdsToResolve.add(id);
 
       const profileNames: Record<string, string> = { ...patientNameFallback };
-      const latestMetricMap: Record<string, string> = {};
+      const recentMetricsMap: Record<string, Record<string, unknown>[]> = {};
 
       await Promise.allSettled(
         Array.from(allPatientIdsToResolve)
@@ -351,7 +488,7 @@ export default function DoctorPatientsScreen() {
                 ? Promise.resolve(null)
                 : mobileApi.usersFindProfile({ params: { id: pId } }),
               mobileApi.healthMetricsFindAll({
-                query: { patientId: pId, limit: 1, sortBy: 'recordedAt', sortOrder: -1 },
+                query: { patientId: pId, limit: 10, sortBy: 'recordedAt', sortOrder: -1 },
               }),
             ]);
             if (profRes.status === 'fulfilled' && profRes.value) {
@@ -360,15 +497,35 @@ export default function DoctorPatientsScreen() {
               if (fullName) profileNames[pId] = String(fullName);
             }
             if (metricRes.status === 'fulfilled') {
-              const firstMetric = normalizePaginatedList<Record<string, unknown>>(metricRes.value).items[0];
-              if (firstMetric) {
-                latestMetricMap[pId] = formatMetricCompact(firstMetric);
+              const items = normalizePaginatedList<Record<string, unknown>>(metricRes.value).items;
+              if (items.length > 0) {
+                recentMetricsMap[pId] = items;
               }
             }
           })
       );
 
-      // Enrich each admitted enrollment with completion rate & pending doctor_review task
+      const nowLocal = new Date();
+      const todayStartIso = new Date(
+        nowLocal.getFullYear(),
+        nowLocal.getMonth(),
+        nowLocal.getDate(),
+        0,
+        0,
+        0,
+        0
+      ).toISOString();
+      const todayEndIso = new Date(
+        nowLocal.getFullYear(),
+        nowLocal.getMonth(),
+        nowLocal.getDate(),
+        23,
+        59,
+        59,
+        999
+      ).toISOString();
+
+      // Enrich each admitted enrollment with baseline detail, completion rate, today's tasks & open doctor_review task
       const enrolledRows: DoctorPatientRecord[] = await Promise.all(
         enrolledList.map(async (enr) => {
           const enrollmentId = String(enr.id ?? enr._id ?? '');
@@ -383,17 +540,52 @@ export default function DoctorPatientsScreen() {
           const progName = extractEnrollmentProgramName(enr, programMap, t('mobile.chronic_care'));
           const enrollmentStatus = (String(enr.status ?? 'active') as EnrollmentStatus) || 'active';
 
+          let diseaseKey =
+            String(progObj?.diseaseKey ?? programMap[progId]?.diseaseKey ?? '').trim().toLowerCase() ||
+            undefined;
+          let detailRecord: Record<string, unknown> = enr;
           let adherence: number | undefined;
+          let adherenceCompleted: number | undefined;
+          let adherenceExpected: number | undefined;
+          let todayCompletedCount: number | undefined;
+          let todayTotalCount: number | undefined;
           let pendingReviewTaskId: string | undefined;
 
           if (enrollmentId) {
-            const [rateRes, tasksRes] = await Promise.allSettled([
+            const [detailRes, rateRes, reviewTasksRes, todayTasksRes] = await Promise.allSettled([
+              mobileApi.careEnrollmentDetail({ params: { id: enrollmentId } }),
               mobileApi.careTaskCompletionRate({ params: { id: enrollmentId } }),
               mobileApi.careTaskTasks({
                 params: { id: enrollmentId },
-                query: { type: 'doctor_review', page: 1, limit: 5 },
+                query: {
+                  type: 'doctor_review',
+                  page: 1,
+                  limit: 10,
+                  sortBy: 'scheduledFor',
+                  sortOrder: 1,
+                },
+              }),
+              mobileApi.careTaskTasks({
+                params: { id: enrollmentId },
+                query: {
+                  from: todayStartIso,
+                  to: todayEndIso,
+                  page: 1,
+                  limit: 20,
+                  sortBy: 'scheduledFor',
+                  sortOrder: 1,
+                },
               }),
             ]);
+
+            if (detailRes.status === 'fulfilled' && detailRes.value) {
+              detailRecord = detailRes.value as unknown as Record<string, unknown>;
+              const detailDisease = detailRes.value.program?.diseaseKey;
+              if (typeof detailDisease === 'string' && detailDisease.trim()) {
+                diseaseKey = detailDisease.trim().toLowerCase();
+              }
+            }
+
             if (rateRes.status === 'fulfilled') {
               const rawRate = rateRes.value as unknown as Record<string, unknown>;
               const dataRate =
@@ -404,15 +596,45 @@ export default function DoctorPatientsScreen() {
               if (typeof val === 'number') {
                 adherence = val <= 1 ? Math.round(val * 100) : Math.round(val);
               }
+              if (typeof dataRate.completed === 'number') {
+                adherenceCompleted = dataRate.completed;
+              }
+              if (typeof dataRate.expected === 'number') {
+                adherenceExpected = dataRate.expected;
+              }
             }
-            if (tasksRes.status === 'fulfilled') {
-              const tasks = normalizePaginatedList<Record<string, unknown>>(tasksRes.value).items;
-              const openTask =
-                tasks.find((tk) => tk.status === 'due' || tk.status === 'overdue' || tk.status === 'upcoming') ??
-                tasks[0];
+
+            if (reviewTasksRes.status === 'fulfilled') {
+              const tasks = normalizePaginatedList<Record<string, unknown>>(reviewTasksRes.value).items;
+              const nowMs = Date.now();
+              const openTask = tasks.find((tk) =>
+                isDoctorReviewTaskOpenNow(
+                  {
+                    status: typeof tk.status === 'string' ? tk.status : undefined,
+                    windowStart: typeof tk.windowStart === 'string' ? tk.windowStart : undefined,
+                    windowEnd: typeof tk.windowEnd === 'string' ? tk.windowEnd : undefined,
+                    allowedActions: Array.isArray(tk.allowedActions)
+                      ? tk.allowedActions.filter((a): a is string => typeof a === 'string')
+                      : undefined,
+                  },
+                  nowMs
+                )
+              );
               if (openTask) {
                 pendingReviewTaskId = String(openTask.id ?? openTask._id ?? '') || undefined;
               }
+            }
+
+            if (todayTasksRes.status === 'fulfilled') {
+              const todayItems = normalizePaginatedList<Record<string, unknown>>(
+                todayTasksRes.value
+              ).items.filter(
+                (tk) => tk.status !== 'cancelled' && tk.taskType !== 'doctor_review'
+              );
+              todayTotalCount = todayItems.length;
+              todayCompletedCount = todayItems.filter(
+                (tk) => tk.status === 'completed'
+              ).length;
             }
           }
 
@@ -423,12 +645,22 @@ export default function DoctorPatientsScreen() {
             enrollmentId,
             programId: progId || undefined,
             programName: progName,
+            diseaseKey,
             enrollmentStatus,
             allowedActions: resolveAllowedLifecycleActions(enr.allowedActions, enrollmentStatus),
             revision: typeof enr.revision === 'number' ? enr.revision : Number(enr.revision ?? 1) || 1,
-            baseline: formatBaselineCompact(enr),
-            current: latestMetricMap[pId] ?? '—',
+            baseline: formatBaselineCompact(detailRecord, diseaseKey, t),
+            current: selectCurrentMetricCompact(
+              recentMetricsMap[pId] ?? [],
+              diseaseKey,
+              t,
+              i18n
+            ),
             adherence,
+            adherenceCompleted,
+            adherenceExpected,
+            todayCompletedCount,
+            todayTotalCount,
             openAlertCount: alertCountByPatient[pId] ?? 0,
             pendingReviewTaskId,
           };
@@ -445,7 +677,12 @@ export default function DoctorPatientsScreen() {
           lastEndedProgram: ended ? { name: ended.name, status: ended.status } : undefined,
           revision: 1,
           baseline: '—',
-          current: latestMetricMap[pId] ?? '—',
+          current: selectCurrentMetricCompact(
+            recentMetricsMap[pId] ?? [],
+            undefined,
+            t,
+            i18n
+          ),
           openAlertCount: alertCountByPatient[pId] ?? 0,
         };
       });
@@ -930,28 +1167,60 @@ export default function DoctorPatientsScreen() {
                   >
                     <View style={tw('flex-row justify-between gap-2 mb-3')}>
                       <View style={tw('flex-1')}>
-                        <Text style={tw('text-xs text-slate-500')}>{t('mobile.baseline')}</Text>
+                        <Text style={tw('text-xs text-slate-500 dark:text-slate-400')}>
+                          {t('mobile.baseline_metric_label')}
+                        </Text>
                         <Text numberOfLines={1} style={tw('font-bold text-slate-700 dark:text-slate-300 mt-0.5')}>
                           {patient.baseline}
                         </Text>
                       </View>
                       <View style={tw('flex-1 items-center')}>
-                        <Text style={tw('text-xs text-slate-500')}>{t('mobile.current')}</Text>
+                        <Text style={tw('text-xs text-slate-500 dark:text-slate-400')}>
+                          {t('mobile.current')}
+                        </Text>
                         <Text numberOfLines={1} style={tw('font-bold text-slate-900 dark:text-white mt-0.5')}>
                           {patient.current}
                         </Text>
                       </View>
                       <View style={tw('items-end')}>
-                        <Text style={tw('text-xs text-slate-500')}>{t('mobile.adherence')}</Text>
+                        <Text style={tw('text-xs text-slate-500 dark:text-slate-400')}>
+                          {t('mobile.adherence')}
+                        </Text>
                         <Text
                           style={tw(
                             `font-bold mt-0.5 ${
-                              (patient.adherence ?? 0) >= 80 ? 'text-emerald-500' : 'text-amber-500'
+                              typeof patient.adherence === 'number'
+                                ? patient.adherence >= 80
+                                  ? 'text-emerald-500'
+                                  : 'text-amber-500'
+                                : 'text-slate-400 dark:text-slate-500'
                             }`
                           )}
                         >
                           {typeof patient.adherence === 'number' ? `${patient.adherence}%` : '—'}
                         </Text>
+                        {typeof patient.todayTotalCount === 'number' && patient.todayTotalCount > 0 ? (
+                          <Text
+                            numberOfLines={1}
+                            style={tw('text-[10px] text-slate-500 dark:text-slate-400 mt-0.5')}
+                          >
+                            {t('mobile.today_tasks_short', {
+                              completed: patient.todayCompletedCount ?? 0,
+                              total: patient.todayTotalCount,
+                            })}
+                          </Text>
+                        ) : typeof patient.adherenceExpected === 'number' &&
+                          patient.adherenceExpected > 0 ? (
+                          <Text
+                            numberOfLines={1}
+                            style={tw('text-[10px] text-slate-500 dark:text-slate-400 mt-0.5')}
+                          >
+                            {t('mobile.closed_tasks_short', {
+                              completed: patient.adherenceCompleted ?? 0,
+                              expected: patient.adherenceExpected,
+                            })}
+                          </Text>
+                        ) : null}
                       </View>
                     </View>
 
