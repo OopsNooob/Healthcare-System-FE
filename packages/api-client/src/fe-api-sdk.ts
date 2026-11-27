@@ -4240,6 +4240,440 @@ export function createFeApiSdk(executor: ApiExecutor) {
         options,
       );
     },
+
+    // ==================== E3 — MEDICAL FACILITY DIRECTORY ====================
+
+    /** GET /api/v1/medical-facilities/specialties */
+    medicalFacilitiesListSpecialties(
+      options?: RequestRuntimeOptions,
+    ): Promise<FeTypes.MedicalFacilitiesListSpecialtiesResponse> {
+      return runEndpoint<undefined, FeTypes.MedicalFacilitiesListSpecialtiesResponse>(
+        executor,
+        {
+          method: 'GET',
+          path: '/medical-facilities/specialties',
+          isWrapper: true,
+          isMultipart: false,
+          requiresIdempotency: false,
+        },
+        undefined,
+        options,
+      );
+    },
+    /** POST /api/v1/medical-facilities/search */
+    medicalFacilitiesSearch(
+      input: FeTypes.MedicalFacilitiesSearchApiRequest,
+      options?: RequestRuntimeOptions,
+    ): Promise<FeTypes.FacilityDirectorySearchResponse> {
+      return runEndpoint<FeTypes.MedicalFacilitiesSearchApiRequest, FeTypes.FacilityDirectorySearchResponse>(
+        executor,
+        {
+          method: 'POST',
+          path: '/medical-facilities/search',
+          isWrapper: true,
+          isMultipart: false,
+          requiresIdempotency: false,
+        },
+        input,
+        options,
+      );
+    },
+    /** GET /api/v1/medical-facilities/{id} */
+    medicalFacilitiesGetDetail(
+      input: FeTypes.MedicalFacilitiesGetDetailApiRequest,
+      options?: RequestRuntimeOptions,
+    ): Promise<FeTypes.MedicalFacilitiesGetDetailResponse> {
+      return runEndpoint<FeTypes.MedicalFacilitiesGetDetailApiRequest, FeTypes.MedicalFacilitiesGetDetailResponse>(
+        executor,
+        {
+          method: 'GET',
+          path: '/medical-facilities/{id}',
+          isWrapper: true,
+          isMultipart: false,
+          requiresIdempotency: false,
+        },
+        input,
+        options,
+      );
+    },
+    /** POST /api/v1/medical-facilities/external-search */
+    medicalFacilitiesExternalSearch(
+      input: FeTypes.MedicalFacilitiesExternalSearchApiRequest,
+      options?: RequestRuntimeOptions,
+    ): Promise<FeTypes.FacilityDirectoryExternalSearchResponse> {
+      return runEndpoint<FeTypes.MedicalFacilitiesExternalSearchApiRequest, FeTypes.FacilityDirectoryExternalSearchResponse>(
+        executor,
+        {
+          method: 'POST',
+          path: '/medical-facilities/external-search',
+          isWrapper: true,
+          isMultipart: false,
+          requiresIdempotency: false,
+        },
+        input,
+        options,
+      );
+    },
+    /** GET /api/v1/admin/medical-facilities */
+    adminMedicalFacilitiesList(
+      input?: FeTypes.AdminMedicalFacilitiesListApiRequest,
+      options?: RequestRuntimeOptions,
+    ): Promise<FeTypes.AdminMedicalFacilitiesListResponse> {
+      return runEndpoint<FeTypes.AdminMedicalFacilitiesListApiRequest, FeTypes.AdminMedicalFacilitiesListResponse>(
+        executor,
+        {
+          method: 'GET',
+          path: '/admin/medical-facilities',
+          isWrapper: true,
+          isMultipart: false,
+          requiresIdempotency: false,
+        },
+        input,
+        options,
+      );
+    },
+    /** GET /api/v1/admin/medical-facilities/{id} */
+    adminMedicalFacilitiesGet(
+      input: FeTypes.AdminMedicalFacilitiesGetApiRequest,
+      options?: RequestRuntimeOptions,
+    ): Promise<FeTypes.AdminMedicalFacilitiesRecordResponse> {
+      return runEndpoint<FeTypes.AdminMedicalFacilitiesGetApiRequest, FeTypes.AdminMedicalFacilitiesRecordResponse>(
+        executor,
+        {
+          method: 'GET',
+          path: '/admin/medical-facilities/{id}',
+          isWrapper: true,
+          isMultipart: false,
+          requiresIdempotency: false,
+        },
+        input,
+        options,
+      );
+    },
+    /** POST /api/v1/admin/medical-facilities */
+    adminMedicalFacilitiesCreateDraft(
+      input: WithFlexibleHeaders<FeTypes.AdminMedicalFacilitiesCreateDraftApiRequest>,
+      options?: RequestRuntimeOptions,
+    ): Promise<FeTypes.AdminMedicalFacilitiesRecordResponse> {
+      return runEndpoint<WithFlexibleHeaders<FeTypes.AdminMedicalFacilitiesCreateDraftApiRequest>, FeTypes.AdminMedicalFacilitiesRecordResponse>(
+        executor,
+        {
+          method: 'POST',
+          path: '/admin/medical-facilities',
+          isWrapper: true,
+          isMultipart: false,
+          requiresIdempotency: true,
+        },
+        input,
+        options,
+      );
+    },
+    /** POST /api/v1/admin/medical-facilities/map-candidates */
+    adminMedicalFacilitiesSearchMapCandidates(
+      input: FeTypes.AdminMedicalFacilitiesSearchMapApiRequest,
+      options?: RequestRuntimeOptions,
+    ): Promise<FeTypes.FacilityDirectoryExternalSearchResponse> {
+      return runEndpoint<FeTypes.AdminMedicalFacilitiesSearchMapApiRequest, FeTypes.FacilityDirectoryExternalSearchResponse>(
+        executor,
+        {
+          method: 'POST',
+          path: '/admin/medical-facilities/map-candidates',
+          isWrapper: true,
+          isMultipart: false,
+          requiresIdempotency: false,
+        },
+        input,
+        options,
+      );
+    },
+    /** POST /api/v1/admin/medical-facilities/from-map-candidate */
+    adminMedicalFacilitiesCreateFromMap(
+      input: WithFlexibleHeaders<FeTypes.AdminMedicalFacilitiesCreateFromMapApiRequest>,
+      options?: RequestRuntimeOptions,
+    ): Promise<FeTypes.FacilityDirectoryCreateFromMapResponse> {
+      return runEndpoint<WithFlexibleHeaders<FeTypes.AdminMedicalFacilitiesCreateFromMapApiRequest>, FeTypes.FacilityDirectoryCreateFromMapResponse>(
+        executor,
+        {
+          method: 'POST',
+          path: '/admin/medical-facilities/from-map-candidate',
+          isWrapper: true,
+          isMultipart: false,
+          requiresIdempotency: true,
+        },
+        input,
+        options,
+      );
+    },
+    /** GET /api/v1/admin/medical-facilities/{id}/map-candidate */
+    adminMedicalFacilitiesGetMapCandidatePreview(
+      input: FeTypes.AdminMedicalFacilitiesGetMapPreviewApiRequest,
+      options?: RequestRuntimeOptions,
+    ): Promise<FeTypes.AdminMedicalFacilitiesGetMapPreviewResponse> {
+      return runEndpoint<FeTypes.AdminMedicalFacilitiesGetMapPreviewApiRequest, FeTypes.AdminMedicalFacilitiesGetMapPreviewResponse>(
+        executor,
+        {
+          method: 'GET',
+          path: '/admin/medical-facilities/{id}/map-candidate',
+          isWrapper: true,
+          isMultipart: false,
+          requiresIdempotency: false,
+        },
+        input,
+        options,
+      );
+    },
+    /** PUT /api/v1/admin/medical-facilities/{id}/draft */
+    adminMedicalFacilitiesUpdateDraft(
+      input: WithFlexibleHeaders<FeTypes.AdminMedicalFacilitiesUpdateDraftApiRequest>,
+      options?: RequestRuntimeOptions,
+    ): Promise<FeTypes.AdminMedicalFacilitiesRecordResponse> {
+      return runEndpoint<WithFlexibleHeaders<FeTypes.AdminMedicalFacilitiesUpdateDraftApiRequest>, FeTypes.AdminMedicalFacilitiesRecordResponse>(
+        executor,
+        {
+          method: 'PUT',
+          path: '/admin/medical-facilities/{id}/draft',
+          isWrapper: true,
+          isMultipart: false,
+          requiresIdempotency: true,
+        },
+        input,
+        options,
+      );
+    },
+    /** POST /api/v1/admin/medical-facilities/{id}/revisions */
+    adminMedicalFacilitiesCreateRevision(
+      input: WithFlexibleHeaders<FeTypes.AdminMedicalFacilitiesCreateRevisionApiRequest>,
+      options?: RequestRuntimeOptions,
+    ): Promise<FeTypes.AdminMedicalFacilitiesCreateRevisionResponse> {
+      return runEndpoint<WithFlexibleHeaders<FeTypes.AdminMedicalFacilitiesCreateRevisionApiRequest>, FeTypes.AdminMedicalFacilitiesCreateRevisionResponse>(
+        executor,
+        {
+          method: 'POST',
+          path: '/admin/medical-facilities/{id}/revisions',
+          isWrapper: true,
+          isMultipart: false,
+          requiresIdempotency: true,
+        },
+        input,
+        options,
+      );
+    },
+    /** POST /api/v1/admin/medical-facilities/{id}/actions/verify */
+    adminMedicalFacilitiesVerify(
+      input: WithFlexibleHeaders<FeTypes.AdminMedicalFacilitiesVerifyApiRequest>,
+      options?: RequestRuntimeOptions,
+    ): Promise<FeTypes.AdminMedicalFacilitiesRecordResponse> {
+      return runEndpoint<WithFlexibleHeaders<FeTypes.AdminMedicalFacilitiesVerifyApiRequest>, FeTypes.AdminMedicalFacilitiesRecordResponse>(
+        executor,
+        {
+          method: 'POST',
+          path: '/admin/medical-facilities/{id}/actions/verify',
+          isWrapper: true,
+          isMultipart: false,
+          requiresIdempotency: true,
+        },
+        input,
+        options,
+      );
+    },
+    /** POST /api/v1/admin/medical-facilities/{id}/actions/retire */
+    adminMedicalFacilitiesRetire(
+      input: WithFlexibleHeaders<FeTypes.AdminMedicalFacilitiesRetireApiRequest>,
+      options?: RequestRuntimeOptions,
+    ): Promise<FeTypes.AdminMedicalFacilitiesRetireResponse> {
+      return runEndpoint<WithFlexibleHeaders<FeTypes.AdminMedicalFacilitiesRetireApiRequest>, FeTypes.AdminMedicalFacilitiesRetireResponse>(
+        executor,
+        {
+          method: 'POST',
+          path: '/admin/medical-facilities/{id}/actions/retire',
+          isWrapper: true,
+          isMultipart: false,
+          requiresIdempotency: true,
+        },
+        input,
+        options,
+      );
+    },
+    /** PATCH /api/v1/admin/medical-facilities/{id} */
+    adminMedicalFacilitiesLinkPlaceId(
+      input: WithFlexibleHeaders<FeTypes.AdminMedicalFacilitiesLinkPlaceApiRequest>,
+      options?: RequestRuntimeOptions,
+    ): Promise<FeTypes.FacilityDirectoryUpdateFacilityMetadataResponse> {
+      return runEndpoint<WithFlexibleHeaders<FeTypes.AdminMedicalFacilitiesLinkPlaceApiRequest>, FeTypes.FacilityDirectoryUpdateFacilityMetadataResponse>(
+        executor,
+        {
+          method: 'PATCH',
+          path: '/admin/medical-facilities/{id}',
+          isWrapper: true,
+          isMultipart: false,
+          requiresIdempotency: true,
+        },
+        input,
+        options,
+      );
+    },
+    /** GET /api/v1/admin/medical-specialties */
+    adminMedicalSpecialtiesList(
+      input?: FeTypes.AdminMedicalSpecialtiesListApiRequest,
+      options?: RequestRuntimeOptions,
+    ): Promise<FeTypes.AdminMedicalSpecialtiesListResponse> {
+      return runEndpoint<FeTypes.AdminMedicalSpecialtiesListApiRequest, FeTypes.AdminMedicalSpecialtiesListResponse>(
+        executor,
+        {
+          method: 'GET',
+          path: '/admin/medical-specialties',
+          isWrapper: true,
+          isMultipart: false,
+          requiresIdempotency: false,
+        },
+        input,
+        options,
+      );
+    },
+    /** POST /api/v1/admin/medical-specialties */
+    adminMedicalSpecialtiesCreate(
+      input: WithFlexibleHeaders<FeTypes.AdminMedicalSpecialtiesCreateApiRequest>,
+      options?: RequestRuntimeOptions,
+    ): Promise<FeTypes.AdminMedicalSpecialtiesRecordResponse> {
+      return runEndpoint<WithFlexibleHeaders<FeTypes.AdminMedicalSpecialtiesCreateApiRequest>, FeTypes.AdminMedicalSpecialtiesRecordResponse>(
+        executor,
+        {
+          method: 'POST',
+          path: '/admin/medical-specialties',
+          isWrapper: true,
+          isMultipart: false,
+          requiresIdempotency: true,
+        },
+        input,
+        options,
+      );
+    },
+    /** PATCH /api/v1/admin/medical-specialties/{code} */
+    adminMedicalSpecialtiesUpdate(
+      input: WithFlexibleHeaders<FeTypes.AdminMedicalSpecialtiesUpdateApiRequest>,
+      options?: RequestRuntimeOptions,
+    ): Promise<FeTypes.AdminMedicalSpecialtiesRecordResponse> {
+      return runEndpoint<WithFlexibleHeaders<FeTypes.AdminMedicalSpecialtiesUpdateApiRequest>, FeTypes.AdminMedicalSpecialtiesRecordResponse>(
+        executor,
+        {
+          method: 'PATCH',
+          path: '/admin/medical-specialties/{code}',
+          isWrapper: true,
+          isMultipart: false,
+          requiresIdempotency: true,
+        },
+        input,
+        options,
+      );
+    },
+    /** POST /api/v1/admin/medical-specialties/{code}/actions/retire */
+    adminMedicalSpecialtiesRetire(
+      input: WithFlexibleHeaders<FeTypes.AdminMedicalSpecialtiesRetireApiRequest>,
+      options?: RequestRuntimeOptions,
+    ): Promise<FeTypes.AdminMedicalSpecialtiesRetireResponse> {
+      return runEndpoint<WithFlexibleHeaders<FeTypes.AdminMedicalSpecialtiesRetireApiRequest>, FeTypes.AdminMedicalSpecialtiesRetireResponse>(
+        executor,
+        {
+          method: 'POST',
+          path: '/admin/medical-specialties/{code}/actions/retire',
+          isWrapper: true,
+          isMultipart: false,
+          requiresIdempotency: true,
+        },
+        input,
+        options,
+      );
+    },
+    /** GET /api/v1/admin/disease-specialty-mappings */
+    adminDiseaseSpecialtyMappingsList(
+      input?: FeTypes.AdminDiseaseSpecialtyMappingsListApiRequest,
+      options?: RequestRuntimeOptions,
+    ): Promise<FeTypes.AdminDiseaseSpecialtyMappingsListResponse> {
+      return runEndpoint<FeTypes.AdminDiseaseSpecialtyMappingsListApiRequest, FeTypes.AdminDiseaseSpecialtyMappingsListResponse>(
+        executor,
+        {
+          method: 'GET',
+          path: '/admin/disease-specialty-mappings',
+          isWrapper: true,
+          isMultipart: false,
+          requiresIdempotency: false,
+        },
+        input,
+        options,
+      );
+    },
+    /** POST /api/v1/admin/disease-specialty-mappings */
+    adminDiseaseSpecialtyMappingsCreate(
+      input: WithFlexibleHeaders<FeTypes.AdminDiseaseSpecialtyMappingsCreateApiRequest>,
+      options?: RequestRuntimeOptions,
+    ): Promise<FeTypes.AdminDiseaseSpecialtyMappingsRecordResponse> {
+      return runEndpoint<WithFlexibleHeaders<FeTypes.AdminDiseaseSpecialtyMappingsCreateApiRequest>, FeTypes.AdminDiseaseSpecialtyMappingsRecordResponse>(
+        executor,
+        {
+          method: 'POST',
+          path: '/admin/disease-specialty-mappings',
+          isWrapper: true,
+          isMultipart: false,
+          requiresIdempotency: true,
+        },
+        input,
+        options,
+      );
+    },
+    /** PATCH /api/v1/admin/disease-specialty-mappings/{id} */
+    adminDiseaseSpecialtyMappingsUpdate(
+      input: WithFlexibleHeaders<FeTypes.AdminDiseaseSpecialtyMappingsUpdateApiRequest>,
+      options?: RequestRuntimeOptions,
+    ): Promise<FeTypes.AdminDiseaseSpecialtyMappingsRecordResponse> {
+      return runEndpoint<WithFlexibleHeaders<FeTypes.AdminDiseaseSpecialtyMappingsUpdateApiRequest>, FeTypes.AdminDiseaseSpecialtyMappingsRecordResponse>(
+        executor,
+        {
+          method: 'PATCH',
+          path: '/admin/disease-specialty-mappings/{id}',
+          isWrapper: true,
+          isMultipart: false,
+          requiresIdempotency: true,
+        },
+        input,
+        options,
+      );
+    },
+    /** POST /api/v1/admin/disease-specialty-mappings/{id}/actions/publish */
+    adminDiseaseSpecialtyMappingsPublish(
+      input: WithFlexibleHeaders<FeTypes.AdminDiseaseSpecialtyMappingsPublishApiRequest>,
+      options?: RequestRuntimeOptions,
+    ): Promise<FeTypes.AdminDiseaseSpecialtyMappingsRecordResponse> {
+      return runEndpoint<WithFlexibleHeaders<FeTypes.AdminDiseaseSpecialtyMappingsPublishApiRequest>, FeTypes.AdminDiseaseSpecialtyMappingsRecordResponse>(
+        executor,
+        {
+          method: 'POST',
+          path: '/admin/disease-specialty-mappings/{id}/actions/publish',
+          isWrapper: true,
+          isMultipart: false,
+          requiresIdempotency: true,
+        },
+        input,
+        options,
+      );
+    },
+    /** POST /api/v1/admin/disease-specialty-mappings/{id}/actions/retire */
+    adminDiseaseSpecialtyMappingsRetire(
+      input: WithFlexibleHeaders<FeTypes.AdminDiseaseSpecialtyMappingsRetireApiRequest>,
+      options?: RequestRuntimeOptions,
+    ): Promise<FeTypes.AdminDiseaseSpecialtyMappingsRetireResponse> {
+      return runEndpoint<WithFlexibleHeaders<FeTypes.AdminDiseaseSpecialtyMappingsRetireApiRequest>, FeTypes.AdminDiseaseSpecialtyMappingsRetireResponse>(
+        executor,
+        {
+          method: 'POST',
+          path: '/admin/disease-specialty-mappings/{id}/actions/retire',
+          isWrapper: true,
+          isMultipart: false,
+          requiresIdempotency: true,
+        },
+        input,
+        options,
+      );
+    },
   };
 }
 

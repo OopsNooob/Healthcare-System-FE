@@ -3,20 +3,33 @@ import Toast from 'react-native-toast-message';
 import i18n from '@/i18n';
 
 /**
- * Open native Maps app (Google Maps on Android, Apple Maps on iOS) with directions to facility destination
+ * Opens native Maps app (Google Maps on Android, Apple Maps on iOS) with directions to facility.
+ * Uses verified [longitude, latitude] coordinates when available, with address fallback.
  */
-export const openMapsDirections = async (facilityName: string, address: string): Promise<void> => {
+export const openMapsDirections = async (
+  facilityName: string,
+  address: string,
+  coordinates?: [number, number]
+): Promise<void> => {
   const destination = `${facilityName}, ${address}`.trim();
-  const encodedDestination = encodeURIComponent(destination);
+  const hasValidCoords =
+    Array.isArray(coordinates) &&
+    coordinates.length === 2 &&
+    Number.isFinite(coordinates[0]) &&
+    Number.isFinite(coordinates[1]);
 
-  // 1. Android Google Maps Navigation Scheme
-  const androidAppNavUrl = `google.navigation:q=${encodedDestination}`;
-  // 2. Android Generic Geo Search
-  const androidGeoUrl = `geo:0,0?q=${encodedDestination}`;
-  // 3. iOS Apple Maps Route Scheme
-  const appleMapsUrl = `maps://app?daddr=${encodedDestination}`;
-  // 4. Universal Web Fallback
-  const webMapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodedDestination}`;
+  const queryTarget = hasValidCoords
+    ? `${coordinates[1]},${coordinates[0]}`
+    : destination;
+  const encodedQuery = encodeURIComponent(queryTarget);
+  const encodedLabel = encodeURIComponent(facilityName || destination);
+
+  const androidAppNavUrl = `google.navigation:q=${encodedQuery}`;
+  const androidGeoUrl = hasValidCoords
+    ? `geo:${coordinates[1]},${coordinates[0]}?q=${encodedQuery}(${encodedLabel})`
+    : `geo:0,0?q=${encodeURIComponent(destination)}`;
+  const appleMapsUrl = `maps://app?daddr=${encodedQuery}`;
+  const webMapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodedQuery}`;
 
   try {
     if (Platform.OS === 'android') {
@@ -38,7 +51,6 @@ export const openMapsDirections = async (facilityName: string, address: string):
       }
     }
 
-    // Fallback: Open in Google Maps web / default browser
     await Linking.openURL(webMapsUrl);
   } catch (error) {
     console.warn('Failed to launch navigation map:', error);
@@ -47,7 +59,7 @@ export const openMapsDirections = async (facilityName: string, address: string):
     } catch {
       Toast.show({
         type: 'error',
-        text1: i18n.t('mobile.directions', 'Directions'),
+        text1: i18n.t('mobile.directions'),
         text2: destination,
       });
     }
@@ -55,12 +67,37 @@ export const openMapsDirections = async (facilityName: string, address: string):
 };
 
 /**
- * Open native Phone Dialer app with pre-filled phone number
+ * Validates and opens an external public HTTPS URL (website, booking link, official source, or Google Maps URI).
  */
-export const openPhoneCall = async (phoneNumber: string): Promise<void> => {
+export const openExternalHttpsUrl = async (url?: string): Promise<void> => {
+  if (!url) return;
+  const trimmed = url.trim();
+  if (!/^https:\/\//i.test(trimmed)) {
+    Toast.show({
+      type: 'error',
+      text1: i18n.t('mobile.error'),
+      text2: i18n.t('mobile.facility_invalid_external_link'),
+    });
+    return;
+  }
+  try {
+    await Linking.openURL(trimmed);
+  } catch {
+    Toast.show({
+      type: 'error',
+      text1: i18n.t('mobile.error'),
+      text2: i18n.t('mobile.facility_open_link_failed'),
+    });
+  }
+};
+
+/**
+ * Opens native Phone Dialer app with pre-filled phone number.
+ */
+export const openPhoneCall = async (phoneNumber?: string): Promise<void> => {
   if (!phoneNumber) return;
-  // Clean phone number: keep only digits and leading plus sign
   const cleanNumber = phoneNumber.replace(/[^\d+]/g, '');
+  if (!cleanNumber) return;
   const telUrl = `tel:${cleanNumber}`;
 
   try {
@@ -68,16 +105,14 @@ export const openPhoneCall = async (phoneNumber: string): Promise<void> => {
     if (canOpen) {
       await Linking.openURL(telUrl);
     } else {
-      // Direct call fallback for Android or devices where canOpenURL returns false for tel:
       await Linking.openURL(telUrl);
     }
   } catch (error) {
     console.warn('Failed to open phone dialer:', error);
     Toast.show({
       type: 'info',
-      text1: i18n.t('mobile.call', 'Call'),
+      text1: i18n.t('mobile.call'),
       text2: phoneNumber,
     });
   }
 };
-

@@ -6642,6 +6642,8 @@ export interface FamilyHealthMetricTrendResponse {
   };
 }
 
+export type FamilyHealthMetricSummaryQuery = Omit<FamilyHealthMetricQuery, 'cursor' | 'limit'>;
+
 export interface FamilyHealthMetricSummaryResponse {
   statusCode: number;
   data: {
@@ -6667,4 +6669,531 @@ export interface FamilyHealthMetricSharingResponse {
       consentedAt: Da2IsoDateTime;
     };
   };
+}
+
+// ==================== E3 — MEDICAL FACILITY DIRECTORY ====================
+
+export type DirectoryFacilityType =
+  | 'hospital'
+  | 'general_hospital'
+  | 'medical_center'
+  | 'clinic';
+export type DirectoryFacilityStatus = 'draft' | 'verified' | 'retired';
+export type DirectoryMappingScope = 'program' | 'disease';
+export type DirectoryMappingStatus = 'draft' | 'published' | 'retired';
+export type DirectorySearchReasonCode =
+  | 'manual_specialty_specialty_match'
+  | 'program_mapping_specialty_match'
+  | 'disease_mapping_specialty_match'
+  | 'manual_specialty_specialty_match_nearby'
+  | 'program_mapping_specialty_match_nearby'
+  | 'disease_mapping_specialty_match_nearby';
+
+export interface FacilityDirectoryLocationRequest {
+  longitude: number;
+  latitude: number;
+}
+
+export interface FacilityDirectorySearchRequest {
+  /** Chỉ gửi một trong specialtyCode, programCode hoặc diseaseKey. */
+  specialtyCode?: string;
+  programCode?: string;
+  diseaseKey?: string;
+  area?: string;
+  /** Nếu gửi vị trí, bắt buộc locationConsent=true. */
+  location?: FacilityDirectoryLocationRequest;
+  locationConsent?: true;
+  radiusKm?: number;
+  page?: number;
+  limit?: number;
+}
+
+export interface FacilityDirectoryAddress {
+  street?: string;
+  ward?: string;
+  district?: string;
+  province: string;
+  provinceCode: 'HCMC';
+  country: 'VN';
+}
+
+export interface FacilityDirectoryContact {
+  phone?: string;
+  website?: string;
+  bookingUrl?: string;
+}
+
+/** Nội dung bản nháp; PUT thay thế toàn bộ details. Verify yêu cầu đủ thông tin. */
+export interface FacilityDirectoryDraftDetailsRequest {
+  name?: string;
+  facilityType?: DirectoryFacilityType;
+  address?: {
+    street?: string;
+    ward?: string;
+    district?: string;
+    province: string;
+  };
+  location?: FacilityDirectoryLocationRequest;
+  specialtyCodes?: string[];
+  services?: string[];
+  contact?: FacilityDirectoryContact;
+  officialSourceUrl?: string;
+}
+
+export interface FacilityDirectorySearchItem {
+  id: string;
+  name: string;
+  facilityType: DirectoryFacilityType;
+  address: FacilityDirectoryAddress;
+  matchedSpecialtyCodes: string[];
+  contact?: FacilityDirectoryContact;
+  distanceMeters?: number;
+  source: 'officially_verified_internal';
+  verificationLabel: 'verified' | 'needs_recheck';
+  lastCheckedAt: Da2IsoDateTime;
+  reasonCode: DirectorySearchReasonCode;
+}
+
+export interface FacilityDirectorySearchResponse {
+  statusCode: number;
+  data: {
+    mappingStatus: 'matched' | 'manual_specialty_required';
+    mappingSource: 'program_mapping' | 'disease_mapping' | 'manual_specialty' | null;
+    items: FacilityDirectorySearchItem[];
+    pagination: PagePagination;
+  };
+}
+
+export interface FacilityDirectorySpecialty {
+  code: string;
+  nameVi: string;
+  synonyms: string[];
+  status: 'active';
+  revision: number;
+}
+
+export interface FacilityDirectoryDetail
+  extends Omit<
+    FacilityDirectorySearchItem,
+    'matchedSpecialtyCodes' | 'distanceMeters' | 'reasonCode' | 'source'
+  > {
+  location: { type: 'Point'; coordinates: [longitude: number, latitude: number] };
+  specialtyCodes: string[];
+  services: string[];
+  source: { type: 'officially_verified_internal'; reference: string };
+  verifiedAt?: Da2IsoDateTime;
+}
+
+export interface FacilityDirectoryExternalSearchRequest {
+  specialtyCode: string;
+  area?: string;
+  location?: FacilityDirectoryLocationRequest;
+  locationConsent?: true;
+  radiusKm?: number;
+}
+
+export interface FacilityDirectoryMapCandidate {
+  placeId: string;
+  name?: string;
+  address?: string;
+  location?: { latitude: number; longitude: number };
+  mapsUrl?: string;
+  attribution: 'Google Maps';
+  thirdPartyAttributions?: Array<{ provider: string; providerUrl?: string }>;
+}
+
+export interface FacilityDirectoryExternalSearchResponse {
+  statusCode: number;
+  data: {
+    source: 'google_maps';
+    verifiedInternally: false;
+    attribution: 'Google Maps';
+    items: FacilityDirectoryMapCandidate[];
+  };
+}
+
+export interface FacilityDirectoryCommandHeaders {
+  'Idempotency-Key': string;
+}
+
+export type GooglePlaceTypeFilter =
+  | 'chiropractor'
+  | 'dental_clinic'
+  | 'dentist'
+  | 'doctor'
+  | 'drugstore'
+  | 'general_hospital'
+  | 'hospital'
+  | 'medical_center'
+  | 'medical_clinic'
+  | 'medical_lab'
+  | 'pharmacy'
+  | 'physiotherapist'
+  | 'skin_care_clinic'
+  | 'wellness_center';
+
+type AdminMapCandidateSearchOptions = { placeType?: GooglePlaceTypeFilter };
+
+export type FacilityDirectoryAdminMapQueryRequest = AdminMapCandidateSearchOptions &
+  { query: string; specialtyCode?: never } & (
+    | { area?: string; location?: never }
+    | {
+        area?: never;
+        location: FacilityDirectoryLocationRequest;
+        radiusKm?: number;
+      }
+    | { area?: never; location?: never }
+  );
+
+export type FacilityDirectoryAdminMapSpecialtyRequest = AdminMapCandidateSearchOptions &
+  { specialtyCode: string; query?: never } & (
+    | { area: string; location?: never }
+    | {
+        area?: never;
+        location: FacilityDirectoryLocationRequest;
+        radiusKm?: number;
+      }
+  );
+
+export type FacilityDirectoryAdminMapSearchRequest =
+  | FacilityDirectoryAdminMapQueryRequest
+  | FacilityDirectoryAdminMapSpecialtyRequest;
+
+export type FacilityDirectoryMapPreview = FacilityDirectoryMapCandidate & {
+  source: 'google_maps';
+  verifiedInternally: false;
+};
+
+export type FacilityDirectoryAdminSpecialty = Omit<
+  FacilityDirectorySpecialty,
+  'status'
+> & {
+  status: 'active' | 'retired';
+};
+
+export type FacilityDirectoryStoredDetails = Omit<
+  FacilityDirectoryDraftDetailsRequest,
+  'address' | 'location'
+> & {
+  normalizedName?: string;
+  address?: FacilityDirectoryAddress;
+  location?: FacilityDirectoryDetail['location'];
+};
+
+export interface FacilityDirectoryDuplicateDecision {
+  candidateFacilityId: string;
+  reason: string;
+  reviewedBy: string;
+  reviewedAt: Da2IsoDateTime;
+}
+
+export interface FacilityDirectoryAdminRecord {
+  id: string;
+  status: DirectoryFacilityStatus;
+  revision: number;
+  googlePlaceId?: string;
+  details?: FacilityDirectoryStoredDetails;
+  currentDetails?: FacilityDirectoryStoredDetails;
+  draftDetails?: FacilityDirectoryStoredDetails;
+  currentRevisionId?: string;
+  draftRevisionId?: string;
+  lastCheckedAt?: Da2IsoDateTime;
+  verifiedAt?: Da2IsoDateTime;
+  needsRecheck?: boolean;
+  duplicateDecisions?: FacilityDirectoryDuplicateDecision[];
+}
+
+export type FacilityDirectoryDuplicateReasonCode =
+  | 'similar_name'
+  | 'similar_address'
+  | 'nearby_location';
+
+export interface FacilityDirectoryDuplicateCandidate {
+  id: string;
+  status: DirectoryFacilityStatus;
+  revision: number;
+  name?: string;
+  address?: FacilityDirectoryAddress;
+  googlePlaceId?: string;
+  reasonCodes: FacilityDirectoryDuplicateReasonCode[];
+  distanceMeters?: number;
+}
+
+export interface FacilityDirectoryDuplicateReviewRequest {
+  confirmedDistinct: true;
+  reason: string;
+  reviewedFacilityIds: string[];
+}
+
+export interface FacilityDirectoryDuplicateConflict {
+  statusCode: 409;
+  code: 'FACILITY_POSSIBLE_DUPLICATE';
+  message: string;
+  details: {
+    candidates: FacilityDirectoryDuplicateCandidate[];
+    truncated: boolean;
+  };
+}
+
+export interface FacilityDirectoryCreateDraftRequest {
+  details: FacilityDirectoryDraftDetailsRequest;
+  duplicateReview?: FacilityDirectoryDuplicateReviewRequest;
+}
+
+export interface FacilityDirectoryCreateFromMapRequest {
+  placeId: string;
+  duplicateReview?: FacilityDirectoryDuplicateReviewRequest;
+}
+
+export interface FacilityDirectoryUpdateFacilityMetadataRequest {
+  placeId: string;
+  expectedRevision: number;
+}
+
+export type FacilityDirectoryCreateFromMapResponse = {
+  data: FacilityDirectoryAdminRecord & {
+    providerPreview?: FacilityDirectoryMapPreview;
+  };
+};
+
+export interface FacilityDirectoryVerifyRevisionRequest {
+  revisionId: string;
+  expectedRevision: number;
+  providerDataReviewedAgainstOfficialSource?: true;
+  duplicateReview?: FacilityDirectoryDuplicateReviewRequest;
+}
+
+export interface FacilityDirectoryUpdateFacilityMetadataResponse {
+  statusCode: number;
+  data: FacilityDirectoryAdminRecord;
+}
+
+export interface FacilityDirectoryRevision {
+  id: string;
+  facilityId: string;
+  version: number;
+  revision: number;
+  status: 'draft' | 'verified' | 'superseded';
+  details: FacilityDirectoryStoredDetails;
+}
+
+export interface FacilityDirectoryMapping {
+  id: string;
+  scope: DirectoryMappingScope;
+  scopeKey: string;
+  version: number;
+  revision: number;
+  status: DirectoryMappingStatus;
+  specialtyCodes: string[];
+  sourceReferences: string[];
+  publishedAt?: Da2IsoDateTime;
+}
+
+// SDK Wrapper Types for E3 Medical Facility Directory
+
+export interface MedicalFacilitiesListSpecialtiesResponse {
+  statusCode?: number;
+  data: FacilityDirectorySpecialty[];
+}
+
+export interface MedicalFacilitiesSearchApiRequest {
+  body: FacilityDirectorySearchRequest;
+}
+
+export interface MedicalFacilitiesGetDetailApiRequest {
+  params: { id: string };
+}
+
+export interface MedicalFacilitiesGetDetailResponse {
+  statusCode?: number;
+  data: FacilityDirectoryDetail;
+}
+
+export interface MedicalFacilitiesExternalSearchApiRequest {
+  body: FacilityDirectoryExternalSearchRequest;
+}
+
+export interface AdminMedicalFacilitiesListApiRequest {
+  query?: {
+    status?: DirectoryFacilityStatus;
+    needsRecheck?: boolean;
+    page?: number;
+    limit?: number;
+  };
+}
+
+export interface AdminMedicalFacilitiesListResponse {
+  statusCode?: number;
+  data: {
+    items: FacilityDirectoryAdminRecord[];
+    total: number;
+    page?: number;
+    limit?: number;
+  };
+}
+
+export interface AdminMedicalFacilitiesGetApiRequest {
+  params: { id: string };
+}
+
+export interface AdminMedicalFacilitiesRecordResponse {
+  statusCode?: number;
+  data: FacilityDirectoryAdminRecord;
+}
+
+export interface AdminMedicalFacilitiesCreateDraftApiRequest {
+  headers?: { 'Idempotency-Key'?: string; 'idempotency-key'?: string };
+  body: FacilityDirectoryCreateDraftRequest;
+}
+
+export interface AdminMedicalFacilitiesSearchMapApiRequest {
+  body: FacilityDirectoryAdminMapSearchRequest;
+}
+
+export interface AdminMedicalFacilitiesCreateFromMapApiRequest {
+  headers?: { 'Idempotency-Key'?: string; 'idempotency-key'?: string };
+  body: FacilityDirectoryCreateFromMapRequest;
+}
+
+export interface AdminMedicalFacilitiesGetMapPreviewApiRequest {
+  params: { id: string };
+}
+
+export interface AdminMedicalFacilitiesGetMapPreviewResponse {
+  statusCode?: number;
+  data: FacilityDirectoryMapPreview;
+}
+
+export interface AdminMedicalFacilitiesUpdateDraftApiRequest {
+  params: { id: string };
+  headers?: { 'Idempotency-Key'?: string; 'idempotency-key'?: string };
+  body: {
+    revisionId?: string;
+    expectedRevision: number;
+    details: FacilityDirectoryDraftDetailsRequest;
+  };
+}
+
+export interface AdminMedicalFacilitiesCreateRevisionApiRequest {
+  params: { id: string };
+  headers?: { 'Idempotency-Key'?: string; 'idempotency-key'?: string };
+}
+
+export interface AdminMedicalFacilitiesCreateRevisionResponse {
+  statusCode?: number;
+  data: FacilityDirectoryRevision;
+}
+
+export interface AdminMedicalFacilitiesVerifyApiRequest {
+  params: { id: string };
+  headers?: { 'Idempotency-Key'?: string; 'idempotency-key'?: string };
+  body: FacilityDirectoryVerifyRevisionRequest;
+}
+
+export interface AdminMedicalFacilitiesRetireApiRequest {
+  params: { id: string };
+  headers?: { 'Idempotency-Key'?: string; 'idempotency-key'?: string };
+  body: { reason: string; expectedRevision: number };
+}
+
+export interface AdminMedicalFacilitiesRetireResponse {
+  statusCode?: number;
+  data: { retired: true };
+}
+
+export interface AdminMedicalFacilitiesLinkPlaceApiRequest {
+  params: { id: string };
+  headers?: { 'Idempotency-Key'?: string; 'idempotency-key'?: string };
+  body: FacilityDirectoryUpdateFacilityMetadataRequest;
+}
+
+export interface AdminMedicalSpecialtiesListApiRequest {
+  query?: { status?: 'active' | 'retired' };
+}
+
+export interface AdminMedicalSpecialtiesListResponse {
+  statusCode?: number;
+  data: FacilityDirectoryAdminSpecialty[];
+}
+
+export interface AdminMedicalSpecialtiesCreateApiRequest {
+  headers?: { 'Idempotency-Key'?: string; 'idempotency-key'?: string };
+  body: { code: string; nameVi: string; synonyms?: string[] };
+}
+
+export interface AdminMedicalSpecialtiesUpdateApiRequest {
+  params: { code: string };
+  headers?: { 'Idempotency-Key'?: string; 'idempotency-key'?: string };
+  body: { nameVi: string; synonyms?: string[]; expectedRevision: number };
+}
+
+export interface AdminMedicalSpecialtiesRetireApiRequest {
+  params: { code: string };
+  headers?: { 'Idempotency-Key'?: string; 'idempotency-key'?: string };
+  body: { reason: string; expectedRevision: number };
+}
+
+export interface AdminMedicalSpecialtiesRecordResponse {
+  statusCode?: number;
+  data: FacilityDirectoryAdminSpecialty;
+}
+
+export interface AdminMedicalSpecialtiesRetireResponse {
+  statusCode?: number;
+  data: { retired: true };
+}
+
+export interface AdminDiseaseSpecialtyMappingsListApiRequest {
+  query?: {
+    scope?: DirectoryMappingScope;
+    scopeKey?: string;
+    status?: DirectoryMappingStatus;
+  };
+}
+
+export interface AdminDiseaseSpecialtyMappingsListResponse {
+  statusCode?: number;
+  data: FacilityDirectoryMapping[];
+}
+
+export interface AdminDiseaseSpecialtyMappingsCreateApiRequest {
+  headers?: { 'Idempotency-Key'?: string; 'idempotency-key'?: string };
+  body: {
+    scope: DirectoryMappingScope;
+    scopeKey: string;
+    specialtyCodes: string[];
+    sourceReferences: string[];
+  };
+}
+
+export interface AdminDiseaseSpecialtyMappingsUpdateApiRequest {
+  params: { id: string };
+  headers?: { 'Idempotency-Key'?: string; 'idempotency-key'?: string };
+  body: {
+    specialtyCodes: string[];
+    sourceReferences: string[];
+    expectedRevision: number;
+  };
+}
+
+export interface AdminDiseaseSpecialtyMappingsPublishApiRequest {
+  params: { id: string };
+  headers?: { 'Idempotency-Key'?: string; 'idempotency-key'?: string };
+  body: { expectedRevision: number };
+}
+
+export interface AdminDiseaseSpecialtyMappingsRetireApiRequest {
+  params: { id: string };
+  headers?: { 'Idempotency-Key'?: string; 'idempotency-key'?: string };
+  body: { reason: string; expectedRevision: number };
+}
+
+export interface AdminDiseaseSpecialtyMappingsRecordResponse {
+  statusCode?: number;
+  data: FacilityDirectoryMapping;
+}
+
+export interface AdminDiseaseSpecialtyMappingsRetireResponse {
+  statusCode?: number;
+  data: { retired: true };
 }

@@ -1489,6 +1489,328 @@ export const API_ERROR_MESSAGES = {
     vi: 'Khoảng thời gian tra cứu chỉ số sức khoẻ không hợp lệ.',
   },
 
+  // E3 Medical Facility Directory
+  FACILITY_DIRECTORY_DISABLED: {
+    en: 'Medical facility directory is currently disabled.',
+    vi: 'Tính năng danh bạ cơ sở y tế hiện đang tạm tắt.',
+  },
+  MAP_PROVIDER_DISABLED: {
+    en: 'External Google Maps search is currently disabled.',
+    vi: 'Tính năng tìm kiếm mở rộng qua Google Maps hiện đang tạm tắt.',
+  },
+  MAP_PROVIDER_UNAVAILABLE: {
+    en: 'Google Maps service is temporarily unavailable. Please try again later.',
+    vi: 'Dịch vụ Google Maps hiện tạm thời không khả dụng. Vui lòng thử lại sau.',
+  },
+  MAP_PROVIDER_RATE_LIMITED: {
+    en: 'Google Maps search rate limit reached. Please wait a moment before trying again.',
+    vi: 'Bạn đã vượt quá giới hạn tìm kiếm Google Maps. Vui lòng đợi một lát rồi thử lại.',
+  },
+  MAP_PROVIDER_RATE_LIMIT_UNAVAILABLE: {
+    en: 'Google Maps rate limiter is temporarily unavailable.',
+    vi: 'Bộ giới hạn tần suất Google Maps hiện tạm gián đoạn.',
+  },
+  MAP_PROVIDER_FILTER_INVALID: {
+    en: 'Selected Google place type filter is invalid.',
+    vi: 'Loại địa điểm Google Maps đã chọn không hợp lệ.',
+  },
+  VERIFIED_FACILITY_NOT_FOUND: {
+    en: 'This verified medical facility is no longer available.',
+    vi: 'Cơ sở y tế đã xác minh này hiện không còn khả dụng.',
+  },
+  FACILITY_NOT_FOUND: {
+    en: 'Medical facility record not found.',
+    vi: 'Không tìm thấy bản ghi cơ sở y tế.',
+  },
+  FACILITY_POSSIBLE_DUPLICATE: {
+    en: 'Possible duplicate facilities found. Please review existing records before continuing.',
+    vi: 'Phát hiện cơ sở y tế có khả năng trùng lặp. Vui lòng rà soát danh sách ứng viên trước khi tiếp tục.',
+  },
+  FACILITY_GOOGLE_PLACE_ALREADY_LINKED: {
+    en: 'This Google Place ID is already linked to another medical facility.',
+    vi: 'Google Place ID này đã được gắn cho một cơ sở y tế khác.',
+  },
+  FACILITY_GOOGLE_PLACE_CHANGE_NOT_SUPPORTED: {
+    en: 'Changing or removing an existing Google Place ID is not supported.',
+    vi: 'Hệ thống không hỗ trợ thay đổi hoặc gỡ bỏ Google Place ID đã gắn.',
+  },
+  FACILITY_DUPLICATE_REVIEW_CANDIDATE_NOT_CURRENT: {
+    en: 'Reviewed duplicate list is outdated. Please review the latest candidates and try again.',
+    vi: 'Danh sách cơ sở trùng lặp vừa thay đổi. Vui lòng tải lại ứng viên mới và xác nhận lại.',
+  },
+  FACILITY_DUPLICATE_REVIEW_CANDIDATE_NOT_FOUND: {
+    en: 'One or more reviewed duplicate candidates were not found.',
+    vi: 'Một hoặc nhiều cơ sở đối chiếu trùng lặp không còn tồn tại.',
+  },
+  FACILITY_DUPLICATE_REVIEW_GUARD_MISSING: {
+    en: 'HCMC verification concurrency guard is missing. Contact database operations.',
+    vi: 'Thiếu guard đồng bộ xác minh cơ sở y tế trên hệ thống. Vui lòng liên hệ vận hành.',
+  },
+  FACILITY_DUPLICATE_REVIEW_INVALID: {
+    en: 'Duplicate review confirmation must include reviewed IDs and a specific reason (10–300 chars).',
+    vi: 'Xác nhận khác cơ sở phải chọn ít nhất 1 ứng viên và nhập lý do rõ ràng (10–300 ký tự).',
+  },
+  FACILITY_DUPLICATE_REVIEW_LIMIT_REACHED: {
+    en: 'Maximum duplicate review decisions (50) reached for this facility.',
+    vi: 'Cơ sở này đã đạt giới hạn tối đa 50 quyết định phân biệt trùng lặp.',
+  },
+  FACILITY_DUPLICATE_REVIEW_SELF_REFERENCE: {
+    en: 'A facility cannot reference itself in a duplicate review.',
+    vi: 'Không thể tự tham chiếu chính cơ sở này trong danh sách đối chiếu trùng lặp.',
+  },
+  FACILITY_PROVIDER_DATA_REVIEW_CONFIRMATION_REQUIRED: {
+    en: 'Please confirm that Google Places data was independently verified against an official source.',
+    vi: 'Vui lòng xác nhận đã đối chiếu dữ liệu Google Places với nguồn chính thức trước khi xác minh.',
+  },
+  FACILITY_OUTSIDE_PILOT_AREA: {
+    en: 'Only medical facilities in Ho Chi Minh City (HCMC) are supported in this pilot.',
+    vi: 'Hiện hệ thống chỉ hỗ trợ cơ sở y tế trong phạm vi TP. Hồ Chí Minh.',
+  },
+  FACILITY_DETAILS_INCOMPLETE: {
+    en: 'Facility details are incomplete for verification.',
+    vi: 'Thông tin cơ sở y tế chưa đầy đủ để thực hiện xác minh.',
+  },
+  FACILITY_DETAILS_REQUIRED: {
+    en: 'Facility details payload is required.',
+    vi: 'Vui lòng nhập thông tin cơ sở y tế.',
+  },
+  FACILITY_NAME_INVALID: {
+    en: 'Facility name must be between 2 and 180 characters.',
+    vi: 'Tên cơ sở y tế phải từ 2 đến 180 ký tự.',
+  },
+  FACILITY_TYPE_INVALID: {
+    en: 'Selected facility type is invalid.',
+    vi: 'Loại hình cơ sở y tế không hợp lệ.',
+  },
+  FACILITY_LOCATION_INVALID: {
+    en: 'Facility coordinates (longitude, latitude) are invalid.',
+    vi: 'Toạ độ vị trí (kinh độ, vĩ độ) không hợp lệ.',
+  },
+  FACILITY_AREA_INVALID: {
+    en: 'Search area must be a non-empty district, ward, or street name (max 100 chars).',
+    vi: 'Khu vực tìm kiếm phải là tên Quận/Huyện, Phường/Xã hoặc đường hợp lệ (tối đa 100 ký tự).',
+  },
+  FACILITY_PAGE_INVALID: {
+    en: 'Invalid search page or limit (1–50).',
+    vi: 'Số trang hoặc giới hạn kết quả mỗi trang (1–50) không hợp lệ.',
+  },
+  FACILITY_RADIUS_INVALID: {
+    en: 'Search radius must be between 1 and 50 km.',
+    vi: 'Bán kính tìm kiếm phải từ 1 đến 50 km.',
+  },
+  FACILITY_SPECIALTIES_REQUIRED: {
+    en: 'Select at least one unique active medical specialty.',
+    vi: 'Vui lòng chọn ít nhất một chuyên khoa đang hoạt động (không trùng lặp).',
+  },
+  FACILITY_SPECIALTY_NOT_ACTIVE: {
+    en: 'One or more selected specialties do not exist or are retired.',
+    vi: 'Một hoặc nhiều chuyên khoa đã chọn không tồn tại hoặc đã ngừng áp dụng.',
+  },
+  FACILITY_OFFICIAL_SOURCE_REQUIRED: {
+    en: 'Official verification source must be a valid public HTTPS URL.',
+    vi: 'Nguồn xác minh chính thức phải là liên kết HTTPS công khai hợp lệ.',
+  },
+  FACILITY_CONTACT_REQUIRED: {
+    en: 'At least one contact method (phone, website, or booking link) is required.',
+    vi: 'Cần cung cấp ít nhất một kênh liên hệ (điện thoại, website hoặc liên kết đặt lịch).',
+  },
+  FACILITY_PHONE_INVALID: {
+    en: 'Contact phone number format is invalid.',
+    vi: 'Số điện thoại liên hệ không đúng định dạng.',
+  },
+  FACILITY_WEBSITE_INVALID: {
+    en: 'Website URL must be a valid public HTTPS link.',
+    vi: 'Website phải là liên kết HTTPS công khai hợp lệ.',
+  },
+  FACILITY_BOOKING_URL_INVALID: {
+    en: 'Booking URL must be a public HTTPS link matching the verified website or official source domain.',
+    vi: 'Liên kết đặt lịch phải dùng HTTPS công khai và cùng tên miền với website hoặc nguồn chính thức.',
+  },
+  FACILITY_REVISION_CONFLICT: {
+    en: 'Facility record was modified concurrently. Please reload and try again.',
+    vi: 'Bản ghi cơ sở y tế vừa được cập nhật ở nơi khác. Vui lòng tải lại.',
+  },
+  FACILITY_DRAFT_REVISION_CONFLICT: {
+    en: 'Draft revision mismatch or facility has no active draft revision.',
+    vi: 'Phiên bản nháp không khớp hoặc cơ sở chưa có bản nháp đang mở.',
+  },
+  FACILITY_STATE_CONFLICT: {
+    en: 'Facility status does not allow this operation.',
+    vi: 'Trạng thái hiện tại của cơ sở y tế không cho phép thực hiện thao tác này.',
+  },
+  FACILITY_RETIRE_INPUT_INVALID: {
+    en: 'Retirement reason (2–300 chars) and valid expected revision are required.',
+    vi: 'Vui lòng nhập lý do ngừng công bố (2–300 ký tự) và đúng số revision.',
+  },
+  FACILITY_RETIRED_CANNOT_LINK_PLACE: {
+    en: 'Cannot link a Google Place ID to a retired facility.',
+    vi: 'Không thể gắn Google Place ID cho cơ sở y tế đã ngừng công bố.',
+  },
+  FACILITY_PLACE_LINK_INPUT_INVALID: {
+    en: 'Valid Google Place ID and expected revision are required.',
+    vi: 'Vui lòng nhập Google Place ID hợp lệ và đúng số revision.',
+  },
+  INVALID_FACILITY_SEARCH: {
+    en: 'Invalid facility search criteria. Provide one selector and either area or consented location.',
+    vi: 'Điều kiện tìm kiếm cơ sở y tế không hợp lệ. Vui lòng chọn đúng bộ lọc và khu vực hoặc vị trí.',
+  },
+  INVALID_MAP_SEARCH: {
+    en: 'Invalid Google Maps candidate search parameters.',
+    vi: 'Tham số tìm kiếm Google Maps không hợp lệ.',
+  },
+  EXPLICIT_LOCATION_CONSENT_REQUIRED: {
+    en: 'Location permission and consent confirmation are required before searching nearby.',
+    vi: 'Bạn cần xác nhận đồng ý chia sẻ vị trí trước khi tìm cơ sở y tế gần bạn.',
+  },
+  MAP_SEARCH_SELECTOR_AMBIGUOUS: {
+    en: 'Choose either text query or specialty search, not both.',
+    vi: 'Chỉ chọn tìm theo từ khoá hoặc theo chuyên khoa, không gửi đồng thời cả hai.',
+  },
+  MAP_SEARCH_QUERY_INVALID: {
+    en: 'Search query must be between 2 and 180 characters.',
+    vi: 'Từ khoá tìm kiếm Google Maps phải từ 2 đến 180 ký tự.',
+  },
+  MAP_SEARCH_AREA_INVALID: {
+    en: 'Area name must be between 2 and 100 characters.',
+    vi: 'Tên khu vực tìm kiếm phải từ 2 đến 100 ký tự.',
+  },
+  CHOOSE_AREA_OR_LOCATION: {
+    en: 'Choose either an area name or GPS location, not both.',
+    vi: 'Chỉ được chọn tìm theo khu vực hoặc theo vị trí toạ độ, không dùng đồng thời cả hai.',
+  },
+  RADIUS_REQUIRES_LOCATION: {
+    en: 'Radius can only be specified when searching by location.',
+    vi: 'Chỉ sử dụng bán kính khi tìm kiếm theo toạ độ vị trí.',
+  },
+  GOOGLE_PLACE_ID_INVALID: {
+    en: 'Google Place ID is invalid.',
+    vi: 'Mã Google Place ID không hợp lệ.',
+  },
+  GOOGLE_PLACE_REFERENCE_NOT_FOUND: {
+    en: 'This facility does not have a linked Google Place ID.',
+    vi: 'Cơ sở y tế này chưa được gắn Google Place ID.',
+  },
+  CARE_DIRECTORY_UNIQUE_CONFLICT: {
+    en: 'Duplicate directory record or identifier conflict.',
+    vi: 'Dữ liệu danh bạ bị trùng lặp hoặc xung đột khoá duy nhất.',
+  },
+  CARE_DIRECTORY_WRITE_CONFLICT: {
+    en: 'Directory write conflict detected. Please retry.',
+    vi: 'Xung đột ghi dữ liệu danh bạ. Vui lòng thử lại.',
+  },
+  SUPER_ADMIN_REQUIRED: {
+    en: 'This operation requires Super Admin privileges.',
+    vi: 'Thao tác này chỉ dành cho quản trị viên cấp cao (Super Admin).',
+  },
+  INVALID_ACTOR: {
+    en: 'Invalid actor identifier.',
+    vi: 'Thông tin định danh người thực hiện không hợp lệ.',
+  },
+  EXPECTED_REVISION_REQUIRED: {
+    en: 'Expected revision number is required and must be at least 1.',
+    vi: 'Thiếu số phiên bản revision hợp lệ (>= 1).',
+  },
+  PUBLISHED_PROGRAM_NOT_FOUND: {
+    en: 'No published Care Program found for the selected code.',
+    vi: 'Không tìm thấy chương trình chăm sóc đã phát hành cho mã này.',
+  },
+  PUBLISHED_DISEASE_NOT_FOUND: {
+    en: 'No published Care Program found for the selected disease key.',
+    vi: 'Chưa có chương trình chăm sóc đã phát hành cho nhóm bệnh này.',
+  },
+  SPECIALTY_REQUIRED: {
+    en: 'Please select an active specialty.',
+    vi: 'Vui lòng chọn một chuyên khoa đang hoạt động.',
+  },
+  SPECIALTY_NOT_FOUND: {
+    en: 'Medical specialty not found or retired.',
+    vi: 'Không tìm thấy chuyên khoa hoặc chuyên khoa đã ngừng áp dụng.',
+  },
+  SPECIALTY_DUPLICATE: {
+    en: 'A medical specialty with this code already exists.',
+    vi: 'Mã chuyên khoa này đã tồn tại.',
+  },
+  SPECIALTY_IN_USE: {
+    en: 'This specialty cannot be retired while it is referenced by active facilities or published mappings.',
+    vi: 'Không thể ngừng chuyên khoa đang được sử dụng bởi cơ sở y tế hoặc ánh xạ đang áp dụng.',
+  },
+  SPECIALTY_INPUT_INVALID: {
+    en: 'Specialty code (lowercase alphanumeric/._-, 2–60 chars) and Vietnamese name (2–120 chars) are required.',
+    vi: 'Mã chuyên khoa (chữ thường/số/._-, 2–60 ký tự) và tên tiếng Việt (2–120 ký tự) là bắt buộc.',
+  },
+  SPECIALTY_SYNONYMS_INVALID: {
+    en: 'Up to 30 specialty synonyms allowed (max 100 chars each).',
+    vi: 'Từ đồng nghĩa chuyên khoa tối đa 30 mục (mỗi mục tối đa 100 ký tự).',
+  },
+  SPECIALTY_REVISION_CONFLICT: {
+    en: 'Specialty record was modified concurrently. Please refresh.',
+    vi: 'Chuyên khoa vừa được cập nhật ở nơi khác. Vui lòng tải lại.',
+  },
+  SPECIALTY_STATE_CONFLICT: {
+    en: 'Specialty is already retired or cannot transition from its current status.',
+    vi: 'Chuyên khoa đã ngừng áp dụng hoặc không thể chuyển trạng thái.',
+  },
+  SPECIALTY_RETIRE_INPUT_INVALID: {
+    en: 'Specialty retirement reason and valid expected revision are required.',
+    vi: 'Vui lòng nhập lý do ngừng chuyên khoa và đúng số revision.',
+  },
+  SPECIALTY_SEARCH_AREA_OR_LOCATION_REQUIRED: {
+    en: 'Searching Google Maps by specialty requires either an area name or GPS location.',
+    vi: 'Tìm Google Maps theo chuyên khoa cần chọn đúng một khu vực hoặc vị trí toạ độ.',
+  },
+  MAPPING_NOT_FOUND: {
+    en: 'Disease/program specialty mapping not found.',
+    vi: 'Không tìm thấy ánh xạ chuyên khoa.',
+  },
+  MAPPING_INPUT_INVALID: {
+    en: 'Invalid mapping scope, key, or specialty list.',
+    vi: 'Thông tin phạm vi, mã bệnh/chương trình hoặc chuyên khoa ánh xạ không hợp lệ.',
+  },
+  MAPPING_SCOPE_INVALID: {
+    en: 'Mapping scope must be either "program" or "disease".',
+    vi: 'Phạm vi ánh xạ chỉ nhận giá trị chương trình hoặc bệnh lý.',
+  },
+  MAPPING_KEY_INVALID: {
+    en: 'Mapping scope key must be 2–80 alphanumeric, dot, underscore, or hyphen characters.',
+    vi: 'Mã chương trình/bệnh lý phải từ 2–80 ký tự hợp lệ (chữ, số, dấu chấm, gạch dưới hoặc gạch ngang).',
+  },
+  MAPPING_SPECIALTIES_INVALID: {
+    en: 'Select 1 to 20 unique valid specialty codes.',
+    vi: 'Vui lòng chọn từ 1 đến 20 mã chuyên khoa hợp lệ không trùng nhau.',
+  },
+  MAPPING_SPECIALTY_NOT_ACTIVE: {
+    en: 'All mapped specialties must be active.',
+    vi: 'Mọi chuyên khoa trong ánh xạ đều phải đang ở trạng thái hoạt động.',
+  },
+  MAPPING_SOURCE_REQUIRED: {
+    en: 'Provide 1 to 10 reference source URLs.',
+    vi: 'Vui lòng cung cấp từ 1 đến 10 liên kết nguồn tham chiếu.',
+  },
+  MAPPING_SOURCE_INVALID: {
+    en: 'Each mapping source reference must be a valid HTTPS URL (max 1000 chars).',
+    vi: 'Mỗi nguồn tham chiếu ánh xạ phải là liên kết HTTPS hợp lệ (tối đa 1000 ký tự).',
+  },
+  MAPPING_REVISION_CONFLICT: {
+    en: 'Mapping was updated concurrently. Please reload and try again.',
+    vi: 'Ánh xạ vừa được cập nhật ở nơi khác. Vui lòng tải lại.',
+  },
+  MAPPING_STATE_CONFLICT: {
+    en: 'Mapping cannot perform this action in its current status.',
+    vi: 'Trạng thái hiện tại của ánh xạ không cho phép thực hiện thao tác này.',
+  },
+  MAPPING_PUBLISHED_SCOPE_CONFLICT: {
+    en: 'Another published mapping already exists for this scope and key.',
+    vi: 'Đã tồn tại một ánh xạ đang công bố cho phạm vi và mã này.',
+  },
+  PUBLISHED_MAPPING_CONFLICT: {
+    en: 'Only one published mapping is allowed per program/disease key.',
+    vi: 'Mỗi chương trình hoặc mã bệnh chỉ được có một bản ánh xạ đang công bố.',
+  },
+  MAPPING_RETIRE_REASON_REQUIRED: {
+    en: 'Please provide a retirement reason (up to 300 characters).',
+    vi: 'Vui lòng nhập lý do ngừng ánh xạ (tối đa 300 ký tự).',
+  },
+
   // Generic / HTTP / Network fallbacks
   NETWORK_ERROR: {
     en: 'Unable to reach the server. Please check your internet connection.',
@@ -1916,6 +2238,12 @@ const EXACT_MESSAGE_MAP: Record<string, ApiErrorTranslationKey> = {
   'invalid patient id': 'INVALID_ID',
   'invalid review cursor': 'VALIDATION_ERROR',
   'invalid review id': 'INVALID_ID',
+
+  // E3 Medical Facility Directory plain validation messages
+  'choose exactly one specialty, program or disease.': 'INVALID_FACILITY_SEARCH',
+  'explicit location consent is required.': 'EXPLICIT_LOCATION_CONSENT_REQUIRED',
+  'choose either an area or a precise location.': 'CHOOSE_AREA_OR_LOCATION',
+  'choose an area or provide a location.': 'INVALID_FACILITY_SEARCH',
 };
 
 const PATTERN_MESSAGE_RULES: ReadonlyArray<{

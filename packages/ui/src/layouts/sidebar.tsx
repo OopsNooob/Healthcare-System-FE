@@ -168,12 +168,6 @@ const adminMenuItems = {
       path: "/care-program",
     },
     {
-      id: "medical_facilities",
-      label: "sidebar.medicalFacilities",
-      icon: Building2,
-      path: "/medical-facilities",
-    },
-    {
       id: "violation_reports",
       label: "sidebar.violationReports",
       icon: ShieldAlert,
